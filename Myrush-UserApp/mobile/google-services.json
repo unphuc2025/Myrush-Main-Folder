@@ -1,0 +1,29 @@
+{
+    "project_info": {
+        "project_number": "201117960544",
+        "project_id": "myrush-30611",
+        "storage_bucket": "myrush-30611.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:201117960544:android:6831cd076adc172c7f7605",
+                "android_client_info": {
+                    "package_name": "com.Unphuc.MYRUSH"
+                }
+            },
+            "oauth_client": [],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyDNRkfEsKonn9KA68yJzxI_jLqiZMZQnhA"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": []
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}

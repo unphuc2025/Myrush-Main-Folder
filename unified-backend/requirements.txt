@@ -1,0 +1,21 @@
+# Unified Backend Requirements
+# Merged from Admin and User backends
+
+bcrypt==4.1.3
+email-validator
+fastapi
+fastapi==0.115.0
+passlib==1.7.4
+psycopg2-binary
+psycopg2-binary==2.9.9
+pydantic
+python-dotenv
+python-dotenv==1.0.1
+python-jose[cryptography]
+python-multipart
+python-multipart==0.0.12
+requests
+sqlalchemy
+sqlalchemy==2.0.36
+uvicorn
+uvicorn[standard]==0.32.0

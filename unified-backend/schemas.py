@@ -1,0 +1,763 @@
+from pydantic import BaseModel, EmailStr, Field, field_validator
+from typing import List, Optional, Any
+from datetime import date, time, datetime
+from decimal import Decimal
+from uuid import UUID
+import os
+
+# Get the API base URL from environment or use default
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+
+# ============================================================================
+# ADMIN SCHEMAS
+# ============================================================================
+
+class CityBase(BaseModel):
+    name: str
+    short_code: str
+    is_active: Optional[bool] = True
+
+class CityCreate(CityBase):
+    pass
+
+class City(CityBase):
+    id: str
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class AreaBase(BaseModel):
+    city_id: str
+    name: str
+    is_active: Optional[bool] = True
+
+class AreaCreate(AreaBase):
+    pass
+
+class Area(AreaBase):
+    id: str
+    city: Optional[City] = None
+
+    @field_validator('id', 'city_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class GameTypeBase(BaseModel):
+    name: str
+    short_code: str
+    description: Optional[str] = None
+    icon_url: Optional[str] = None
+    is_active: Optional[bool] = True
+
+class GameTypeCreate(GameTypeBase):
+    pass
+
+class GameType(GameTypeBase):
+    id: str
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    @field_validator('icon_url', mode='before')
+    @classmethod
+    def make_icon_url_absolute(cls, v):
+        if v and v.startswith('/'):
+            return f"{API_BASE_URL}{v}"
+        return v
+
+    class Config:
+        from_attributes = True
+
+class AmenityBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    icon_url: Optional[str] = None
+    is_active: Optional[bool] = True
+
+class AmenityCreate(AmenityBase):
+    pass
+
+class Amenity(AmenityBase):
+    id: str
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    @field_validator('icon_url', mode='before')
+    @classmethod
+    def make_icon_url_absolute(cls, v):
+        if v and v.startswith('/'):
+            return f"{API_BASE_URL}{v}"
+        return v
+
+    class Config:
+        from_attributes = True
+
+class BranchBase(BaseModel):
+    city_id: str
+    area_id: str
+    name: str
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    landmark: Optional[str] = None
+    search_location: Optional[str] = None
+    ground_overview: Optional[str] = None
+    ground_type: Optional[str] = None
+    images: Optional[List[str]] = []
+    videos: Optional[List[str]] = []
+    opening_hours: Optional[Any] = None
+    is_active: Optional[bool] = True
+
+class BranchCreate(BranchBase):
+    pass
+
+class Branch(BranchBase):
+    id: str
+    city: Optional[City] = None
+    area: Optional[Area] = None
+
+    @field_validator('id', 'city_id', 'area_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    @field_validator('images', mode='before')
+    @classmethod
+    def make_images_absolute(cls, v):
+        if v and isinstance(v, list):
+            return [f"{API_BASE_URL}{url}" if url and url.startswith('/') else url for url in v]
+        return v
+
+    class Config:
+        from_attributes = True
+
+class CourtBase(BaseModel):
+    branch_id: str
+    game_type_id: str
+    name: str
+    price_per_hour: Decimal
+    price_conditions: Optional[Any] = None
+    unavailability_slots: Optional[Any] = None
+    images: Optional[List[str]] = []
+    videos: Optional[List[str]] = []
+    terms_and_conditions: Optional[str] = None
+    amenities: Optional[List[str]] = []
+    is_active: Optional[bool] = True
+
+class CourtCreate(CourtBase):
+    pass
+
+class Court(CourtBase):
+    id: str
+    branch: Optional[Branch] = None
+    game_type: Optional[GameType] = None
+
+    @field_validator('id', 'branch_id', 'game_type_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    @field_validator('images', mode='before')
+    @classmethod
+    def make_images_absolute(cls, v):
+        if v and isinstance(v, list):
+            return [f"{API_BASE_URL}{url}" if url and url.startswith('/') else url for url in v]
+        return v
+
+    @field_validator('videos', mode='before')
+    @classmethod
+    def make_videos_absolute(cls, v):
+        if v and isinstance(v, list):
+            return [f"{API_BASE_URL}{url}" if url and url.startswith('/') else url for url in v]
+        return v
+
+    class Config:
+        from_attributes = True
+
+class CouponBase(BaseModel):
+    code: str
+    description: Optional[str] = None
+    discount_type: str # 'percentage' or 'flat'
+    discount_value: Decimal
+    min_order_value: Optional[Decimal] = 0
+    max_discount: Optional[Decimal] = None
+    start_date: datetime
+    end_date: datetime
+    usage_limit: Optional[int] = None
+    per_user_limit: Optional[int] = 1
+    applicable_type: Optional[str] = 'all'
+    applicable_ids: Optional[List[str]] = []
+    terms_condition: Optional[str] = None
+    is_active: Optional[bool] = True
+
+class CouponCreate(CouponBase):
+    pass
+
+class Coupon(CouponBase):
+    id: str
+    usage_count: Optional[int] = 0
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class AdminPolicyBase(BaseModel):
+    type: str # 'cancellation', 'terms'
+    name: str
+    value: Optional[str] = None
+    content: Optional[str] = None
+    is_active: Optional[bool] = True
+
+class AdminPolicyCreate(AdminPolicyBase):
+    pass
+
+class AdminPolicyUpdate(BaseModel):
+    name: Optional[str] = None
+    value: Optional[str] = None
+    content: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class AdminPolicy(AdminPolicyBase):
+    id: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class AdminBase(BaseModel):
+    name: Optional[str] = None
+    mobile: str
+    email: Optional[str] = None
+    role: Optional[str] = 'super_admin'
+    branch_id: Optional[str] = None
+
+class AdminCreate(AdminBase):
+    password: str
+
+class Admin(AdminBase):
+    id: str
+    created_at: Optional[datetime] = None
+    must_change_password: Optional[bool] = False
+
+    @field_validator('id', 'branch_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class AdminLoginRequest(BaseModel):
+    mobile: str
+    password: str
+
+class GlobalPriceConditionBase(BaseModel):
+    days: Optional[List[str]] = []
+    dates: Optional[List[str]] = []
+    slot_from: str
+    slot_to: str
+    price: Decimal
+    condition_type: Optional[str] = 'recurring'
+    is_active: Optional[bool] = True
+
+class GlobalPriceConditionCreate(GlobalPriceConditionBase):
+    pass
+
+class GlobalPriceCondition(GlobalPriceConditionBase):
+    id: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+# ============================================================================
+# USER SCHEMAS
+# ============================================================================
+
+class UserBase(BaseModel):
+    phone_number: str
+    country_code: Optional[str] = '+91'
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    city: Optional[str] = None
+    skill_level: Optional[str] = None
+    playing_style: Optional[str] = None
+    handedness: Optional[str] = 'Right-handed'
+    favorite_sports: Optional[List[str]] = []
+    profile_completed: Optional[bool] = False
+    is_verified: Optional[bool] = False
+    is_active: Optional[bool] = True
+    last_login_at: Optional[datetime] = None
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    first_name: str
+    last_name: str
+
+class UserResponse(BaseModel):
+    id: UUID
+    email: Optional[EmailStr] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class User(UserBase):
+    id: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class ProfileBase(BaseModel):
+    phone_number: str
+    full_name: Optional[str] = None
+    age: Optional[int] = None
+    city: Optional[str] = None
+    gender: Optional[str] = None
+    handedness: Optional[str] = None
+    skill_level: Optional[str] = None
+    sports: Optional[List[str]] = None
+    playing_style: Optional[str] = None
+
+class ProfileCreate(ProfileBase):
+    pass
+
+class ProfileResponse(ProfileBase):
+    id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+# ============================================================================
+# BOOKING SCHEMAS (Unified for both admin and user)
+# ============================================================================
+
+class BookingCreate(BaseModel):
+    """User booking creation from mobile app"""
+    court_id: str
+    booking_date: date
+    start_time: str  # AM/PM format supported
+    duration_minutes: int
+    number_of_players: int = 2
+    price_per_hour: float = 200.0
+    original_price_per_hour: Optional[float] = None
+    team_name: Optional[str] = None
+    special_requests: Optional[str] = None
+
+class BookingResponse(BaseModel):
+    """Response model for bookings"""
+    id: UUID
+    user_id: UUID
+    court_id: UUID
+    booking_date: date
+    start_time: time
+    end_time: time
+    duration_minutes: int
+    number_of_players: int
+    team_name: Optional[str] = None
+    special_requests: Optional[str] = None
+    price_per_hour: Decimal
+    original_price_per_hour: Optional[Decimal] = None
+    total_amount: Decimal
+    status: str
+    payment_status: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class AdminBookingCreate(BaseModel):
+    """Admin booking creation"""
+    customer_name: str
+    customer_email: str
+    customer_phone: str
+    court_id: str
+    game_type_id: str
+    booking_reference: str
+    booking_date: date
+    start_time: time
+    end_time: time
+    total_amount: Decimal
+    special_requests: Optional[str] = None
+    status: Optional[str] = 'pending'
+    payment_status: Optional[str] = 'pending'
+
+class Booking(BaseModel):
+    """Full booking model for admin view"""
+    id: str
+    user_id: Optional[str] = None
+    court_id: str
+    booking_date: date
+    start_time: time
+    end_time: time
+    duration_minutes: int
+    number_of_players: int
+    price_per_hour: Decimal
+    total_amount: Decimal
+    status: str
+    payment_status: str
+    coupon_discount: Optional[Decimal] = 0
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_validator('id', 'user_id', 'court_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class AdminBooking(BaseModel):
+    """Admin booking view with customer details"""
+    id: str
+    customer_name: str
+    customer_email: str
+    customer_phone: str
+    court_id: str
+    game_type_id: str
+    booking_reference: str
+    booking_date: date
+    start_time: time
+    end_time: time
+    duration_hours: Decimal
+    total_amount: Decimal
+    special_requests: Optional[str] = None
+    status: str
+    payment_status: str
+    coupon_code: Optional[str] = None
+    coupon_discount: Optional[Decimal] = 0
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    court: Optional[Court] = None
+    game_type: Optional[GameType] = None
+
+    @field_validator('id', 'court_id', 'game_type_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+# ============================================================================
+# REVIEW SCHEMAS
+# ============================================================================
+
+class ReviewCreate(BaseModel):
+    booking_id: str
+    court_id: str
+    rating: int = Field(ge=1, le=5, description="Rating must be between 1 and 5")
+    review_text: Optional[str] = None
+
+class ReviewResponse(BaseModel):
+    id: UUID
+    user_id: UUID
+    booking_id: UUID
+    court_id: UUID
+    court_name: Optional[str] = None
+    rating: int
+    review_text: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class ReviewBase(BaseModel):
+    court_id: str
+    user_id: str
+    booking_id: Optional[str] = None
+    rating: int
+    review_text: Optional[str] = None
+    is_active: Optional[bool] = True
+
+class Review(ReviewBase):
+    id: str
+    created_at: Optional[datetime] = None
+    court: Optional[Court] = None
+    user: Optional[User] = None
+
+    @field_validator('id', 'court_id', 'user_id', 'booking_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+# ============================================================================
+# AUTH SCHEMAS
+# ============================================================================
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+class SendOTPRequest(BaseModel):
+    phone_number: str
+
+class SendOTPResponse(BaseModel):
+    message: str
+    success: bool
+    verification_id: Optional[str] = None
+    otp_code: Optional[str] = None
+
+class VerifyOTPRequest(BaseModel):
+    phone_number: str
+    otp_code: str
+    # Optional profile fields
+    full_name: Optional[str] = None
+    age: Optional[int] = None
+    city: Optional[str] = None
+    gender: Optional[str] = None
+    handedness: Optional[str] = None
+    skill_level: Optional[str] = None
+    sports: Optional[List[str]] = None
+    playing_style: Optional[str] = None
+
+class VerifyOTPResponse(BaseModel):
+    access_token: str
+    token_type: str
+
+# ============================================================================
+# COUPON SCHEMAS
+# ============================================================================
+
+class CouponValidateRequest(BaseModel):
+    coupon_code: str
+    total_amount: float
+
+class CouponResponse(BaseModel):
+    valid: bool
+    discount_percentage: Optional[float] = None
+    discount_amount: Optional[float] = None
+    final_amount: Optional[float] = None
+    message: str
+
+# ============================================================================
+# TOURNAMENT SCHEMAS
+# ============================================================================
+
+class TournamentBase(BaseModel):
+    name: str
+    sport: str
+    visibility: str = "Public"
+    start_date: date
+    end_date: date
+    start_time: str
+    end_time: str
+    branch_name: str
+    court_id: str
+    format: str
+    rules: Optional[str] = None
+    entry_fee: float = 0.00
+    max_participants: Optional[int] = None
+    description: Optional[str] = None
+    prize_info: Optional[str] = None
+    contact_info: Optional[str] = None
+
+class TournamentCreate(TournamentBase):
+    pass
+
+class TournamentResponse(TournamentBase):
+    id: UUID
+    user_id: UUID
+    status: str
+    current_participants: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    published_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+# ============================================================================
+# PUSH TOKEN SCHEMAS
+# ============================================================================
+
+class PushTokenBase(BaseModel):
+    device_token: str
+    device_type: str = "android"
+    device_info: Optional[dict] = None
+
+class PushTokenCreate(PushTokenBase):
+    pass
+
+class PushTokenResponse(PushTokenBase):
+    id: UUID
+    user_id: str
+    is_active: bool
+    last_used_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+# ============================================================================
+# NOTIFICATION SCHEMAS
+# ============================================================================
+
+class SendNotificationRequest(BaseModel):
+    user_ids: Optional[List[str]] = None
+    device_tokens: Optional[List[str]] = None
+    title: str
+    body: str
+    data: Optional[dict] = None
+
+class SendNotificationResponse(BaseModel):
+    success: bool
+    message: str
+    sent_count: int
+    failed_count: int
+    errors: Optional[List[str]] = None
+
+# ============================================================================
+# VENUE SCHEMAS
+# ============================================================================
+
+class VenueBase(BaseModel):
+    court_name: str
+    location: str
+    city: Optional[str] = None
+    game_type: str
+    prices: str
+    description: Optional[str] = None
+    photos: Optional[str] = None
+    videos: Optional[str] = None
+
+class VenueCreate(VenueBase):
+    pass
+
+class VenueResponse(VenueBase):
+    id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+# ============================================================================
+# CITY AND GAME TYPE RESPONSE SCHEMAS
+# ============================================================================
+
+class CityResponse(BaseModel):
+    id: UUID
+    name: str
+    short_code: Optional[str] = None
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+class GameTypeResponse(BaseModel):
+    id: UUID
+    name: str
+    icon_url: Optional[str] = None
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+class AdminCourtResponse(BaseModel):
+    id: str
+    branch_id: str
+    game_type_id: str
+    name: str
+    price_per_hour: float
+    price_conditions: Optional[List[dict]] = []
+    unavailability_slots: Optional[List[dict]] = []
+    images: Optional[List[str]] = []
+    videos: Optional[List[str]] = []
+    is_active: Optional[bool] = True
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None
+        }
