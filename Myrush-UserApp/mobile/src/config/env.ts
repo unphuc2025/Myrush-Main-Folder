@@ -28,12 +28,12 @@ export const getApiBaseUrl = (): string => {
   if (isDevelopment) {
     // Default to local network IP for development
     // Update to match your local IP
-    return 'http://192.168.1.3:8000/api/user';
+    return 'http://65.0.195.149:8000/api/user';
   }
 
   // Production fallback - this should be set in .env.production
   console.warn('⚠️ API_BASE_URL not set in environment variables. Using fallback.');
-  return 'http://192.168.1.3:8000/api/user';
+  return 'http://65.0.195.149:8000/api/user';
 };
 
 /**
