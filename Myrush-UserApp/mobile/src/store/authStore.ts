@@ -38,6 +38,7 @@ interface AuthState {
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   clearError: () => void;
+  setAuthSuccess: (token: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -46,6 +47,30 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
   isAuthenticated: false,
   error: null,
+
+  setAuthSuccess: async (token: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await apiClient.setToken(token);
+      const user = await authApi.getProfile();
+
+      set({
+        user: {
+          id: user.id,
+          email: user.email,
+          phoneNumber: user.phone_number,
+          firstName: user.first_name,
+          lastName: user.last_name,
+        },
+        token: token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error: any) {
+      console.error('[AUTH] setAuthSuccess error:', error);
+      set({ isLoading: false, error: error.message || 'Failed to set auth state' });
+    }
+  },
 
   login: async (credentials: LoginCredentials): Promise<boolean> => {
     set({ isLoading: true, error: null });
@@ -87,12 +112,25 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       // Call backend verify-otp endpoint
-      const authResp = await apiClient.post<{ access_token: string; token_type: string }>(
+      // Update interface to include optional fields
+      const authResp = await apiClient.post<{
+        access_token?: string;
+        token_type?: string;
+        needs_profile?: boolean;
+        message?: string;
+        phone_number?: string;
+      }>(
         '/auth/verify-otp',
         payload
       );
 
       console.log('[AUTH] Verify response:', authResp);
+
+      if (authResp?.needs_profile) {
+        console.log('[AUTH] User needs profile completion');
+        set({ isLoading: false, error: authResp.message || 'Please complete your profile' });
+        return false;
+      }
 
       if (!authResp || !authResp.access_token) {
         console.error('[AUTH] Invalid response structure:', authResp);

@@ -160,8 +160,12 @@ const PlayerProfileScreen = () => {
                 useAuthStore.setState({ tempOTP: undefined });
 
                 // Login with the received token
-                const { loginWithPhone } = useAuthStore.getState();
-                await loginWithPhone(finalPhoneNumber, tempOTP);
+                const { setAuthSuccess } = useAuthStore.getState();
+                if (response.access_token) {
+                    await setAuthSuccess(response.access_token);
+                } else {
+                    throw new Error('No access token received');
+                }
 
                 Alert.alert('Success', 'Welcome to MyRush!');
                 // Navigation will be handled by AppNavigator based on auth state

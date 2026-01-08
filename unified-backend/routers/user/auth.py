@@ -51,7 +51,14 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Se
         user = crud.get_user_by_email(db, email=token_data.email)
     if user is None:
         # try by id
-        user = db.query(models.User).filter(models.User.id == payload.get("sub")).first()
+        try:
+            # Check if sub is a valid UUID before querying to avoid DB errors
+            user_id = uuid.UUID(payload.get("sub"))
+            user = db.query(models.User).filter(models.User.id == user_id).first()
+        except (ValueError, TypeError):
+            # sub is not a valid UUID, so it can't match a UUID column
+            pass
+            
     if user is None:
         raise credentials_exception
     return user
