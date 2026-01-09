@@ -19,8 +19,8 @@ export type RootStackParamList = {
   Community: undefined;
   VenueDetails: { venue?: any };
   SlotSelection: { venue?: any };
-  BookingDetails: { venue?: string; venueObject?: any; pitch?: string; date?: number; month?: string; year?: number; monthIndex?: number; timeSlot?: string; slotPrice?: number };
-  ReviewBooking: { venue?: string; venueObject?: any; pitch?: string; date?: number; month?: string; year?: number; monthIndex?: number; timeSlot?: string; slotPrice?: number; numPlayers?: number; teamName?: string; specialRequests?: string };
+  BookingDetails: { venue?: string; venueObject?: any; pitch?: string; date?: number; month?: string; year?: number; monthIndex?: number; timeSlot?: string; slotPrice?: number; selectedSlots?: Array<{ time: string; display_time: string; price: number; }>; totalPrice?: number; };
+  ReviewBooking: { venue?: string; venueObject?: any; pitch?: string; date?: number; month?: string; year?: number; monthIndex?: number; timeSlot?: string; slotPrice?: number; numPlayers?: number; teamName?: string; specialRequests?: string; selectedSlots?: Array<{ time: string; display_time: string; price: number; }>; totalPrice?: number; };
   CreateTournament: undefined;
 };
 

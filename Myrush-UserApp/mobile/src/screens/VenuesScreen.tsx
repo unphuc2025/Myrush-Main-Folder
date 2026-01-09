@@ -33,12 +33,15 @@ const VenuesScreen = () => {
     const [showFilterModal, setShowFilterModal] = useState(false);
     const [availableCities, setAvailableCities] = useState<{ id: string; name: string }[]>([]);
     const [availableGameTypes, setAvailableGameTypes] = useState<{ id: string; name: string }[]>([]);
+    const [availableBranches, setAvailableBranches] = useState<{ id: string; name: string; city_id?: string }[]>([]);
     const [filters, setFilters] = useState<{
         location: string;
+        branch: string;
         gameTypes: string[];
         priceRange: string;
     }>({
         location: '',
+        branch: '',
         gameTypes: [],
         priceRange: '',
     });
@@ -103,6 +106,27 @@ const VenuesScreen = () => {
         }
     };
 
+    const loadBranchesForCity = async (cityName: string) => {
+        try {
+            // Find city_id from the selected city name
+            const selectedCityObj = availableCities.find(c => c.name === cityName);
+            if (!selectedCityObj) {
+                setAvailableBranches([]);
+                return;
+            }
+
+            const branchesResponse = await profileApi.getBranches(selectedCityObj.id);
+            if (branchesResponse.success) {
+                setAvailableBranches(branchesResponse.data);
+            } else {
+                setAvailableBranches([]);
+            }
+        } catch (error) {
+            console.error('Error loading branches:', error);
+            setAvailableBranches([]);
+        }
+    };
+
     const fetchVenues = async () => {
         setIsLoading(true);
         try {
@@ -138,6 +162,10 @@ const VenuesScreen = () => {
 
             if (filters.location) {
                 filterParams.location = filters.location;
+            }
+
+            if (filters.branch) {
+                filterParams.branch_id = filters.branch;
             }
 
             if (filters.gameTypes.length > 0) {
@@ -352,12 +380,20 @@ const VenuesScreen = () => {
                                             styles.locationChip,
                                             filters.location === city.name && styles.locationChipActive
                                         ]}
-                                        onPress={() =>
+                                        onPress={() => {
+                                            const newCityName = filters.location === city.name ? '' : city.name;
                                             setFilters(prev => ({
                                                 ...prev,
-                                                location: prev.location === city.name ? '' : city.name
-                                            }))
-                                        }
+                                                location: newCityName,
+                                                branch: '' // Reset branch when city changes
+                                            }));
+                                            // Load branches for selected city
+                                            if (newCityName) {
+                                                loadBranchesForCity(newCityName);
+                                            } else {
+                                                setAvailableBranches([]);
+                                            }
+                                        }}
                                     >
                                         <Text
                                             style={[
@@ -370,6 +406,51 @@ const VenuesScreen = () => {
                                     </TouchableOpacity>
                                 ))}
                             </ScrollView>
+                        </View>
+
+                        {/* Branch Filter */}
+                        <View style={styles.filterSection}>
+                            <Text style={styles.filterSectionTitle}>Branch</Text>
+                            {!filters.location ? (
+                                <Text style={styles.filterEmptyText}>
+                                    Select a city first to view branches
+                                </Text>
+                            ) : availableBranches.length === 0 ? (
+                                <Text style={styles.filterEmptyText}>
+                                    No branches available in {filters.location}
+                                </Text>
+                            ) : (
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    style={styles.locationChipsContainer}
+                                >
+                                    {availableBranches.map((branch) => (
+                                        <TouchableOpacity
+                                            key={branch.id}
+                                            style={[
+                                                styles.locationChip,
+                                                filters.branch === branch.id && styles.locationChipActive
+                                            ]}
+                                            onPress={() =>
+                                                setFilters(prev => ({
+                                                    ...prev,
+                                                    branch: prev.branch === branch.id ? '' : branch.id
+                                                }))
+                                            }
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.locationChipText,
+                                                    filters.branch === branch.id && styles.locationChipTextActive
+                                                ]}
+                                            >
+                                                {branch.name}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            )}
                         </View>
 
                         {/* Game Types Filter */}
@@ -455,6 +536,7 @@ const VenuesScreen = () => {
                             onPress={() => {
                                 setFilters({
                                     location: '',
+                                    branch: '',
                                     gameTypes: [],
                                     priceRange: '',
                                 });
@@ -760,6 +842,12 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#333',
         marginBottom: hp(1.5),
+    },
+    filterEmptyText: {
+        fontSize: fontScale(14),
+        color: '#999',
+        fontStyle: 'italic',
+        marginTop: hp(1),
     },
     locationChipsContainer: {
         marginBottom: hp(1),

@@ -57,6 +57,7 @@ def get_venues(
     city: Optional[str] = None,
     game_type: Optional[str] = None,
     location: Optional[str] = None,
+    branch_id: Optional[str] = None,
     db: Session = Depends(database.get_db)
 ):
     try:
@@ -93,6 +94,11 @@ def get_venues(
             query_sql += " AND LOWER(acity.name) = LOWER(:city)"
             params['city'] = city_filter
         
+        # Filter by branch_id if provided
+        if branch_id:
+            query_sql += " AND ab.id = :branch_id"
+            params['branch_id'] = branch_id
+        
         # Filter by game type if provided (handle array of game types)
         if game_type and game_type != "undefined":
             if isinstance(game_type, list):
@@ -113,10 +119,55 @@ def get_venues(
         
         print(f"[VENUES API] Found {len(courts)} courts")
         
+        # Helper function to parse images from various formats
+        def parse_images(images_value):
+            """Parse images from text/array formats into list of URLs"""
+            if not images_value:
+                return []
+            
+            # If already a list/array from PostgreSQL
+            if isinstance(images_value, list):
+                return [str(img).strip() for img in images_value if img]
+            
+            # If string, try parsing different formats
+            if isinstance(images_value, str):
+                images_value = images_value.strip()
+                if not images_value:
+                    return []
+                
+                # Try JSON array parse (e.g., '["url1", "url2"]')
+                if images_value.startswith('[') and images_value.endswith(']'):
+                    try:
+                        import json
+                        parsed = json.loads(images_value)
+                        if isinstance(parsed, list):
+                            return [str(img).strip() for img in parsed if img]
+                    except:
+                        pass
+                
+                # Try PostgreSQL array format (e.g., '{url1,url2}')
+                if images_value.startswith('{') and images_value.endswith('}'):
+                    images_value = images_value[1:-1]  # Remove braces
+                    return [img.strip() for img in images_value.split(',') if img.strip()]
+                
+                # Try comma-separated (e.g., 'url1,url2')
+                if ',' in images_value:
+                    return [img.strip() for img in images_value.split(',') if img.strip()]
+                
+                # Single URL
+                return [images_value]
+            
+            return []
+        
         # Convert to dict format
         result = []
         for court in courts:
             court_dict = dict(court._mapping)
+            
+            # Parse images
+            parsed_images = parse_images(court_dict.get('photos'))
+            parsed_videos = parse_images(court_dict.get('videos'))
+            
             result.append({
                 "id": str(court_dict['id']),
                 "court_name": court_dict.get('court_name', ''),
@@ -124,8 +175,8 @@ def get_venues(
                 "game_type": court_dict.get('game_type', ''),
                 "prices": str(court_dict.get('prices', '0')),
                 "description": court_dict.get('description', '') or f"{court_dict.get('branch_name', '')} - {court_dict.get('game_type', '')} Court",
-                "photos": court_dict.get('photos', []) or [],
-                "videos": court_dict.get('videos', []) or [],
+                "photos": parsed_images,
+                "videos": parsed_videos,
                 "created_at": court_dict['created_at'].isoformat() if court_dict.get('created_at') else None,
                 "updated_at": court_dict['updated_at'].isoformat() if court_dict.get('updated_at') else None,
             })

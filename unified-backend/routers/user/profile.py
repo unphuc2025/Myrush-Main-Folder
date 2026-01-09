@@ -17,6 +17,11 @@ def get_cities(db: Session = Depends(database.get_db)):
 def get_game_types(db: Session = Depends(database.get_db)):
     return crud.get_game_types(db)
 
+@router.get("/branches", response_model=List[schemas.BranchResponse])
+def get_branches(city_id: str = None, db: Session = Depends(database.get_db)):
+    """Get all branches, optionally filtered by city_id"""
+    return crud.get_branches(db, city_id=city_id)
+
 @router.post("/", response_model=schemas.ProfileResponse)
 def create_or_update_profile(
     profile: schemas.ProfileCreate,

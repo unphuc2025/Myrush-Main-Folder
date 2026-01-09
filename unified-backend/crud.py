@@ -96,47 +96,139 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
     try:
         print(f"[CRUD BOOKING] Starting booking creation for user: {user_id}")
 
-        # Parse time from AM/PM format to 24-hour format
+        # 1. Prepare Time Slots & Duration
+        time_slots = []
+        total_duration = 0
+        start_time_val = None
+        end_time_val = None
+        
+        from datetime import datetime as dt, time, timedelta
         import re
-        time_str = str(booking.start_time).strip()
-        print(f"[CRUD BOOKING] Parsing time: {time_str}")
+        import random
+        import string
 
-        # If already in HH:MM format, use as is
-        if re.match(r'^\d{1,2}:\d{2}$', time_str):
-            start_time_str = time_str
-        else:
-            # Handle AM/PM format
+        def generate_booking_display_id():
+            chars = string.ascii_uppercase + string.digits
+            suffix = ''.join(random.choices(chars, k=6))
+            return f"BK-{suffix}"
+        
+        # New Booking ID
+        new_display_id = generate_booking_display_id()
+
+        def parse_time_str(time_str):
+            time_str = str(time_str).strip()
+            if re.match(r'^\d{1,2}:\d{2}$', time_str):
+                 return dt.strptime(time_str, '%H:%M').time()
             match = re.match(r'(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?', time_str)
             if match:
                 hour = int(match.group(1))
                 minute = int(match.group(2))
                 ampm = match.group(3)
-
                 if ampm and ampm.upper() == 'PM' and hour != 12:
                     hour += 12
                 elif ampm and ampm.upper() == 'AM' and hour == 12:
                     hour = 0
+                return time(hour, minute)
+            return time(10, 0) # Fallback
 
-                start_time_str = f"{hour:02d}:{minute:02d}"
+        # Check if multi-slot data is provided (New Flow)
+        if booking.time_slots and len(booking.time_slots) > 0:
+            print(f"[CRUD BOOKING] Processing multi-slot booking with {len(booking.time_slots)} slots")
+            
+            sanitized_slots = []
+            for slot in booking.time_slots:
+                raw_time = slot.get('time') or slot.get('start_time')
+                price = slot.get('price')
+                
+                # Parse start time
+                s_time = parse_time_str(raw_time)
+                
+                # Calculate end time (assume 60 mins if not provided)
+                # If end_time provided, parse it, else add 60 mins
+                raw_end = slot.get('end_time')
+                if raw_end:
+                     e_time = parse_time_str(raw_end)
+                else:
+                     # Add 60 mins
+                     dummy_date = dt.combine(dt.today(), s_time)
+                     e_date = dummy_date + timedelta(minutes=60)
+                     e_time = e_date.time()
+                
+                sanitized_slots.append({
+                    "start_time": s_time.strftime("%H:%M"),
+                    "end_time": e_time.strftime("%H:%M"),
+                    "price": price,
+                    "display_time": slot.get('display_time') or f"{s_time.strftime('%I:%M %p')} - {e_time.strftime('%I:%M %p')}"
+                })
+            
+            time_slots = sanitized_slots
+            # Assume 60 mins per slot for now if not specified
+            total_duration = len(time_slots) * 60 
+            
+            # Get first slot for legacy compatibility
+            if len(time_slots) > 0:
+                start_time_val = dt.strptime(time_slots[0]['start_time'], '%H:%M').time()
+                # End time of LAST slot? or first slot? 
+                # Legacy implies booking is one block. If multi-slots are 10-11, 11-12, total is 10-12.
+                # Let's set start of first, end of last?
+                # Actually legacy start/end usually means the whole block.
+                # But let's stick to simple: start of first.
+                # End time? 
+                end_time_val = dt.strptime(time_slots[-1]['end_time'], '%H:%M').time()
             else:
-                start_time_str = "10:00"  # Default fallback
+                 # Should not happen
+                 start_time_val = time(10, 0)
+                 end_time_val = time(11, 0)
 
-        print(f"[CRUD BOOKING] Parsed time to: {start_time_str}")
+        else:
+            # Legacy Flow (Single Slot)
+            print("[CRUD BOOKING] Processing legacy single-slot booking")
+            time_str = str(booking.start_time).strip()
+            
+            start_dt = parse_time_str(time_str)
+            start_datetime = dt.combine(booking.booking_date, start_dt)
+            end_dt_result = start_datetime + timedelta(minutes=booking.duration_minutes)
+            end_time_obj = end_dt_result.time()
+            
+            start_time_val = start_dt
+            end_time_val = end_time_obj
+            total_duration = booking.duration_minutes
+            
+            # Create single slot for time_slots array
+            time_slots = [{
+                "start_time": start_dt.strftime("%H:%M"),
+                "end_time": end_time_obj.strftime("%H:%M"),
+                "price": booking.price_per_hour,
+                "display_time": f"{start_dt.strftime('%I:%M %p')} - {end_time_obj.strftime('%I:%M %p')}"
+            }]
 
-        # Calculate end_time using string time
-        from datetime import datetime as dt
-        start_dt = dt.strptime(start_time_str, '%H:%M').time()
-        start_datetime = dt.combine(booking.booking_date, start_dt)
-        end_dt = start_datetime + timedelta(minutes=booking.duration_minutes)
-        end_time = end_dt.time()
+        # 2. Calculate Amounts
+        # Use provided breakdown if available, else calculate
+        if booking.original_amount is not None:
+             original_amount = booking.original_amount
+             discount_amount = booking.discount_amount or 0
+             # Recalculate total just in case or trust frontend? Trust frontend for now but validate
+             # total_amount = original_amount - discount_amount
+             # Use the total_amount logic from legacy if needed, but preference to new mapping
+        else:
+            # Legacy Calculation
+            price_per_hour = booking.price_per_hour or 200.0
+            number_of_players = booking.number_of_players or 2
+            
+            # Legacy expected total_amount (often calculated as hourly_price * players * hours)
+            # BUT usually price_per_hour FROM FRONTEND is already slot price? No, it's usually rate.
+            # Let's check how it was: total_amount = price_per_hour * (booking.duration_minutes / 60.0) * number_of_players
+            
+            calculated_total = price_per_hour * (booking.duration_minutes / 60.0) * number_of_players
+            original_amount = calculated_total # Assuming no discount unless coupon passed separately?
+            discount_amount = 0
+        
+        # Determine final total amount to store
+        # In legacy, there wasn't a separate 'total_amount' field in BookingCreate, it was calculated.
+        # So we use the calculated one.
+        total_amount = float(original_amount) - float(discount_amount)
 
-        price_per_hour = booking.price_per_hour or 200.0 # Use selected price or default
-        number_of_players = booking.number_of_players or 2
-        total_amount = price_per_hour * (booking.duration_minutes / 60.0) * number_of_players
-
-        print(f"[CRUD BOOKING] Calculations: price_per_hour={price_per_hour}, duration_minutes={booking.duration_minutes}, number_of_players={number_of_players}, total_amount={total_amount}")
-
-        # Check if court exists in admin_courts table
+        # 3. Verify Court & User
         from sqlalchemy import text
         court_check = db.execute(
             text("SELECT id FROM admin_courts WHERE id = :court_id"),
@@ -144,87 +236,56 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         ).fetchone()
         
         if not court_check:
-            print(f"[CRUD BOOKING] ERROR: Court {booking.court_id} does not exist in admin_courts")
             raise ValueError(f"Court {booking.court_id} not found in admin_courts table")
-        
-        print(f"[CRUD BOOKING] ✅ Court {booking.court_id} found in admin_courts")
-
-        try:
-            from uuid import UUID
-            try:
-                # Validate UUIDs
-                c_uuid = UUID(str(booking.court_id))
-            except ValueError:
-                 raise ValueError("Invalid Court ID format")
-
-            # Check if user exists
-            user_exists = db.query(models.User).filter(models.User.id == user_id).first()
-            if not user_exists:
-                print(f"[CRUD BOOKING] ERROR: User {user_id} does not exist")
-                raise ValueError(f"User {user_id} not found")
             
-            # Check if court exists
-            court_exists = db.query(models.Court).filter(models.Court.id == str(c_uuid)).first()
-            if not court_exists:
-                raise ValueError(f"Court {booking.court_id} not found")
+        from uuid import UUID
+        c_uuid = UUID(str(booking.court_id))
+        
+        user_exists = db.query(models.User).filter(models.User.id == user_id).first()
+        if not user_exists:
+            raise ValueError(f"User {user_id} not found")
 
-            # Don't set id - let PostgreSQL generate it with uuid_generate_v4()
-            booking_data = {
-                "user_id": user_id,
-                "court_id": str(c_uuid),  # Changed from venue_id to court_id
-                "booking_date": booking.booking_date,
-                "start_time": booking.start_time,
-                "end_time": end_time,
-                "duration_minutes": booking.duration_minutes,
-                "number_of_players": number_of_players,
-                "team_name": booking.team_name,
-                "special_requests": booking.special_requests,
-                "price_per_hour": price_per_hour,
-                "original_price_per_hour": booking.original_price_per_hour,
-                "total_amount": total_amount,
-                # Mark booking as confirmed immediately on successful creation.
-                # Payment can still be tracked separately via payment_status.
-                "status": "confirmed",
-                "payment_status": "pending"
-            }
+        # 4. Create Booking
+        booking_data = {
+            "user_id": user_id,
+            "court_id": str(c_uuid),
+            "booking_date": booking.booking_date,
+            "booking_display_id": new_display_id,
+            
+            # New Columns
+            "time_slots": time_slots,
+            "total_duration_minutes": total_duration,
+            "original_amount": original_amount,
+            "discount_amount": discount_amount,
+            "total_amount": total_amount,
+            "coupon_code": booking.coupon_code,
+            
+            # Deprecated Columns (Populated for backward compatibility)
+            "start_time": start_time_val,
+            "end_time": end_time_val,
+            "duration_minutes": total_duration,
+            "price_per_hour": booking.price_per_hour or 0,
+            
+            # Other fields
+            "number_of_players": booking.number_of_players,
+            "team_name": booking.team_name,
+            "special_requests": booking.special_requests,
+            "status": "confirmed",
+            "payment_status": "pending"
+        }
 
-            # Adjust data types for MySQL compatibility
-            adjusted_booking_data = {
-                **booking_data,
-                'start_time': start_dt,  # Use the parsed start TIME object
-                'end_time': end_time,    # end_time is already TIME object
-                'booking_date': booking.booking_date,  # Ensure date format
-            }
+        print(f"[CRUD BOOKING] Creating booking with data: {booking_data}")
 
-            print(f"[CRUD BOOKING] Creating booking with adjusted data: {adjusted_booking_data}")
+        db_booking = models.Booking(**booking_data)
+        db.add(db_booking)
+        db.commit()
+        db.refresh(db_booking)
 
-            db_booking = models.Booking(**adjusted_booking_data)
-            db.add(db_booking)
+        print(f"[CRUD BOOKING] SUCCESS: Booking created with ID: {db_booking.id}")
+        return db_booking
 
-            print("[CRUD BOOKING] Committing to database...")
-            db.commit()
-
-            print(f"[CRUD BOOKING] Refreshing booking data for ID: {db_booking.id}")
-            db.refresh(db_booking)
-
-            print(f"[CRUD BOOKING] SUCCESS: Booking created with ID: {db_booking.id}, total_amount: {db_booking.total_amount}")
-            return db_booking
-
-        except ValueError as ve:
-             # Re-raise value errors (validation)
-             raise ve
-        except Exception as e:
-            # Handle integrity error wrapper
-            if "foreign key constraint" in str(e).lower():
-                 print(f"[CRUD BOOKING] Foreign Key Error: {e}")
-                 # Try to identify which FK
-                 if "court_id" in str(e).lower():
-                      raise ValueError("Court not found (FK Error)")
-            print(f"[CRUD BOOKING] ERROR: Exception during booking creation: {e}")
-            import traceback
-            traceback.print_exc()
-            raise e
-
+    except ValueError as ve:
+         raise ve
     except Exception as e:
         print(f"[CRUD BOOKING] ERROR: Exception during booking creation: {e}")
         import traceback
@@ -471,6 +532,14 @@ def get_cities(db: Session):
 
 def get_game_types(db: Session):
     return db.query(models.GameType).filter(models.GameType.is_active == True).all()
+
+def get_branches(db: Session, city_id: str = None):
+    """Get all active branches, optionally filtered by city_id"""
+    query = db.query(models.Branch).filter(models.Branch.is_active == True)
+    if city_id:
+        query = query.filter(models.Branch.city_id == city_id)
+    return query.all()
+
 
 # Push Token CRUD Functions
 def create_push_token(db: Session, token_data: schemas.PushTokenCreate, user_id: str):

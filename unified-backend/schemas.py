@@ -234,6 +234,17 @@ class Coupon(CouponBase):
     class Config:
         from_attributes = True
 
+class CouponValidateRequest(BaseModel):
+    coupon_code: str
+    total_amount: float
+
+class CouponResponse(BaseModel):
+    valid: bool
+    message: str
+    discount_percentage: Optional[float] = None
+    discount_amount: Optional[float] = None
+    final_amount: Optional[float] = None
+
 class AdminPolicyBase(BaseModel):
     type: str # 'cancellation', 'terms'
     name: str
@@ -408,28 +419,45 @@ class BookingCreate(BaseModel):
     """User booking creation from mobile app"""
     court_id: str
     booking_date: date
-    start_time: str  # AM/PM format supported
+    start_time: str  # AM/PM format supported (Legacy/Single slot)
     duration_minutes: int
     number_of_players: int = 2
     price_per_hour: float = 200.0
     original_price_per_hour: Optional[float] = None
     team_name: Optional[str] = None
     special_requests: Optional[str] = None
+    # New Multi-slot fields
+    time_slots: Optional[List[dict]] = None
+    original_amount: Optional[float] = None
+    discount_amount: Optional[float] = 0
+    coupon_code: Optional[str] = None
 
 class BookingResponse(BaseModel):
     """Response model for bookings"""
     id: UUID
     user_id: UUID
     court_id: UUID
+    booking_display_id: Optional[str] = None
     booking_date: date
-    start_time: time
-    end_time: time
-    duration_minutes: int
+    # Optional legacy fields
+    start_time: Optional[time] = None
+    end_time: Optional[time] = None
+    duration_minutes: Optional[int] = None
+    
+    # New fields
+    time_slots: List[dict]
+    total_duration_minutes: int
+    original_amount: Decimal
+    discount_amount: Decimal
+    coupon_code: Optional[str] = None
+    
     number_of_players: int
     team_name: Optional[str] = None
     special_requests: Optional[str] = None
-    price_per_hour: Decimal
+    # Deprecated/Legacy fields kept optional
+    price_per_hour: Optional[Decimal] = None
     original_price_per_hour: Optional[Decimal] = None
+    
     total_amount: Decimal
     status: str
     payment_status: str
@@ -448,8 +476,8 @@ class AdminBookingCreate(BaseModel):
     game_type_id: str
     booking_reference: str
     booking_date: date
-    start_time: time
-    end_time: time
+    time_slots: List[dict] # Admin should use new format
+    total_duration_minutes: int
     total_amount: Decimal
     special_requests: Optional[str] = None
     status: Optional[str] = 'pending'
@@ -461,15 +489,15 @@ class Booking(BaseModel):
     user_id: Optional[str] = None
     court_id: str
     booking_date: date
-    start_time: time
-    end_time: time
-    duration_minutes: int
+    time_slots: List[dict]
+    total_duration_minutes: int
     number_of_players: int
-    price_per_hour: Decimal
     total_amount: Decimal
+    original_amount: Decimal
+    discount_amount: Decimal
+    coupon_code: Optional[str] = None
     status: str
     payment_status: str
-    coupon_discount: Optional[Decimal] = 0
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -493,15 +521,17 @@ class AdminBooking(BaseModel):
     game_type_id: str
     booking_reference: str
     booking_date: date
-    start_time: time
-    end_time: time
-    duration_hours: Decimal
+    # Updated fields
+    time_slots: List[dict]
+    total_duration_minutes: int  # replacing duration_hours
     total_amount: Decimal
+    original_amount: Decimal
+    discount_amount: Decimal
+    
     special_requests: Optional[str] = None
     status: str
     payment_status: str
     coupon_code: Optional[str] = None
-    coupon_discount: Optional[Decimal] = 0
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     court: Optional[Court] = None
@@ -741,6 +771,17 @@ class GameTypeResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class BranchResponse(BaseModel):
+    id: UUID
+    name: str
+    city_id: Optional[UUID] = None
+    address_line1: Optional[str] = None
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
 
 class AdminCourtResponse(BaseModel):
     id: str

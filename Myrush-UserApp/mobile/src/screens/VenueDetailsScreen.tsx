@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -8,6 +8,7 @@ import {
     ImageBackground,
     Image,
     Dimensions,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -15,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
+import courtsApi from '../api/courts';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +28,11 @@ const VenueDetailsScreen: React.FC = () => {
     const route = useRoute<VenueDetailsRouteProp>();
     const [isFavorite, setIsFavorite] = useState(false);
     const [cartItems, setCartItems] = useState(0);
+
+    // Dynamic ratings and reviews state
+    const [ratings, setRatings] = useState({ average_rating: 0, total_reviews: 0 });
+    const [reviews, setReviews] = useState<any[]>([]);
+    const [isLoadingRatings, setIsLoadingRatings] = useState(true);
 
     // Get venue data from params
     const paramsVenue = route.params?.venue;
@@ -52,8 +59,8 @@ const VenueDetailsScreen: React.FC = () => {
         id: paramsVenue.id,
         name: paramsVenue.court_name || paramsVenue.branch_name || 'Unnamed Court',
         location: paramsVenue.location || `${paramsVenue.branch_name}, ${paramsVenue.city_name}`,
-        rating: 4.5, // Mock rating as it's not in DB yet
-        reviews: 120, // Mock reviews
+        rating: ratings.average_rating || 0,
+        reviews: ratings.total_reviews || 0,
         price: paramsVenue.prices,
         image: paramsVenue.photos && paramsVenue.photos.length > 0
             ? { uri: paramsVenue.photos[0] }
@@ -62,6 +69,35 @@ const VenueDetailsScreen: React.FC = () => {
         about: paramsVenue.description || `Premium ${paramsVenue.game_type} facility at ${paramsVenue.branch_name}. Book your slots now for the best playing experience.`,
         terms_and_conditions: paramsVenue.terms_and_conditions || 'Standard booking terms apply. Cancellations must be made 24 hours in advance.',
     } : defaultVenue;
+
+    // Fetch ratings and reviews when component mounts
+    useEffect(() => {
+        const fetchRatingsAndReviews = async () => {
+            if (!venue.id) return;
+
+            setIsLoadingRatings(true);
+            try {
+                const [ratingsResponse, reviewsResponse] = await Promise.all([
+                    courtsApi.getCourtRatings(venue.id),
+                    courtsApi.getCourtReviews(venue.id, 5)
+                ]);
+
+                if (ratingsResponse.success) {
+                    setRatings(ratingsResponse.data);
+                }
+
+                if (reviewsResponse.success) {
+                    setReviews(reviewsResponse.data.reviews);
+                }
+            } catch (error) {
+                console.error('Error fetching ratings:', error);
+            } finally {
+                setIsLoadingRatings(false);
+            }
+        };
+
+        fetchRatingsAndReviews();
+    }, [venue.id]);
 
     return (
         <View style={styles.container}>
@@ -150,20 +186,56 @@ const VenueDetailsScreen: React.FC = () => {
 
                     {/* Reviews */}
                     <Text style={styles.sectionTitle}>Reviews</Text>
-                    <View style={styles.reviewsContainer}>
-                        <Text style={styles.reviewsRating}>{venue.rating}</Text>
-                        <View style={styles.starsContainer}>
-                            {[...Array(5)].map((_, i) => (
-                                <Ionicons
-                                    key={i}
-                                    name={i < Math.floor(venue.rating) ? 'star' : 'star-outline'}
-                                    size={moderateScale(20)}
-                                    color="#FFB800"
-                                />
-                            ))}
+                    {isLoadingRatings ? (
+                        <View style={styles.reviewsContainer}>
+                            <ActivityIndicator size="large" color={colors.primary} />
+                            <Text style={styles.loadingText}>Loading reviews...</Text>
                         </View>
-                        <Text style={styles.reviewsCount}>{venue.reviews} reviews</Text>
-                    </View>
+                    ) : ratings.total_reviews === 0 ? (
+                        <View style={styles.noReviewsContainer}>
+                            <Ionicons name="star-outline" size={moderateScale(48)} color="#ccc" />
+                            <Text style={styles.noReviewsText}>No reviews yet</Text>
+                            <Text style={styles.noReviewsSubtext}>Be the first to review this court!</Text>
+                        </View>
+                    ) : (
+                        <>
+                            {/* Rating Summary */}
+                            <View style={styles.reviewsContainer}>
+                                <Text style={styles.reviewsRating}>{ratings.average_rating.toFixed(1)}</Text>
+                                <View style={styles.starsContainer}>
+                                    {[...Array(5)].map((_, i) => (
+                                        <Ionicons
+                                            key={i}
+                                            name={i < Math.round(ratings.average_rating) ? 'star' : 'star-outline'}
+                                            size={moderateScale(20)}
+                                            color="#FFB800"
+                                        />
+                                    ))}
+                                </View>
+                                <Text style={styles.reviewsCount}>{ratings.total_reviews} reviews</Text>
+                            </View>
+
+                            {/* Reviews List */}
+                            {reviews.length > 0 && reviews.map((review) => (
+                                <View key={review.id} style={styles.reviewCard}>
+                                    <View style={styles.reviewHeader}>
+                                        <Text style={styles.reviewUserName}>{review.user_name}</Text>
+                                        <View style={styles.reviewStars}>
+                                            {[...Array(review.rating)].map((_, i) => (
+                                                <Ionicons key={i} name="star" size={moderateScale(14)} color="#FFB800" />
+                                            ))}
+                                        </View>
+                                    </View>
+                                    {review.review_text && (
+                                        <Text style={styles.reviewText}>{review.review_text}</Text>
+                                    )}
+                                    <Text style={styles.reviewDate}>
+                                        {new Date(review.created_at).toLocaleDateString()}
+                                    </Text>
+                                </View>
+                            ))}
+                        </>
+                    )}
 
                     {/* Spacer for fixed footer */}
                     <View style={{ height: hp(12) }} />
@@ -331,6 +403,57 @@ const styles = StyleSheet.create({
     reviewsCount: {
         fontSize: fontScale(13),
         color: '#999',
+    },
+    loadingText: {
+        marginTop: hp(1),
+        fontSize: fontScale(14),
+        color: '#999',
+    },
+    noReviewsContainer: {
+        alignItems: 'center',
+        paddingVertical: hp(4),
+    },
+    noReviewsText: {
+        fontSize: fontScale(16),
+        fontWeight: '600',
+        color: '#666',
+        marginTop: hp(1),
+    },
+    noReviewsSubtext: {
+        fontSize: fontScale(13),
+        color: '#999',
+        marginTop: hp(0.5),
+    },
+    reviewCard: {
+        backgroundColor: '#F5F7FA',
+        padding: wp(4),
+        borderRadius: moderateScale(12),
+        marginBottom: hp(1.5),
+    },
+    reviewHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: hp(0.5),
+    },
+    reviewUserName: {
+        fontSize: fontScale(14),
+        fontWeight: '600',
+        color: '#333',
+    },
+    reviewStars: {
+        flexDirection: 'row',
+    },
+    reviewText: {
+        fontSize: fontScale(13),
+        color: '#666',
+        lineHeight: fontScale(20),
+        marginVertical: hp(0.5),
+    },
+    reviewDate: {
+        fontSize: fontScale(11),
+        color: '#999',
+        marginTop: hp(0.5),
     },
     footer: {
         position: 'absolute',

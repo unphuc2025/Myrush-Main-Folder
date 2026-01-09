@@ -43,7 +43,7 @@ const ReviewBookingScreen: React.FC = () => {
     const [showCouponDropdown, setShowCouponDropdown] = useState(false);
     const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
 
-    const { venue, date, month, timeSlot, slotPrice, numPlayers, teamName, specialRequests, venueObject } = route.params || {};
+    const { venue, date, month, timeSlot, selectedSlots, totalPrice, slotPrice, numPlayers, teamName, specialRequests, venueObject } = route.params || {};
 
     console.log('ReviewBooking - Slot selected!', slotPrice ? `₹${slotPrice}` : 'No price');
 
@@ -57,19 +57,38 @@ const ReviewBookingScreen: React.FC = () => {
         return location;
     };
 
-    // Calculate total cost: slot price * number of players with discount
+    // Calculate total cost: Use totalPrice from slot selection if available
     const calculateTotalCost = () => {
-        // Direct calculation - slot price times team members
+        // If we have selectedSlots and totalPrice from multi-slot selection
+        if (selectedSlots && selectedSlots.length > 0 && totalPrice) {
+            let total = totalPrice;
+
+            // Apply coupon discount if valid
+            if (couponResult?.valid && couponResult?.final_amount !== undefined) {
+                total = Math.floor(couponResult.final_amount);
+            }
+
+            console.log('REVIEW BOOKING - Multi-slot Total:', {
+                selectedSlotsCount: selectedSlots.length,
+                totalPrice: totalPrice,
+                couponResult: couponResult,
+                finalTotal: total
+            });
+
+            return total;
+        }
+
+        // Fallback: Single slot calculation (slot price * number of players)
         const price = slotPrice ? Number(slotPrice) : 0;
         const players = numPlayers ? Number(numPlayers) : 2;
-        let total = Math.floor(price * players); // Ensure it's an integer
+        let total = Math.floor(price * players);
 
         // Apply coupon discount if valid
         if (couponResult?.valid && couponResult?.final_amount !== undefined) {
             total = Math.floor(couponResult.final_amount);
         }
 
-        console.log('REVIEW BOOKING - Total Cost Calculation:', {
+        console.log('REVIEW BOOKING - Single slot Total:', {
             inputSlotPrice: slotPrice,
             parsedSlotPrice: price,
             inputNumPlayers: numPlayers,
@@ -160,6 +179,12 @@ const ReviewBookingScreen: React.FC = () => {
     };
 
     const calculateOriginalTotal = () => {
+        // If we have selectedSlots with totalPrice, use that
+        if (selectedSlots && selectedSlots.length > 0 && totalPrice) {
+            return totalPrice;
+        }
+
+        // Fallback: Single slot calculation
         const price = slotPrice ? Number(slotPrice) : 0;
         const players = numPlayers ? Number(numPlayers) : 2;
         return Math.floor(price * players);
@@ -197,23 +222,50 @@ const ReviewBookingScreen: React.FC = () => {
                 return;
             }
 
-            // Calculate original price (before coupon discount)
-            const originalPrice = slotPrice ? Number(slotPrice) : 200;
-            const finalPrice = couponResult?.valid && couponResult?.final_amount
-                ? Math.floor(couponResult.final_amount / ((numPlayers || 2) * 1)) // Per hour rate after discount
-                : originalPrice;
+            // Calculate financials
+            const originalTotal = calculateOriginalTotal();
+            const discountVal = (couponResult?.valid && couponResult.discount_amount) ? Number(couponResult.discount_amount) : 0;
+            // Ensure we don't assume price per hour is the only cost model, use calculated totals
+
+            // Prepare Time Slots
+            let formattedSlots: any[] = [];
+            let totalDuration = 60;
+            let startBookingTime = timeSlot?.split(' - ')[0] || '10:00';
+
+            if (selectedSlots && selectedSlots.length > 0) {
+                formattedSlots = selectedSlots;
+                totalDuration = selectedSlots.length * 60;
+                // Use first slot time for legacy start_time
+                if (selectedSlots[0].time) {
+                    startBookingTime = selectedSlots[0].time;
+                }
+            } else {
+                // Single slot fallback
+                formattedSlots = [{
+                    time: startBookingTime,
+                    price: slotPrice ? Number(slotPrice) : 200,
+                    display_time: timeSlot
+                }];
+            }
 
             const bookingData = {
                 userId: user.id,
-                courtId: venueId, // Changed from venueId to courtId
+                courtId: venueId,
                 bookingDate: `${route.params?.year || new Date().getFullYear()}-${String((route.params?.monthIndex || new Date().getMonth()) + 1).padStart(2, '0')}-${String(date)?.padStart(2, '0')}`,
-                startTime: timeSlot?.split(' - ')[0] || '10:00',
-                durationMinutes: 60, // Default to 1 hour, could be calculated from timeSlot
+                startTime: startBookingTime,
+                durationMinutes: totalDuration,
                 numberOfPlayers: numPlayers || 2,
-                pricePerHour: finalPrice, // Use discounted price
-                originalPricePerHour: originalPrice, // Store original price before discount
+                pricePerHour: slotPrice ? Number(slotPrice) : 200, // Legacy field
+                originalPricePerHour: slotPrice ? Number(slotPrice) : 200,
                 teamName: teamName,
                 specialRequests: specialRequests,
+
+                // Multi-slot fields
+                timeSlots: formattedSlots,
+                originalAmount: originalTotal,
+                discountAmount: discountVal,
+                couponCode: couponResult?.valid ? couponCode : undefined,
+                totalAmount: originalTotal - discountVal
             };
 
             console.log('Creating booking with data:', bookingData);
@@ -295,7 +347,17 @@ const ReviewBookingScreen: React.FC = () => {
                     </View>
                     <View style={styles.cardContent}>
                         <Text style={styles.cardTitle}>Wednesday, {date}th {month}</Text>
-                        <Text style={styles.cardSubtitle}>{timeSlot}</Text>
+                        {selectedSlots && selectedSlots.length > 0 ? (
+                            <View>
+                                {selectedSlots.map((slot, index) => (
+                                    <Text key={index} style={styles.cardSubtitle}>
+                                        {slot.display_time} - ₹{slot.price}
+                                    </Text>
+                                ))}
+                            </View>
+                        ) : (
+                            <Text style={styles.cardSubtitle}>{timeSlot}</Text>
+                        )}
                     </View>
                     <TouchableOpacity>
                         <Text style={styles.editText}>Edit</Text>

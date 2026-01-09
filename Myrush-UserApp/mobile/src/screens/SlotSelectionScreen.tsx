@@ -30,8 +30,11 @@ const SlotSelectionScreen: React.FC = () => {
     const currentDay = today.getDate();
 
     const [selectedDate, setSelectedDate] = useState(currentDay);
-    const [selectedSlot, setSelectedSlot] = useState('');
-    const [selectedSlotPrice, setSelectedSlotPrice] = useState(0);
+    const [selectedSlots, setSelectedSlots] = useState<Array<{
+        time: string;
+        display_time: string;
+        price: number;
+    }>>([]);
     const [currentMonth, setCurrentMonth] = useState(new Date()); // Current month
     const [cartItems, setCartItems] = useState(1);
     const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -147,18 +150,16 @@ const SlotSelectionScreen: React.FC = () => {
     };
 
     const handleConfirmBooking = () => {
-        if (!selectedSlot) {
-            alert('Please select a time slot');
-            return;
-        }
-        if (!selectedSlotPrice || selectedSlotPrice === 0) {
-            alert(`Invalid slot price for ${selectedSlot}. Please contact support.`);
+        if (selectedSlots.length === 0) {
+            alert('Please select at least one time slot');
             return;
         }
 
+        const totalPrice = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
+
         console.log('Navigating to ReviewBooking with:', {
-            selectedSlot,
-            selectedSlotPrice,
+            selectedSlots,
+            totalPrice,
             venueName,
             date: selectedDate
         });
@@ -171,8 +172,8 @@ const SlotSelectionScreen: React.FC = () => {
             month: monthNames[currentMonth.getMonth()],
             monthIndex: currentMonth.getMonth(),
             year: currentMonth.getFullYear(),
-            timeSlot: selectedSlot,
-            slotPrice: selectedSlotPrice,
+            selectedSlots: selectedSlots, // Pass array of slots
+            totalPrice: totalPrice,
         });
     };
 
@@ -287,37 +288,59 @@ const SlotSelectionScreen: React.FC = () => {
                         </View>
                     ) : (
                         <View style={styles.slotsGrid}>
-                            {availableSlots.map((slot, index) => (
-                                <TouchableOpacity
-                                    key={index}
-                                    style={[
-                                        styles.slotButton,
-                                        selectedSlot === slot.display_time && styles.slotButtonSelected,
-                                    ]}
-                                    onPress={() => {
-                                        console.log('Selected slot:', slot.display_time, 'Price:', slot.price);
-                                        setSelectedSlot(slot.display_time);
-                                        setSelectedSlotPrice(slot.price);
-                                    }}
-                                >
-                                    <Text
+                            {availableSlots.map((slot, index) => {
+                                const isSelected = selectedSlots.some(
+                                    s => s.display_time === slot.display_time
+                                );
+
+                                return (
+                                    <TouchableOpacity
+                                        key={index}
                                         style={[
-                                            styles.slotText,
-                                            selectedSlot === slot.display_time && styles.slotTextSelected,
+                                            styles.slotButton,
+                                            isSelected && styles.slotButtonSelected,
                                         ]}
+                                        onPress={() => {
+                                            if (isSelected) {
+                                                // Remove from selection
+                                                setSelectedSlots(prev =>
+                                                    prev.filter(s => s.display_time !== slot.display_time)
+                                                );
+                                                console.log('Deselected slot:', slot.display_time);
+                                            } else {
+                                                // Add to selection
+                                                setSelectedSlots(prev => [...prev, slot]);
+                                                console.log('Selected slot:', slot.display_time, 'Price:', slot.price);
+                                            }
+                                        }}
                                     >
-                                        {slot.display_time}
-                                    </Text>
-                                    <Text
-                                        style={[
-                                            styles.slotPrice,
-                                            selectedSlot === slot.display_time && styles.slotPriceSelected,
-                                        ]}
-                                    >
-                                        ₹{slot.price}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
+                                        <Text
+                                            style={[
+                                                styles.slotText,
+                                                isSelected && styles.slotTextSelected,
+                                            ]}
+                                        >
+                                            {slot.display_time}
+                                        </Text>
+                                        <Text
+                                            style={[
+                                                styles.slotPrice,
+                                                isSelected && styles.slotPriceSelected,
+                                            ]}
+                                        >
+                                            ₹{slot.price}
+                                        </Text>
+                                        {isSelected && (
+                                            <Ionicons
+                                                name="checkmark-circle"
+                                                size={moderateScale(18)}
+                                                color="#fff"
+                                                style={styles.checkmark}
+                                            />
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
                     )}
                 </View>
@@ -330,8 +353,15 @@ const SlotSelectionScreen: React.FC = () => {
             <View style={styles.footer}>
                 <View style={styles.totalPriceContainer}>
                     <Text style={styles.totalPriceLabel}>Total Price</Text>
-                    <Text style={styles.totalPriceAmount}>₹{selectedSlotPrice}</Text>
+                    <Text style={styles.totalPriceAmount}>
+                        ₹{selectedSlots.reduce((sum, slot) => sum + slot.price, 0)}
+                    </Text>
                 </View>
+                {selectedSlots.length > 0 && (
+                    <Text style={styles.selectedSlotsCount}>
+                        {selectedSlots.length} slot{selectedSlots.length > 1 ? 's' : ''} selected
+                    </Text>
+                )}
                 <TouchableOpacity
                     style={styles.confirmButton}
                     onPress={handleConfirmBooking}
@@ -603,6 +633,17 @@ const styles = StyleSheet.create({
         fontSize: fontScale(10),
         fontWeight: '700',
         color: '#fff',
+    },
+    checkmark: {
+        position: 'absolute',
+        top: hp(0.5),
+        right: wp(1),
+    },
+    selectedSlotsCount: {
+        fontSize: fontScale(12),
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: hp(1),
     },
 });
 

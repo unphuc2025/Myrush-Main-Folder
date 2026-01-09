@@ -394,13 +394,20 @@ export const bookingsApi = {
         userId: string; // Not needed for backend call as it uses token, but kept for interface compat
         courtId: string; // Changed from venueId to courtId
         bookingDate: string;
-        startTime: string;
-        durationMinutes: number;
+        startTime: string; // Legacy/First slot start
+        durationMinutes: number; // Total duration
         numberOfPlayers?: number;
-        pricePerHour?: number; // Selected slot price
+        pricePerHour?: number; // Selected slot price (Legacy support)
         originalPricePerHour?: number; // Original price before discount
         teamName?: string;
         specialRequests?: string;
+
+        // Multi-slot & detailed pricing support
+        timeSlots?: any[];
+        originalAmount?: number;
+        discountAmount?: number;
+        couponCode?: string;
+        totalAmount?: number; // Final amount to be paid
     }) => {
         try {
             const payload = {
@@ -412,7 +419,15 @@ export const bookingsApi = {
                 price_per_hour: bookingData.pricePerHour || 200,
                 original_price_per_hour: bookingData.originalPricePerHour,
                 team_name: bookingData.teamName,
-                special_requests: bookingData.specialRequests
+                special_requests: bookingData.specialRequests,
+
+                // New fields for multi-slot support
+                time_slots: bookingData.timeSlots,
+                original_amount: bookingData.originalAmount,
+                discount_amount: bookingData.discountAmount,
+                coupon_code: bookingData.couponCode,
+                // total_amount is calculated on backend usually but we can pass expectations if needed, 
+                // but schema expects original/discount to derive standard total.
             };
 
             const data = await apiClient.post('/bookings/', payload);
