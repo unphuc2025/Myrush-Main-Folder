@@ -277,13 +277,34 @@ class Booking(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     court_id = Column(UUID(as_uuid=True), nullable=False)
     booking_date = Column(Date, nullable=False)
-    start_time = Column(Time, nullable=False)
-    end_time = Column(Time, nullable=False)
-    duration_minutes = Column(Integer, nullable=False)
-    number_of_players = Column(Integer, default=2)
-    price_per_hour = Column(DECIMAL(10, 2), nullable=False)
-    original_price_per_hour = Column(DECIMAL(10, 2), nullable=True)
+    # Updated Columns for Multi-Slot Support
+    time_slots = Column(JSON, nullable=False) # Stores array of {start, end, price}
+    total_duration_minutes = Column(Integer, nullable=False)
+    
+    # Amount Breakdown
+    original_amount = Column(DECIMAL(10, 2), nullable=False)
+    discount_amount = Column(DECIMAL(10, 2), default=0)
+    coupon_code = Column(String(50))
+    
+    # Human-readable Booking ID (e.g., BK-12345)
+    booking_display_id = Column(String(20), unique=True, nullable=True) # Nullable initially for migration
+    
+    # Existing columns kept for backward compatibility (mapped to deprecated DB columns if they were renamed, 
+    # but here we just map them if they still exist or were renamed. 
+    # Since we renamed them in DB to _deprecated_*, we should map them here or remove them from active use.
+    # We will map them to the new names to avoid "column not found" errors if code queries them.)
+    
+    # Deprecated/Renamed Columns (Mapped to new DB names)
+    # Using quoted names to map to the actual DB column name
+    start_time = Column("_deprecated_start_time", Time, nullable=True)
+    end_time = Column("_deprecated_end_time", Time, nullable=True)
+    duration_minutes = Column("_deprecated_duration_minutes", Integer, nullable=True)
+    price_per_hour = Column("_deprecated_price_per_hour", DECIMAL(10, 2), nullable=True)
+    original_price_per_hour = Column("_deprecated_original_price_per_hour", DECIMAL(10, 2), nullable=True)
+    coupon_discount = Column("_deprecated_coupon_discount", DECIMAL(10, 2), default=0)
+
     total_amount = Column(DECIMAL(10, 2), nullable=False)
+    number_of_players = Column(Integer, default=2)
     team_name = Column(String(255))
     special_requests = Column(Text)
     admin_notes = Column(Text)
@@ -291,7 +312,6 @@ class Booking(Base):
     payment_status = Column(String(50), default='pending')
     payment_id = Column(String(255))
     coupon_id = Column(UUID(as_uuid=True), ForeignKey("admin_coupons.id"), nullable=True)
-    coupon_discount = Column(DECIMAL(10, 2), default=0)
     created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
 

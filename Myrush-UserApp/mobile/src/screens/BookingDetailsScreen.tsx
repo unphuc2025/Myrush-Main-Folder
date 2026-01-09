@@ -26,7 +26,7 @@ const BookingDetailsScreen: React.FC = () => {
     const [specialRequests, setSpecialRequests] = useState('');
     const [cartItems, setCartItems] = useState(1);
 
-    const { venue, date, month, timeSlot, venueObject, year, monthIndex, slotPrice } = route.params || {};
+    const { venue, date, month, timeSlot, selectedSlots, totalPrice, venueObject, year, monthIndex, slotPrice } = route.params || {};
 
     const handleIncrement = () => {
         setNumPlayers(prev => prev + 1);
@@ -44,6 +44,8 @@ const BookingDetailsScreen: React.FC = () => {
             date,
             month,
             timeSlot,
+            selectedSlots, // Pass array of slots
+            totalPrice, // Pass total price
             slotPrice,
             numPlayers,
             teamName,

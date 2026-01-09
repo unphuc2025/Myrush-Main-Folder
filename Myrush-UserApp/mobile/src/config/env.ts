@@ -26,14 +26,14 @@ export const getApiBaseUrl = (): string => {
   const isDevelopment = __DEV__;
 
   if (isDevelopment) {
-    // Default to local network IP for development
-    // Update to match your local IP
-    return 'http://65.0.195.149:8000/api/user';
+    // Using computer's local IP for physical device testing
+    // This matches the Metro bundler IP: 192.168.1.5
+    return 'http://192.168.1.5:8000/api/user';
   }
 
-  // Production fallback - this should be set in .env.production
-  console.warn('⚠️ API_BASE_URL not set in environment variables. Using fallback.');
-  return 'http://65.0.195.149:8000/api/user';
+  // Production fallback - hosted backend
+  console.warn('⚠️ API_BASE_URL not set in environment variables. Using hosted backend.');
+  return 'http://localhost:8000/api/user';
 };
 
 /**

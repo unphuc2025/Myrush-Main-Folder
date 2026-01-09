@@ -23,6 +23,13 @@ export interface GameType {
   name: string;
 }
 
+export interface Branch {
+  id: string;
+  name: string;
+  city_id?: string;
+  address_line1?: string;
+}
+
 export interface SaveProfileResponse {
   success: boolean;
   message: string;
@@ -136,6 +143,24 @@ export const profileApi = {
           { id: '3', name: 'Squash' },
           { id: '4', name: 'Table Tennis' },
         ],
+      };
+    }
+  },
+
+  getBranches: async (cityId?: string): Promise<{ success: boolean; data: Branch[]; error?: string }> => {
+    try {
+      const url = cityId ? `/profile/branches?city_id=${cityId}` : '/profile/branches';
+      const data = await apiClient.get<Branch[]>(url);
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      console.error('[PROFILE API] Failed to fetch branches:', error.message);
+      return {
+        success: false,
+        data: [],
+        error: error.message,
       };
     }
   },

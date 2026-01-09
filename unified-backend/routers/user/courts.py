@@ -362,7 +362,7 @@ def get_available_slots(
         
         # Filter out already booked slots
         booked_query = """
-            SELECT start_time
+            SELECT time_slots
             FROM booking
             WHERE court_id = :court_id
               AND booking_date = :booking_date
@@ -373,11 +373,46 @@ def get_available_slots(
             text(booked_query),
             {"court_id": court_id, "booking_date": booking_date}
         )
-        booked_slots = [row[0] for row in booked_result]
+        
+        # Flatten all time slots from all bookings into a single set of booked start times
+        booked_slots = set()
+        for row in booked_result:
+            # row[0] is the time_slots JSON array
+            slots_data = row[0]
+            if slots_data and isinstance(slots_data, list):
+                for slot_item in slots_data:
+                    if isinstance(slot_item, dict) and 'start_time' in slot_item:
+                        booked_slots.add(slot_item['start_time'])
         
         for slot in all_slots:
             if slot['time'] in booked_slots:
                 slot['available'] = False
+        
+        # Filter out past slots if the selected date is today
+        if booking_date == datetime.now().date():
+            current_time = datetime.now().time()
+            current_hour = current_time.hour
+            current_minute = current_time.minute
+            
+            # Filter slots: only show future slots
+            filtered_slots = []
+            for slot in all_slots:
+                try:
+                    slot_hour = int(slot['time'].split(':')[0])
+                    slot_minute = int(slot['time'].split(':')[1]) if ':' in slot['time'] else 0
+                    
+                    # Keep slot if it's in the future (hour is greater, or same hour but future minute)
+                    if slot_hour > current_hour or (slot_hour == current_hour and slot_minute > current_minute):
+                        filtered_slots.append(slot)
+                    else:
+                        print(f"[COURTS API] Filtered past slot: {slot['time']} (current: {current_hour}:{current_minute})")
+                except (ValueError, IndexError) as e:
+                    print(f"[COURTS API] Error parsing slot time {slot.get('time')}: {e}")
+                    # Include slot if we can't parse it
+                    filtered_slots.append(slot)
+            
+            all_slots = filtered_slots
+            print(f"[COURTS API] After filtering past slots: {len(all_slots)} remaining")
         
         # Return only available slots
         available_slots = [s for s in all_slots if s['available']]
