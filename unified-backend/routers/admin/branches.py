@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import models, schemas
 from database import get_db
+from dependencies import get_admin_branch_filter, require_super_admin
 import uuid
 import os
 import shutil
@@ -18,11 +19,23 @@ router = APIRouter(
     tags=["branches"]
 )
 
+from dependencies import get_admin_branch_filter, require_super_admin
+
 @router.get("", response_model=List[schemas.Branch])
 @router.get("/", response_model=List[schemas.Branch])
-def get_all_branches(city_id: str = None, area_id: str = None, db: Session = Depends(get_db)):
-    """Get all branches, optionally filtered by city_id or area_id"""
+def get_all_branches(
+    city_id: str = None, 
+    area_id: str = None, 
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
+):
+    """Get all branches, optionally filtered by city_id or area_id and admin access"""
     query = db.query(models.Branch)
+    
+    # 1. Apply Security Filter
+    if branch_filter is not None:
+        query = query.filter(models.Branch.id.in_(branch_filter))
+
     if city_id:
         query = query.filter(models.Branch.city_id == city_id)
     if area_id:
@@ -30,15 +43,23 @@ def get_all_branches(city_id: str = None, area_id: str = None, db: Session = Dep
     return query.all()
 
 @router.get("/{branch_id}", response_model=schemas.Branch)
-def get_branch(branch_id: str, db: Session = Depends(get_db)):
+def get_branch(
+    branch_id: str, 
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
+):
     """Get a specific branch by ID"""
+    # Security check
+    if branch_filter is not None and branch_id not in branch_filter:
+         raise HTTPException(status_code=403, detail="Access denied to this branch")
+
     branch = db.query(models.Branch).filter(models.Branch.id == branch_id).first()
     if not branch:
         raise HTTPException(status_code=404, detail="Branch not found")
     return branch
 
-@router.post("", response_model=schemas.Branch)
-@router.post("/", response_model=schemas.Branch)
+@router.post("", response_model=schemas.Branch, dependencies=[Depends(require_super_admin)])
+@router.post("/", response_model=schemas.Branch, dependencies=[Depends(require_super_admin)])
 async def create_branch(
     name: str = Form(...),
     city_id: str = Form(...),
@@ -116,7 +137,8 @@ async def create_branch(
     db.refresh(db_branch)
     return db_branch
 
-@router.put("/{branch_id}", response_model=schemas.Branch)
+
+@router.put("/{branch_id}", response_model=schemas.Branch, dependencies=[Depends(require_super_admin)])
 async def update_branch(
     branch_id: str,
     name: str = Form(...),
@@ -225,6 +247,21 @@ def toggle_branch_status(branch_id: str, db: Session = Depends(get_db)):
     return db_branch
 
 @router.delete("/{branch_id}")
+def delete_branch(branch_id: str, db: Session = Depends(get_db)):
+    """Delete a branch"""
+@router.patch("/{branch_id}/toggle", response_model=schemas.Branch, dependencies=[Depends(require_super_admin)])
+def toggle_branch_status(branch_id: str, db: Session = Depends(get_db)):
+    """Toggle branch active status"""
+    db_branch = db.query(models.Branch).filter(models.Branch.id == branch_id).first()
+    if not db_branch:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    
+    db_branch.is_active = not db_branch.is_active
+    db.commit()
+    db.refresh(db_branch)
+    return db_branch
+
+@router.delete("/{branch_id}", dependencies=[Depends(require_super_admin)])
 def delete_branch(branch_id: str, db: Session = Depends(get_db)):
     """Delete a branch"""
     db_branch = db.query(models.Branch).filter(models.Branch.id == branch_id).first()

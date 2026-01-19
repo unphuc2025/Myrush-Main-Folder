@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Upload, X } from 'lucide-react';
+import { Upload, X, Gamepad2, Type, AlignLeft, Hash, Check } from 'lucide-react';
 import { gameTypesApi } from '../../services/adminApi';
 
 function AddGameTypeForm({ onCancel, onSave, initialData = null }) {
@@ -55,7 +55,6 @@ function AddGameTypeForm({ onCancel, onSave, initialData = null }) {
         setError(null);
 
         try {
-            // Create FormData for file upload
             const submitData = new FormData();
             submitData.append('name', formData.name);
             submitData.append('short_code', formData.shortCode);
@@ -83,157 +82,146 @@ function AddGameTypeForm({ onCancel, onSave, initialData = null }) {
     };
 
     return (
-        <div className="bg-white rounded-lg">
-            <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-200">
-                <button
-                    onClick={onCancel}
-                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                >
-                    <ArrowLeft className="h-5 w-5 text-slate-600" />
-                </button>
-                <h2 className="text-xl font-semibold text-slate-800">{initialData ? 'Edit Game Type' : 'Add Game Type'}</h2>
-            </div>
+        <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-1 py-2 space-y-8">
+                {error && (
+                    <div className="p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2 text-sm font-medium">
+                        <X className="h-5 w-5" />{error}
+                    </div>
+                )}
 
-            {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                    {error}
-                </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
-                {/* Icon Upload */}
+                {/* Icon Upload Section */}
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Icon / Image
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 ml-1">
+                        Game Icon
                     </label>
-                    <div className="flex items-start gap-4">
+                    <div className="flex flex-col items-center">
                         {formData.icon ? (
-                            <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-                                <img
-                                    src={formData.icon.url}
-                                    alt="Game Type Icon"
-                                    className="w-full h-full object-contain p-2"
-                                />
+                            <div className="relative group">
+                                <div className="w-32 h-32 rounded-2xl overflow-hidden border-2 border-slate-200 bg-slate-50 p-4">
+                                    <img src={formData.icon.url} alt="Preview" className="w-full h-full object-contain" />
+                                </div>
                                 <button
                                     type="button"
                                     onClick={removeIcon}
-                                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                    className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600 transition-colors"
                                 >
-                                    <X className="h-3 w-3" />
+                                    <X className="h-4 w-4" />
                                 </button>
                             </div>
                         ) : formData.existingIcon ? (
-                            <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-                                <img
-                                    src={formData.existingIcon}
-                                    alt="Game Type Icon"
-                                    className="w-full h-full object-contain p-2"
-                                />
+                            <div className="relative group">
+                                <div className="w-32 h-32 rounded-2xl overflow-hidden border-2 border-slate-200 bg-slate-50 p-4">
+                                    <img src={formData.existingIcon} alt="Existing" className="w-full h-full object-contain" />
+                                </div>
                                 <button
                                     type="button"
                                     onClick={removeExistingIcon}
-                                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                    className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600 transition-colors"
                                 >
-                                    <X className="h-3 w-3" />
+                                    <X className="h-4 w-4" />
                                 </button>
                             </div>
                         ) : (
-                            <label className="w-24 h-24 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-green-500 hover:bg-green-50 transition-colors">
-                                <Upload className="h-6 w-6 text-slate-400" />
-                                <span className="text-xs text-slate-500 mt-1">Upload</span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={handleIconUpload}
-                                />
+                            <label className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:border-green-500 hover:bg-green-50 transition-all group">
+                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-green-100 group-hover:text-green-600 transition-colors">
+                                    <Upload className="h-5 w-5 text-slate-400 group-hover:text-green-600" />
+                                </div>
+                                <span className="text-xs font-bold text-slate-500 group-hover:text-green-700">Upload Icon</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
                             </label>
                         )}
-                        <div className="text-sm text-slate-500 pt-2">
-                            <p>Upload an icon or image for this game type.</p>
-                            <p>Recommended size: 512x512px, PNG or SVG.</p>
+                        <p className="text-[11px] text-slate-400 mt-2 font-medium">SVG or PNG recommended (512x512)</p>
+                    </div>
+                </div>
+
+                {/* Form Fields */}
+                <div className="space-y-6">
+                    {/* Name */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Game Name</label>
+                        <div className="relative group">
+                            <Gamepad2 className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                            <input
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300"
+                                placeholder="e.g. Football"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    {/* Short Code */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Short Code</label>
+                        <div className="relative group">
+                            <Hash className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                            <input
+                                type="text"
+                                value={formData.shortCode}
+                                onChange={(e) => setFormData({ ...formData, shortCode: e.target.value.toUpperCase() })}
+                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg uppercase placeholder:text-slate-300 shadow-sm hover:border-slate-300"
+                                placeholder="e.g. SOC"
+                                maxLength={3}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Description</label>
+                        <div className="relative group">
+                            <AlignLeft className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                            <textarea
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all text-sm min-h-[100px] placeholder:text-slate-300 shadow-sm hover:border-slate-300"
+                                placeholder="Optional description..."
+                            />
+                        </div>
+                    </div>
+
+                    {/* Active Status */}
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between cursor-pointer" onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}>
+                        <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${formData.isActive ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-400'}`}>
+                                <Check className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-800 text-sm">Active Status</h4>
+                                <p className="text-xs text-slate-500">Visible for venue creation and booking</p>
+                            </div>
+                        </div>
+                        <div className={`w-12 h-6 rounded-full p-1 transition-colors ${formData.isActive ? 'bg-green-600' : 'bg-slate-300'}`}>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-0'}`} />
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Basic Info */}
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Game Name *
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder="e.g., Football, Cricket"
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Short Code *
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.shortCode}
-                            onChange={(e) => setFormData({ ...formData, shortCode: e.target.value })}
-                            placeholder="e.g., FB, CR"
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                            required
-                            maxLength={3}
-                        />
-                        <p className="text-xs text-slate-500 mt-1">Maximum 3 characters</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Description
-                        </label>
-                        <textarea
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            placeholder="Optional description of the game type"
-                            rows={3}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            id="isActive"
-                            checked={formData.isActive}
-                            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                            className="rounded border-slate-300 text-green-600 focus:ring-green-500"
-                        />
-                        <label htmlFor="isActive" className="text-sm font-medium text-slate-700">
-                            Active
-                        </label>
-                    </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-200">
-                    <button
-                        type="button"
-                        onClick={onCancel}
-                        className="px-6 py-2.5 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 font-medium transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors shadow-sm shadow-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isSubmitting ? 'Saving...' : (initialData ? 'Update Game Type' : 'Save Game Type')}
-                    </button>
-                </div>
-            </form>
-        </div>
+            {/* Sticky/Fixed Footer Actions */}
+            <div className="pt-6 mt-2 border-t border-slate-100 flex gap-4 bg-white sticky bottom-0 z-10 pb-2">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="flex-1 px-6 py-3.5 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-[2] px-6 py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-70 shadow-lg shadow-slate-900/10 flex items-center justify-center gap-2"
+                >
+                    {isSubmitting ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : null}
+                    {isSubmitting ? 'Saving...' : (initialData ? 'Update Game Type' : 'Create Game Type')}
+                </button>
+            </div>
+        </form>
     );
 }
 

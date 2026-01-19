@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { Plus, Trash2, Clock, Calendar, CalendarDays, X } from 'lucide-react';
+import { Plus, Trash2, Clock, Calendar, CalendarDays, X, ChevronDown, Check, Edit2 } from 'lucide-react';
+import Modal from './Modal';
 
 function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
-  const [activeTab, setActiveTab] = useState('recurring'); // 'recurring' or 'dates'
+  const [activeTab, setActiveTab] = useState('recurring');
   const [selectedDates, setSelectedDates] = useState([]);
   const [newDateSlot, setNewDateSlot] = useState({ from: '09:00', to: '10:00', price: defaultPrice || '' });
+
+  // Edit State
+  const [editingSlot, setEditingSlot] = useState(null);
+  const [tempEditData, setTempEditData] = useState({});
 
   const daysOfWeek = [
     { id: 'mon', label: 'Monday', short: 'Mon' },
@@ -16,16 +21,14 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
     { id: 'sun', label: 'Sunday', short: 'Sun' }
   ];
 
-  // Separate recurring (day-based) and date-specific slots
+  // Helper Accessors
   const recurringSlots = slots.filter(slot => !slot.dates || slot.dates.length === 0);
   const dateSpecificSlots = slots.filter(slot => slot.dates && slot.dates.length > 0);
+  const getDaySlots = (dayId) => recurringSlots.filter(slot => slot.days && slot.days.includes(dayId));
 
-  // Initialize slots for each day if not present
-  const getDaySlots = (dayId) => {
-    return recurringSlots.filter(slot => slot.days && slot.days.includes(dayId));
-  };
+  // --- Actions ---
 
-  const addSlotToDay = (dayId) => {
+  const handleAddSlotToDay = (dayId) => {
     const newSlot = {
       id: Date.now() + Math.random(),
       type: 'recurring',
@@ -35,13 +38,12 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
       price: defaultPrice || ''
     };
     onSlotsChange([...slots, newSlot]);
+    // Optionally open edit immediately
+    openEditModal(newSlot);
   };
 
-  const addDateSpecificSlot = () => {
-    if (selectedDates.length === 0) {
-      alert('Please select at least one date');
-      return;
-    }
+  const handleAddDateSlot = () => {
+    if (selectedDates.length === 0) return alert('Select dates first');
     const newSlot = {
       id: Date.now() + Math.random(),
       type: 'date',
@@ -56,505 +58,329 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
 
   const removeSlot = (slotId) => {
     onSlotsChange(slots.filter(slot => slot.id !== slotId));
+    if (editingSlot?.id === slotId) closeEditModal();
   };
 
-  const updateSlot = (slotId, field, value) => {
-    onSlotsChange(slots.map(slot =>
-      slot.id === slotId ? { ...slot, [field]: value } : slot
+  // --- Edit Modal Logic ---
+
+  const openEditModal = (slot) => {
+    setEditingSlot(slot);
+    setTempEditData({
+      slotFrom: slot.slotFrom,
+      slotTo: slot.slotTo,
+      price: slot.price
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditingSlot(null);
+    setTempEditData({});
+  };
+
+  const saveEditSlot = () => {
+    onSlotsChange(slots.map(s =>
+      s.id === editingSlot.id
+        ? { ...s, ...tempEditData }
+        : s
     ));
+    closeEditModal();
   };
 
-  const addDayToSlot = (slotId, dayId) => {
-    onSlotsChange(slots.map(slot => {
-      if (slot.id === slotId) {
-        const days = slot.days || [];
-        if (!days.includes(dayId)) {
-          return { ...slot, days: [...days, dayId] };
-        }
-      }
-      return slot;
-    }));
-  };
-
-  const removeDayFromSlot = (slotId, dayId) => {
-    onSlotsChange(slots.map(slot => {
-      if (slot.id === slotId) {
-        return { ...slot, days: (slot.days || []).filter(d => d !== dayId) };
-      }
-      return slot;
-    }));
-  };
-
-  const toggleDateSelection = (dateString) => {
-    setSelectedDates(prev =>
-      prev.includes(dateString)
-        ? prev.filter(d => d !== dateString)
-        : [...prev, dateString]
-    );
-  };
-
-  const addDateToSlot = (slotId, dateString) => {
-    onSlotsChange(slots.map(slot => {
-      if (slot.id === slotId) {
-        const dates = slot.dates || [];
-        if (!dates.includes(dateString)) {
-          return { ...slot, dates: [...dates, dateString] };
-        }
-      }
-      return slot;
-    }));
-  };
-
-  const removeDateFromSlot = (slotId, dateString) => {
-    onSlotsChange(slots.map(slot => {
-      if (slot.id === slotId) {
-        return { ...slot, dates: (slot.dates || []).filter(d => d !== dateString) };
-      }
-      return slot;
-    }));
-  };
+  // --- Renderers ---
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-green-600" />
-          <h3 className="text-lg font-medium text-slate-900">Slot Management</h3>
+    <div className="space-y-6 relative">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Tab Switcher */}
+        <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setActiveTab('recurring')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'recurring' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+          >
+            <CalendarDays className="h-4 w-4" /> Weekly
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('dates')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'dates' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+          >
+            <Calendar className="h-4 w-4" /> Specific Dates
+          </button>
         </div>
-        <p className="text-sm text-slate-500">Add recurring (day-wise) or date-specific slots</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200">
-        <button
-          type="button"
-          onClick={() => setActiveTab('recurring')}
-          className={`px-4 py-2 font-medium text-sm transition-colors ${activeTab === 'recurring'
-            ? 'text-green-600 border-b-2 border-green-600'
-            : 'text-slate-600 hover:text-slate-900'
-            }`}
-        >
-          <CalendarDays className="h-4 w-4 inline mr-2" />
-          Recurring (Day-wise)
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('dates')}
-          className={`px-4 py-2 font-medium text-sm transition-colors ${activeTab === 'dates'
-            ? 'text-green-600 border-b-2 border-green-600'
-            : 'text-slate-600 hover:text-slate-900'
-            }`}
-        >
-          <Calendar className="h-4 w-4 inline mr-2" />
-          Date-Specific
-        </button>
-      </div>
-
-      {/* Recurring Slots Tab */}
+      {/* --- RECURRING TAB --- */}
       {activeTab === 'recurring' && (
-        <div className="space-y-4">
+        <div className="animate-in slide-in-from-left-2 fade-in duration-300 space-y-4">
+          {daysOfWeek.map(day => {
+            const daySlots = getDaySlots(day.id);
+            const isActive = daySlots.length > 0;
 
-          <div className="space-y-4">
-            {daysOfWeek.map(day => {
-              const daySlots = getDaySlots(day.id);
-
-              return (
-                <div key={day.id} className="border border-slate-200 rounded-lg p-4 bg-white">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-slate-800">{day.label}</h4>
-                    <button
-                      type="button"
-                      onClick={() => addSlotToDay(day.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add Slot
-                    </button>
+            return (
+              <div key={day.id} className={`border rounded-xl transition-all ${isActive ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50/50 border-slate-200 border-dashed'}`}>
+                {/* Header */}
+                <div className="p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                      {day.short}
+                    </div>
+                    <span className={`font-bold text-sm ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>{day.label}</span>
                   </div>
-
-                  {daySlots.length === 0 ? (
-                    <div className="text-center py-4 text-sm text-slate-400 border-2 border-dashed border-slate-200 rounded-lg">
-                      No slots added for {day.short}
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {daySlots.map(slot => (
-                        <div key={slot.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                          <div className="flex-1 grid grid-cols-3 gap-3">
-                            <div>
-                              <label className="block text-xs font-medium text-slate-600 mb-1">From</label>
-                              <TimePicker
-                                value={slot.slotFrom || ''}
-                                onChange={(val) => updateSlot(slot.id, 'slotFrom', val)}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-slate-600 mb-1">To</label>
-                              <TimePicker
-                                value={slot.slotTo || ''}
-                                onChange={(val) => updateSlot(slot.id, 'slotTo', val)}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-slate-600 mb-1">Price (₹)</label>
-                              <input
-                                type="number"
-                                value={slot.price || ''}
-                                onChange={(e) => updateSlot(slot.id, 'price', e.target.value)}
-                                placeholder="0.00"
-                                className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                              />
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeSlot(slot.id)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
-                            title="Remove slot"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleAddSlotToDay(day.id)}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-green-600 hover:border-green-200 transition-all"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add
+                  </button>
                 </div>
-              );
-            })}
+
+                {/* Slots Grid */}
+                {isActive && (
+                  <div className="px-3 pb-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {daySlots.map(slot => (
+                      <SlotCard
+                        key={slot.id}
+                        slot={slot}
+                        onClick={() => openEditModal(slot)}
+                        onDelete={() => removeSlot(slot.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* --- DATES TAB --- */}
+      {activeTab === 'dates' && (
+        <div className="animate-in slide-in-from-right-2 fade-in duration-300 space-y-6">
+          <div className="bg-white border boundary-slate-200 rounded-xl p-5 shadow-sm">
+            <h4 className="font-bold text-slate-800 mb-4">Add Special Date Rules</h4>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Date Picker */}
+              <div>
+                <input
+                  type="date"
+                  onChange={(e) => {
+                    if (e.target.value && !selectedDates.includes(e.target.value)) {
+                      setSelectedDates([...selectedDates, e.target.value]);
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none mb-3"
+                />
+                <div className="flex flex-wrap gap-2 min-h-[40px]">
+                  {selectedDates.map(date => (
+                    <span key={date} className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-lg border border-green-100">
+                      {new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      <button onClick={() => setSelectedDates(selectedDates.filter(d => d !== date))} className="hover:text-red-500"><X className="h-3 w-3" /></button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* New Slot Data */}
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Start</label>
+                    <TimePicker value={newDateSlot.from} onChange={v => setNewDateSlot({ ...newDateSlot, from: v })} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">End</label>
+                    <TimePicker value={newDateSlot.to} onChange={v => setNewDateSlot({ ...newDateSlot, to: v })} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-slate-400">Price Override</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-slate-400 font-bold text-sm">₹</span>
+                    <input
+                      type="number"
+                      value={newDateSlot.price}
+                      onChange={e => setNewDateSlot({ ...newDateSlot, price: e.target.value })}
+                      className="w-full pl-7 pr-3 py-1.5 border border-slate-200 rounded-lg text-sm font-bold focus:border-green-500 outline-none"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={handleAddDateSlot}
+                  disabled={selectedDates.length === 0}
+                  className="w-full py-2 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-all"
+                >
+                  Add Rule
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Multi-Day Slots Section */}
-          <div className="mt-6 border border-slate-200 rounded-lg p-4 bg-slate-50">
-            <h4 className="font-semibold text-slate-800 mb-3">Multi-Day Slots</h4>
-            <p className="text-sm text-slate-600 mb-4">Slots that apply to multiple days at once</p>
-
-            {recurringSlots.filter(slot => slot.days && slot.days.length > 1).length === 0 ? (
-              <div className="text-center py-4 text-sm text-slate-400 border-2 border-dashed border-slate-200 rounded-lg bg-white">
-                No multi-day slots. Add a slot to a day and then add more days to it.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recurringSlots.filter(slot => slot.days && slot.days.length > 1).map(slot => (
-                  <div key={slot.id} className="p-3 bg-white rounded-lg border border-slate-200">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 grid grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">From</label>
-                          <TimePicker
-                            value={slot.slotFrom || ''}
-                            onChange={(val) => updateSlot(slot.id, 'slotFrom', val)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">To</label>
-                          <TimePicker
-                            value={slot.slotTo || ''}
-                            onChange={(val) => updateSlot(slot.id, 'slotTo', val)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">Price (₹)</label>
-                          <input
-                            type="number"
-                            value={slot.price || ''}
-                            onChange={(e) => updateSlot(slot.id, 'price', e.target.value)}
-                            placeholder="0.00"
-                            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-green-500"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeSlot(slot.id)}
-                        className="ml-3 p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-2">Applies to:</label>
-                      <div className="flex flex-wrap gap-2">
-                        {daysOfWeek.map(day => {
-                          const isSelected = slot.days && slot.days.includes(day.id);
-                          return (
-                            <button
-                              key={day.id}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) {
-                                  removeDayFromSlot(slot.id, day.id);
-                                } else {
-                                  addDayToSlot(slot.id, day.id);
-                                }
-                              }}
-                              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${isSelected
-                                ? 'bg-green-600 text-white'
-                                : 'bg-white border border-slate-300 text-slate-600 hover:border-green-500'
-                                }`}
-                            >
-                              {day.short}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* List */}
+          <div className="space-y-3">
+            <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider ml-1">Active Special Dates</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {dateSpecificSlots.map(slot => (
+                <div key={slot.id} className="relative group">
+                  <SlotCard
+                    slot={slot}
+                    onClick={() => openEditModal(slot)}
+                    onDelete={() => removeSlot(slot.id)}
+                    isDate
+                  />
+                </div>
+              ))}
+              {dateSpecificSlots.length === 0 && <p className="text-sm text-slate-400 italic ml-1">No special overriding dates configured.</p>}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Date-Specific Slots Tab */}
-      {activeTab === 'dates' && (
-        <div className="space-y-4">
-          <div className="border border-slate-200 rounded-lg p-4 bg-white">
-            <h4 className="font-semibold text-slate-800 mb-4">Add Date-Specific Slots</h4>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Select Dates (Click to select multiple dates)
-              </label>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {selectedDates.map(date => (
-                  <span
-                    key={date}
-                    className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-2"
-                  >
-                    {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    <button
-                      type="button"
-                      onClick={() => toggleDateSelection(date)}
-                      className="text-green-600 hover:text-green-800"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
+      {/* --- EDIT MODAL --- */}
+      {editingSlot && (
+        <Modal title="Edit Time Slot" onClose={closeEditModal}>
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Start Time</label>
+                <TimePicker
+                  value={tempEditData.slotFrom}
+                  onChange={v => setTempEditData(prev => ({ ...prev, slotFrom: v }))}
+                  className="w-full"
+                />
               </div>
-              <input
-                type="date"
-                onChange={(e) => {
-                  if (e.target.value && !selectedDates.includes(e.target.value)) {
-                    toggleDateSelection(e.target.value);
-                  }
-                }}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                placeholder="Select dates"
-              />
-              <p className="text-xs text-slate-500 mt-2">
-                Select dates one by one to add them to the list above
-              </p>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">End Time</label>
+                <TimePicker
+                  value={tempEditData.slotTo}
+                  onChange={v => setTempEditData(prev => ({ ...prev, slotTo: v }))}
+                  className="w-full"
+                />
+              </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">From Time</label>
-                <TimePicker
-                  value={newDateSlot.from}
-                  onChange={(val) => setNewDateSlot({ ...newDateSlot, from: val })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">To Time</label>
-                <TimePicker
-                  value={newDateSlot.to}
-                  onChange={(val) => setNewDateSlot({ ...newDateSlot, to: val })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Price (₹)</label>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Price per Hour</label>
+              <div className="relative group">
+                <span className="absolute left-3 top-2.5 text-slate-400 font-bold">₹</span>
                 <input
                   type="number"
-                  value={newDateSlot.price}
-                  onChange={(e) => setNewDateSlot({ ...newDateSlot, price: e.target.value })}
+                  value={tempEditData.price}
+                  onChange={(e) => setTempEditData(prev => ({ ...prev, price: e.target.value }))}
+                  className="w-full pl-8 pr-4 py-2 border-2 border-slate-200 rounded-lg font-bold text-lg text-slate-900 focus:border-green-500 focus:ring-0 outline-none transition-all"
                   placeholder="0.00"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                const fromTime = document.getElementById('dateSlotFrom').value;
-                const toTime = document.getElementById('dateSlotTo').value;
-                const price = document.getElementById('dateSlotPrice').value;
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={closeEditModal}
+                className="flex-1 py-2.5 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEditSlot}
+                className="flex-1 py-2.5 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-200 hover:bg-green-700 transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
 
-                if (selectedDates.length === 0) {
-                  alert('Please select at least one date');
-                  return;
-                }
-
-                const newSlot = {
-                  id: Date.now() + Math.random(),
-                  type: 'date',
-                  dates: [...selectedDates],
-                  slotFrom: fromTime,
-                  slotTo: toTime,
-                  price: price || defaultPrice || ''
-                };
-                onSlotsChange([...slots, newSlot]);
-                setSelectedDates([]);
-                document.getElementById('dateSlotFrom').value = '09:00';
-                document.getElementById('dateSlotTo').value = '10:00';
-                document.getElementById('dateSlotPrice').value = defaultPrice || '';
-              }}
-              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Slot for Selected Dates
-            </button>
+            <div className="border-t border-slate-100 pt-4 text-center">
+              <button onClick={() => removeSlot(editingSlot.id)} className="text-red-500 text-sm font-medium hover:text-red-700 flex items-center justify-center gap-1 mx-auto">
+                <Trash2 className="h-4 w-4" /> Delete this slot
+              </button>
+            </div>
           </div>
-
-          {/* Existing Date-Specific Slots */}
-          <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
-            <h4 className="font-semibold text-slate-800 mb-3">Date-Specific Slots</h4>
-
-            {dateSpecificSlots.length === 0 ? (
-              <div className="text-center py-4 text-sm text-slate-400 border-2 border-dashed border-slate-200 rounded-lg bg-white">
-                No date-specific slots added yet
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {dateSpecificSlots.map(slot => (
-                  <div key={slot.id} className="p-3 bg-white rounded-lg border border-slate-200">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 grid grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">From</label>
-                          <TimePicker
-                            value={slot.slotFrom || ''}
-                            onChange={(val) => updateSlot(slot.id, 'slotFrom', val)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">To</label>
-                          <TimePicker
-                            value={slot.slotTo || ''}
-                            onChange={(val) => updateSlot(slot.id, 'slotTo', val)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">Price (₹)</label>
-                          <input
-                            type="number"
-                            value={slot.price || ''}
-                            onChange={(e) => updateSlot(slot.id, 'price', e.target.value)}
-                            placeholder="0.00"
-                            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-green-500"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeSlot(slot.id)}
-                        className="ml-3 p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-2">Applies to Dates:</label>
-                      <div className="flex flex-wrap gap-2">
-                        {(slot.dates || []).map(dateString => (
-                          <span
-                            key={dateString}
-                            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium flex items-center gap-2"
-                          >
-                            {new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            <button
-                              type="button"
-                              onClick={() => removeDateFromSlot(slot.id, dateString)}
-                              className="text-blue-600 hover:text-blue-800"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                      <div className="mt-2">
-                        <input
-                          type="date"
-                          onChange={(e) => {
-                            if (e.target.value && !slot.dates.includes(e.target.value)) {
-                              addDateToSlot(slot.id, e.target.value);
-                            }
-                          }}
-                          className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-green-500"
-                          placeholder="Add more dates"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        </Modal>
       )}
+
     </div>
   );
 }
 
+// Sub-components
+
+const SlotCard = ({ slot, onClick, onDelete, isDate }) => (
+  <div
+    onClick={onClick}
+    className={`group relative p-3 rounded-xl border transition-all cursor-pointer hover:-translate-y-0.5 ${isDate ? 'bg-blue-50/50 border-blue-100 hover:border-blue-300 hover:shadow-md hover:shadow-blue-50' : 'bg-slate-50 border-slate-200 hover:border-green-400 hover:shadow-md hover:shadow-green-50'}`}
+  >
+    <div className="flex justify-between items-start mb-2">
+      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-100">
+        <Clock className="h-3 w-3" />
+        {slot.slotFrom} - {slot.slotTo}
+      </div>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        className="p-1 text-slate-300 hover:text-red-500 hover:bg-white rounded transition-colors"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+
+    {isDate && slot.dates && (
+      <div className="flex flex-wrap gap-1 mb-2">
+        {slot.dates.slice(0, 3).map(d => (
+          <span key={d} className="text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 rounded">{new Date(d).getDate()}</span>
+        ))}
+        {slot.dates.length > 3 && <span className="text-[10px] text-blue-400">+{slot.dates.length - 3}</span>}
+      </div>
+    )}
+
+    <div className="flex items-end justify-between">
+      <div>
+        <p className="text-[10px] font-bold text-slate-400 uppercase">Price</p>
+        <p className={`font-bold text-lg ${isDate ? 'text-blue-600' : 'text-green-600'}`}>₹{slot.price}</p>
+      </div>
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1 rounded border border-slate-100 shadow-sm">
+        <Edit2 className="h-3 w-3 text-slate-400" />
+      </div>
+    </div>
+  </div>
+);
+
 const TimePicker = ({ value, onChange, className }) => {
-  // Parse 24h time to 12h
   const [hours, minutes] = (value || '09:00').split(':');
   let h = parseInt(hours, 10);
   const m = minutes;
   const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12;
-  h = h ? h : 12; // the hour '0' should be '12'
+  h = h % 12 || 12;
 
-  const handleHourChange = (e) => {
-    let newH = parseInt(e.target.value, 10);
-    if (ampm === 'PM' && newH !== 12) newH += 12;
-    if (ampm === 'AM' && newH === 12) newH = 0;
-    onChange(`${newH.toString().padStart(2, '0')}:${m}`);
-  };
-
-  const handleMinuteChange = (e) => {
-    onChange(`${hours}:${e.target.value}`);
-  };
-
-  const handleAmpmChange = (e) => {
-    const newAmpm = e.target.value;
-    let newH = parseInt(hours, 10);
-    if (newAmpm === 'PM' && newH < 12) newH += 12;
-    if (newAmpm === 'AM' && newH >= 12) newH -= 12;
-    onChange(`${newH.toString().padStart(2, '0')}:${m}`);
+  const updateTime = (newH, newM, newAmpm) => {
+    let finalH = parseInt(newH, 10);
+    if (newAmpm === 'PM' && finalH !== 12) finalH += 12;
+    if (newAmpm === 'AM' && finalH === 12) finalH = 0;
+    onChange(`${finalH.toString().padStart(2, '0')}:${newM}`);
   };
 
   return (
-    <div className={`flex gap-1 ${className}`}>
+    <div className={`flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-0.5 focus-within:ring-2 focus-within:ring-green-500/20 focus-within:border-green-500 transition-all ${className}`}>
       <select
         value={h}
-        onChange={handleHourChange}
-        className="px-1 py-1 text-sm border border-slate-300 rounded focus:ring-1 focus:ring-green-500 w-14"
+        onChange={e => updateTime(e.target.value, m, ampm)}
+        className="flex-1 appearance-none bg-transparent py-1.5 text-center text-sm font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded"
       >
-        {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
-          <option key={num} value={num}>{num}</option>
-        ))}
+        {Array.from({ length: 12 }, (_, i) => i + 1).map(num => <option key={num} value={num}>{num}</option>)}
       </select>
-      <span className="self-center">:</span>
+      <span className="text-slate-300 font-bold">:</span>
       <select
         value={m}
-        onChange={handleMinuteChange}
-        className="px-1 py-1 text-sm border border-slate-300 rounded focus:ring-1 focus:ring-green-500 w-14"
+        onChange={e => updateTime(h, e.target.value, ampm)}
+        className="flex-1 appearance-none bg-transparent py-1.5 text-center text-sm font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded"
       >
-        {['00', '15', '30', '45'].map(min => (
-          <option key={min} value={min}>{min}</option>
-        ))}
-        {/* Allow explicit text input for minute if needed? Custom input maybe better. But for now steps of 15 are common for bookings, but let's do 5 min steps just in case */}
-        {Array.from({ length: 60 / 5 }, (_, i) => (i * 5).toString().padStart(2, '0')).map(min => (
-          !['00', '15', '30', '45'].includes(min) && <option key={min} value={min}>{min}</option>
-        ))}
+        {['00', '15', '30', '45'].map(min => <option key={min} value={min}>{min}</option>)}
       </select>
       <select
         value={ampm}
-        onChange={handleAmpmChange}
-        className="px-1 py-1 text-sm border border-slate-300 rounded focus:ring-1 focus:ring-green-500 w-16"
+        onChange={e => updateTime(h, m, e.target.value)}
+        className="w-12 appearance-none bg-slate-50 border-l border-slate-100 py-1.5 text-center text-xs font-bold text-slate-500 outline-none cursor-pointer hover:text-green-600 rounded-r"
       >
         <option value="AM">AM</option>
         <option value="PM">PM</option>
@@ -564,4 +390,3 @@ const TimePicker = ({ value, onChange, className }) => {
 };
 
 export default SlotCalendar;
-

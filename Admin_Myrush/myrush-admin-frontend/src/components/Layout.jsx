@@ -1,19 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
 const Layout = ({ children, onLogout }) => {
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-            <Sidebar onLogout={onLogout} />
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
-            <div className="ml-48 transition-all duration-300">
-                <Header />
-                <main className="p-8">
-                    <div className="mx-auto max-w-7xl animate-fade-in">
-                        {children}
-                    </div>
-                </main>
+    return (
+        <div className="dark:bg-boxdark-2 dark:text-bodydark">
+            <div className="flex h-screen overflow-hidden">
+                <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} onLogout={onLogout} />
+
+                <div className="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+                    <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+
+                    <main>
+                        <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+                            {children}
+                        </div>
+                    </main>
+                </div>
             </div>
         </div>
     );

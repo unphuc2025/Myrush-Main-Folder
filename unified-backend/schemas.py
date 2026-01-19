@@ -276,12 +276,35 @@ class AdminPolicy(AdminPolicyBase):
     class Config:
         from_attributes = True
 
+class RoleBase(BaseModel):
+    name: str
+    permissions: Optional[dict] = {}
+    is_active: Optional[bool] = True
+
+class RoleCreate(RoleBase):
+    pass
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+    permissions: Optional[dict] = None
+    is_active: Optional[bool] = None
+
+class RoleResponse(RoleBase):
+    id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
 class AdminBase(BaseModel):
     name: Optional[str] = None
     mobile: str
     email: Optional[str] = None
     role: Optional[str] = 'super_admin'
-    branch_id: Optional[str] = None
+    role_id: Optional[str] = None
+    branch_id: Optional[str] = None # Deprecated
+    branch_ids: Optional[List[str]] = [] # New multi-branch support
 
 class AdminCreate(AdminBase):
     password: str
@@ -291,15 +314,27 @@ class AdminUpdate(BaseModel):
     mobile: Optional[str] = None
     email: Optional[str] = None
     role: Optional[str] = None
+    role_id: Optional[str] = None
     branch_id: Optional[str] = None
+    branch_ids: Optional[List[str]] = None
     password: Optional[str] = None
 
 class Admin(AdminBase):
     id: str
+    role_id: Optional[UUID] = None
     created_at: Optional[datetime] = None
     must_change_password: Optional[bool] = False
+    role_rel: Optional[RoleResponse] = None
+    accessible_branches: Optional[List[Branch]] = [] # New M2M relationship
+    
+    # helper property for frontend convenience
+    @property
+    def accessible_branch_ids(self) -> List[str]:
+        if self.accessible_branches:
+            return [str(b.id) for b in self.accessible_branches]
+        return []
 
-    @field_validator('id', 'branch_id', mode='before')
+    @field_validator('id', 'branch_id', 'role_id', mode='before')
     @classmethod
     def convert_uuid_to_str(cls, v):
         if isinstance(v, UUID):
@@ -386,6 +421,7 @@ class User(UserBase):
     id: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    profile: Optional["ProfileResponse"] = None # Nested profile data
 
     @field_validator('id', mode='before')
     @classmethod
@@ -397,6 +433,60 @@ class User(UserBase):
     class Config:
         from_attributes = True
 
+class UserListResponse(BaseModel):
+    items: List[User]
+    total: int
+    page: int
+    pages: int
+
+class CMSPageBase(BaseModel):
+    title: str
+    slug: str
+    content: str
+    is_active: Optional[bool] = True
+
+class CMSPageCreate(CMSPageBase):
+    pass
+
+class CMSPageUpdate(BaseModel):
+    title: Optional[str] = None
+    slug: Optional[str] = None
+    content: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class CMSPageResponse(CMSPageBase):
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class CMSPageListResponse(BaseModel):
+    items: List[CMSPageResponse]
+    total: int
+    page: int
+    pages: int
+
+class SiteSettingBase(BaseModel):
+    email: str
+    contact_number: str
+    address: str
+    copyright_text: str
+
+class SiteSettingCreate(SiteSettingBase):
+    pass
+
+class SiteSettingResponse(SiteSettingBase):
+    id: UUID
+    site_logo: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class ProfileBase(BaseModel):
     phone_number: str
     full_name: Optional[str] = None
@@ -407,6 +497,43 @@ class ProfileBase(BaseModel):
     skill_level: Optional[str] = None
     sports: Optional[List[str]] = None
     playing_style: Optional[str] = None
+
+# FAQ Schemas
+class FAQBase(BaseModel):
+    question: str
+    answer: str
+    is_active: Optional[bool] = True
+
+class FAQCreate(FAQBase):
+    pass
+
+class FAQUpdate(BaseModel):
+    question: Optional[str] = None
+    answer: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class FAQResponse(FAQBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class FAQListResponse(BaseModel):
+    items: List[FAQResponse]
+    total: int
+    page: int
+    pages: int
+    class Config:
+        from_attributes = True
 
 class ProfileCreate(ProfileBase):
     pass
@@ -817,3 +944,6 @@ class AdminCourtResponse(BaseModel):
         json_encoders = {
             datetime: lambda v: v.isoformat() if v else None
         }
+
+# Resolve forward references
+User.update_forward_refs()

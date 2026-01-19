@@ -3,9 +3,12 @@ const API_BASE = config.API_URL;
 export const IMAGE_BASE_URL = API_BASE.replace('/api/admin', '');
 
 async function apiRequest(url, options = {}) {
+    const token = localStorage.getItem('admin_token');
+
     const config = {
         headers: {
             'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
             ...options.headers
         },
         ...options
@@ -66,9 +69,12 @@ export const gameTypesApi = {
     getAll: () => apiRequest('/game-types'),
     getById: (id) => apiRequest(`/game-types/${id}`),
     create: (formData) => {
-        // FormData handles its own content-type
+        const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/game-types`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData
         }).then(res => {
             if (!res.ok) {
@@ -80,8 +86,12 @@ export const gameTypesApi = {
         });
     },
     update: (id, formData) => {
+        const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/game-types/${id}`, {
             method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData
         }).then(res => {
             if (!res.ok) throw new Error('Failed to update game type');
@@ -98,8 +108,12 @@ export const amenitiesApi = {
     getAll: () => apiRequest('/amenities'),
     getById: (id) => apiRequest(`/amenities/${id}`),
     create: (formData) => {
+        const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/amenities`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData
         }).then(res => {
             if (!res.ok) {
@@ -111,8 +125,12 @@ export const amenitiesApi = {
         });
     },
     update: (id, formData) => {
+        const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/amenities/${id}`, {
             method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData
         }).then(res => {
             if (!res.ok) throw new Error('Failed to update amenity');
@@ -130,8 +148,12 @@ export const branchesApi = {
     getByCity: (cityId) => apiRequest(`/branches/city/${cityId}`),
     getById: (id) => apiRequest(`/branches/${id}`),
     create: (formData) => {
+        const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/branches`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData
         }).then(res => {
             if (!res.ok) throw new Error('Failed to create branch');
@@ -139,8 +161,12 @@ export const branchesApi = {
         });
     },
     update: (id, formData) => {
+        const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/branches/${id}`, {
             method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData
         }).then(res => {
             if (!res.ok) throw new Error('Failed to update branch');
@@ -157,8 +183,12 @@ export const courtsApi = {
     getAll: () => apiRequest('/courts'),
     getById: (id) => apiRequest(`/courts/${id}`),
     create: (formData) => {
+        const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/courts`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData
         }).then(res => {
             if (!res.ok) {
@@ -170,8 +200,12 @@ export const courtsApi = {
         });
     },
     update: (id, formData) => {
+        const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/courts/${id}`, {
             method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData
         }).then(res => {
             if (!res.ok) throw new Error('Failed to update court');
@@ -190,8 +224,12 @@ export const courtsApi = {
         if (branchId) formData.append('branch_id', branchId);
         if (gameTypeId) formData.append('game_type_id', gameTypeId);
 
+        const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/courts/bulk-update-slots`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData
         }).then(res => {
             if (!res.ok) {
@@ -239,8 +277,12 @@ export const globalPriceConditionsApi = {
             price: price
         });
 
+        const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/global-price-conditions`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData
         }).then(async res => {
             if (!res.ok) {
@@ -261,8 +303,12 @@ export const globalPriceConditionsApi = {
         if (data.price !== undefined) formData.append('price', data.price);
         if (data.is_active !== undefined) formData.append('is_active', data.is_active);
 
+        const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/global-price-conditions/${id}`, {
             method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData
         }).then(res => {
             if (!res.ok) throw new Error('Failed to update global price condition');
@@ -277,7 +323,31 @@ export const globalPriceConditionsApi = {
     })
 };
 
-// Bookings API
+// Users API
+export const usersApi = {
+    getAll: async (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        const response = await apiRequest(`/auth/users?${query}`);
+        // Return just the items array for backward compatibility
+        return response;
+    },
+    get: (id) => apiRequest(`/auth/users/${id}`),
+    create: (data) => apiRequest('/auth/users', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    update: (id, data) => apiRequest(`/auth/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    }),
+    delete: (id) => apiRequest(`/auth/users/${id}`, {
+        method: 'DELETE'
+    }),
+    toggleStatus: (id) => apiRequest(`/auth/users/${id}/toggle`, { // Assuming toggle endpoint exists on backend or will use update
+        method: 'PATCH'
+    })
+};
+
 export const bookingsApi = {
     getAll: (branchId = null) => {
         const url = branchId ? `/bookings?branch_id=${branchId}` : '/bookings';
@@ -342,10 +412,7 @@ export const policiesApi = {
     })
 };
 
-// Users API
-export const usersApi = {
-    getAll: () => apiRequest('/users')
-};
+
 
 // Admins API
 export const adminsApi = {
@@ -370,3 +437,85 @@ export const reviewsApi = {
         method: 'PUT'
     })
 };
+
+// Roles API
+export const rolesApi = {
+    getAll: () => apiRequest('/roles'),
+    getById: (id) => apiRequest(`/roles/${id}`),
+    create: (data) => apiRequest('/roles', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    update: (id, data) => apiRequest(`/roles/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    }),
+    delete: (id) => apiRequest(`/roles/${id}`, {
+        method: 'DELETE'
+    })
+};
+
+// FAQ API
+export const faqsApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return apiRequest(`/faq?${query}`);
+    },
+    getById: (id) => apiRequest(`/faq/${id}`),
+    create: (data) => apiRequest('/faq/', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    update: (id, data) => apiRequest(`/faq/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    }),
+    delete: (id) => apiRequest(`/faq/${id}`, {
+        method: 'DELETE'
+    })
+};
+
+// CMS Pages API
+export const cmsApi = {
+    getAll: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return apiRequest(`/cms?${query}`);
+    },
+    getBySlug: (slug) => apiRequest(`/cms/${slug}`),
+    create: (data) => apiRequest('/cms', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    update: (id, data) => apiRequest(`/cms/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    }),
+    delete: (id) => apiRequest(`/cms/${id}`, {
+        method: 'DELETE'
+    })
+};
+
+// Site Settings API
+export const settingsApi = {
+    get: () => apiRequest('/settings'),
+    update: (formData) => {
+        const token = localStorage.getItem('admin_token');
+        return fetch(`${API_BASE}/settings`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                // Content-Type not set to let browser handle multipart/form-data boundary
+            },
+            body: formData
+        }).then(async res => {
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.detail || 'Failed to update settings');
+            }
+            return res.json();
+        });
+    }
+};
+
+// End of API definitions
+// Force rebuild

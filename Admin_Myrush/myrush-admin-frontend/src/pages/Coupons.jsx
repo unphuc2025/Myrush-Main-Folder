@@ -423,7 +423,7 @@ function Coupons() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium shadow-sm"
+                                    className="px-6 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 font-medium shadow-sm"
                                     disabled={submitting}
                                 >
                                     {submitting ? 'Saving...' : (editingCoupon ? 'Update Coupon' : 'Create Coupon')}
@@ -444,7 +444,7 @@ function Coupons() {
                             </div>
                             <button
                                 onClick={handleAddClick}
-                                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
                             >
                                 <Plus className="h-5 w-5" />
                                 Add Coupon

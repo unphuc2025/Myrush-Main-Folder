@@ -4,6 +4,7 @@ from typing import List, Optional
 from decimal import Decimal
 import models, schemas
 from database import get_db
+from dependencies import get_admin_branch_filter
 import uuid
 import os
 import shutil
@@ -21,15 +22,39 @@ router = APIRouter(
     tags=["courts"]
 )
 
+from dependencies import get_admin_branch_filter
+
 @router.get("", response_model=List[schemas.Court])
 @router.get("/", response_model=List[schemas.Court])
-def get_all_courts(branch_id: str = None, game_type_id: str = None, db: Session = Depends(get_db)):
-    """Get all courts, optionally filtered by branch_id or game_type_id"""
+def get_all_courts(
+    branch_id: str = None, 
+    game_type_id: str = None, 
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
+):
+    """Get all courts, filtered by branch access rights"""
     query = db.query(models.Court)
-    if branch_id:
-        query = query.filter(models.Court.branch_id == branch_id)
+    
+    # 1. Apply Role-Based Restrictions (Server-side)
+    if branch_filter is not None:
+        # User is restricted to specific branches
+        if branch_id:
+            # If requesting a specific branch, ensure it's in their allowed list
+            if branch_id not in branch_filter:
+                return []
+            query = query.filter(models.Court.branch_id == branch_id)
+        else:
+            # Return courts from ALL allowed branches
+            query = query.filter(models.Court.branch_id.in_(branch_filter))
+    else:
+        # SUPER ADMIN (No filter)
+        if branch_id:
+            query = query.filter(models.Court.branch_id == branch_id)
+
+    # 2. Apply other filters
     if game_type_id:
         query = query.filter(models.Court.game_type_id == game_type_id)
+        
     return query.all()
 
 @router.get("/{court_id}", response_model=schemas.Court)
@@ -54,9 +79,15 @@ async def create_court(
     is_active: bool = Form(True),
     images: Optional[List[UploadFile]] = File(None),
     videos: Optional[List[UploadFile]] = File(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Create a new court with file uploads"""
+    
+    # Security Check
+    if branch_filter is not None:
+         if branch_id not in branch_filter:
+             raise HTTPException(status_code=403, detail="Access denied to this branch")
     # Handle image uploads
     image_urls = []
     if images:
@@ -176,12 +207,23 @@ async def update_court(
     videos: Optional[List[UploadFile]] = File(None),
     existing_images: Optional[List[str]] = Form(None),
     existing_videos: Optional[List[str]] = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Update a court with file uploads"""
     db_court = db.query(models.Court).filter(models.Court.id == court_id).first()
     if not db_court:
         raise HTTPException(status_code=404, detail="Court not found")
+
+    # Security Check: Existing Court Access
+    if branch_filter is not None:
+         if str(db_court.branch_id) not in branch_filter:
+             raise HTTPException(status_code=403, detail="Access denied to this court's branch")
+         
+         # Security Check: New Branch Access (if changing)
+         if branch_id != str(db_court.branch_id):
+             if branch_id not in branch_filter:
+                 raise HTTPException(status_code=403, detail="Access denied to target branch")
 
     # Handle image uploads
     image_urls = existing_images if existing_images else []
@@ -276,11 +318,20 @@ async def update_court(
     return db_court
 
 @router.patch("/{court_id}/toggle", response_model=schemas.Court)
-def toggle_court_status(court_id: str, db: Session = Depends(get_db)):
+def toggle_court_status(
+    court_id: str, 
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
+):
     """Toggle court active status"""
     db_court = db.query(models.Court).filter(models.Court.id == court_id).first()
     if not db_court:
         raise HTTPException(status_code=404, detail="Court not found")
+    
+    # Security Check
+    if branch_filter is not None:
+         if str(db_court.branch_id) not in branch_filter:
+             raise HTTPException(status_code=403, detail="Access denied to this court's branch")
     
     db_court.is_active = not db_court.is_active
     db.commit()
@@ -288,9 +339,20 @@ def toggle_court_status(court_id: str, db: Session = Depends(get_db)):
     return db_court
 
 @router.delete("/{court_id}")
-def delete_court(court_id: str, db: Session = Depends(get_db)):
+def delete_court(
+    court_id: str, 
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
+):
     """Delete a court"""
     db_court = db.query(models.Court).filter(models.Court.id == court_id).first()
+    if not db_court:
+         raise HTTPException(status_code=404, detail="Court not found")
+
+    # Security Check
+    if branch_filter is not None:
+         if str(db_court.branch_id) not in branch_filter:
+             raise HTTPException(status_code=403, detail="Access denied to this court's branch")
     if not db_court:
         raise HTTPException(status_code=404, detail="Court not found")
     
@@ -306,7 +368,8 @@ async def bulk_update_slots(
     price: str = Form(...),
     branch_id: Optional[str] = Form(None),
     game_type_id: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Bulk update slots for all courts (or filtered by branch/game_type) for a specific date"""
     try:
@@ -317,8 +380,19 @@ async def bulk_update_slots(
 
         # Get all courts (optionally filtered)
         query = db.query(models.Court).filter(models.Court.is_active == True)
-        if branch_id:
-            query = query.filter(models.Court.branch_id == branch_id)
+        
+        # Apply Security
+        if branch_filter is not None:
+             if branch_id:
+                 if branch_id not in branch_filter:
+                     raise HTTPException(status_code=403, detail="Access denied to this branch")
+                 query = query.filter(models.Court.branch_id == branch_id)
+             else:
+                 query = query.filter(models.Court.branch_id.in_(branch_filter))
+        else:
+             if branch_id:
+                 query = query.filter(models.Court.branch_id == branch_id)
+
         if game_type_id:
             query = query.filter(models.Court.game_type_id == game_type_id)
         
