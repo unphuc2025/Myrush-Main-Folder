@@ -25,8 +25,6 @@ function AddAdminForm({ onCancel, onSave, initialData = null }) {
                 mobile: initialData.mobile,
                 email: initialData.email || '',
                 password: '', // Don't populate password on edit
-                email: initialData.email || '',
-                password: '', // Don't populate password on edit
                 role_id: initialData.role_id || '',
                 // Populate branch_ids from accessible_branch_ids (new) or legacy branch_id
                 branch_ids: initialData.accessible_branch_ids || (initialData.branch_id ? [initialData.branch_id] : [])
