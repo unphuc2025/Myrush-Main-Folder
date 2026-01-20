@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
-from typing import Annotated, Optional
+from typing import Annotated, Optional, List
 import os
 from dotenv import load_dotenv
 import models
@@ -150,26 +150,32 @@ def require_branch_admin(
 
 def get_admin_branch_filter(
     admin: Annotated[models.Admin, Depends(get_current_admin)]
-) -> str:
+) -> Optional[List[str]]:
     """
     Get branch filter for admin
     - Super admins can see all branches (returns None)
-    - Branch admins can only see their branch (returns branch_id)
+    - Branch admins can only see their assigned branches (returns list of UUID strings)
     """
     if admin.role == 'super_admin':
         return None  # No filter, can see all
-    elif admin.role == 'branch_admin':
-        if not admin.branch_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Branch admin must have a branch assigned"
-            )
-        return str(admin.branch_id)
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid admin role"
-        )
+    
+    # Collect all accessible branches
+    branch_ids = set()
+    
+    # M2M branches
+    if admin.accessible_branches:
+        branch_ids.update(str(b.id) for b in admin.accessible_branches)
+        
+    # Legacy single branch (fallback)
+    if admin.branch_id:
+        branch_ids.add(str(admin.branch_id))
+        
+    if not branch_ids:
+         # Strict: if not super admin and no branches, return empty list (see nothing)?
+         # Or error? Let's return empty list so filters return 0 results.
+         return []
+
+    return list(branch_ids)
 
 # ============================================================================
 # OPTIONAL AUTHENTICATION (for public endpoints)

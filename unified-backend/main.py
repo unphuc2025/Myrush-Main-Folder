@@ -61,7 +61,7 @@ app = FastAPI(
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "*"],  # Explicitly add frontend origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -129,9 +129,15 @@ from routers.admin import (
     global_price_conditions,
     coupons as admin_coupons,
     policies,
+    policies,
     users as admin_users,
-    reviews_v2 as admin_reviews
+    reviews_v2 as admin_reviews,
+    faq as admin_faq,
+    roles,
+    cms as admin_cms,
+    site_settings as admin_site_settings
 )
+
 
 # Include admin routers with /api/admin prefix
 app.include_router(admin_auth.router, prefix="/api/admin", tags=["Admin Auth"])
@@ -148,6 +154,10 @@ app.include_router(admin_coupons.router, prefix="/api/admin", tags=["Admin Coupo
 app.include_router(policies.router, prefix="/api/admin", tags=["Admin Policies"])
 app.include_router(admin_users.router, prefix="/api/admin", tags=["Admin Users"])
 app.include_router(admin_reviews.router, prefix="/api/admin", tags=["Admin Reviews"])
+app.include_router(roles.router, prefix="/api/admin", tags=["Admin Roles"])
+app.include_router(admin_faq.router, prefix="/api/admin", tags=["Admin FAQ"])
+app.include_router(admin_cms.router, prefix="/api/admin", tags=["Admin CMS"])
+app.include_router(admin_site_settings.router, prefix="/api/admin", tags=["Admin Site Settings"])
 
 # ============================================================================
 # IMPORT AND INCLUDE USER ROUTERS

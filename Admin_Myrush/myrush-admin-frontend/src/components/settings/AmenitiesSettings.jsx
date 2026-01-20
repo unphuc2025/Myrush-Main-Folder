@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Edit2, Plus, Star, Eye, Trash2, X } from 'lucide-react';
+import { Edit2, Plus, Star, Trash2, Search, XCircle } from 'lucide-react';
+import Drawer from './Drawer';
 import ToggleSwitch from './ToggleSwitch';
 import AddAmenityForm from './AddAmenityForm';
 import { amenitiesApi } from '../../services/adminApi';
 
 function AmenitiesSettings() {
   const [amenities, setAmenities] = useState([]);
-  const [view, setView] = useState('list'); // 'list', 'add'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Drawer State
+  const [showDrawer, setShowDrawer] = useState(false);
   const [editingAmenity, setEditingAmenity] = useState(null);
-  const [viewingAmenity, setViewingAmenity] = useState(null);
 
   useEffect(() => {
     fetchAmenities();
@@ -32,12 +35,12 @@ function AmenitiesSettings() {
 
   const handleAddClick = () => {
     setEditingAmenity(null);
-    setView('add');
+    setShowDrawer(true);
   };
 
   const handleEditClick = (amenity) => {
     setEditingAmenity(amenity);
-    setView('add');
+    setShowDrawer(true);
   };
 
   const handleDeleteClick = async (id) => {
@@ -54,12 +57,15 @@ function AmenitiesSettings() {
 
   const handleSaveSuccess = async () => {
     await fetchAmenities();
-    setView('list');
+    setShowDrawer(false);
     setEditingAmenity(null);
   };
 
   const handleToggleAmenity = async (amenity) => {
     try {
+      // Optimistic update
+      setAmenities(prev => prev.map(a => a.id === amenity.id ? { ...a, is_active: !a.is_active } : a));
+
       const updateData = new FormData();
       updateData.append('name', amenity.name);
       updateData.append('description', amenity.description || '');
@@ -70,188 +76,128 @@ function AmenitiesSettings() {
       }
 
       await amenitiesApi.update(amenity.id, updateData);
-      await fetchAmenities();
     } catch (err) {
       console.error('Error toggling amenity:', err);
       setError('Failed to update amenity status');
+      fetchAmenities(); // Revert
     }
   };
 
-  if (viewingAmenity) {
-    return (
-      <AmenityViewModal
-        amenity={viewingAmenity}
-        onClose={() => setViewingAmenity(null)}
-      />
-    );
-  }
-
-  if (view === 'add') {
-    return (
-      <AddAmenityForm
-        onCancel={() => {
-          setView('list');
-          setEditingAmenity(null);
-        }}
-        onSave={handleSaveSuccess}
-        initialData={editingAmenity}
-      />
-    );
-  }
+  const filteredAmenities = amenities.filter(a =>
+    a.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div>
-      {/* Header with Add Button */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-slate-900">Amenities</h2>
-        <button
-          onClick={handleAddClick}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Add Amenity
-        </button>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {error}
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading ? (
-        <div className="text-center py-8 text-slate-500">
-          <p>Loading amenities...</p>
-        </div>
-      ) : (
-        <>
-          {/* List */}
-          <div className="space-y-3">
-            {amenities.map((amenity) => (
-              <div key={amenity.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center">
-                    {amenity.icon_url ? (
-                      <img src={amenity.icon_url} alt={amenity.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <Star className="h-5 w-5 text-green-600" />
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-slate-900">{amenity.name}</h3>
-                    {amenity.description && (
-                      <p className="text-sm text-slate-500">{amenity.description}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <ToggleSwitch
-                    isChecked={amenity.is_active}
-                    onToggle={() => handleToggleAmenity(amenity)}
-                  />
-                  <button
-                    onClick={() => setViewingAmenity(amenity)}
-                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="View"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleEditClick(amenity)}
-                    className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                    title="Edit"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {amenities.length === 0 && (
-              <div className="text-center py-8 text-slate-500">
-                <Star className="h-12 w-12 mx-auto text-slate-300 mb-4" />
-                <p>No amenities added yet.</p>
-                <p className="text-sm">Click "Add Amenity" to create your first amenity.</p>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function AmenityViewModal({ amenity, onClose }) {
-  return (
-    <div className="bg-white rounded-lg">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
-        <h2 className="text-xl font-semibold text-slate-800">View Amenity Details</h2>
-        <button
-          onClick={onClose}
-          className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-        >
-          <X className="h-5 w-5 text-slate-600" />
-        </button>
-      </div>
-
-      <div className="space-y-6">
-        {/* Amenity Icon */}
-        <div className="flex justify-center">
-          <div className="w-20 h-20 bg-green-100 rounded-lg overflow-hidden flex items-center justify-center">
-            {amenity.icon_url ? (
-              <img src={amenity.icon_url} alt={amenity.name} className="w-full h-full object-contain" />
-            ) : (
-              <Star className="h-10 w-10 text-green-600" />
-            )}
-          </div>
+      {/* Header & Controls */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+        <div>
+          {/* Optional sub-header/stats if needed */}
         </div>
 
-        {/* Amenity Information */}
-        <div className="grid grid-cols-1 gap-6">
-          <div>
-            <h3 className="text-lg font-medium text-slate-900 mb-4">Basic Information</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Amenity Name</label>
-                <p className="text-sm text-slate-900 bg-slate-50 px-3 py-2 rounded-md">{amenity.name}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Description</label>
-                <p className="text-sm text-slate-900 bg-slate-50 px-3 py-2 rounded-md">{amenity.description || 'No description provided'}</p>
-              </div>
-            </div>
+        <div className="flex w-full md:w-auto gap-3">
+          <div className="relative flex-1 md:w-64">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search amenities..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm"
+            />
           </div>
-
-          <div>
-            <h3 className="text-lg font-medium text-slate-900 mb-4">Status</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Active Status</label>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${amenity.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {amenity.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Button */}
-        <div className="flex justify-end pt-6 border-t border-slate-200">
           <button
-            onClick={onClose}
-            className="px-6 py-2.5 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 font-medium transition-colors"
+            onClick={handleAddClick}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
           >
-            Close
+            <Plus className="h-4 w-4" />
+            <span className="text-sm font-semibold">Add Amenity</span>
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
+          <XCircle className="h-5 w-5" />{error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => <div key={i} className="h-40 bg-slate-100 rounded-2xl animate-pulse" />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredAmenities.map((amenity) => (
+            <div
+              key={amenity.id}
+              className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-lg hover:border-green-200 transition-all group relative overflow-hidden"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center p-2 group-hover:scale-105 transition-transform">
+                  {amenity.icon_url ? (
+                    <img src={amenity.icon_url} alt={amenity.name} className="w-full h-full object-contain" />
+                  ) : (
+                    <Star className="h-7 w-7 text-slate-400" />
+                  )}
+                </div>
+                <ToggleSwitch
+                  isChecked={amenity.is_active}
+                  onToggle={() => handleToggleAmenity(amenity)}
+                />
+              </div>
+
+              <div>
+                <h3 className="font-bold text-lg text-slate-900 mb-1">{amenity.name}</h3>
+                <p className="text-sm text-slate-500 line-clamp-2 min-h-[40px]">
+                  {amenity.description || 'No description available.'}
+                </p>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => handleEditClick(amenity)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-slate-600 bg-slate-50 hover:bg-white hover:text-green-600 border border-transparent hover:border-green-200 hover:shadow-sm rounded-lg transition-all"
+                >
+                  <Edit2 className="h-3.5 w-3.5" /> Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteClick(amenity.id)}
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {filteredAmenities.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-16 text-center bg-slate-50/50 border border-dashed border-slate-200 rounded-3xl">
+              <div className="h-16 w-16 bg-white shadow-sm rounded-full flex items-center justify-center mb-4">
+                <Star className="h-8 w-8 text-slate-300" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">No Amenities Found</h3>
+              <p className="text-slate-500 max-w-xs mx-auto mt-2">Create amenities to help users filter venues by features.</p>
+              <button onClick={handleAddClick} className="mt-6 font-bold text-green-600 hover:text-green-700 hover:underline">
+                + Add New Amenity
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Drawer */}
+      <Drawer
+        title={editingAmenity ? 'Edit Amenity' : 'Add New Amenity'}
+        isOpen={showDrawer}
+        onClose={() => setShowDrawer(false)}
+      >
+        <AddAmenityForm
+          initialData={editingAmenity}
+          onCancel={() => setShowDrawer(false)}
+          onSave={handleSaveSuccess}
+        />
+      </Drawer>
     </div>
   );
 }

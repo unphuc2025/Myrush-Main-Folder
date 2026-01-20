@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import models, schemas
 from database import get_db
+from dependencies import get_admin_branch_filter
 import uuid
 from datetime import datetime, date
 from decimal import Decimal
@@ -13,13 +14,22 @@ router = APIRouter(
 )
 @router.post("", response_model=schemas.AdminBooking)
 @router.post("/", response_model=schemas.AdminBooking)
-def create_booking(booking: schemas.BookingCreate, db: Session = Depends(get_db)):
+def create_booking(
+    booking: schemas.BookingCreate, 
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
+):
     """Create a new user booking with optional coupon"""
     
     # Check if court exists
     court = db.query(models.Court).filter(models.Court.id == booking.court_id).first()
     if not court:
         raise HTTPException(status_code=404, detail="Court not found")
+
+    # Security Check: Ensure admin has access to this court's branch
+    if branch_filter is not None:
+        if str(court.branch_id) not in branch_filter:
+            raise HTTPException(status_code=403, detail="Access denied to this branch")
 
     # Helper to parse time string
     def parse_time_str(t_str):
@@ -91,11 +101,8 @@ def create_booking(booking: schemas.BookingCreate, db: Session = Depends(get_db)
 
         # Calculate discount
         if db_coupon.discount_type == 'percentage':
-            # Use booking.original_amount if available, else infer from something? 
-            # booking does not have total_amount, it has price_per_hour etc?
-            # BookingCreate has price_per_hour.
-            # Let's assume passed total/price is valid.
-            # But wait, BookingCreate doesn't have total_amount! only price_per_hour.
+            # Note: BookingCreate doesn't have total_amount. It has price_per_hour.
+            # Model needs total_amount.
             pass # TODO: Fix discount calc if needed
         else: # flat
             discount_amount = db_coupon.discount_value
@@ -145,6 +152,8 @@ def create_booking(booking: schemas.BookingCreate, db: Session = Depends(get_db)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to create booking: {str(e)}")
 
+from dependencies import get_admin_branch_filter
+
 @router.get("", response_model=List[schemas.AdminBooking])
 @router.get("/", response_model=List[schemas.AdminBooking])
 def get_all_bookings(
@@ -153,7 +162,8 @@ def get_all_bookings(
     branch_id: Optional[str] = None,
     status: Optional[str] = None,
     payment_status: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Get all user bookings from 'booking' table with optional filters and related court/user data"""
     # Base query - removed broken court relationship options
@@ -163,11 +173,29 @@ def get_all_bookings(
             joinedload(models.Booking.coupon)
         )
 
-        # Handle Court-related filters manually first
-        if branch_id or game_type_id:
-            court_q = db.query(models.Court.id)
+        # Determine effective branch filter (Security + User Request)
+        effective_branches = None # None means ALL (Super Admin only)
+
+        if branch_filter is not None:
+            # Branch Admin restricted
             if branch_id:
-                court_q = court_q.filter(models.Court.branch_id == branch_id)
+                if branch_id not in branch_filter:
+                    return []
+                effective_branches = [branch_id]
+            else:
+                effective_branches = branch_filter
+        else:
+            # Super Admin
+            if branch_id:
+                effective_branches = [branch_id]
+
+        # Apply spatial filters (Branch/GameType -> Court IDs)
+        if effective_branches is not None or game_type_id:
+            court_q = db.query(models.Court.id)
+            
+            if effective_branches:
+                court_q = court_q.filter(models.Court.branch_id.in_(effective_branches))
+            
             if game_type_id:
                 court_q = court_q.filter(models.Court.game_type_id == game_type_id)
             
@@ -217,13 +245,23 @@ def get_all_bookings(
             customer_phone = "+91xxxxxxxxxx"
 
             if booking.user:
-                # Prefer first_name + last_name, fallback to full_name, then team_name
+                # Prefer first_name + last_name, fallback to full_name, then team_name, then phone
+                name_parts = []
                 if booking.user.first_name:
-                    customer_name = f"{booking.user.first_name} {booking.user.last_name or ''}".strip()
-                elif booking.user.full_name:
-                    customer_name = booking.user.full_name
-                elif booking.team_name:
-                    customer_name = booking.team_name
+                    name_parts.append(booking.user.first_name)
+                if booking.user.last_name:
+                    name_parts.append(booking.user.last_name)
+                
+                full_name_constructed = " ".join(name_parts).strip()
+
+                if full_name_constructed:
+                    customer_name = full_name_constructed
+                elif booking.user.full_name and booking.user.full_name.strip():
+                    customer_name = booking.user.full_name.strip()
+                elif booking.team_name and booking.team_name.strip():
+                    customer_name = booking.team_name.strip()
+                elif booking.user.phone_number:
+                    customer_name = booking.user.phone_number # Fallback to phone if no name
 
                 # Get email and phone from user
                 customer_email = booking.user.email or customer_email
@@ -308,13 +346,23 @@ def get_booking(booking_id: str, db: Session = Depends(get_db)):
     customer_phone = "+91xxxxxxxxxx"
 
     if booking.user:
-        # Prefer first_name + last_name, fallback to full_name, then team_name
+        # Prefer first_name + last_name, fallback to full_name, then team_name, then phone
+        name_parts = []
         if booking.user.first_name:
-            customer_name = f"{booking.user.first_name} {booking.user.last_name or ''}".strip()
-        elif booking.user.full_name:
-            customer_name = booking.user.full_name
-        elif booking.team_name:
-            customer_name = booking.team_name
+            name_parts.append(booking.user.first_name)
+        if booking.user.last_name:
+            name_parts.append(booking.user.last_name)
+        
+        full_name_constructed = " ".join(name_parts).strip()
+
+        if full_name_constructed:
+            customer_name = full_name_constructed
+        elif booking.user.full_name and booking.user.full_name.strip():
+            customer_name = booking.user.full_name.strip()
+        elif booking.team_name and booking.team_name.strip():
+            customer_name = booking.team_name.strip()
+        elif booking.user.phone_number:
+            customer_name = booking.user.phone_number # Fallback to phone if no name
 
         # Get email and phone from user
         customer_email = booking.user.email or customer_email
@@ -354,11 +402,32 @@ def get_booking(booking_id: str, db: Session = Depends(get_db)):
     )
 
 @router.put("/{booking_id}", response_model=schemas.AdminBooking)
-def update_booking(booking_id: str, booking_update: schemas.BookingCreate, db: Session = Depends(get_db)):
+def update_booking(
+    booking_id: str, 
+    booking_update: schemas.BookingCreate, 
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
+):
     """Update an existing booking"""
     db_booking = db.query(models.Booking).filter(models.Booking.id == booking_id).first()
     if not db_booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+
+    # Security: Check existence access (find court -> branch)
+    # We need to fetch court of the booking to check access
+    existing_court = db.query(models.Court).filter(models.Court.id == db_booking.court_id).first()
+    if existing_court and branch_filter is not None:
+         if str(existing_court.branch_id) not in branch_filter:
+             raise HTTPException(status_code=403, detail="Access denied to this booking's branch")
+
+    # Security: If changing court, check new court access
+    if booking_update.court_id and booking_update.court_id != str(db_booking.court_id):
+         new_court = db.query(models.Court).filter(models.Court.id == booking_update.court_id).first()
+         if not new_court:
+             raise HTTPException(status_code=404, detail="New court not found")
+         if branch_filter is not None:
+             if str(new_court.branch_id) not in branch_filter:
+                 raise HTTPException(status_code=403, detail="Access denied to new court's branch")
 
     # Helper to parse time string
     def parse_time_str(t_str):
@@ -456,3 +525,24 @@ def update_payment_status(booking_id: str, payment_status: str, db: Session = De
     db.commit()
     db.refresh(db_booking)
     return {"message": f"Payment status updated to {payment_status}"}
+
+@router.delete("/{booking_id}")
+def delete_booking(
+    booking_id: str, 
+    db: Session = Depends(get_db),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
+):
+    """Delete a booking"""
+    db_booking = db.query(models.Booking).filter(models.Booking.id == booking_id).first()
+    if not db_booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Security Check
+    if branch_filter is not None:
+        court = db.query(models.Court).filter(models.Court.id == db_booking.court_id).first()
+        if court and str(court.branch_id) not in branch_filter:
+            raise HTTPException(status_code=403, detail="Access denied to this booking's branch")
+
+    db.delete(db_booking)
+    db.commit()
+    return {"message": "Booking deleted successfully"}

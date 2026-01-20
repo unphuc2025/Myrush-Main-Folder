@@ -13,20 +13,40 @@ def generate_uuid():
 # ADMIN MODELS
 # ============================================================================
 
+class Role(Base):
+    __tablename__ = "admin_roles"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    name = Column(String(255), nullable=False, unique=True)
+    permissions = Column(JSONB, default={})  # { 'users': { 'view': True, 'edit': False }, ... }
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    admins = relationship("Admin", back_populates="role_rel")
+
+class AdminBranchAccess(Base):
+    __tablename__ = "admin_branch_access"
+    admin_id = Column(UUID(as_uuid=True), ForeignKey("admins.id", ondelete="CASCADE"), primary_key=True)
+    branch_id = Column(UUID(as_uuid=True), ForeignKey("admin_branches.id", ondelete="CASCADE"), primary_key=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
 class Admin(Base):
     __tablename__ = "admins"
     id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
     name = Column(String(255))
     mobile = Column(String(255), nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(String(50), default='super_admin') # 'super_admin', 'branch_admin'
-    branch_id = Column(UUID(as_uuid=True), ForeignKey("admin_branches.id"), nullable=True)
+    role = Column(String(50), default='super_admin') # Legacy role field
+    role_id = Column(UUID(as_uuid=True), ForeignKey("admin_roles.id"), nullable=True) # New role system
+    branch_id = Column(UUID(as_uuid=True), ForeignKey("admin_branches.id"), nullable=True) # Deprecated, use m2m
     email = Column(String(255), nullable=True)
     must_change_password = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     # Relationships
     branch = relationship("Branch", foreign_keys=[branch_id])
+    accessible_branches = relationship("Branch", secondary="admin_branch_access")
+    role_rel = relationship("Role", back_populates="admins")
 
 class GlobalPriceCondition(Base):
     __tablename__ = "admin_global_price_conditions"
@@ -200,6 +220,39 @@ class AdminPolicy(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class FAQ(Base):
+    __tablename__ = "admin_faqs"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    question = Column(Text, nullable=False)
+    answer = Column(Text, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class CMSPage(Base):
+    __tablename__ = "admin_cms_pages"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    title = Column(String(255), nullable=False)
+    slug = Column(String(255), unique=True, nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class SiteSetting(Base):
+    __tablename__ = "admin_site_settings"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    site_logo = Column(String(500), nullable=True)
+    email = Column(String(255), nullable=False)
+    contact_number = Column(String(50), nullable=False)
+    address = Column(Text, nullable=False)
+    copyright_text = Column(String(255), nullable=False)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+
 
 # ============================================================================
 # USER MODELS

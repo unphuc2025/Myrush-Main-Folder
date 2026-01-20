@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import or_
+from typing import List, Optional
 import models
 import schemas
 from database import get_db
@@ -17,10 +18,44 @@ from utils.email_sender import send_admin_credentials_email
 
 # ============= USERS =============
 
-@router.get("/users")
-def get_all_users(db: Session = Depends(get_db)):
-    """Get all users"""
-    return db.query(models.User).all()
+@router.get("/users", response_model=schemas.UserListResponse)
+def get_all_users(
+    skip: int = 0, 
+    limit: int = 10, 
+    search: Optional[str] = None, 
+    db: Session = Depends(get_db)
+    # TODO: Add admin dependency after verifying frontend
+):
+    """Get all users with pagination and search"""
+    today_date = datetime.utcnow().date()
+    # Eager load profile to ensure we get names if they are only in profile
+    from sqlalchemy.orm import joinedload
+    query = db.query(models.User).options(joinedload(models.User.profile))
+    
+    if search:
+        search_filter = f"%{search}%"
+        query = query.join(models.Profile, isouter=True).filter(
+            or_(
+                models.User.first_name.ilike(search_filter),
+                models.User.last_name.ilike(search_filter),
+                models.User.email.ilike(search_filter),
+                models.User.phone_number.ilike(search_filter),
+                models.User.full_name.ilike(search_filter),
+                # Also search in profile fields
+                models.Profile.full_name.ilike(search_filter),
+                models.Profile.phone_number.ilike(search_filter)
+            )
+        )
+    
+    total = query.count()
+    users = query.offset(skip).limit(limit).all()
+    
+    return {
+        "items": users,
+        "total": total,
+        "page": (skip // limit) + 1 if limit > 0 else 1,
+        "pages": (total + limit - 1) // limit if limit > 0 else 1
+    }
 
 @router.get("/users/{user_id}")
 def get_user(user_id: str, db: Session = Depends(get_db)):
@@ -130,12 +165,14 @@ def verify_otp(phone_number: str, otp_code: str, db: Session = Depends(get_db)):
 
 # ============= ADMINS =============
 
-@router.get("/admins", response_model=List[schemas.Admin])
+from dependencies import require_super_admin
+
+@router.get("/admins", response_model=List[schemas.Admin], dependencies=[Depends(require_super_admin)])
 def get_all_admins(db: Session = Depends(get_db)):
     """Get all admins"""
     return db.query(models.Admin).all()
 
-@router.post("/admins", response_model=schemas.Admin)
+@router.post("/admins", response_model=schemas.Admin, dependencies=[Depends(require_super_admin)])
 def create_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
     """Create a new admin (Super or Branch)"""
     # Check if mobile already exists
@@ -155,12 +192,31 @@ def create_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
         email=admin.email,
         password_hash=admin.password, # In production, hash this!
         role=admin.role,
-        branch_id=admin.branch_id if admin.role == 'branch_admin' else None,
+        role_id=admin.role_id,
+        # Legacy support: if single branch_id passed, use it, though data isolation uses M2M
+        branch_id=admin.branch_id if admin.branch_id and admin.role != 'super_admin' else None, 
         must_change_password=True  # Force password change
     )
     db.add(db_admin)
     db.commit()
     db.refresh(db_admin)
+
+    # Handle Multi-Branch Assignment
+    # If branch_ids passed, add to M2M table
+    # Also support legacy branch_id -> add to M2M
+    branches_to_add = set()
+    if admin.branch_ids:
+        for bid in admin.branch_ids:
+            branches_to_add.add(bid)
+    if admin.branch_id and admin.role != 'super_admin':
+         branches_to_add.add(admin.branch_id)
+    
+    if branches_to_add and admin.role != 'super_admin':
+        for bid in branches_to_add:
+            access = models.AdminBranchAccess(admin_id=db_admin.id, branch_id=bid)
+            db.add(access)
+        db.commit()
+        db.refresh(db_admin) # re-fetch relationships
 
     # Send credentials email
     if admin.email:
@@ -168,7 +224,7 @@ def create_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
 
     return db_admin
 
-@router.put("/admins/{admin_id}", response_model=schemas.Admin)
+@router.put("/admins/{admin_id}", response_model=schemas.Admin, dependencies=[Depends(require_super_admin)])
 def update_admin(admin_id: str, admin_update: schemas.AdminUpdate, db: Session = Depends(get_db)):
     """Update an admin"""
     db_admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
@@ -180,7 +236,7 @@ def update_admin(admin_id: str, admin_update: schemas.AdminUpdate, db: Session =
         existing = db.query(models.Admin).filter(models.Admin.mobile == admin_update.mobile).first()
         if existing:
             raise HTTPException(status_code=400, detail="Mobile number already registered")
-        db_admin.mobile = admin_update.mobile
+        db_admin.mobile = admin_update.mobile.strip()
 
     # Check email
     if admin_update.email and admin_update.email != db_admin.email:
@@ -193,8 +249,41 @@ def update_admin(admin_id: str, admin_update: schemas.AdminUpdate, db: Session =
         db_admin.name = admin_update.name
     if admin_update.role:
         db_admin.role = admin_update.role
-    if admin_update.branch_id is not None: # Allow clearing branch_id if passed explicitly? Or just updates
+    if admin_update.role_id:
+        db_admin.role_id = admin_update.role_id
+    
+    # Handle Branches Update
+    # For now, we only update branches IF branch_ids is explicitly passed (not None)
+    # If passed as [], it means clear all.
+    # We also sync single branch_id if passed.
+    
+    should_update_branches = False
+    new_branches = set()
+    
+    if admin_update.branch_ids is not None:
+        should_update_branches = True
+        for bid in admin_update.branch_ids:
+            new_branches.add(bid)
+            
+    # Legacy branch_id updates
+    if admin_update.branch_id is not None:
         db_admin.branch_id = admin_update.branch_id if admin_update.role == 'branch_admin' else None
+        # If setting a single branch, ensure it's in the list too?
+        # Let's say: if admin provides branch_ids, that is the source of truth.
+        # If passing single branch_id, usually effectively making it single.
+        if admin_update.role == 'branch_admin':
+             new_branches.add(admin_update.branch_id)
+             should_update_branches = True
+             
+    if should_update_branches:
+        # Clear existing
+        db.query(models.AdminBranchAccess).filter(models.AdminBranchAccess.admin_id == admin_id).delete()
+        # Add new
+        if admin_update.role != 'super_admin': # Only add branches if not super admin (strict isolation)
+            for bid in new_branches:
+                # verify valid UUID? Pydantic handles format.
+                if bid:
+                    db.add(models.AdminBranchAccess(admin_id=admin_id, branch_id=bid))
     
     if admin_update.password:
         db_admin.password_hash = admin_update.password
@@ -204,7 +293,7 @@ def update_admin(admin_id: str, admin_update: schemas.AdminUpdate, db: Session =
     db.refresh(db_admin)
     return db_admin
 
-@router.delete("/admins/{admin_id}")
+@router.delete("/admins/{admin_id}", dependencies=[Depends(require_super_admin)])
 def delete_admin(admin_id: str, db: Session = Depends(get_db)):
     """Delete an admin"""
     db_admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
@@ -229,6 +318,13 @@ def admin_login(login_data: schemas.AdminLoginRequest, db: Session = Depends(get
     if admin.password_hash != password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
+    # Determine accessible branch IDs
+    accessible_branches = []
+    if admin.accessible_branches:
+        accessible_branches = [str(b.id) for b in admin.accessible_branches]
+    elif admin.branch_id: # Fallback
+         accessible_branches = [str(admin.branch_id)]
+
     return {
         "success": True,
         "message": "Login successful",
@@ -238,7 +334,10 @@ def admin_login(login_data: schemas.AdminLoginRequest, db: Session = Depends(get
             "name": admin.name,
             "mobile": admin.mobile,
             "role": admin.role,
-            "branch_id": str(admin.branch_id) if admin.branch_id else None,
+            "role_id": str(admin.role_id) if admin.role_id else None,
+            "permissions": admin.role_rel.permissions if admin.role_rel else {},
+            "branch_id": str(admin.branch_id) if admin.branch_id else None, # Legacy
+            "branch_ids": accessible_branches, # New List
             "must_change_password": admin.must_change_password
         }
     }

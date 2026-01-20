@@ -84,7 +84,8 @@ function Reviews() {
             )}
 
             <div className="rounded-2xl bg-white shadow-sm border border-slate-100 overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-sm text-slate-600">
                         <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                             <tr>
@@ -165,6 +166,72 @@ function Reviews() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4 p-4">
+                    {reviews.map((review) => (
+                        <div key={review.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-3">
+                            {/* Header: User & Status */}
+                            <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
+                                        {review.user?.first_name?.charAt(0) || 'U'}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-900">
+                                            {review.user?.full_name || review.user?.first_name || 'User'}
+                                        </p>
+                                        <p className="text-xs text-slate-500">
+                                            {new Date(review.created_at).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${review.is_active
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-red-100 text-red-800'
+                                    }`}>
+                                    {review.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
+
+                            {/* Content */}
+                            <div>
+                                <div className="flex mb-2">{renderStars(review.rating)}</div>
+                                <p className="text-sm text-slate-600 italic">"{review.review_text}"</p>
+                                <p className="text-xs text-slate-400 mt-2">
+                                    For: <span className="font-medium text-slate-600">{review.court?.name}</span>
+                                    {review.court?.branch?.name && ` (${review.court.branch.name})`}
+                                </p>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="border-t border-slate-100 pt-3 flex justify-end">
+                                <button
+                                    onClick={() => toggleStatus(review)}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${review.is_active
+                                        ? 'bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-700'
+                                        : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                        }`}
+                                >
+                                    {review.is_active ? (
+                                        <>
+                                            <EyeOff className="h-4 w-4" /> Hide Review
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Eye className="h-4 w-4" /> Show Review
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                    {reviews.length === 0 && (
+                        <div className="py-12 text-center text-slate-500">
+                            No reviews found yet.
+                        </div>
+                    )}
                 </div>
             </div>
         </Layout>
