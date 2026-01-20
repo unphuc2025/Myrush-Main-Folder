@@ -1,0 +1,359 @@
+:root {
+    --primary: #00D26A;
+    --text-main: #1A1D1F;
+    --text-sec: #6F767E;
+    --bg-page: #F8F9FB;
+}
+
+.booking-summary-page {
+    min-height: 100vh;
+    background: var(--bg-page);
+}
+
+/* Almost There Banner */
+.almost-there-banner {
+    background: linear-gradient(135deg, #E0F9EB 0%, #C3F4D8 100%);
+    border-bottom: 1px solid #A5EBC1;
+    padding: 16px 20px;
+}
+
+.almost-there-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.check-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.almost-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #008844;
+}
+
+.booking-summary-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+/* Venue Preview Card */
+.venue-preview-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.venue-preview-image {
+    height: 400px;
+    background-size: cover;
+    background-position: center;
+}
+
+.venue-preview-info {
+    padding: 24px;
+}
+
+.venue-preview-info h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    color: var(--text-main);
+}
+
+.venue-location-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-sec);
+    font-size: 0.95rem;
+}
+
+/* Booking Details Card */
+.booking-details-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    position: sticky;
+    top: 100px;
+}
+
+.discount-banner {
+    background: linear-gradient(135deg, #E0F9EB 0%, #C3F4D8 100%);
+    color: #008844;
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 24px;
+    border: 1px solid #A5EBC1;
+}
+
+.section-heading {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    color: var(--text-main);
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.summary-row:last-of-type {
+    border-bottom: none;
+}
+
+.row-label {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+
+.row-value {
+    color: var(--text-sec);
+    font-weight: 500;
+}
+
+.slots-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.slot-pill-active {
+    background: var(--primary);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.player-stepper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f5f5f5;
+    padding: 8px 12px;
+    border-radius: 100px;
+}
+
+.player-stepper button {
+    background: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+}
+
+.player-stepper button:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.player-stepper span {
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+/* Coupon Section */
+.coupon-section {
+    padding: 20px 0;
+    border-top: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+    margin: 16px 0;
+}
+
+.coupon-heading {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 12px;
+}
+
+.coupon-input-row {
+    display: flex;
+    gap: 8px;
+}
+
+.coupon-input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.coupon-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 210, 106, 0.1);
+}
+
+.apply-coupon-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.apply-coupon-btn:hover {
+    background: #00B85A;
+}
+
+.applied-coupon {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #E0F9EB;
+    border-radius: 8px;
+    border: 1px solid var(--primary);
+}
+
+.coupon-code-badge {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 0.95rem;
+}
+
+.coupon-discount {
+    font-weight: 600;
+    color: #008844;
+    margin-left: auto;
+}
+
+.remove-coupon-btn {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 8px;
+    transition: color 0.2s;
+}
+
+.remove-coupon-btn:hover {
+    color: #f44336;
+}
+
+/* Price Breakdown */
+.price-breakdown {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 2px solid #f0f0f0;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    color: var(--text-sec);
+    font-size: 0.95rem;
+}
+
+.discount-row {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.discount-amount {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.price-total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 2px solid #f0f0f0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+/* Confirm Button */
+.confirm-booking-btn {
+    width: 100%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 18px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-top: 24px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0, 210, 106, 0.3);
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.confirm-booking-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 210, 106, 0.4);
+    background: #00B85A;
+}
+
+.confirm-booking-btn:active {
+    transform: translateY(0);
+}
+
+.confirm-booking-btn:disabled {
+    background: #ccc;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .booking-summary-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .booking-details-card {
+        position: static;
+    }
+
+    .venue-preview-image {
+        height: 250px;
+    }
+}

@@ -92,7 +92,7 @@ export const OTPVerification: React.FC = () => {
                 <p style={{ color: '#666', marginBottom: '2rem' }}>
                     Enter the code sent to <span style={{ color: 'var(--color-black)', fontWeight: 'bold' }}>{phone}</span>
                 </p>
-                <p style={{ fontSize: '0.8em', color: '#999', marginBottom: '20px' }}>Try 123456 (dev)</p>
+                <p style={{ fontSize: '0.8em', color: '#999', marginBottom: '20px' }}>Try 12345 (dev)</p>
 
                 <form onSubmit={handleVerify}>
                     <input

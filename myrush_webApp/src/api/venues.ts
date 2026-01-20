@@ -133,5 +133,31 @@ export const venuesApi = {
                 error: error.message,
             };
         }
+    },
+
+    /**
+     * Fetch branches filtered by city
+     */
+    getBranches: async (city?: string) => {
+        try {
+            const endpoint = city ? `/venues/branches?city=${encodeURIComponent(city)}` : '/venues/branches';
+            const response = await apiClient.get<Array<{
+                id: string;
+                name: string;
+                location: string;
+                city_name: string;
+            }>>(endpoint);
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('[VENUES API] Exception fetching branches:', error);
+            return {
+                success: false,
+                data: [],
+                error: error.message,
+            };
+        }
     }
 };

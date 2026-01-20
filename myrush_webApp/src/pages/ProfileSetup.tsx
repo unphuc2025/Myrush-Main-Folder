@@ -1,29 +1,58 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../api/client';
-// import { useAuth } from '../context/AuthContext'; // Might need to update token after profile creation
+import { useAuth } from '../context/AuthContext';
 
 export const ProfileSetup: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { login } = useAuth();
     const [formData, setFormData] = useState({
         full_name: '',
-        email: '',
         age: '',
-        city: ''
+        city: '',
+        email: '',
+        gender: '',
+        handedness: '',
+        skill_level: '',
+        sports: '',
+        playing_style: ''
     });
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const phone = location.state?.phone;
+
+    if (!phone) {
+        navigate('/login');
+        return null;
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        // In a real flow, we'd submit this to /auth/update-profile or similar
-        // For now, we simulate success and redirect to dashboard
+        setError('');
 
-        setTimeout(() => {
-            alert("Profile Setup logic needs backend endpoint integration. Redirecting to Dashboard for demo.");
-            navigate('/');
+        try {
+            const response = await apiClient.post('/auth/verify-otp', {
+                phone_number: phone,
+                otp_code: '12345', // Dev OTP
+                full_name: formData.full_name,
+                age: formData.age ? parseInt(formData.age) : undefined,
+                city: formData.city
+            });
+
+            if (response.data.access_token) {
+                login(response.data.access_token);
+                navigate('/');
+            } else {
+                setError('Failed to complete profile setup');
+            }
+        } catch (err: any) {
+            setError(err.response?.data?.detail || 'Failed to complete setup');
+        } finally {
             setLoading(false);
-        }, 1000);
+        }
     };
 
     return (

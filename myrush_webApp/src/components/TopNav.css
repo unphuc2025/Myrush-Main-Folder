@@ -1,0 +1,142 @@
+:root {
+    --primary: #00D26A;
+    --bg-nav: rgba(255, 255, 255, 0.95);
+    --text-main: #1A1D1F;
+    --text-sec: #6F767E;
+}
+
+.top-nav-shared {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: var(--bg-nav);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.03);
+}
+
+.top-nav-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 30px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nav-logo {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.nav-logo-img {
+    height: 90px;
+    width: auto;
+}
+
+.nav-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.nav-back-btn:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.nav-back-btn svg {
+    margin-right: 4px;
+}
+
+.nav-links {
+    display: flex;
+    gap: 8px;
+}
+
+.nav-link {
+    background: none;
+    border: none;
+    padding: 10px 20px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-sec);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.nav-link:hover {
+    background: rgba(0, 210, 106, 0.08);
+    color: var(--primary);
+}
+
+.nav-link.active {
+    background: var(--primary);
+    color: white;
+}
+
+.nav-user-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.nav-user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nav-logout-btn {
+    background: transparent;
+    border: 1px solid var(--text-sec);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-sec);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nav-logout-btn:hover {
+    border-color: var(--text-main);
+    background: var(--text-main);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .top-nav-container {
+        padding: 0 16px;
+        height: 60px;
+    }
+
+    .nav-links {
+        display: none;
+    }
+
+    .nav-user-name {
+        display: none;
+    }
+
+    .nav-logout-btn {
+        font-size: 0.8rem;
+        padding: 6px 12px;
+    }
+}

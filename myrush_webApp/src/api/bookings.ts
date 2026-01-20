@@ -77,4 +77,50 @@ export const bookingsApi = {
             };
         }
     },
+
+    /**
+     * Submit a review for a completed booking
+     */
+    submitReview: async (bookingId: string, courtId: string, rating: number, reviewText?: string) => {
+        try {
+            const payload = {
+                booking_id: bookingId,
+                court_id: courtId,
+                rating: rating,
+                review_text: reviewText || ''
+            };
+            const response = await apiClient.post('/reviews/', payload);
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('[BOOKINGS API] Exception submitting review:', error);
+            return {
+                success: false,
+                data: null,
+                error: error.message,
+            };
+        }
+    },
+
+    /**
+     * Check if booking has been reviewed
+     */
+    checkBookingReviewed: async (bookingId: string) => {
+        try {
+            const response = await apiClient.get(`/reviews/booking/${bookingId}/exists`);
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('[BOOKINGS API] Exception checking review status:', error);
+            return {
+                success: false,
+                data: { has_reviewed: false },
+                error: error.message,
+            };
+        }
+    },
 };

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { TopNav } from '../components/TopNav';
 import './Dashboard.css';
 
 interface UserProfile {
@@ -14,16 +15,16 @@ interface UserProfile {
     phone_number: string;
 }
 
-// Animation Variants matching myrush.in feel
+// Animation Variants
 const fadeInUp = {
-    hidden: { opacity: 0, y: 30 },
+    hidden: { opacity: 0, y: 40 },
     visible: (i: number) => ({
         opacity: 1,
         y: 0,
         transition: {
-            delay: i * 0.1,
-            duration: 0.8,
-            ease: [0.22, 1, 0.36, 1] // Custom snappy easing
+            delay: i * 0.15,
+            duration: 0.6,
+            ease: [0.22, 1, 0.36, 1]
         }
     })
 };
@@ -33,7 +34,7 @@ const staggerContainer = {
     visible: {
         opacity: 1,
         transition: {
-            staggerChildren: 0.1
+            staggerChildren: 0.12
         }
     }
 };
@@ -42,9 +43,6 @@ export const Dashboard: React.FC = () => {
     const { logout } = useAuth();
     const navigate = useNavigate();
     const [user, setUser] = useState<UserProfile | null>(null);
-    const { scrollY } = useScroll();
-    const heroOpacity = useTransform(scrollY, [0, 500], [1, 0.3]);
-    const heroY = useTransform(scrollY, [0, 500], [0, 150]);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -63,141 +61,171 @@ export const Dashboard: React.FC = () => {
         navigate('/login');
     };
 
-    const displayName = user?.full_name?.split(' ')[0] || user?.first_name || 'PLAYER';
+    const displayName = user?.full_name?.split(' ')[0] || user?.first_name || 'Player';
 
     return (
-        <div className="premium-dashboard">
-            {/* Navbar - Desktop Only */}
-            <motion.nav
-                className="premium-nav desktop-only"
-                initial={{ y: -100 }}
-                animate={{ y: 0 }}
-                transition={{ duration: 0.8, ease: "circOut" }}
-            >
-                <div className="nav-logo">
-                    <img src="/Rush-logo.webp" alt="MyRush" className="nav-logo-img" />
-                </div>
-                <div className="nav-menu">
-                    <button className="nav-link active">Home</button>
-                    <button className="nav-link" onClick={() => navigate('/bookings')}>Bookings</button>
-                    <button className="nav-link" onClick={() => navigate('/profile')}>Profile</button>
-                </div>
-                <div className="nav-user">
-                    <span className="user-name">HELLO, {displayName}</span>
-                    <button className="logout-btn-minimal" onClick={handleLogout}>LOGOUT</button>
-                </div>
-            </motion.nav>
+        <div className="dashboard-modern">
+            <TopNav userName={displayName} onLogout={handleLogout} />
 
-            {/* Mobile Bottom Navigation */}
-            <nav className="mobile-bottom-nav mobile-only">
-                <div className="mobile-nav-item active" onClick={() => navigate('/')}>
-                    <span>🏠</span>
-                    <span className="label">Home</span>
+            {/* Hero Section */}
+            <section className="hero-modern">
+                <div className="hero-bg-modern">
+                    <div className="hero-gradient"></div>
                 </div>
-                <div className="mobile-nav-item" onClick={() => navigate('/bookings')}>
-                    <span>📅</span>
-                    <span className="label">Bookings</span>
-                </div>
-                <div className="mobile-nav-item" onClick={() => navigate('/profile')}>
-                    <span>👤</span>
-                    <span className="label">Profile</span>
-                </div>
-            </nav>
 
-            {/* Immersive Hero */}
-            <section className="hero-container">
-                <motion.div className="hero-bg" style={{ opacity: heroOpacity, y: heroY }}>
-                    {/* Placeholder for high-quality video/image */}
-                    <div className="hero-placeholder-image" />
-                    <div className="hero-overlay" />
-                </motion.div>
-
-                <div className="hero-content-wrapper">
+                <div className="hero-content-modern">
                     <motion.h1
-                        className="hero-title"
-                        initial="hidden"
-                        animate="visible"
-                        custom={1}
-                        variants={fadeInUp}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
                     >
-                        FOR ALL THINGS <br />
-                        <span className="text-lime">SPORT.</span>
+                        For All Things <span className="highlight-green">Sport.</span>
                     </motion.h1>
 
-                    <motion.div
-                        className="hero-sub"
-                        initial="hidden"
-                        animate="visible"
-                        custom={2}
-                        variants={fadeInUp}
+                    <motion.p
+                        className="hero-subtitle"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.4 }}
                     >
-                        <p>ARENAS. ACADEMIES. EVENTS. <br /> THE ULTIMATE PLATFORM FOR YOUR GAME.</p>
-                    </motion.div>
+                        Book venues, join academies, compete in events — your ultimate sports platform.
+                    </motion.p>
 
                     <motion.button
-                        className="premium-cta-btn"
-                        initial="hidden"
-                        animate="visible"
-                        custom={3}
-                        variants={fadeInUp}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        className="cta-btn-modern"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.6, delay: 0.6 }}
+                        whileHover={{ scale: 1.05, boxShadow: '0 12px 30px rgba(0, 210, 106, 0.3)' }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => navigate('/venues')}
                     >
-                        BOOK A COURT
+                        Book a Court
                     </motion.button>
                 </div>
             </section>
 
-            {/* Diagonal Divider */}
-            <div className="diagonal-divider"></div>
-
-            {/* Services Section */}
-            <section className="services-section">
-                <div className="section-container">
-                    <motion.div
-                        className="section-header"
-                        initial={{ opacity: 0, y: 50 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, margin: "-100px" }}
-                        transition={{ duration: 0.8 }}
-                    >
-                        <h2>EXPLORE <span className="text-lime">RUSH</span></h2>
-                    </motion.div>
-
-                    <motion.div
-                        className="cards-grid-premium"
-                        variants={staggerContainer}
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true, margin: "-100px" }}
-                    >
-                        {[
-                            { title: 'BOOK TURF', desc: 'Premium artificial and natural turfs.', icon: '⚽' },
-                            { title: 'ACADEMY', desc: 'Train with the best coaches.', icon: '🎓' },
-                            { title: 'EVENTS', desc: 'Join leagues and tournaments.', icon: '🏆' },
-                            { title: 'CORPORATE', desc: 'Team building and sports days.', icon: '🤝' }
-                        ].map((item, i) => (
-                            <motion.div
-                                key={i}
-                                className="premium-card"
-                                variants={fadeInUp}
-                                custom={i}
-                                whileHover={{ y: -10, boxShadow: '0 20px 40px rgba(0,255,0,0.1)' }}
-                                onClick={() => item.title === 'BOOK TURF' ? navigate('/venues') : null}
-                            >
-                                <div className="card-icon-large">{item.icon}</div>
-                                <h3>{item.title}</h3>
-                                <p>{item.desc}</p>
-                                <div className="card-arrow">→</div>
-                            </motion.div>
-                        ))}
-                    </motion.div>
-                </div>
+            {/* Quick Stats */}
+            <section className="stats-section">
+                <motion.div
+                    className="stats-grid"
+                    variants={staggerContainer}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-100px' }}
+                >
+                    {[
+                        { value: '50+', label: 'Venues', icon: '🏟️' },
+                        { value: '500+', label: 'Games Hosted', icon: '⚽' },
+                        { value: '1000+', label: 'Active Players', icon: '👥' }
+                    ].map((stat, i) => (
+                        <motion.div
+                            key={i}
+                            className="stat-card"
+                            variants={fadeInUp}
+                            custom={i}
+                            whileHover={{ y: -8 }}
+                        >
+                            <div className="stat-icon">{stat.icon}</div>
+                            <div className="stat-value">{stat.value}</div>
+                            <div className="stat-label">{stat.label}</div>
+                        </motion.div>
+                    ))}
+                </motion.div>
             </section>
 
-            {/* Footer Padding */}
-            <div style={{ height: '100px' }}></div>
+            {/* Services Section */}
+            <section className="services-section-modern">
+                <motion.div
+                    className="section-header-modern"
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8 }}
+                >
+                    <h2>Explore <span className="highlight-green">Rush</span></h2>
+                    <p>Everything you need for your sporting journey</p>
+                </motion.div>
+
+                <motion.div
+                    className="services-grid"
+                    variants={staggerContainer}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-100px' }}
+                >
+                    {[
+                        {
+                            title: 'Book Venues',
+                            desc: 'Premium turfs and courts available 24/7',
+                            icon: '🏟️',
+                            link: '/venues',
+                            color: '#00D26A'
+                        },
+                        {
+                            title: 'Join Academy',
+                            desc: 'Train with professional coaches',
+                            icon: '🎓',
+                            color: '#FF6B6B'
+                        },
+                        {
+                            title: 'Compete',
+                            desc: 'Tournaments and leagues year-round',
+                            icon: '🏆',
+                            color: '#FFD93D'
+                        },
+                        {
+                            title: 'Corporate Events',
+                            desc: 'Team building and sports days',
+                            icon: '🤝',
+                            color: '#6C5CE7'
+                        }
+                    ].map((service, i) => (
+                        <motion.div
+                            key={i}
+                            className="service-card"
+                            variants={fadeInUp}
+                            custom={i}
+                            whileHover={{
+                                y: -12,
+                                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.12)',
+                                transition: { duration: 0.3 }
+                            }}
+                            onClick={() => service.link && navigate(service.link)}
+                            style={{ cursor: service.link ? 'pointer' : 'default' }}
+                        >
+                            <div className="service-icon-wrapper">
+                                <div className="service-icon" style={{ background: `${service.color}15` }}>
+                                    <span>{service.icon}</span>
+                                </div>
+                            </div>
+                            <h3>{service.title}</h3>
+                            <p>{service.desc}</p>
+                            {service.link && <div className="service-arrow">→</div>}
+                        </motion.div>
+                    ))}
+                </motion.div>
+            </section>
+
+            {/* Mobile Bottom Nav */}
+            <nav className="mobile-bottom-nav">
+                <div className={`mobile-nav-item ${location.pathname === '/' ? 'active' : ''}`} onClick={() => navigate('/')}>
+                    <span>🏠</span>
+                    <span className="label">Home</span>
+                </div>
+                <div className={`mobile-nav-item ${location.pathname === '/venues' ? 'active' : ''}`} onClick={() => navigate('/venues')}>
+                    <span>🏟️</span>
+                    <span className="label">Venues</span>
+                </div>
+                <div className={`mobile-nav-item ${location.pathname === '/bookings' ? 'active' : ''}`} onClick={() => navigate('/bookings')}>
+                    <span>📅</span>
+                    <span className="label">Bookings</span>
+                </div>
+                <div className={`mobile-nav-item ${location.pathname === '/profile' ? 'active' : ''}`} onClick={() => navigate('/profile')}>
+                    <span>👤</span>
+                    <span className="label">Profile</span>
+                </div>
+            </nav>
         </div>
     );
 };

@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { LandingPage } from './pages/LandingPage';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
 import { OTPVerification } from './pages/OTPVerification';
@@ -8,6 +9,7 @@ import { Venues } from './pages/Venues';
 import { VenueDetails } from './pages/VenueDetails';
 import { SlotSelection } from './pages/SlotSelection';
 import { BookingSummary } from './pages/BookingSummary';
+import { BookingSummaryNew } from './pages/BookingSummaryNew';
 import { MyBookings } from './pages/MyBookings';
 import { Profile } from './pages/Profile';
 import { EditProfile } from './pages/EditProfile';
@@ -27,73 +29,20 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/verify-otp" element={<OTPVerification />} />
           <Route path="/setup-profile" element={<ProfileSetup />} />
-          <Route
-            path="/venues"
-            element={
-              <ProtectedRoute>
-                <Venues />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/venues/:id"
-            element={
-              <ProtectedRoute>
-                <VenueDetails />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/booking/slots"
-            element={
-              <ProtectedRoute>
-                <SlotSelection />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/booking/summary"
-            element={
-              <ProtectedRoute>
-                <BookingSummary />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/bookings"
-            element={
-              <ProtectedRoute>
-                <MyBookings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile/edit"
-            element={
-              <ProtectedRoute>
-                <EditProfile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
+
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/venues" element={<ProtectedRoute><Venues /></ProtectedRoute>} />
+          <Route path="/venues/:id" element={<ProtectedRoute><VenueDetails /></ProtectedRoute>} />
+          <Route path="/booking/slots" element={<ProtectedRoute><SlotSelection /></ProtectedRoute>} />
+          <Route path="/booking/summary" element={<ProtectedRoute><BookingSummary /></ProtectedRoute>} />
+          <Route path="/booking-summary" element={<ProtectedRoute><BookingSummaryNew /></ProtectedRoute>} />
+          <Route path="/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
         </Routes>
       </Router>
     </AuthProvider>
