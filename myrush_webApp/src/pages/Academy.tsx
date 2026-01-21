@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { FaChalkboardUser, FaTimeline, FaBuilding } from "react-icons/fa6";
 
 export const Academy: React.FC = () => {
+    const navigate = useNavigate();
     const benefits = [
         {
             icon: <FaChalkboardUser />,
@@ -44,6 +46,45 @@ export const Academy: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-white font-inter">
+            {/* Sticky Navigation */}
+            <motion.nav
+                className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10"
+                initial={{ y: -100 }}
+                animate={{ y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+                        <img src="/Rush-logo.webp" alt="Rush" className="h-32 md:h-40 w-auto" />
+                    </div>
+                    <div className="hidden md:flex items-center gap-8">
+                        {[
+                            { label: 'Home', path: '/' },
+                            { label: 'Academy', path: '/academy' },
+                            { label: 'Arena', path: '/arena' },
+                            { label: 'Corporate', path: '/corporate' },
+                            { label: 'Events', path: '/dashboard' }
+                        ].map((item) => (
+                            <button
+                                key={item.label}
+                                onClick={() => navigate(item.path)}
+                                className={`text-sm font-bold uppercase tracking-wider transition-colors ${window.location.pathname === item.path ? 'text-primary' : 'text-white hover:text-primary'
+                                    }`}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
+                    </div>
+                    <Button
+                        variant="primary"
+                        onClick={() => navigate('/login')}
+                        className="font-bold bg-primary text-black hover:bg-white hover:text-black uppercase tracking-wider text-sm px-10 py-3 min-w-[150px] shadow-[0_0_15px_rgba(0,210,106,0.5)] hover:shadow-[0_0_25px_rgba(0,210,106,0.6)]"
+                    >
+                        Book Now
+                    </Button>
+                </div>
+            </motion.nav>
+
             {/* Hero Section */}
             <section className="relative h-screen flex items-center justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
                 {/* Background Image with Deep Gradient Overlay */}
@@ -93,7 +134,7 @@ export const Academy: React.FC = () => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="w-full sm:w-auto min-w-[240px]"
+                            className="w-full sm:w-auto min-w-[240px] h-16 text-lg"
                             onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Book a Free Trial

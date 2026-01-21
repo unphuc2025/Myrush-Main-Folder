@@ -6,9 +6,10 @@ interface TopNavProps {
     userName?: string;
     onLogout?: () => void;
     showBackButton?: boolean;
+    homeLabel?: string;
 }
 
-export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButton = false }) => {
+export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButton = false, homeLabel = 'Home' }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -41,7 +42,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                 {/* Desktop Menu */}
                 <div className="hidden md:flex items-center gap-8">
                     {[
-                        { label: 'Home', path: '/' },
+                        { label: homeLabel, path: '/' },
                         { label: 'Venues', path: '/venues' },
                         { label: 'Bookings', path: '/bookings' },
                         { label: 'Profile', path: '/profile' }
@@ -49,8 +50,8 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                         <button
                             key={item.path}
                             className={`relative text-sm font-medium transition-colors ${isActive(item.path) || (item.path === '/' && location.pathname === '/dashboard')
-                                    ? 'text-primary'
-                                    : 'text-gray-500 hover:text-black'
+                                ? 'text-primary'
+                                : 'text-gray-500 hover:text-black'
                                 }`}
                             onClick={() => navigate(item.path)}
                         >

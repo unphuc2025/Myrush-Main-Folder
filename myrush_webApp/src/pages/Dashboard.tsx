@@ -93,7 +93,7 @@ export const Dashboard: React.FC = () => {
                         transition={{ duration: 0.8 }}
                         className="inline-block mb-4 px-6 py-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md text-sm font-bold text-primary tracking-widest uppercase"
                     >
-                        Welcome to the Arena
+                        Dashboard
                     </motion.div>
 
                     <motion.h1

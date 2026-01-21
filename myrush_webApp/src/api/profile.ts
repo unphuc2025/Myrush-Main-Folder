@@ -21,17 +21,22 @@ export interface ProfileData {
     full_name: string;
     email?: string;
     phone_number?: string;
+    age?: number;
     city?: string;
     city_id?: string;
+    gender?: string;
+    handedness?: string;
     skill_level?: string;
     sports?: string[];
+    playing_style?: string;
     role?: string;
 }
 
 export const profileApi = {
-    getProfile: async (_phoneNumber?: string) => {
+    getProfile: async (phoneNumber?: string) => {
         try {
-            const response = await apiClient.get<ProfileData>('/auth/profile');
+            const url = phoneNumber ? `/profile/user?phone_number=${phoneNumber}` : '/auth/profile';
+            const response = await apiClient.get<ProfileData>(url);
             return {
                 success: true,
                 data: response.data,

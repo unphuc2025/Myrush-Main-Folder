@@ -80,17 +80,23 @@ export const LandingPage: React.FC = () => {
             >
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
-                        <img src="/Rush-logo.webp" alt="Rush" className="h-35 w-auto" />
+                        <img src="/Rush-logo.webp" alt="Rush" className="h-32 md:h-40 w-auto" />
                     </div>
                     <div className="hidden md:flex items-center gap-8">
-                        {['Academy', 'Arena', 'Corporate', 'Events'].map((item) => (
-                            <a
-                                key={item}
-                                href={`#${item.toLowerCase()}`}
-                                className="text-sm font-bold text-gray-300 hover:text-primary uppercase tracking-wider transition-colors"
+                        {[
+                            { label: 'Home', path: '/' },
+                            { label: 'Academy', path: '/academy' },
+                            { label: 'Arena', path: '/arena' },
+                            { label: 'Corporate', path: '/corporate' },
+                            { label: 'Events', path: '/dashboard' }
+                        ].map((item) => (
+                            <button
+                                key={item.label}
+                                onClick={() => navigate(item.path)}
+                                className="text-sm font-bold text-white hover:text-primary uppercase tracking-wider transition-colors"
                             >
-                                {item}
-                            </a>
+                                {item.label}
+                            </button>
                         ))}
                     </div>
                     <Button
@@ -98,7 +104,7 @@ export const LandingPage: React.FC = () => {
                         onClick={() => navigate('/login')}
                         className="font-bold bg-primary text-black hover:bg-white hover:text-black uppercase tracking-wider text-sm px-10 py-3 min-w-[150px] shadow-[0_0_15px_rgba(0,210,106,0.5)] hover:shadow-[0_0_25px_rgba(0,210,106,0.6)]"
                     >
-                        Book Now
+                        Login/Signup
                     </Button>
                 </div>
             </motion.nav>
@@ -143,8 +149,8 @@ export const LandingPage: React.FC = () => {
                         <Button
                             variant="primary"
                             size="lg"
-                            onClick={() => navigate('/login')}
-                            className="bg-primary text-black hover:bg-white hover:text-black text-lg px-12 py-5 min-w-[240px] uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                            onClick={() => navigate('/venues')}
+                            className="bg-primary text-black hover:bg-white hover:text-black text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
                         >
                             Book a Court
                         </Button>
@@ -158,7 +164,7 @@ export const LandingPage: React.FC = () => {
             </section>
 
             {/* MARQUEE STRIP */}
-            <div className="bg-primary overflow-hidden py-4 z-30 relative shadow-glow -rotate-1 scale-105 border-y-4 border-black">
+            <div className="bg-primary overflow-hidden py-4 z-30 relative shadow-glow -rotate-1 scale-105 border-y-4 border-black mt-20">
                 <motion.div
                     className="flex whitespace-nowrap"
                     variants={marqueeVariants}
@@ -173,101 +179,87 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* SERVICES GRID */}
-            {/* SERVICES GRID */}
-            {/* SERVICES GRID */}
-            <section className="pt-60 md:pt-80 pb-60 px-0 bg-gray-50 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] overflow-hidden">
-                <div className="max-w-[1600px] mx-auto w-full">
-                    <div className="mb-24 flex flex-col md:flex-row items-end justify-between gap-8 px-6 md:px-12">
-                        <div className="text-left max-w-2xl">
-                            <h2 className="text-4xl md:text-6xl font-black text-black font-montserrat uppercase leading-none mb-4">
-                                Everything <span className="text-primary">Sport.</span>
-                            </h2>
-                            <p className="text-gray-500 text-lg font-medium pl-4 border-l-4 border-primary/50">
-                                From casual games to professional training, we have got you covered.
-                            </p>
-                        </div>
+            <section className="py-20 md:py-32 bg-white">
+                <div className="max-w-7xl mx-auto px-6 md:px-12">
+                    <div className="mb-16 text-center">
+                        <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
+                            Everything <span className="text-primary">Sport.</span>
+                        </h2>
+                        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                            From casual games to professional training, we have got you covered.
+                        </p>
+                    </div>
+
+                    {/* 2x2 Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                        {services.map((service, i) => (
+                            <motion.div
+                                key={i}
+                                className="group relative overflow-hidden rounded-3xl bg-black h-96 shadow-2xl cursor-pointer"
+                                custom={i}
+                                variants={fadeInUp}
+                                initial="hidden"
+                                whileInView="visible"
+                                viewport={{ once: true, margin: "-50px" }}
+                                onClick={() => navigate(service.link)}
+                            >
+                                <div className="absolute inset-0">
+                                    <img
+                                        src={service.image}
+                                        alt={service.title}
+                                        className="w-full h-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-105"
+                                    />
+                                </div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
+
+                                <div className="absolute inset-0 p-8 flex flex-col justify-between">
+                                    <div className="flex justify-between items-start">
+                                        <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-2xl text-white border border-white/20">
+                                            {service.icon}
+                                        </div>
+                                        <div className="w-10 h-10 rounded-full bg-primary text-black flex items-center justify-center opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg font-bold text-lg">
+                                            ↗
+                                        </div>
+                                    </div>
+
+                                    <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                        <h3 className="text-2xl md:text-3xl font-black text-white font-montserrat uppercase italic mb-3 leading-tight">
+                                            {service.title}
+                                        </h3>
+                                        <p className="text-white text-base font-medium leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
+                                            {service.description}
+                                        </p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    <div className="text-center mt-12">
                         <button
                             onClick={() => navigate('/venues')}
-                            className="hidden md:flex items-center gap-2 group text-black font-bold uppercase tracking-wider text-sm hover:text-primary transition-colors pb-2 border-b-2 border-transparent hover:border-primary"
+                            className="inline-flex items-center gap-2 text-black font-bold uppercase tracking-wider text-sm hover:text-primary transition-colors pb-2 border-b-2 border-transparent hover:border-primary"
                         >
                             View All Facilities
-                            <span className="group-hover:translate-x-1 transition-transform">→</span>
+                            <span className="transition-transform group-hover:translate-x-1">→</span>
                         </button>
                     </div>
-
-                    {/* Horizontal Scroll Container */}
-                    <div className="w-full overflow-x-auto pb-12 hide-scrollbar snap-x snap-mandatory">
-                        <div className="flex gap-6 px-6 md:px-12 w-max">
-                            {services.map((service, i) => (
-                                <motion.div
-                                    key={i}
-                                    className="group relative overflow-hidden rounded-[2.5rem] bg-black h-[550px] w-[380px] md:w-[400px] flex-shrink-0 shadow-2xl cursor-pointer snap-center"
-                                    custom={i}
-                                    variants={fadeInUp}
-                                    initial="hidden"
-                                    whileInView="visible"
-                                    viewport={{ once: true, margin: "-50px" }}
-                                    onClick={() => navigate(service.link)}
-                                >
-                                    <div className="absolute inset-0">
-                                        <img
-                                            src={service.image}
-                                            alt={service.title}
-                                            className="w-full h-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-105"
-                                        />
-                                    </div>
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
-
-                                    <div className="absolute inset-0 p-10 flex flex-col justify-between">
-                                        <div className="flex justify-between items-start">
-                                            <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-3xl text-white border border-white/20">
-                                                {service.icon}
-                                            </div>
-                                            <div className="w-12 h-12 rounded-full bg-primary text-black flex items-center justify-center opacity-0 -translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg font-bold text-xl">
-                                                ↗
-                                            </div>
-                                        </div>
-
-                                        <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                                            <h3 className="text-4xl font-black text-white font-montserrat uppercase italic mb-4 leading-[0.9]">
-                                                {service.title}
-                                            </h3>
-                                            <p className="text-gray-200 text-lg font-medium leading-relaxed max-w-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75 pl-4 border-l-2 border-primary">
-                                                {service.description}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* CSS to hide scrollbar */}
-                    <style>{`
-                        .hide-scrollbar::-webkit-scrollbar {
-                            display: none;
-                        }
-                        .hide-scrollbar {
-                            -ms-overflow-style: none;
-                            scrollbar-width: none;
-                        }
-                    `}</style>
                 </div>
             </section>
 
             {/* CLIENTS SECTION */}
-            <section className="py-60 bg-white overflow-hidden relative">
-                <div className="container mx-auto px-4 text-center mb-16">
+            <section className="py-20 md:py-32 bg-gray-50 overflow-hidden relative">
+                <div className="max-w-7xl mx-auto px-6 md:px-12 text-center mb-16">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
                         className="flex flex-col items-center"
                     >
-                        <h3 className="text-3xl md:text-4xl font-black text-black font-montserrat uppercase tracking-tight mb-2">
+                        <h3 className="text-2xl md:text-4xl font-black text-black font-montserrat uppercase tracking-tight mb-4">
                             Trusted by <span className="text-primary">Industry Leaders</span>
                         </h3>
-                        <p className="text-gray-500 text-base max-w-2xl mx-auto text-center">
+                        <p className="text-gray-600 text-base md:text-lg max-w-2xl mx-auto">
                             Partnering with the world's most innovative companies to elevate sports culture.
                         </p>
                     </motion.div>
@@ -331,7 +323,7 @@ export const LandingPage: React.FC = () => {
             </section>
 
             {/* UNCOUCH CTA */}
-            <section className="py-80 bg-black text-center px-4 relative overflow-hidden flex flex-col justify-center items-center min-h-[70vh]">
+            <section className="py-100 bg-black text-center px-4 relative overflow-hidden flex flex-col justify-center items-center min-h-[70vh]">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[150px] pointer-events-none" />
                 <div className="relative z-10 max-w-6xl mx-auto flex flex-col items-center">
                     <motion.h2
@@ -358,48 +350,50 @@ export const LandingPage: React.FC = () => {
             </section>
 
             {/* FOOTER */}
-            <footer className="bg-black border-t border-white/10 pt-80 pb-40 w-full px-6">
-                <div className="w-full grid grid-cols-1 md:grid-cols-4 gap-12 mb-20 text-gray-400">
-                    <div className="col-span-1 md:col-span-2">
-                        <img src="/Rush-logo.webp" alt="Rush" className="h-28 mb-8 object-contain" />
-                        <p className="max-w-xl mb-8 text-base leading-relaxed text-gray-500 font-light">
-                            The premier destination for sports enthusiasts. Book world-class venues, join elite academies, and compete in high-stakes tournaments.
-                        </p>
-                        <div className="flex gap-6">
-                            <a href="#" className="text-gray-400 hover:text-primary transition-colors transform hover:scale-110 duration-200">
-                                <FaInstagram size={24} />
-                            </a>
-                            <a href="#" className="text-gray-400 hover:text-red-500 transition-colors transform hover:scale-110 duration-200">
-                                <FaYoutube size={24} />
-                            </a>
-                            <a href="#" className="text-gray-400 hover:text-blue-500 transition-colors transform hover:scale-110 duration-200">
-                                <FaLinkedin size={24} />
-                            </a>
-                            <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors transform hover:scale-110 duration-200">
-                                <FaTwitter size={24} />
-                            </a>
+            <footer className="bg-black border-t border-white/10 py-20 md:py-32 w-full px-6">
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 text-white">
+                        <div className="col-span-1 md:col-span-2">
+                            <img src="/Rush-logo.webp" alt="Rush" className="h-20 mb-6 object-contain" />
+                            <p className="max-w-xl mb-8 text-base leading-relaxed text-white">
+                                The premier destination for sports enthusiasts. Book world-class venues, join elite academies, and compete in high-stakes tournaments.
+                            </p>
+                            <div className="flex gap-6">
+                                <a href="#" className="text-white hover:text-primary transition-colors transform hover:scale-110 duration-200">
+                                    <FaInstagram size={20} />
+                                </a>
+                                <a href="#" className="text-white hover:text-red-500 transition-colors transform hover:scale-110 duration-200">
+                                    <FaYoutube size={20} />
+                                </a>
+                                <a href="#" className="text-white hover:text-blue-500 transition-colors transform hover:scale-110 duration-200">
+                                    <FaLinkedin size={20} />
+                                </a>
+                                <a href="#" className="text-white hover:text-blue-400 transition-colors transform hover:scale-110 duration-200">
+                                    <FaTwitter size={20} />
+                                </a>
+                            </div>
+                        </div>
+                        <div className="col-span-1 md:col-span-1">
+                            <h4 className="text-white font-bold uppercase tracking-wider mb-8 text-lg">Explore</h4>
+                            <ul className="space-y-4 text-base">
+                                {['Academy', 'Arena', 'Corporate', 'Tournaments', 'Events', 'Careers'].map(item => (
+                                    <li key={item}><a href="#" className="hover:text-primary transition-colors block text-white">{item}</a></li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="col-span-1 md:col-span-1">
+                            <h4 className="text-white font-bold uppercase tracking-wider mb-8 text-lg">Contact</h4>
+                            <p className="mb-4 text-base leading-relaxed text-white"># 643/2, 12th Main Rd,<br />Rajajinagar, Bengaluru</p>
+                            <p className="mb-4 hover:text-primary cursor-pointer transition-colors text-white">harsha@myrush.in</p>
+                            <p className="text-white font-bold text-xl">+91 7624898999</p>
                         </div>
                     </div>
-                    <div className="col-span-1 md:col-span-1 pl-12">
-                        <h4 className="text-white font-bold uppercase tracking-widest mb-12 text-lg">Explore</h4>
-                        <ul className="space-y-6 text-xl">
-                            {['Academy', 'Arena', 'Corporate', 'Tournaments', 'Events', 'Careers'].map(item => (
-                                <li key={item}><a href="#" className="hover:text-primary transition-colors block text-gray-500 hover:tracking-wide duration-200">{item}</a></li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div className="col-span-1 md:col-span-1">
-                        <h4 className="text-white font-bold uppercase tracking-widest mb-12 text-lg">Contact</h4>
-                        <p className="mb-6 text-xl leading-relaxed text-gray-500"># 643/2, 12th Main Rd,<br />Rajajinagar, Bengaluru</p>
-                        <p className="mb-8 text-xl hover:text-primary cursor-pointer transition-colors text-gray-500">harsha@myrush.in</p>
-                        <p className="text-white font-bold text-3xl">+91 7624898999</p>
-                    </div>
-                </div>
-                <div className="w-full border-t border-white/10 pt-10 pb-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-600">
-                    <p className="font-medium tracking-wide">© 2026 Addrush Sports Private Limited.</p>
-                    <div className="flex gap-8 mt-4 md:mt-0">
-                        <a href="#" className="hover:text-gray-400 transition-colors uppercase tracking-wider font-bold text-xs">Privacy Policy</a>
-                        <a href="#" className="hover:text-gray-400 transition-colors uppercase tracking-wider font-bold text-xs">Terms of Service</a>
+                    <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-white">
+                        <p className="font-medium tracking-wide">© 2026 Addrush Sports Private Limited.</p>
+                        <div className="flex gap-8 mt-4 md:mt-0">
+                            <a href="#" className="hover:text-gray-400 transition-colors uppercase tracking-wider font-medium">Privacy Policy</a>
+                            <a href="#" className="hover:text-gray-400 transition-colors uppercase tracking-wider font-medium">Terms of Service</a>
+                        </div>
                     </div>
                 </div>
             </footer>
