@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, type Variants, useScroll, useTransform } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { FaInstagram, FaYoutube, FaLinkedin, FaTwitter, FaArrowRight } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 // import { Card } from '../components/ui/Card';
 
 const fadeInUp: Variants = {
@@ -33,6 +34,7 @@ export const LandingPage: React.FC = () => {
     const { scrollY } = useScroll();
     // const headersOpacity = useTransform(scrollY, [0, 100], [0, 1]);
     const heroY = useTransform(scrollY, [0, 500], [0, 150]);
+    const { isAuthenticated } = useAuth();
 
     const services = [
         {
@@ -99,13 +101,28 @@ export const LandingPage: React.FC = () => {
                             </button>
                         ))}
                     </div>
-                    <Button
-                        variant="primary"
-                        onClick={() => navigate('/login')}
-                        className="font-bold bg-primary text-black hover:bg-white hover:text-black uppercase tracking-wider text-sm px-10 py-3 min-w-[150px] shadow-[0_0_15px_rgba(0,210,106,0.5)] hover:shadow-[0_0_25px_rgba(0,210,106,0.6)]"
-                    >
-                        Login/Signup
-                    </Button>
+                    {isAuthenticated ? (
+                        // Profile icon for authenticated users
+                        <button
+                            className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all hover:shadow-lg"
+                            onClick={() => navigate('/profile')}
+                            title="Go to Profile"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </button>
+                    ) : (
+                        // Login/Signup button for unauthenticated users
+                        <Button
+                            variant="primary"
+                            onClick={() => navigate('/login')}
+                            className="font-bold bg-primary text-black hover:bg-white hover:text-black uppercase tracking-wider text-sm px-10 py-3 min-w-[150px] shadow-[0_0_15px_rgba(0,210,106,0.5)] hover:shadow-[0_0_25px_rgba(0,210,106,0.6)]"
+                        >
+                            Login/Signup
+                        </Button>
+                    )}
                 </div>
             </motion.nav>
 

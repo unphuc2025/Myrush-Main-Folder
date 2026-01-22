@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 interface TopNavProps {
     userName?: string;
@@ -12,6 +13,7 @@ interface TopNavProps {
 export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButton = false, homeLabel = 'Home' }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { isAuthenticated, logout } = useAuth();
 
     const isActive = (path: string) => location.pathname === path;
 
@@ -35,7 +37,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                     </button>
                 ) : (
                     <div className="cursor-pointer" onClick={() => navigate('/')}>
-                        <img src="/Rush-logo.webp" alt="MyRush" className="h-8 md:h-10 w-auto" />
+                        <img src="/Rush-logo.webp" alt="MyRush" className="h-20 md:h-24 w-auto" />
                     </div>
                 )}
 
@@ -67,17 +69,38 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {userName && (
-                        <span className="hidden md:block text-sm font-semibold text-black">
-                            Hello, <span className="text-primary">{userName}</span>
-                        </span>
-                    )}
-                    {onLogout && (
+                    {isAuthenticated ? (
+                        // Profile icon for authenticated users
+                        <div className="flex items-center gap-4">
+                            {userName && (
+                                <span className="hidden md:block text-sm font-semibold text-black">
+                                    Hello, <span className="text-primary">{userName}</span>
+                                </span>
+                            )}
+                            <button
+                                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all hover:shadow-md"
+                                onClick={() => navigate('/profile')}
+                                title="Go to Profile"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </button>
+                            <button
+                                className="bg-gray-100 hover:bg-gray-200 text-black px-4 py-2 rounded-full text-sm font-bold transition-all hover:shadow-md"
+                                onClick={onLogout || logout}
+                            >
+                                Logout
+                            </button>
+                        </div>
+                    ) : (
+                        // Login/Signup button for unauthenticated users
                         <button
-                            className="bg-gray-100 hover:bg-gray-200 text-black px-4 py-2 rounded-full text-sm font-bold transition-all hover:shadow-md"
-                            onClick={onLogout}
+                            className="bg-primary text-white hover:bg-primary/90 px-6 py-2 rounded-full text-sm font-bold transition-all hover:shadow-md shadow-glow"
+                            onClick={() => navigate('/login')}
                         >
-                            Logout
+                            Login/Signup
                         </button>
                     )}
                 </div>

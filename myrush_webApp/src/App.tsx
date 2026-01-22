@@ -17,6 +17,7 @@ import { MyBookings } from './pages/MyBookings';
 import { Profile } from './pages/Profile';
 import { EditProfile } from './pages/EditProfile';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import ScrollToTop from './components/ScrollToTop';
 import './App.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -31,6 +32,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/academy" element={<Academy />} />

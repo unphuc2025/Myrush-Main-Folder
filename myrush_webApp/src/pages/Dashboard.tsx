@@ -68,7 +68,7 @@ export const Dashboard: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 font-inter pb-24 md:pb-0 overflow-x-hidden">
-            <TopNav userName={displayName} onLogout={handleLogout} />
+            <TopNav />
 
             {/* IMMERSIVE HERO SECTION */}
             <section className="relative h-[85vh] flex items-center justify-center overflow-hidden bg-black">

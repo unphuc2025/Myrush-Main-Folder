@@ -50,7 +50,7 @@ export const MyBookings: React.FC = () => {
         if (res.success && res.data) {
             let processedBookings = res.data.map((b: Booking) => {
                 let status = b.status.toLowerCase();
-                if (status !== 'cancelled') {
+                if (status !== 'cancelled' && b.end_time) {
                     const bookingTime = new Date(`${b.booking_date}T${b.end_time}`);
                     if (bookingTime < new Date()) {
                         status = 'completed';
@@ -202,7 +202,7 @@ export const MyBookings: React.FC = () => {
                                     <div className="booking-details">
                                         <div className="detail-item">
                                             <span className="label">Time</span>
-                                            <span className="value">🕒 {booking.start_time.slice(0, 5)} - {booking.end_time.slice(0, 5)}</span>
+                                            <span className="value">🕒 {booking.start_time?.slice(0, 5) || 'N/A'} - {booking.end_time?.slice(0, 5) || 'N/A'}</span>
                                         </div>
                                         <div className="detail-item">
                                             <span className="label">Amount</span>
@@ -250,18 +250,19 @@ export const MyBookings: React.FC = () => {
 
                                                 <div className="detail-row">
                                                     <span className="detail-label">🕒 Start Time:</span>
-                                                    <span className="detail-value">{booking.start_time.slice(0, 5)}</span>
+                                                    <span className="detail-value">{booking.start_time?.slice(0, 5) || 'N/A'}</span>
                                                 </div>
 
                                                 <div className="detail-row">
                                                     <span className="detail-label">🕐 End Time:</span>
-                                                    <span className="detail-value">{booking.end_time.slice(0, 5)}</span>
+                                                    <span className="detail-value">{booking.end_time?.slice(0, 5) || 'N/A'}</span>
                                                 </div>
 
                                                 <div className="detail-row">
                                                     <span className="detail-label">⏱️ Duration:</span>
                                                     <span className="detail-value">
                                                         {(() => {
+                                                            if (!booking.start_time || !booking.end_time) return 'N/A';
                                                             const start = new Date(`2000-01-01T${booking.start_time}`);
                                                             const end = new Date(`2000-01-01T${booking.end_time}`);
                                                             const diff = (end.getTime() - start.getTime()) / (1000 * 60);

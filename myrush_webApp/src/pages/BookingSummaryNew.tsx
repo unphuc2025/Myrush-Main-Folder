@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { TopNav } from '../components/TopNav';
 import { bookingsApi } from '../api/bookings';
+import { couponsApi } from '../api/coupons';
+import type { AvailableCoupon } from '../api/coupons';
 import './BookingSummaryNew.css';
 
 interface BookingSummaryState {
@@ -10,6 +12,8 @@ interface BookingSummaryState {
     venueName: string;
     venueImage: string;
     venueLocation: string;
+    city?: string;
+    branchName?: string;
     selectedDate: Date;
     selectedSlots: Array<{ time: string; display_time: string; price: number }>;
     players: number;
@@ -26,6 +30,8 @@ export const BookingSummaryNew: React.FC = () => {
     const [appliedCoupon, setAppliedCoupon] = useState('');
     const [discount, setDiscount] = useState(0);
     const [submitting, setSubmitting] = useState(false);
+    const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
+    const [loadingCoupons, setLoadingCoupons] = useState(true);
 
     if (!bookingData) {
         navigate(-1);
@@ -37,19 +43,26 @@ export const BookingSummaryNew: React.FC = () => {
     const discountAmount = (basePrice * discount) / 100;
     const total = basePrice + taxesAndFees - discountAmount;
 
-    const handleApplyCoupon = () => {
-        if (couponCode.toUpperCase() === 'RUSH10') {
-            setAppliedCoupon('RUSH10');
-            setDiscount(10);
-            alert('Coupon applied! 10% discount');
-        } else if (couponCode.toUpperCase() === 'WEEKDAY15') {
-            setAppliedCoupon('WEEKDAY15');
-            setDiscount(15);
-            alert('Coupon applied! 15% discount');
-        } else {
-            alert('Invalid coupon code');
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) {
+            alert('Please enter a coupon code');
+            return;
         }
-        setCouponCode('');
+
+        try {
+            const response = await couponsApi.validateCoupon(couponCode, total);
+            if (response.success && response.data.valid) {
+                setAppliedCoupon(couponCode.toUpperCase());
+                setDiscount(response.data.discount_percentage || 0);
+                alert(response.data.message || 'Coupon applied successfully!');
+                setCouponCode('');
+            } else {
+                alert(response.data.message || 'Invalid coupon code');
+            }
+        } catch (error) {
+            console.error('Coupon validation error:', error);
+            alert('Failed to validate coupon. Please try again.');
+        }
     };
 
     const handleRemoveCoupon = () => {
@@ -92,6 +105,25 @@ export const BookingSummaryNew: React.FC = () => {
         }
     };
 
+    // Fetch available coupons on component mount
+    useEffect(() => {
+        const fetchCoupons = async () => {
+            setLoadingCoupons(true);
+            try {
+                const response = await couponsApi.getAvailableCoupons();
+                if (response.success) {
+                    setAvailableCoupons(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch coupons:', error);
+            } finally {
+                setLoadingCoupons(false);
+            }
+        };
+
+        fetchCoupons();
+    }, []);
+
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const formattedDate = `${bookingData.selectedDate.getDate()} ${monthNames[bookingData.selectedDate.getMonth()]} ${bookingData.selectedDate.getFullYear()}`;
 
@@ -99,16 +131,31 @@ export const BookingSummaryNew: React.FC = () => {
         <div className="booking-summary-page">
             <TopNav showBackButton={true} />
 
-            {/* Almost There Banner */}
-            <div className="almost-there-banner">
-                <div className="almost-there-content">
-                    <div className="check-icon">✓</div>
-                    <span className="almost-text">Almost there! Complete your booking</span>
+            {/* Modern Header */}
+            <div className="booking-header">
+                <div className="booking-header-content">
+                    <div className="booking-progress">
+                        <div className="progress-step active">
+                            <span className="step-icon">✓</span>
+                            <span className="step-text">Details</span>
+                        </div>
+                        <div className="progress-line active"></div>
+                        <div className="progress-step active">
+                            <span className="step-icon">2</span>
+                            <span className="step-text">Confirm</span>
+                        </div>
+                        <div className="progress-line"></div>
+                        <div className="progress-step">
+                            <span className="step-icon">3</span>
+                            <span className="step-text">Booked</span>
+                        </div>
+                    </div>
+                    <h1 className="booking-title">Confirm Your Booking</h1>
                 </div>
             </div>
 
             <div className="booking-summary-container">
-                {/* Left: Venue Image */}
+                {/* Left: Venue Image & Quick Info */}
                 <motion.div
                     className="venue-preview-card"
                     initial={{ opacity: 0, x: -20 }}
@@ -120,7 +167,44 @@ export const BookingSummaryNew: React.FC = () => {
                         style={{ backgroundImage: `url(${bookingData.venueImage})` }}
                     />
                     <div className="venue-preview-info">
-                        <h2>{bookingData.venueName}</h2>
+                        <div className="venue-court-details">
+                            <h2 className="court-name">{bookingData.venueName}</h2>
+                            {bookingData.city && (
+                                <div className="court-detail-item">
+                                    <span className="detail-icon">🏙️</span>
+                                    <span className="detail-label">City:</span>
+                                    <span className="detail-value">{bookingData.city}</span>
+                                </div>
+                            )}
+                            {bookingData.branchName && (
+                                <div className="court-detail-item">
+                                    <span className="detail-icon">🏢</span>
+                                    <span className="detail-label">Branch:</span>
+                                    <span className="detail-value">{bookingData.branchName}</span>
+                                </div>
+                            )}
+                            <div className="court-detail-item">
+                                <span className="detail-icon">🎾</span>
+                                <span className="detail-label">Court:</span>
+                                <span className="detail-value">{bookingData.venueName}</span>
+                            </div>
+                        </div>
+
+                        <div className="venue-quick-stats">
+                            <div className="stat-item">
+                                <span className="stat-icon">📅</span>
+                                <span>{formattedDate}</span>
+                            </div>
+                            <div className="stat-item">
+                                <span className="stat-icon">⏰</span>
+                                <span>{bookingData.selectedSlots.length} hour{bookingData.selectedSlots.length > 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="stat-item">
+                                <span className="stat-icon">👥</span>
+                                <span>{players} player{players > 1 ? 's' : ''}</span>
+                            </div>
+                        </div>
+
                         <div className="venue-location-row">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -138,76 +222,90 @@ export const BookingSummaryNew: React.FC = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
                 >
-                    <div className="discount-banner">
-                        🏷️ 16% off on weekday bookings!
-                    </div>
-
-                    <h3 className="section-heading">Booking Summary</h3>
-
-                    <div className="summary-row">
-                        <span className="row-label">Date</span>
-                        <span className="row-value">{formattedDate}</span>
-                    </div>
-
-                    <div className="summary-row">
-                        <span className="row-label">Selected Slots</span>
-                        <div className="slots-pills">
+                    <div className="booking-details-header">
+                        <h3>Booking Details</h3>
+                        <div className="selected-slots-display">
                             {bookingData.selectedSlots.map((slot, i) => (
-                                <span key={i} className="slot-pill-active">{slot.display_time}</span>
+                                <span key={i} className="slot-tag">{slot.display_time}</span>
                             ))}
                         </div>
                     </div>
 
-                    <div className="summary-row">
-                        <span className="row-label">Number of Players</span>
-                        <div className="player-stepper">
-                            <button onClick={() => setPlayers(Math.max(1, players - 1))}>−</button>
-                            <span>{players} Players</span>
-                            <button onClick={() => setPlayers(players + 1)}>+</button>
+                    {/* Players Adjustment */}
+                    <div className="players-section">
+                        <label className="section-label">Number of Players</label>
+                        <div className="players-controls">
+                            <button
+                                className="player-btn"
+                                onClick={() => setPlayers(Math.max(1, players - 1))}
+                                disabled={players <= 1}
+                            >
+                                −
+                            </button>
+                            <span className="player-count">{players}</span>
+                            <button
+                                className="player-btn"
+                                onClick={() => setPlayers(players + 1)}
+                            >
+                                +
+                            </button>
                         </div>
                     </div>
 
+                    {/* Coupon Section */}
                     <div className="coupon-section">
-                        <h4 className="coupon-heading">Have a coupon code?</h4>
+                        <label className="section-label">Promo Code</label>
                         {appliedCoupon ? (
-                            <div className="applied-coupon">
-                                <span className="coupon-code-badge">{appliedCoupon}</span>
-                                <span className="coupon-discount">-{discount}% OFF</span>
-                                <button className="remove-coupon-btn" onClick={handleRemoveCoupon}>×</button>
+                            <div className="applied-coupon-display">
+                                <span className="coupon-code">{appliedCoupon}</span>
+                                <span className="coupon-discount-text">-{discount}% OFF</span>
+                                <button className="remove-coupon" onClick={handleRemoveCoupon}>×</button>
                             </div>
                         ) : (
-                            <div className="coupon-input-row">
+                            <div className="coupon-input-group">
                                 <input
                                     type="text"
-                                    placeholder="Enter coupon code"
+                                    placeholder="Enter code (optional)"
                                     value={couponCode}
                                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                                     className="coupon-input"
                                 />
-                                <button className="apply-coupon-btn" onClick={handleApplyCoupon}>
+                                <button
+                                    className="apply-btn"
+                                    onClick={handleApplyCoupon}
+                                    disabled={!couponCode}
+                                >
                                     Apply
                                 </button>
                             </div>
                         )}
                     </div>
 
-                    <div className="price-breakdown">
-                        <div className="price-row">
-                            <span>Base Price ({bookingData.selectedSlots.length} hour)</span>
+                    {/* Price Breakdown */}
+                    <div className="price-breakdown-card">
+                        <h4 className="price-title">Price Breakdown</h4>
+
+                        <div className="price-item">
+                            <span>Base Price</span>
                             <span>₹{basePrice.toFixed(2)}</span>
                         </div>
-                        <div className="price-row">
-                            <span>Taxes & Fees</span>
+
+                        <div className="price-item">
+                            <span>Service Fee</span>
                             <span>₹{taxesAndFees.toFixed(2)}</span>
                         </div>
+
                         {discount > 0 && (
-                            <div className="price-row discount-row">
+                            <div className="price-item discount">
                                 <span>Discount ({discount}%)</span>
-                                <span className="discount-amount">-₹{discountAmount.toFixed(2)}</span>
+                                <span>-₹{discountAmount.toFixed(2)}</span>
                             </div>
                         )}
-                        <div className="price-total-row">
-                            <span>Total</span>
+
+                        <div className="price-divider"></div>
+
+                        <div className="price-total">
+                            <span>Total Amount</span>
                             <span>₹{total.toFixed(2)}</span>
                         </div>
                     </div>
@@ -217,7 +315,14 @@ export const BookingSummaryNew: React.FC = () => {
                         onClick={handleConfirmBooking}
                         disabled={submitting}
                     >
-                        {submitting ? 'Processing...' : 'Book Now'}
+                        {submitting ? (
+                            <span className="loading-text">Processing Booking...</span>
+                        ) : (
+                            <>
+                                <span>Complete Booking</span>
+                                <span className="btn-arrow">→</span>
+                            </>
+                        )}
                     </button>
                 </motion.div>
             </div>

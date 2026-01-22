@@ -35,8 +35,8 @@ export interface ProfileData {
 export const profileApi = {
     getProfile: async (phoneNumber?: string) => {
         try {
-            const url = phoneNumber ? `/profile/user?phone_number=${phoneNumber}` : '/auth/profile';
-            const response = await apiClient.get<ProfileData>(url);
+            // Use the correct profile endpoint for reading
+            const response = await apiClient.get<ProfileData>('/profile');
             return {
                 success: true,
                 data: response.data,
@@ -51,17 +51,8 @@ export const profileApi = {
 
     createOrUpdateProfile: async (profileData: Partial<ProfileData>) => {
         try {
-            // Adjust endpoint if needed. Assuming /auth/profile or /profile/update
-            // Mobile app likely uses a specific endpoint for updating. 
-            // Based on ProfileSetup.tsx logic (which I wrote earlier), it might be POST /auth/profile or similar.
-            // Let's assume POST /auth/profile/update or PUT /auth/profile based on standard conventions
-            // Checks mobile code? Mobile uses `profileApi.updateProfile` usually.
-            // I'll use POST /auth/profile for upsert if that's what I used in ProfileSetup (wait, ProfileSetup used a placeholder? No, it used profileApi.updateProfile).
-
-            // Checking ProfileSetup.tsx from my memory/context: I didn't verify the endpoint there specifically for update. 
-            // I'll assume POST /auth/profile updates the profile.
-
-            const response = await apiClient.post('/auth/profile', profileData);
+            // Use the correct profile endpoint from backend router
+            const response = await apiClient.post('/profile', profileData);
             return {
                 success: true,
                 data: response.data,

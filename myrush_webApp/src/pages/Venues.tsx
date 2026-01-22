@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '../api/client';
 import { venuesApi } from '../api/venues';
+import { courtsApi } from '../api/courts';
+import type { CourtRatings } from '../api/courts';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
 // import { Card } from '../components/ui/Card';
@@ -17,8 +19,15 @@ interface Venue {
     photos: string[];
     description: string;
     branch_name?: string;
-    amenities?: string[];
+    amenities?: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        icon?: string;
+        icon_url?: string;
+    }>;
     rating?: number;
+    reviewCount?: number;
 }
 
 // --- Icons ---
@@ -89,7 +98,7 @@ const VenueHero: React.FC<{
                     </select>
                     <div className="absolute right-4 pointer-events-none text-gray-400 text-xs">▼</div>
                 </div>
-                <Button variant="primary" className="h-full py-3 md:py-0 rounded-xl" onClick={() => { }}>
+                <Button variant="primary" className="py-3 px-6 rounded-xl whitespace-nowrap" onClick={() => { }}>
                     Search
                 </Button>
             </motion.div>
@@ -115,26 +124,6 @@ const FilterSidebar: React.FC<{
         </div>
 
         <div className="mb-6">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Sport</label>
-            <div className="space-y-2">
-                {sports.map(sport => (
-                    <label key={sport} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${selectedSport === sport ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'}`}>
-                        <input
-                            type="radio"
-                            name="sport"
-                            value={sport}
-                            checked={selectedSport === sport}
-                            onChange={(e) => setSelectedSport(e.target.value)}
-                            className="hidden"
-                        />
-                        <span className="text-sm font-bold">{sport}</span>
-                        {selectedSport === sport && <span className="ml-auto text-primary">●</span>}
-                    </label>
-                ))}
-            </div>
-        </div>
-
-        <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Branch</label>
             <select
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm font-medium focus:outline-none focus:border-black transition-colors"
@@ -144,6 +133,21 @@ const FilterSidebar: React.FC<{
                 {branches.map(branch => (
                     <option key={branch.id} value={branch.id}>
                         {branch.name}
+                    </option>
+                ))}
+            </select>
+        </div>
+
+        <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Sport</label>
+            <select
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm font-medium focus:outline-none focus:border-black transition-colors"
+                value={selectedSport}
+                onChange={(e) => setSelectedSport(e.target.value)}
+            >
+                {sports.map(sport => (
+                    <option key={sport} value={sport}>
+                        {sport}
                     </option>
                 ))}
             </select>
@@ -185,15 +189,22 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
                 <h3 className="font-bold text-lg text-gray-900 leading-tight group-hover:text-primary transition-colors">{venue.court_name}</h3>
                 <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md">
                     <span className="text-yellow-500 text-xs">⭐</span>
-                    <span className="text-xs font-bold text-gray-700">{venue.rating || '4.8'}</span>
+                    <span className="text-xs font-bold text-gray-700">
+                        {venue.rating ? venue.rating.toFixed(1) : '4.8'}
+                        {venue.reviewCount && venue.reviewCount > 0 && (
+                            <span className="text-gray-500 ml-1">({venue.reviewCount})</span>
+                        )}
+                    </span>
                 </div>
             </div>
 
             <div className="flex flex-wrap gap-2 mb-4">
                 {venue.amenities?.slice(0, 3).map(a => (
-                    <span key={a} className="text-[10px] uppercase font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">{a}</span>
+                    <span key={a.id} className="text-[10px] uppercase font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">{a.name}</span>
                 )) || <span className="text-[10px] uppercase font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">Parking</span>}
-                <span className="text-[10px] uppercase font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded">+2</span>
+                {venue.amenities && venue.amenities.length > 3 && (
+                    <span className="text-[10px] uppercase font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded">+{venue.amenities.length - 3}</span>
+                )}
             </div>
 
             <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
@@ -262,8 +273,27 @@ export const Venues: React.FC = () => {
         setLoading(true);
         try {
             const res = await apiClient.get(`/courts?city=${selectedCity}`);
-            setVenues(Array.isArray(res.data) ? res.data : []);
-            setFilteredVenues(Array.isArray(res.data) ? res.data : []);
+            const venuesData = Array.isArray(res.data) ? res.data : [];
+
+            // Fetch ratings for each venue
+            const venuesWithRatings = await Promise.all(
+                venuesData.map(async (venue: Venue) => {
+                    try {
+                        const ratingsRes = await courtsApi.getCourtRatings(venue.id);
+                        return {
+                            ...venue,
+                            rating: ratingsRes.data.average_rating,
+                            reviewCount: ratingsRes.data.total_reviews
+                        };
+                    } catch (error) {
+                        console.error(`Failed to fetch ratings for venue ${venue.id}:`, error);
+                        return venue; // Return venue without ratings if fetch fails
+                    }
+                })
+            );
+
+            setVenues(venuesWithRatings);
+            setFilteredVenues(venuesWithRatings);
         } catch (err) {
             console.error(err);
         } finally {

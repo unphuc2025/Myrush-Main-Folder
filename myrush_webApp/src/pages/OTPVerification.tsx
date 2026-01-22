@@ -57,7 +57,8 @@ export const OTPVerification: React.FC = () => {
 
             if (response.data.access_token) {
                 login(response.data.access_token);
-                navigate('/dashboard');
+                // Redirect authenticated users to landing page
+                navigate('/', { replace: true });
             } else if (response.data.needs_profile) {
                 navigate('/setup-profile', { state: { phone } });
             } else {
