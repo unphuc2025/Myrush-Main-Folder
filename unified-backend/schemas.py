@@ -945,5 +945,105 @@ class AdminCourtResponse(BaseModel):
             datetime: lambda v: v.isoformat() if v else None
         }
 
+# ============================================================================
+# PLAYO INTEGRATION SCHEMAS
+# ============================================================================
+
+class PlayoSlot(BaseModel):
+    """Time slot availability for Playo"""
+    startTime: str  # HH:MM:SS format
+    endTime: str
+    available: bool
+    price: Optional[Decimal] = None
+
+class PlayoCourt(BaseModel):
+    """Court availability response for Playo"""
+    courtId: str
+    courtName: str
+    slots: List[PlayoSlot]
+
+class PlayoAvailabilityResponse(BaseModel):
+    """Response for fetch availability endpoint"""
+    courts: List[PlayoCourt]
+
+class PlayoOrderItem(BaseModel):
+    """Individual order item in order creation request"""
+    date: str  # YYYY-MM-DD
+    courtId: str
+    startTime: str  # HH:MM:SS
+    endTime: str
+    price: Decimal
+    playoOrderId: str
+
+class PlayoOrderCreateRequest(BaseModel):
+    """Request to create temporary orders"""
+    venueId: str
+    orders: List[PlayoOrderItem]
+
+class PlayoOrderIdMapping(BaseModel):
+    """Mapping between external and Playo order IDs"""
+    externalOrderId: str
+    playoOrderId: str
+
+class PlayoOrderCreateResponse(BaseModel):
+    """Response for order creation"""
+    orderIds: List[PlayoOrderIdMapping]
+    requestStatus: int  # 1 = success, 0 = failure
+    message: Optional[str] = None
+
+class PlayoOrderConfirmRequest(BaseModel):
+    """Request to confirm pending orders"""
+    orderIds: List[str]  # List of externalOrderIds
+
+class PlayoBookingIdMapping(BaseModel):
+    """Mapping between external booking and Playo order IDs"""
+    externalBookingId: str
+    playoOrderId: str
+
+class PlayoOrderConfirmResponse(BaseModel):
+    """Response for order confirmation"""
+    bookingIds: List[PlayoBookingIdMapping]
+    requestStatus: int
+    message: Optional[str] = None
+
+class PlayoOrderCancelRequest(BaseModel):
+    """Request to cancel pending orders"""
+    orderIds: List[str]
+
+class PlayoOrderCancelResponse(BaseModel):
+    """Response for order cancellation"""
+    requestStatus: int
+    message: Optional[str] = None
+
+class PlayoBookingCancelItem(BaseModel):
+    """Individual booking cancellation item"""
+    playoOrderId: str
+    externalBookingId: str
+    price: Decimal
+    refundAtPlayo: bool
+
+class PlayoBookingCancelRequest(BaseModel):
+    """Request to cancel confirmed bookings"""
+    bookingIds: List[PlayoBookingCancelItem]
+
+class PlayoBookingCancelResponse(BaseModel):
+    """Response for booking cancellation"""
+    requestStatus: int
+    message: Optional[str] = None
+
+class PlayoBookingMapItem(BaseModel):
+    """Individual booking mapping item"""
+    externalBookingId: str
+    playoBookingId: str
+
+class PlayoBookingMapRequest(BaseModel):
+    """Request to map Playo booking IDs"""
+    bookingIds: List[PlayoBookingMapItem]
+
+class PlayoBookingMapResponse(BaseModel):
+    """Response for booking mapping"""
+    requestStatus: int
+    message: Optional[str] = None
+
 # Resolve forward references
 User.update_forward_refs()

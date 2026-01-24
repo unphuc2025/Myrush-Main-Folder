@@ -180,6 +180,70 @@ export const LandingPage: React.FC = () => {
                 </div>
             </section>
 
+            {/* RUSH ARENA 3D EXPERIENCE */}
+            <section className="py-20 md:py-32 bg-gradient-to-b from-black via-gray-900 to-black relative overflow-hidden">
+                <div className="max-w-7xl mx-auto px-6 md:px-12">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                        viewport={{ once: true }}
+                        className="text-center mb-12"
+                    >
+                        <div className="inline-block mb-4 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase">
+                            Interactive Experience
+                        </div>
+                        <h2 className="text-4xl md:text-6xl font-black text-white font-montserrat uppercase leading-tight mb-6">
+                            Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Rush Arena</span> in 3D
+                        </h2>
+                        <p className="text-gray-400 text-lg max-w-3xl mx-auto leading-relaxed">
+                            Take a virtual tour of our world-class facilities. Navigate through our premium turfs and experience the Rush Arena difference.
+                        </p>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                        viewport={{ once: true }}
+                        className="relative w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-primary/20 bg-black"
+                        style={{ paddingBottom: '56.25%' }} // 16:9 aspect ratio
+                    >
+                        <iframe
+                            src="https://rush-arena-bcu.talkinglands.studio/"
+                            title="Rush Arena 3D Experience"
+                            className="absolute top-0 left-0 w-full h-full"
+                            style={{ border: 'none' }}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                        />
+                        {/* Loading overlay */}
+                        <div className="absolute inset-0 bg-black flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-500">
+                            <div className="text-primary text-lg font-bold">Loading 3D Experience...</div>
+                        </div>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.4 }}
+                        viewport={{ once: true }}
+                        className="text-center mt-12"
+                    >
+                        <p className="text-gray-500 text-sm mb-6">
+                            Use your mouse or touch to navigate • Click and drag to look around
+                        </p>
+                        <Button
+                            variant="primary"
+                            onClick={() => navigate('/venues')}
+                            className="bg-primary text-black hover:bg-white hover:text-black font-bold uppercase tracking-wider text-sm px-10 py-4 shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                        >
+                            Book Your Court Now
+                        </Button>
+                    </motion.div>
+                </div>
+            </section>
+
             {/* MARQUEE STRIP */}
             <div className="bg-primary overflow-hidden py-4 z-30 relative shadow-glow -rotate-1 scale-105 border-y-4 border-black mt-20">
                 <motion.div

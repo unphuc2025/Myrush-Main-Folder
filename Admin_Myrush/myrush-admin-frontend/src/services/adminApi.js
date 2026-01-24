@@ -517,5 +517,22 @@ export const settingsApi = {
     }
 };
 
+// Playo Token Management API
+export const playoTokensApi = {
+    getAll: () => apiRequest('/playo-tokens/'),
+    generate: (description) => apiRequest(`/playo-tokens/generate?description=${encodeURIComponent(description)}`, {
+        method: 'POST'
+    }),
+    deactivate: (id) => apiRequest(`/playo-tokens/${id}/deactivate`, {
+        method: 'POST'
+    }),
+    activate: (id) => apiRequest(`/playo-tokens/${id}/activate`, {
+        method: 'POST'
+    }),
+    delete: (id) => apiRequest(`/playo-tokens/${id}`, {
+        method: 'DELETE'
+    })
+};
+
 // End of API definitions
 // Force rebuild

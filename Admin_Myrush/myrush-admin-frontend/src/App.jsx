@@ -24,6 +24,7 @@ import Users from "./pages/Users";
 import FAQ from "./pages/FAQ";
 import CMSPages from "./pages/CMSPages";
 import SiteSettings from "./pages/SiteSettings";
+import PlayoTokenManagement from "./pages/PlayoTokenManagement.jsx";
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
       <Route path="/faqs" element={<FAQ />} />
       <Route path="/cms" element={<CMSPages />} />
       <Route path="/settings" element={<SiteSettings />} />
+      <Route path="/playo-tokens" element={<PlayoTokenManagement />} />
 
       <Route path="/courts" element={<Courts />} />
       <Route path="/game-types" element={<GameTypes />} />

@@ -135,7 +135,8 @@ from routers.admin import (
     faq as admin_faq,
     roles,
     cms as admin_cms,
-    site_settings as admin_site_settings
+    site_settings as admin_site_settings,
+    playo_tokens
 )
 
 
@@ -158,6 +159,7 @@ app.include_router(roles.router, prefix="/api/admin", tags=["Admin Roles"])
 app.include_router(admin_faq.router, prefix="/api/admin", tags=["Admin FAQ"])
 app.include_router(admin_cms.router, prefix="/api/admin", tags=["Admin CMS"])
 app.include_router(admin_site_settings.router, prefix="/api/admin", tags=["Admin Site Settings"])
+app.include_router(playo_tokens.router, prefix="/api/admin", tags=["Admin Playo Tokens"])
 
 # ============================================================================
 # IMPORT AND INCLUDE USER ROUTERS
@@ -185,6 +187,14 @@ app.include_router(user_coupons.router, prefix="/api/user", tags=["User Coupons"
 app.include_router(user_reviews.router, prefix="/api/user", tags=["User Reviews"])
 app.include_router(notifications.router, prefix="/api/user", tags=["User Notifications"])
 app.include_router(courts_ratings.router, prefix="/api/user", tags=["User Court Ratings"])
+
+# ============================================================================
+# PLAYO INTEGRATION ROUTER
+# ============================================================================
+
+from routers import playo
+
+app.include_router(playo.router, prefix="/api", tags=["Playo Integration"])
 
 print("\n" + "="*60)
 print("MYRUSH UNIFIED BACKEND")

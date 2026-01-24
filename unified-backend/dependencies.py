@@ -194,3 +194,53 @@ def get_current_user_optional(
         return get_current_user(token, db)
     except HTTPException:
         return None
+
+# ============================================================================
+# PLAYO API AUTHENTICATION (Bearer Token)
+# ============================================================================
+
+import hashlib
+from fastapi import Header
+
+def hash_token(token: str) -> str:
+    """Hash token for secure storage and comparison"""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+async def verify_playo_token(
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+) -> models.PlayoAPIKey:
+    """
+    Verify Bearer token for Playo API access
+    
+    Expected header format: Authorization: Bearer <token>
+    """
+    
+    # Check format: "Bearer <token>"
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authorization header format. Expected: Bearer <token>"
+        )
+    
+    token = authorization.replace("Bearer ", "")
+    token_hash = hash_token(token)
+    
+    # Verify token in database
+    api_key = db.query(models.PlayoAPIKey).filter(
+        models.PlayoAPIKey.token_hash == token_hash,
+        models.PlayoAPIKey.is_active == True
+    ).first()
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or inactive API token"
+        )
+    
+    # Update last used timestamp
+    from datetime import datetime
+    api_key.last_used_at = datetime.utcnow()
+    db.commit()
+    
+    return api_key

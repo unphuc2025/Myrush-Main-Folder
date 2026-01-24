@@ -371,6 +371,12 @@ class Booking(Base):
     payment_status = Column(String(50), default='pending')
     payment_id = Column(String(255))
     coupon_id = Column(UUID(as_uuid=True), ForeignKey("admin_coupons.id"), nullable=True)
+    
+    # Playo Integration Fields
+    playo_order_id = Column(String(255), nullable=True, index=True)
+    playo_booking_id = Column(String(255), nullable=True, index=True)
+    booking_source = Column(String(50), default='direct')  # 'direct', 'playo', 'admin'
+    
     created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
 
@@ -460,3 +466,40 @@ class PushToken(Base):
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
 
     user = relationship("User")
+
+# ============================================================================
+# PLAYO INTEGRATION MODELS
+# ============================================================================
+
+class PlayoAPIKey(Base):
+    """Playo API authentication tokens"""
+    __tablename__ = "playo_api_keys"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    token_hash = Column(String(255), unique=True, nullable=False, index=True)
+    description = Column(String(255))
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
+    last_used_at = Column(TIMESTAMP)
+
+class PlayoOrder(Base):
+    """Temporary order reservations for Playo integration"""
+    __tablename__ = "playo_orders"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
+    playo_order_id = Column(String(255), unique=True, nullable=False, index=True)
+    venue_id = Column(UUID(as_uuid=True), ForeignKey("admin_branches.id"))
+    court_id = Column(UUID(as_uuid=True), ForeignKey("admin_courts.id"))
+    booking_date = Column(Date, nullable=False, index=True)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+    price = Column(DECIMAL(10, 2), nullable=False)
+    status = Column(String(50), default='pending', index=True)  # 'pending', 'confirmed', 'cancelled', 'expired'
+    booking_id = Column(UUID(as_uuid=True), ForeignKey("booking.id"), nullable=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
+    expires_at = Column(TIMESTAMP, index=True)  # Auto-expire after 15 minutes
+    
+    # Relationships
+    venue = relationship("Branch", foreign_keys=[venue_id])
+    court = relationship("Court", foreign_keys=[court_id])
+    booking = relationship("Booking", foreign_keys=[booking_id])
