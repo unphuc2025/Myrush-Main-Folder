@@ -378,7 +378,12 @@ async def confirm_order(
                 status='confirmed',
                 payment_status='paid',
                 booking_source='playo',
-                playo_order_id=order.playo_order_id
+                playo_order_id=order.playo_order_id,
+                # Set deprecated fields to avoid database constraint violations
+                _old_start_time=order.start_time,
+                _old_end_time=order.end_time,
+                _old_duration_minutes=60,
+                _old_price_per_hour=float(order.price)
             )
             
             db.add(booking)
