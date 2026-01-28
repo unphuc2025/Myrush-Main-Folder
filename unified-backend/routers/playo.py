@@ -421,10 +421,11 @@ async def create_order(
         db.rollback()
         logging.error(f"Exception in Playo order creation: {e}", exc_info=True)
         # Never expose internal errors - return Playo-compatible response
+        # DEBUG: returning error
         return schemas.PlayoOrderCreateResponse(
             orderIds=[],
             requestStatus=0,
-            message="Order creation failed"
+            message=f"Error: {str(e)}"
         )
 
 
