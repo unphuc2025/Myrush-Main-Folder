@@ -499,6 +499,11 @@ class PlayoOrder(Base):
     created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
     expires_at = Column(TIMESTAMP, index=True)  # Auto-expire after 15 minutes
     
+    # Store user details for booking creation later
+    user_name = Column(String(255))
+    user_mobile = Column(String(50))
+    user_email = Column(String(255))
+    
     # Relationships
     venue = relationship("Branch", foreign_keys=[venue_id])
     court = relationship("Court", foreign_keys=[court_id])

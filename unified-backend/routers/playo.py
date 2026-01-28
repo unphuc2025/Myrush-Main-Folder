@@ -5,11 +5,11 @@ Provides endpoints for Playo platform to integrate with MyRush venues
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timedelta, time as dt_time, date
-from uuid import UUID
+from uuid import UUID, uuid4
 from decimal import Decimal
-import schemas, models, database, dependencies
+import schemas, models, database, dependencies, auth
 from date_utils import parse_date_safe, parse_time_safe
 import logging
 
@@ -87,7 +87,50 @@ def get_court_availability_slots(
     return slots
 
 # ============================================================================
-# API ENDPOINTS
+# HELPER FUNCTIONS
+# ============================================================================
+
+def get_or_create_playo_user(
+    db: Session,
+    name: str,
+    mobile: str,
+    email: str
+) -> models.User:
+    """
+    Get user by phone number or create a new one.
+    This ensures Playo bookings are linked to real user accounts.
+    """
+    if not mobile:
+        # Fallback to system user if no mobile provided
+        mobile = "PLAYO_SYSTEM"
+        name = "Playo System User"
+        email = "playo@myrush.in"
+
+    user = db.query(models.User).filter(models.User.phone_number == mobile).first()
+    
+    if not user:
+        # Create new user
+        user = models.User(
+            phone_number=mobile,
+            full_name=name,
+            first_name=name.split(' ')[0] if name else "Playo",
+            last_name=' '.join(name.split(' ')[1:]) if name and ' ' in name else "User",
+            email=email if email else f"{mobile}@playo.temp", # Ensure email uniqueness logic or just fallback
+            is_verified=True, # Trusted via Playo
+            is_active=True,
+            profile_completed=False,
+            country_code='+91' # Default
+        )
+        db.add(user)
+        db.flush()
+        
+    return user
+
+def get_court_availability_slots(
+    db: Session,
+    court_id: UUID,
+    booking_date: date
+) -> List[dict]:
 # ============================================================================
 
 @router.get("/availability", response_model=schemas.PlayoAvailabilityResponse)
@@ -277,7 +320,12 @@ async def create_order(
                 end_time=order_data['end_time'],
                 price=order_data['price'],
                 status='pending',
-                expires_at=datetime.utcnow() + timedelta(minutes=15)  # 15 min expiry
+                status='pending',
+                expires_at=datetime.utcnow() + timedelta(minutes=15),  # 15 min expiry
+                # Store user details
+                user_name=request.userName,
+                user_mobile=request.userMobile,
+                user_email=request.userEmail
             )
 
             db.add(order)
@@ -335,23 +383,6 @@ async def confirm_order(
     try:
         confirmed_bookings = []
         
-        # Create a system user for Playo bookings if doesn't exist
-        playo_user = db.query(models.User).filter(
-            models.User.phone_number == "PLAYO_SYSTEM"
-        ).first()
-        
-        if not playo_user:
-            playo_user = models.User(
-                phone_number="PLAYO_SYSTEM",
-                full_name="Playo System User",
-                email="playo@myrush.in",
-                is_verified=True,
-                is_active=True,
-                profile_completed=True
-            )
-            db.add(playo_user)
-            db.flush()
-        
         for order_id in request.orderIds:
             order = db.query(models.PlayoOrder).filter(
                 models.PlayoOrder.id == UUID(order_id),
@@ -361,9 +392,17 @@ async def confirm_order(
             if not order:
                 continue
             
+            # Get or create actual user from order details
+            real_user = get_or_create_playo_user(
+                db, 
+                order.user_name, 
+                order.user_mobile, 
+                order.user_email
+            )
+            
             # Create booking
             booking = models.Booking(
-                user_id=playo_user.id,
+                user_id=real_user.id,
                 court_id=order.court_id,
                 booking_date=order.booking_date,
                 time_slots=[{
@@ -680,27 +719,18 @@ async def create_booking(
         # All bookings validated successfully, now create them
         created_bookings = []
 
-        for booking_data in validated_bookings:
-            # Create a system user for Playo bookings if doesn't exist
-            playo_user = db.query(models.User).filter(
-                models.User.phone_number == "PLAYO_SYSTEM"
-            ).first()
-            
-            if not playo_user:
-                playo_user = models.User(
-                    phone_number="PLAYO_SYSTEM",
-                    full_name="Playo System User",
-                    email="playo@myrush.in",
-                    is_verified=True,
-                    is_active=True,
-                    profile_completed=True
-                )
-                db.add(playo_user)
-                db.flush()
+        # Get or create actual user from request details (once for all items usually same user)
+        real_user = get_or_create_playo_user(
+            db, 
+            request.userName, 
+            request.userMobile, 
+            request.userEmail
+        )
 
+        for booking_data in validated_bookings:
             # Create booking
             booking = models.Booking(
-                user_id=playo_user.id,
+                user_id=real_user.id,
                 court_id=booking_data['court_id'],
                 booking_date=booking_data['booking_date'],
                 time_slots=[{
