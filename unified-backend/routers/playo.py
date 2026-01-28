@@ -9,8 +9,9 @@ from typing import List
 from datetime import datetime, timedelta, time as dt_time, date
 from uuid import UUID
 from decimal import Decimal
-import schemas, models, database
-from dependencies import verify_playo_token
+import schemas, models, database, dependencies
+from date_utils import parse_date_safe, parse_time_safe
+import logging
 
 router = APIRouter(
     prefix="/playo",
@@ -95,7 +96,7 @@ async def fetch_availability(
     sport_id: str = Query(..., alias="sportId"),
     date: str = Query(...),  # YYYY-MM-DD
     db: Session = Depends(database.get_db),
-    api_key: models.PlayoAPIKey = Depends(verify_playo_token)
+    api_key: models.PlayoAPIKey = Depends(dependencies.verify_playo_token)
 ):
     """
     Fetch available time slots for courts at a venue
@@ -110,8 +111,8 @@ async def fetch_availability(
     """
     
     try:
-        # Parse date
-        booking_date = datetime.strptime(date, '%Y-%m-%d').date()
+        # Parse date safely
+        booking_date = parse_date_safe(date, '%Y-%m-%d', 'date')
         
         # Get all courts for this venue and sport
         courts = db.query(models.Court).join(models.GameType).filter(
@@ -127,14 +128,20 @@ async def fetch_availability(
                 court_id=court.id,
                 booking_date=booking_date
             )
-            
+
+            # Include all courts with all their slots (both available and unavailable)
             court_availability.append(schemas.PlayoCourt(
                 courtId=str(court.id),
                 courtName=court.name,
                 slots=[schemas.PlayoSlot(**slot) for slot in slots]
             ))
         
-        return schemas.PlayoAvailabilityResponse(courts=court_availability)
+        # Return response with proper structure
+        return schemas.PlayoAvailabilityResponse(
+            courts=court_availability,
+            requestStatus=1,
+            message="Success"
+        )
         
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -144,83 +151,168 @@ async def fetch_availability(
 async def create_order(
     request: schemas.PlayoOrderCreateRequest,
     db: Session = Depends(database.get_db),
-    api_key: models.PlayoAPIKey = Depends(verify_playo_token)
+    api_key: models.PlayoAPIKey = Depends(dependencies.verify_playo_api_key)
 ):
     """
     Create temporary order reservations (block slots before payment)
-    
+
     Request Body:
     - venueId: Branch/Venue UUID
-    - orders: List of order items with court, date, time, and price
-    
+    - userName: User's name
+    - userMobile: User's mobile number
+    - userEmail: User's email
+    - orders: List of order items with court, date, time, price, and Playo payment info
+
     Returns:
     - List of created order IDs mapping external to Playo IDs
+    - Playo-compatible response format
     """
-    
+    logging.info(f"Playo order request received: {request.dict()}")
+
     try:
-        created_orders = []
-        
+        # Validate venueId is a valid UUID
+        try:
+            venue_id = UUID(request.venueId)
+        except ValueError:
+            logging.warning(f"Invalid venueId format: {request.venueId}")
+            return schemas.PlayoOrderCreateResponse(
+                orderIds=[],
+                requestStatus=0,
+                message="Invalid venueId format"
+            )
+
+        # Validate all orders first (transactional approach)
+        validated_orders = []
+        validation_errors = []
+
         for item in request.orders:
-            # Parse data
-            court_id = UUID(item.courtId)
-            booking_date = datetime.strptime(item.date, '%Y-%m-%d').date()
-            start_time = datetime.strptime(item.startTime, '%H:%M:%S').time()
-            end_time = datetime.strptime(item.endTime, '%H:%M:%S').time()
-            
-            # Verify slot is still available
-            slots = get_court_availability_slots(db, court_id, booking_date)
-            slot_available = False
-            for slot in slots:
-                slot_start = datetime.strptime(slot['startTime'], '%H:%M:%S').time()
-                slot_end = datetime.strptime(slot['endTime'], '%H:%M:%S').time()
-                if slot_start == start_time and slot_end == end_time and slot['available']:
-                    slot_available = True
-                    break
-            
-            if not slot_available:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Slot {item.startTime}-{item.endTime} is not available for court {item.courtId}"
-                )
-            
+            try:
+                # Validate courtId is a valid UUID
+                court_id = UUID(item.courtId)
+
+                # Validate date format (YYYY-MM-DD)
+                try:
+                    booking_date = datetime.strptime(item.date, '%Y-%m-%d').date()
+                except ValueError:
+                    validation_errors.append(f"Invalid date format for order {item.playoOrderId}")
+                    continue
+
+                # Validate time formats (HH:MM:SS)
+                try:
+                    start_time = datetime.strptime(item.startTime, '%H:%M:%S').time()
+                    end_time = datetime.strptime(item.endTime, '%H:%M:%S').time()
+                except ValueError:
+                    validation_errors.append(f"Invalid time format for order {item.playoOrderId}")
+                    continue
+
+                # Validate price and paidAtPlayo are positive numbers
+                if item.price <= 0 or item.paidAtPlayo < 0:
+                    validation_errors.append(f"Invalid price values for order {item.playoOrderId}")
+                    continue
+
+                # Verify venue exists
+                venue = db.query(models.Branch).filter(models.Branch.id == venue_id).first()
+                if not venue:
+                    validation_errors.append(f"Venue {request.venueId} not found")
+                    continue
+
+                # Verify court exists and belongs to venue
+                court = db.query(models.Court).filter(
+                    models.Court.id == court_id,
+                    models.Court.branch_id == venue_id
+                ).first()
+                if not court:
+                    validation_errors.append(f"Court {item.courtId} not found or doesn't belong to venue")
+                    continue
+
+                # Verify slot is still available
+                slots = get_court_availability_slots(db, court_id, booking_date)
+                slot_available = False
+                for slot in slots:
+                    slot_start = datetime.strptime(slot['startTime'], '%H:%M:%S').time()
+                    slot_end = datetime.strptime(slot['endTime'], '%H:%M:%S').time()
+                    if slot_start == start_time and slot_end == end_time and slot['available']:
+                        slot_available = True
+                        break
+
+                if not slot_available:
+                    validation_errors.append(f"Slot {item.startTime}-{item.endTime} is not available for court {item.courtId}")
+                    continue
+
+                # If all validations pass, add to validated orders
+                validated_orders.append({
+                    'court_id': court_id,
+                    'booking_date': booking_date,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'price': item.price,
+                    'paidAtPlayo': item.paidAtPlayo,
+                    'playoOrderId': item.playoOrderId
+                })
+
+            except Exception as e:
+                validation_errors.append(f"Validation error for order {item.playoOrderId}: {str(e)}")
+                continue
+
+        # If any validation errors, return failure (Playo rule: all or nothing)
+        if validation_errors:
+            logging.warning(f"Playo order validation failed: {validation_errors}")
+            return schemas.PlayoOrderCreateResponse(
+                orderIds=[],
+                requestStatus=0,
+                message="Order creation failed"
+            )
+
+        # All orders validated successfully, now create them
+        created_orders = []
+
+        for order_data in validated_orders:
             # Create order
             order = models.PlayoOrder(
-                playo_order_id=item.playoOrderId,
-                venue_id=UUID(request.venueId),
-                court_id=court_id,
-                booking_date=booking_date,
-                start_time=start_time,
-                end_time=end_time,
-                price=item.price,
+                playo_order_id=order_data['playoOrderId'],
+                venue_id=venue_id,
+                court_id=order_data['court_id'],
+                booking_date=order_data['booking_date'],
+                start_time=order_data['start_time'],
+                end_time=order_data['end_time'],
+                price=order_data['price'],
                 status='pending',
                 expires_at=datetime.utcnow() + timedelta(minutes=15)  # 15 min expiry
             )
-            
+
             db.add(order)
             db.flush()
-            
+
             created_orders.append({
                 'externalOrderId': str(order.id),
-                'playoOrderId': item.playoOrderId
+                'playoOrderId': order_data['playoOrderId']
             })
-        
+
         db.commit()
-        
+        logging.info(f"Playo orders created successfully: {created_orders}")
         return schemas.PlayoOrderCreateResponse(
             orderIds=[schemas.PlayoOrderIdMapping(**oid) for oid in created_orders],
             requestStatus=1,
-            message="Orders created successfully"
+            message="Success"
         )
-        
+
     except HTTPException as he:
         db.rollback()
-        raise he
-    except Exception as e:
-        db.rollback()
+        logging.error(f"HTTPException in Playo order creation: {he.detail}", exc_info=True)
+        # Convert HTTP exceptions to Playo-compatible format
         return schemas.PlayoOrderCreateResponse(
             orderIds=[],
             requestStatus=0,
-            message=str(e)
+            message="Order creation failed"
+        )
+    except Exception as e:
+        db.rollback()
+        logging.error(f"Exception in Playo order creation: {e}", exc_info=True)
+        # Never expose internal errors - return Playo-compatible response
+        return schemas.PlayoOrderCreateResponse(
+            orderIds=[],
+            requestStatus=0,
+            message="Order creation failed"
         )
 
 
@@ -228,7 +320,7 @@ async def create_order(
 async def confirm_order(
     request: schemas.PlayoOrderConfirmRequest,
     db: Session = Depends(database.get_db),
-    api_key: models.PlayoAPIKey = Depends(verify_playo_token)
+    api_key: models.PlayoAPIKey = Depends(dependencies.verify_playo_token)
 ):
     """
     Confirm orders and create bookings (after payment success)
@@ -322,7 +414,7 @@ async def confirm_order(
 async def cancel_order(
     request: schemas.PlayoOrderCancelRequest,
     db: Session = Depends(database.get_db),
-    api_key: models.PlayoAPIKey = Depends(verify_playo_token)
+    api_key: models.PlayoAPIKey = Depends(dependencies.verify_playo_token)
 ):
     """
     Cancel pending orders (release reserved slots)
@@ -362,7 +454,7 @@ async def cancel_order(
 async def cancel_booking(
     request: schemas.PlayoBookingCancelRequest,
     db: Session = Depends(database.get_db),
-    api_key: models.PlayoAPIKey = Depends(verify_playo_token)
+    api_key: models.PlayoAPIKey = Depends(dependencies.verify_playo_token)
 ):
     """
     Cancel confirmed bookings
@@ -403,7 +495,7 @@ async def cancel_booking(
 async def map_bookings(
     request: schemas.PlayoBookingMapRequest,
     db: Session = Depends(database.get_db),
-    api_key: models.PlayoAPIKey = Depends(verify_playo_token)
+    api_key: models.PlayoAPIKey = Depends(dependencies.verify_playo_token)
 ):
     """
     Map Playo booking IDs to external booking IDs (optional endpoint)
@@ -437,3 +529,273 @@ async def map_bookings(
             requestStatus=0,
             message=str(e)
         )
+
+
+@router.post("/booking/create", response_model=schemas.PlayoBookingCreateResponse)
+async def create_booking(
+    request: schemas.PlayoBookingCreateRequest,
+    db: Session = Depends(database.get_db),
+    api_key: models.PlayoAPIKey = Depends(dependencies.verify_playo_api_key)
+):
+    """
+    Create and confirm bookings for the slots selected by the customer
+    
+    Request Body:
+    - venueId: Branch/Venue UUID
+    - userName: Name of the booking customer
+    - userMobile: Default value to identify Playo bookings
+    - userEmail: Default value to identify Playo bookings
+    - bookings: List of booking items with court, date, time, price, and Playo order info
+    
+    Returns:
+    - List of created booking IDs mapping external to Playo IDs
+    - Playo-compatible response format
+    """
+    
+    try:
+        # Validate venueId is a valid UUID
+        try:
+            venue_id = UUID(request.venueId)
+        except ValueError:
+            logging.warning(f"Invalid venueId format: {request.venueId}")
+            return schemas.PlayoBookingCreateResponse(
+                bookingIds=[],
+                requestStatus=0,
+                message="Invalid venueId format"
+            )
+
+        # Validate all bookings first (transactional approach)
+        validated_bookings = []
+        validation_errors = []
+
+        for item in request.bookings:
+            try:
+                # Validate courtId is a valid UUID
+                court_id = UUID(item.courtId)
+
+                # Validate date format (YYYY-MM-DD)
+                try:
+                    booking_date = datetime.strptime(item.date, '%Y-%m-%d').date()
+                except ValueError:
+                    validation_errors.append(f"Invalid date format for booking {item.playoOrderId}")
+                    continue
+
+                # Validate time formats (HH:MM:SS)
+                try:
+                    start_time = datetime.strptime(item.startTime, '%H:%M:%S').time()
+                    end_time = datetime.strptime(item.endTime, '%H:%M:%S').time()
+                except ValueError:
+                    validation_errors.append(f"Invalid time format for booking {item.playoOrderId}")
+                    continue
+
+                # Validate price and paidAtPlayo are positive numbers
+                if item.price <= 0 or item.paidAtPlayo < 0:
+                    validation_errors.append(f"Invalid price values for booking {item.playoOrderId}")
+                    continue
+
+                # Verify venue exists
+                venue = db.query(models.Branch).filter(models.Branch.id == venue_id).first()
+                if not venue:
+                    validation_errors.append(f"Venue {request.venueId} not found")
+                    continue
+
+                # Verify court exists and belongs to venue
+                court = db.query(models.Court).filter(
+                    models.Court.id == court_id,
+                    models.Court.branch_id == venue_id
+                ).first()
+                if not court:
+                    validation_errors.append(f"Court {item.courtId} not found or doesn't belong to venue")
+                    continue
+
+                # Verify slot is still available (not booked or reserved)
+                existing_bookings = db.query(models.Booking).filter(
+                    models.Booking.court_id == court_id,
+                    models.Booking.booking_date == booking_date,
+                    models.Booking.status.in_(['confirmed', 'pending'])
+                ).all()
+
+                slot_available = True
+                for booking in existing_bookings:
+                    if booking.time_slots:
+                        for slot in booking.time_slots:
+                            try:
+                                slot_start = datetime.strptime(slot['start'], '%H:%M:%S').time()
+                                slot_end = datetime.strptime(slot['end'], '%H:%M:%S').time()
+                                if not (end_time <= slot_start or start_time >= slot_end):
+                                    slot_available = False
+                                    break
+                            except:
+                                pass
+
+                # Check pending Playo orders
+                pending_orders = db.query(models.PlayoOrder).filter(
+                    models.PlayoOrder.court_id == court_id,
+                    models.PlayoOrder.booking_date == booking_date,
+                    models.PlayoOrder.status == 'pending',
+                    models.PlayoOrder.expires_at > datetime.utcnow()
+                ).all()
+
+                for order in pending_orders:
+                    if not (end_time <= order.start_time or start_time >= order.end_time):
+                        slot_available = False
+                        break
+
+                if not slot_available:
+                    validation_errors.append(f"Slot {item.startTime}-{item.endTime} is not available for court {item.courtId}")
+                    continue
+
+                # If all validations pass, add to validated bookings
+                validated_bookings.append({
+                    'court_id': court_id,
+                    'booking_date': booking_date,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'price': item.price,
+                    'paidAtPlayo': item.paidAtPlayo,
+                    'playoOrderId': item.playoOrderId,
+                    'numTickets': item.numTickets
+                })
+
+            except Exception as e:
+                validation_errors.append(f"Validation error for booking {item.playoOrderId}: {str(e)}")
+                continue
+
+        # If any validation errors, return failure (Playo rule: all or nothing)
+        if validation_errors:
+            logging.warning(f"Playo booking validation failed: {validation_errors}")
+            # Return the first validation error message for better debugging
+            first_error = validation_errors[0] if validation_errors else "Booking creation failed"
+            return schemas.PlayoBookingCreateResponse(
+                bookingIds=[],
+                requestStatus=0,
+                message=first_error
+            )
+
+        # All bookings validated successfully, now create them
+        created_bookings = []
+
+        for booking_data in validated_bookings:
+            # Create a system user for Playo bookings if doesn't exist
+            playo_user = db.query(models.User).filter(
+                models.User.phone_number == "PLAYO_SYSTEM"
+            ).first()
+            
+            if not playo_user:
+                playo_user = models.User(
+                    phone_number="PLAYO_SYSTEM",
+                    full_name="Playo System User",
+                    email="playo@myrush.in",
+                    is_verified=True,
+                    is_active=True,
+                    profile_completed=True
+                )
+                db.add(playo_user)
+                db.flush()
+
+            # Create booking
+            booking = models.Booking(
+                user_id=playo_user.id,
+                court_id=booking_data['court_id'],
+                booking_date=booking_data['booking_date'],
+                time_slots=[{
+                    'start': booking_data['start_time'].strftime('%H:%M:%S'),
+                    'end': booking_data['end_time'].strftime('%H:%M:%S'),
+                    'price': float(booking_data['price']),
+                    'numTickets': booking_data['numTickets']  # For ticketing (swimming)
+                }],
+                total_duration_minutes=60,  # Assuming 1 hour slots
+                original_amount=booking_data['price'],
+                total_amount=booking_data['price'],
+                discount_amount=0,
+                status='confirmed',
+                payment_status='paid',
+                booking_source='playo',
+                playo_order_id=booking_data['playoOrderId'],
+                # Set deprecated fields to avoid database constraint violations
+                _old_start_time=booking_data['start_time'],
+                _old_end_time=booking_data['end_time'],
+                _old_duration_minutes=60,
+                _old_price_per_hour=float(booking_data['price'])
+            )
+
+            db.add(booking)
+            db.flush()
+
+            created_bookings.append({
+                'externalBookingId': str(booking.id),
+                'playoOrderId': booking_data['playoOrderId']
+            })
+
+        db.commit()
+        logging.info(f"Playo bookings created successfully: {created_bookings}")
+        return schemas.PlayoBookingCreateResponse(
+            bookingIds=[schemas.PlayoBookingIdMapping(**bid) for bid in created_bookings],
+            requestStatus=1,
+            message="Success"
+        )
+
+    except HTTPException as he:
+        db.rollback()
+        logging.error(f"HTTPException in Playo booking creation: {he.detail}", exc_info=True)
+        # Convert HTTP exceptions to Playo-compatible format
+        return schemas.PlayoBookingCreateResponse(
+            bookingIds=[],
+            requestStatus=0,
+            message="Booking creation failed"
+        )
+    except Exception as e:
+        db.rollback()
+        error_msg = str(e)
+        logging.error(f"Exception in Playo booking creation: {error_msg}", exc_info=True)
+        
+        # Provide more specific error messages for debugging
+        if "Invalid venueId format" in error_msg:
+            return schemas.PlayoBookingCreateResponse(
+                bookingIds=[],
+                requestStatus=0,
+                message="Invalid venueId format"
+            )
+        elif "Venue" in error_msg and "not found" in error_msg:
+            return schemas.PlayoBookingCreateResponse(
+                bookingIds=[],
+                requestStatus=0,
+                message="Venue not found"
+            )
+        elif "Court" in error_msg and "not found" in error_msg:
+            return schemas.PlayoBookingCreateResponse(
+                bookingIds=[],
+                requestStatus=0,
+                message="Court not found or doesn't belong to venue"
+            )
+        elif "Slot" in error_msg and "not available" in error_msg:
+            return schemas.PlayoBookingCreateResponse(
+                bookingIds=[],
+                requestStatus=0,
+                message="Slot not available"
+            )
+        elif "Invalid date format" in error_msg:
+            return schemas.PlayoBookingCreateResponse(
+                bookingIds=[],
+                requestStatus=0,
+                message="Invalid date format"
+            )
+        elif "Invalid time format" in error_msg:
+            return schemas.PlayoBookingCreateResponse(
+                bookingIds=[],
+                requestStatus=0,
+                message="Invalid time format"
+            )
+        elif "Invalid price values" in error_msg:
+            return schemas.PlayoBookingCreateResponse(
+                bookingIds=[],
+                requestStatus=0,
+                message="Invalid price values"
+            )
+        else:
+            # Generic error for unknown issues
+            return schemas.PlayoBookingCreateResponse(
+                bookingIds=[],
+                requestStatus=0,
+                message="Booking creation failed"
+            )

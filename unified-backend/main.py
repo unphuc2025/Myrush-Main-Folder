@@ -14,6 +14,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from sqlalchemy.exc import OperationalError
 import traceback
+import os
+
+# Import our error handling middleware and utilities
+from middleware.error_handler import ErrorHandlerMiddleware
+from utils.logger import logger
+from utils.error_alert_service import configure_error_alerts as configure_alerts
 
 from database import engine, Base, SQLALCHEMY_DATABASE_URL
 
@@ -66,6 +72,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add error handling middleware (must be added before other middleware)
+app.add_middleware(ErrorHandlerMiddleware)
+
+# Configure error alerting system
+configure_alerts()
 
 # Global exception handlers
 @app.exception_handler(OperationalError)
@@ -195,6 +207,15 @@ app.include_router(courts_ratings.router, prefix="/api/user", tags=["User Court 
 from routers import playo
 
 app.include_router(playo.router, prefix="/api", tags=["Playo Integration"])
+
+# ============================================================================
+# EXAMPLE ERROR ROUTER (for demonstration)
+# ============================================================================
+
+from routers import example_errors
+
+app.include_router(example_errors.router, prefix="", tags=["Example Errors"])
+example_errors.register_error_handlers(app)
 
 print("\n" + "="*60)
 print("MYRUSH UNIFIED BACKEND")

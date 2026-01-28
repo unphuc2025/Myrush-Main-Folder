@@ -4,13 +4,23 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+# construct path to .env file explicitly
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Get database connection from environment variables
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://postgres:YOUR_PASSWORD@db.vqglejkydwtopmllymuf.supabase.co:5432/MYRUSH?sslmode=require"
 )
+
+# Log the database URL (masked) for debugging
+if SQLALCHEMY_DATABASE_URL:
+    masked_url = SQLALCHEMY_DATABASE_URL
+    if "@" in masked_url:
+        part1, part2 = masked_url.split("@")
+        masked_url = f"{part1.split(':')[0]}:****@{part2}"
+    print(f"[DB] Loaded DATABASE_URL: {masked_url}")
 
 # Create engine with connection pooling for PostgreSQL/Supabase
 if "postgresql" in SQLALCHEMY_DATABASE_URL or "supabase" in SQLALCHEMY_DATABASE_URL:

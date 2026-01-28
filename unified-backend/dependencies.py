@@ -212,35 +212,76 @@ async def verify_playo_token(
 ) -> models.PlayoAPIKey:
     """
     Verify Bearer token for Playo API access
-    
+
     Expected header format: Authorization: Bearer <token>
     """
-    
+
     # Check format: "Bearer <token>"
     if not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authorization header format. Expected: Bearer <token>"
         )
-    
+
     token = authorization.replace("Bearer ", "")
     token_hash = hash_token(token)
-    
+
     # Verify token in database
     api_key = db.query(models.PlayoAPIKey).filter(
         models.PlayoAPIKey.token_hash == token_hash,
         models.PlayoAPIKey.is_active == True
     ).first()
-    
+
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or inactive API token"
         )
-    
+
     # Update last used timestamp
     from datetime import datetime
     api_key.last_used_at = datetime.utcnow()
     db.commit()
-    
+
+    return api_key
+
+# ============================================================================
+# PLAYO API AUTHENTICATION (X-API-Key Header) - For Playo Certification
+# ============================================================================
+
+async def verify_playo_api_key(
+    x_api_key: str = Header(None, alias="X-API-Key"),
+    db: Session = Depends(get_db)
+) -> models.PlayoAPIKey:
+    """
+    Verify X-API-Key header for Playo API access (Playo certification format)
+
+    Expected header format: X-API-Key: <token>
+    """
+
+    if not x_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing X-API-Key header"
+        )
+
+    token_hash = hash_token(x_api_key)
+
+    # Verify token in database
+    api_key = db.query(models.PlayoAPIKey).filter(
+        models.PlayoAPIKey.token_hash == token_hash,
+        models.PlayoAPIKey.is_active == True
+    ).first()
+
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or inactive API token"
+        )
+
+    # Update last used timestamp
+    from datetime import datetime
+    api_key.last_used_at = datetime.utcnow()
+    db.commit()
+
     return api_key

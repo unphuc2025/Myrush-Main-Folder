@@ -1,0 +1,984 @@
+{
+  "timestamp": "2026-01-27T12:42:27.755043Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: TypeError: log_warning() got an unexpected keyword argument 'request'",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "TypeError",
+  "error_message": "log_warning() got an unexpected keyword argument 'request'",
+  "request_context": {
+    "method": "POST",
+    "url": "http://localhost:8000/api/example/test-custom-errors",
+    "path": "/api/example/test-custom-errors",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive",
+      "content-length": "2",
+      "content-type": "application/json"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "TypeError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-01-27T12:42:30.856930Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: TypeError: log_warning() got an unexpected keyword argument 'request'",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "TypeError",
+  "error_message": "log_warning() got an unexpected keyword argument 'request'",
+  "request_context": {
+    "method": "POST",
+    "url": "http://localhost:8000/api/example/test-custom-errors",
+    "path": "/api/example/test-custom-errors",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive",
+      "content-length": "27",
+      "content-type": "application/json"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "TypeError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-01-27T12:42:33.952260Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: str: External service error: Payment service is temporarily unavailable",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "str",
+  "error_message": "External service error: Payment service is temporarily unavailable",
+  "request_context": {},
+  "additional_context": {
+    "service_name": "payment_service",
+    "status_code": 503
+  }
+}
+{
+  "timestamp": "2026-01-27T12:42:33.955200Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: str: External service error: Payment service is temporarily unavailable",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "str",
+  "error_message": "External service error: Payment service is temporarily unavailable",
+  "request_context": {
+    "method": "POST",
+    "url": "http://localhost:8000/api/example/test-custom-errors",
+    "path": "/api/example/test-custom-errors",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive",
+      "content-length": "60",
+      "content-type": "application/json"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_type": "external_service_error",
+    "service_name": "payment_service",
+    "status_code": 503
+  }
+}
+{
+  "timestamp": "2026-01-27T12:42:37.035042Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ZeroDivisionError: division by zero",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ZeroDivisionError",
+  "error_message": "division by zero",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-internal-error?user_id=100",
+    "path": "/api/example/test-internal-error",
+    "query_params": {
+      "user_id": "100"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ZeroDivisionError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-01-27T12:42:40.109518Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Failed to process user registration",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Failed to process user registration",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-sensitive-data",
+    "path": "/api/example/test-sensitive-data",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "user_data": {
+      "username": "john_doe",
+      "password": "***MASKED***",
+      "api_key": "***MASKED***",
+      "token": "***MASKED***",
+      "credit_card": "1234-5678-9012-3456",
+      "ssn": "123-45-6789"
+    },
+    "operation": "user_registration"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:42:43.203956Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 1",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 1",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 1,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:42:43.208322Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 2",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 2",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 2,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:42:43.212193Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 3",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 3",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 3,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:42:43.218594Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 4",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 4",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 4,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:42:43.225888Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 5",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 5",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 5,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:43:26.576833Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: TypeError: log_warning() got an unexpected keyword argument 'request'",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "TypeError",
+  "error_message": "log_warning() got an unexpected keyword argument 'request'",
+  "request_context": {
+    "method": "POST",
+    "url": "http://localhost:8000/api/example/test-custom-errors",
+    "path": "/api/example/test-custom-errors",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive",
+      "content-length": "2",
+      "content-type": "application/json"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "TypeError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-01-27T12:43:29.707045Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: TypeError: log_warning() got an unexpected keyword argument 'request'",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "TypeError",
+  "error_message": "log_warning() got an unexpected keyword argument 'request'",
+  "request_context": {
+    "method": "POST",
+    "url": "http://localhost:8000/api/example/test-custom-errors",
+    "path": "/api/example/test-custom-errors",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive",
+      "content-length": "27",
+      "content-type": "application/json"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "TypeError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-01-27T12:43:32.777722Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: str: External service error: Payment service is temporarily unavailable",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "str",
+  "error_message": "External service error: Payment service is temporarily unavailable",
+  "request_context": {},
+  "additional_context": {
+    "service_name": "payment_service",
+    "status_code": 503
+  }
+}
+{
+  "timestamp": "2026-01-27T12:43:32.781719Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: str: External service error: Payment service is temporarily unavailable",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "str",
+  "error_message": "External service error: Payment service is temporarily unavailable",
+  "request_context": {
+    "method": "POST",
+    "url": "http://localhost:8000/api/example/test-custom-errors",
+    "path": "/api/example/test-custom-errors",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive",
+      "content-length": "60",
+      "content-type": "application/json"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_type": "external_service_error",
+    "service_name": "payment_service",
+    "status_code": 503
+  }
+}
+{
+  "timestamp": "2026-01-27T12:43:35.839798Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ZeroDivisionError: division by zero",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ZeroDivisionError",
+  "error_message": "division by zero",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-internal-error?user_id=100",
+    "path": "/api/example/test-internal-error",
+    "query_params": {
+      "user_id": "100"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ZeroDivisionError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-01-27T12:43:38.938660Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Failed to process user registration",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Failed to process user registration",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-sensitive-data",
+    "path": "/api/example/test-sensitive-data",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "user_data": {
+      "username": "john_doe",
+      "password": "***MASKED***",
+      "api_key": "***MASKED***",
+      "token": "***MASKED***",
+      "credit_card": "1234-5678-9012-3456",
+      "ssn": "123-45-6789"
+    },
+    "operation": "user_registration"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:43:42.028626Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 1",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 1",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 1,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:43:42.032917Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 2",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 2",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 2,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:43:42.038712Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 3",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 3",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 3,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:43:42.044168Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 4",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 4",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 4,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:43:42.048768Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 5",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 5",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 5,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:44:43.005068Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: str: External service error: Payment service is temporarily unavailable",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "str",
+  "error_message": "External service error: Payment service is temporarily unavailable",
+  "request_context": {},
+  "additional_context": {
+    "service_name": "payment_service",
+    "status_code": 503
+  }
+}
+{
+  "timestamp": "2026-01-27T12:44:43.010167Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: str: External service error: Payment service is temporarily unavailable",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "str",
+  "error_message": "External service error: Payment service is temporarily unavailable",
+  "request_context": {
+    "method": "POST",
+    "url": "http://localhost:8000/api/example/test-custom-errors",
+    "path": "/api/example/test-custom-errors",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive",
+      "content-length": "60",
+      "content-type": "application/json"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_type": "external_service_error",
+    "service_name": "payment_service",
+    "status_code": 503
+  }
+}
+{
+  "timestamp": "2026-01-27T12:44:46.118277Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ZeroDivisionError: division by zero",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ZeroDivisionError",
+  "error_message": "division by zero",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-internal-error?user_id=100",
+    "path": "/api/example/test-internal-error",
+    "query_params": {
+      "user_id": "100"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ZeroDivisionError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-01-27T12:44:49.294850Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Failed to process user registration",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Failed to process user registration",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-sensitive-data",
+    "path": "/api/example/test-sensitive-data",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "user_data": {
+      "username": "john_doe",
+      "password": "***MASKED***",
+      "api_key": "***MASKED***",
+      "token": "***MASKED***",
+      "credit_card": "1234-5678-9012-3456",
+      "ssn": "123-45-6789"
+    },
+    "operation": "user_registration"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:44:52.369893Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 1",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 1",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 1,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:44:52.375258Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 2",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 2",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 2,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:44:52.379432Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 3",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 3",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 3,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:44:52.384471Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 4",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 4",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 4,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
+{
+  "timestamp": "2026-01-27T12:44:52.389211Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ValueError: Simulated error 5",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ValueError",
+  "error_message": "Simulated error 5",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/example/test-rate-limiting?count=5",
+    "path": "/api/example/test-rate-limiting",
+    "query_params": {
+      "count": "5"
+    },
+    "headers": {
+      "host": "localhost:8000",
+      "user-agent": "python-requests/2.32.5",
+      "accept-encoding": "gzip, deflate, zstd",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "python-requests/2.32.5"
+  },
+  "additional_context": {
+    "error_number": 5,
+    "total_errors": 5,
+    "endpoint": "/test-rate-limiting"
+  }
+}
