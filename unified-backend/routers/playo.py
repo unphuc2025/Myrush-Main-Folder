@@ -412,10 +412,11 @@ async def create_order(
         db.rollback()
         logging.error(f"HTTPException in Playo order creation: {he.detail}", exc_info=True)
         # Convert HTTP exceptions to Playo-compatible format
+        # DEBUG
         return schemas.PlayoOrderCreateResponse(
             orderIds=[],
             requestStatus=0,
-            message="Order creation failed"
+            message=f"HTTP Error: {he.detail}"
         )
     except Exception as e:
         db.rollback()
@@ -839,10 +840,11 @@ async def create_booking(
         db.rollback()
         logging.error(f"HTTPException in Playo booking creation: {he.detail}", exc_info=True)
         # Convert HTTP exceptions to Playo-compatible format
+        # DEBUG
         return schemas.PlayoBookingCreateResponse(
             bookingIds=[],
             requestStatus=0,
-            message="Booking creation failed"
+            message=f"HTTP Error: {he.detail}"
         )
     except Exception as e:
         db.rollback()
