@@ -122,7 +122,7 @@ def get_or_create_playo_user(
             first_name=name.split(' ')[0] if name else "Playo",
             last_name=' '.join(name.split(' ')[1:]) if name and ' ' in name else "User",
             email=email if email else f"{mobile}@playo.temp", 
-            hashed_password=hashed_pw,
+            password_hash=hashed_pw,
             is_verified=True, # Trusted via Playo
             is_active=True,
             profile_completed=False,
@@ -368,7 +368,7 @@ async def create_order(
             return schemas.PlayoOrderCreateResponse(
                 orderIds=[],
                 requestStatus=0,
-                message=f"Validation failed: {validation_errors[0]}"
+                message="Order creation failed"
             )
 
         # All orders validated successfully, now create them
@@ -421,11 +421,10 @@ async def create_order(
         db.rollback()
         logging.error(f"Exception in Playo order creation: {e}", exc_info=True)
         # Never expose internal errors - return Playo-compatible response
-        # DEBUG: returning error
         return schemas.PlayoOrderCreateResponse(
             orderIds=[],
             requestStatus=0,
-            message=f"Error: {str(e)}"
+            message="Order creation failed"
         )
 
 
