@@ -3,9 +3,35 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { FaMapMarkerAlt, FaClock, FaUsers, FaStar } from "react-icons/fa";
+import { apiClient } from '../api/client';
+import { courtsApi } from '../api/courts';
 
 export const Arena: React.FC = () => {
     const navigate = useNavigate();
+
+    // --- Types ---
+    interface Venue {
+        id: string;
+        court_name: string;
+        location: string;
+        game_type: string;
+        prices: string;
+        photos: string[];
+        description: string;
+        branch_name?: string;
+        amenities?: Array<{
+            id: string;
+            name: string;
+            description?: string;
+            icon?: string;
+            icon_url?: string;
+        }>;
+        rating?: number;
+        reviewCount?: number;
+    }
+
+    const [venues, setVenues] = React.useState<Venue[]>([]);
+    const [loading, setLoading] = React.useState(true);
 
     const features = [
         {
@@ -30,33 +56,6 @@ export const Arena: React.FC = () => {
         }
     ];
 
-    const venues = [
-        {
-            name: 'Koramangala Arena',
-            location: '100 Feet Road, Koramangala',
-            courts: 3,
-            rating: 4.8,
-            image: 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=2070',
-            features: ['Floodlights', 'Changing Rooms', 'Parking']
-        },
-        {
-            name: 'Indiranagar Stadium',
-            location: 'HAL 2nd Stage, Indiranagar',
-            courts: 2,
-            rating: 4.9,
-            image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076',
-            features: ['Professional Turf', 'Cafeteria', 'Equipment Rental']
-        },
-        {
-            name: 'Whitefield Complex',
-            location: 'ITPL Main Road, Whitefield',
-            courts: 4,
-            rating: 4.7,
-            image: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?q=80&w=2070',
-            features: ['Multiple Courts', 'Training Area', 'Shower Facilities']
-        }
-    ];
-
     const amenities = [
         { name: 'Floodlights', icon: '💡', description: 'Professional lighting for night games' },
         { name: 'Changing Rooms', icon: '🚿', description: 'Clean facilities with showers' },
@@ -65,6 +64,41 @@ export const Arena: React.FC = () => {
         { name: 'Cafeteria', icon: '☕', description: 'Refreshments and snacks' },
         { name: 'First Aid', icon: '🩹', description: 'Medical assistance available' }
     ];
+
+    React.useEffect(() => {
+        const fetchVenues = async () => {
+            try {
+                // Fetch all courts (no city filter)
+                const res = await apiClient.get('/courts');
+                const venuesData = Array.isArray(res.data) ? res.data : [];
+
+                // Fetch ratings for each venue
+                const venuesWithRatings = await Promise.all(
+                    venuesData.map(async (venue: Venue) => {
+                        try {
+                            const ratingsRes = await courtsApi.getCourtRatings(venue.id);
+                            return {
+                                ...venue,
+                                rating: ratingsRes.data.average_rating,
+                                reviewCount: ratingsRes.data.total_reviews
+                            };
+                        } catch (error) {
+                            console.error(`Failed to fetch ratings for venue ${venue.id}:`, error);
+                            return venue;
+                        }
+                    })
+                );
+
+                setVenues(venuesWithRatings);
+            } catch (err) {
+                console.error("Failed to fetch venues:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchVenues();
+    }, []);
 
     return (
         <div className="min-h-screen bg-white font-inter">
@@ -135,23 +169,19 @@ export const Arena: React.FC = () => {
                     >
                         <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                         <span className="text-caption text-primary uppercase tracking-[0.3em]">
-                            World-Class Facilities
+                            Call 7624898999
                         </span>
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-6xl md:text-8xl lg:text-display text-white mb-8 leading-[0.8] tracking-[-0.05em]">
-                        Experience <br />
-                        <span className="text-primary italic">Professional</span> Play
+                    <h1 className="text-5xl md:text-7xl lg:text-8xl text-white mb-8 leading-[0.9] tracking-[-0.05em] font-black uppercase">
+                        play your <br />
+                        <span className="text-primary italic">favourite sport</span> <br />
+                        at a rush arena near you.
                     </h1>
 
-                    {/* Subheading */}
-                    <p className="text-lg md:text-xl lg:text-body-lg text-white/60 mb-12 max-w-2xl leading-[1.8] font-light tracking-wide">
-                        Discover Bengaluru's premier sports arenas. Professional-grade facilities, expert maintenance, and unforgettable experiences await.
-                    </p>
-
                     {/* CTA Section */}
-                    <div className="flex flex-col sm:flex-row items-start justify-start gap-6">
+                    <div className="flex flex-col sm:flex-row items-start justify-start gap-6 pt-8">
                         <Button
                             variant="primary"
                             size="lg"
@@ -234,49 +264,71 @@ export const Arena: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
-                        {venues.map((venue, index) => (
-                            <motion.div
-                                key={index}
-                                className="bg-white rounded-3xl overflow-hidden shadow-premium hover:shadow-premium-hover transition-all duration-500 group cursor-pointer"
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.05 }}
-                                onClick={() => navigate('/venues')}
-                            >
-                                <div className="relative h-64 overflow-hidden">
-                                    <img
-                                        src={venue.image}
-                                        alt={venue.name}
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                                    <div className="absolute top-4 right-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-bold">
-                                        {venue.rating} ⭐
+                        {loading ? (
+                            // Loading state skeleton
+                            [1, 2, 3].map((i) => (
+                                <div key={i} className="bg-white rounded-3xl h-96 animate-pulse" />
+                            ))
+                        ) : venues.length === 0 ? (
+                            <div className="col-span-full text-center py-20">
+                                <p className="text-xl text-gray-500">No venues found.</p>
+                            </div>
+                        ) : (
+                            venues.map((venue, index) => (
+                                <motion.div
+                                    key={venue.id}
+                                    className="bg-white rounded-3xl overflow-hidden shadow-premium hover:shadow-premium-hover transition-all duration-500 group cursor-pointer"
+                                    initial={{ opacity: 0, y: 30 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: index * 0.05 }}
+                                    onClick={() => navigate(`/venues/${venue.id}`)}
+                                >
+                                    <div className="relative h-64 overflow-hidden">
+                                        <img
+                                            src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070'}
+                                            alt={venue.court_name}
+                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                                        <div className="absolute top-4 right-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-bold">
+                                            {venue.rating ? venue.rating.toFixed(1) : '4.8'} ⭐
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="p-8">
-                                    <h3 className="text-xl font-black text-black mb-2 uppercase tracking-wider">
-                                        {venue.name}
-                                    </h3>
-                                    <p className="text-gray-500 mb-4 text-sm">
-                                        📍 {venue.location}
-                                    </p>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <span className="text-primary font-bold">
-                                            {venue.courts} Courts Available
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {venue.features.map((feature, i) => (
-                                            <span key={i} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs">
-                                                {feature}
+                                    <div className="p-8">
+                                        <h3 className="text-xl font-black text-black mb-2 uppercase tracking-wider">
+                                            {venue.court_name}
+                                        </h3>
+                                        <p className="text-gray-500 mb-4 text-sm">
+                                            📍 {venue.location}
+                                        </p>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <span className="text-primary font-bold">
+                                                {venue.game_type || 'Multiple Sports'}
                                             </span>
-                                        ))}
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 mb-6">
+                                            {(venue.amenities?.slice(0, 3).map(a => a.name) || ['Parking', 'Restroom']).map((feature, i) => (
+                                                <span key={i} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs">
+                                                    {feature}
+                                                </span>
+                                            ))}
+                                        </div>
+
+                                        <Button
+                                            variant="primary"
+                                            className="w-full h-12 rounded-xl text-sm font-bold uppercase tracking-widest"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/venues/${venue.id}`);
+                                            }}
+                                        >
+                                            Book Now
+                                        </Button>
                                     </div>
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            ))
+                        )}
                     </div>
                 </div>
             </section>
@@ -347,7 +399,7 @@ export const Arena: React.FC = () => {
                                 variant="primary"
                                 size="lg"
                                 onClick={() => navigate('/venues')}
-                                className="min-w-[200px]"
+                                className="min-w-[200px] h-16 text-lg font-bold uppercase tracking-widest bg-black text-white hover:bg-gray-800 border-none"
                             >
                                 Book Now
                             </Button>
@@ -355,7 +407,7 @@ export const Arena: React.FC = () => {
                                 variant="outline"
                                 size="lg"
                                 onClick={() => navigate('/academy')}
-                                className="min-w-[200px]"
+                                className="min-w-[200px] h-16 text-lg font-bold uppercase tracking-widest border-2 border-black text-black hover:bg-black hover:text-white"
                             >
                                 Join Academy
                             </Button>

@@ -2,46 +2,66 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
-import { FaChalkboardUser, FaTimeline, FaBuilding } from "react-icons/fa6";
 
 export const Academy: React.FC = () => {
     const navigate = useNavigate();
-    const benefits = [
+
+
+    const locations = [
         {
-            icon: <FaChalkboardUser />,
-            title: 'Elite Coaching',
-            description: 'Train with AFC and UEFA licensed coaches who bring international experience to your game development.'
+            name: 'Rajajinagar',
+            address: 'Rush Arena, Rajajinagar',
+            days: 'Tue, Thu & Sat',
+            timings: '5PM to 7PM'
         },
         {
-            icon: <FaTimeline />,
-            title: 'Pro Pathway',
-            description: 'Direct connections to professional clubs and scouts, providing players a clear route to the professional stage.'
+            name: 'Kasavanahalli (Owners Court)',
+            address: 'Rush Arena, Kasavanahalli',
+            days: 'Mon, Wed & Fri',
+            timings: '5PM to 7PM'
         },
         {
-            icon: <FaBuilding />,
-            title: 'World-Class Facility',
-            description: 'Access to premium FIFA-standard turfs and state-of-the-art training equipment across Bengaluru.'
+            name: 'Vijaynagar @ GT World Mall',
+            address: 'Rush Arena GT Mall',
+            days: 'Sat & Sunday',
+            timings: '8.30AM to 9.30AM'
+        },
+        {
+            name: 'Hesarghatta Main Road',
+            address: 'Rush Arena Hesargatta Main Road',
+            days: 'Mon, Wed & Fri',
+            timings: '5PM to 7PM'
+        },
+        {
+            name: 'Cooke Town',
+            address: 'Rush Arena, Cooke Town',
+            days: 'Mon, Wed, Fri',
+            timings: '5PM to 6PM'
+        },
+        {
+            name: 'Vidyaranyapura',
+            address: 'ToughX Arena',
+            days: 'Mon, Wed & Fri',
+            timings: '5PM to 7PM'
+        },
+        {
+            name: 'Old Airport Road',
+            address: 'Rush Arena, Old Airport Road',
+            days: 'Mon, Wed & Fri',
+            timings: '5PM to 6PM'
         }
     ];
 
-    const locations = [
-        { name: 'Koramangala', address: '100 Feet Road, Koramangala 4th Block' },
-        { name: 'Indiranagar', address: 'HAL 2nd Stage, Indiranagar' },
-        { name: 'Whitefield', address: 'ITPL Main Road, Whitefield' },
-        { name: 'Jayanagar', address: '9th Block, Jayanagar' },
-        { name: 'Hebbal', address: 'Outer Ring Road, Hebbal' },
-        { name: 'Electronic City', address: 'Phase 1, Electronic City' }
-    ];
-
     const team = [
-        { name: 'Arjun Menon', role: 'Head Coach', image: 'https://i.pravatar.cc/150?img=12' },
-        { name: 'Priya Sharma', role: 'U-12 Lead', image: 'https://i.pravatar.cc/150?img=5' },
-        { name: 'Rahul Verma', role: 'U-16 Lead', image: 'https://i.pravatar.cc/150?img=13' },
-        { name: 'Sneha Patel', role: 'Fitness Coach', image: 'https://i.pravatar.cc/150?img=9' },
-        { name: 'Vikram Singh', role: 'Goalkeeping', image: 'https://i.pravatar.cc/150?img=14' },
-        { name: 'Ananya Reddy', role: 'Tactical Analyst', image: 'https://i.pravatar.cc/150?img=10' },
-        { name: 'Karthik Kumar', role: 'U-14 Lead', image: 'https://i.pravatar.cc/150?img=15' },
-        { name: 'Meera Iyer', role: 'Psychologist', image: 'https://i.pravatar.cc/150?img=16' }
+        { name: 'Nikhit Fernandes', role: 'Director of Football', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/a0d027b7-c26e-4b2b-8b82-1ca19c15d34a/9.png' },
+        { name: 'Harish', role: 'Operations Manager & Coach', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/749a3bdc-8950-46a4-b517-b9749f837d46/Coach+Pics.png' },
+        { name: 'Dominic', role: 'Coach D Licence', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/4333df17-6d51-4d4d-90c4-0dc24bef7da4/1.png' },
+        { name: 'Mark', role: 'Coach', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/5e29913b-2a1b-484e-b219-6cc543fd9307/6.png' },
+        { name: 'Jeremy', role: 'Coach', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/aa5a2d2b-d1cf-4813-9465-c2601cc67196/2.png' },
+        { name: 'Nikita', role: 'Coach', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/ecfc50cd-3d7f-4759-8a8d-cc5b07c8955b/3.png' },
+        { name: 'Manjhi', role: 'Coach', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/14c088b4-2802-455d-87dd-60f0947cff27/5.png' },
+        { name: 'Mugilan', role: 'Coach', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/a3cc189e-bcb0-4f52-81ca-7807bf2c821d/7.png' },
+        { name: 'Abhishek', role: 'Coach', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/924a1da3-37dd-49ec-848f-a78fc999fb6e/8.jpg' }
     ];
 
     return (
@@ -105,6 +125,7 @@ export const Academy: React.FC = () => {
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
                 >
                     {/* Badge */}
+                    {/* Badge */}
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -112,22 +133,16 @@ export const Academy: React.FC = () => {
                         className="inline-flex items-center gap-3 mb-10 px-5 py-2.5 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl"
                     >
                         <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        <span className="text-caption text-primary uppercase tracking-[0.3em]">
-                            Bengaluru's Premier Academy
+                        <span className="text-lg md:text-xl font-bold text-primary uppercase tracking-[0.3em]">
+                            Speak to us, now - +91-8548946999
                         </span>
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-display text-white mb-10 leading-[0.8] tracking-[-0.05em]">
-                        Unleash Your <br />
-                        <span className="text-primary italic">Potential</span>
+                    <h1 className="text-5xl md:text-7xl font-black text-white mb-10 leading-[0.9] tracking-[-0.05em]">
+                        Unlock Your Football Potential with <br />
+                        <span className="text-primary italic">Rush Academy.</span>
                     </h1>
-
-                    {/* Subheading */}
-                    <p className="text-body-lg text-white/60 mb-16 max-w-2xl leading-[1.8] font-light tracking-wide">
-                        Join the fastest-growing community of elite athletes in India.
-                        Professional coaching, world-class facilities, and a dedicated pathway to international excellence.
-                    </p>
 
                     {/* CTA Section */}
                     <div className="flex flex-col sm:flex-row items-center justify-start gap-8">
@@ -137,15 +152,8 @@ export const Academy: React.FC = () => {
                             className="w-full sm:w-auto min-w-[240px] h-16 text-lg"
                             onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                         >
-                            Book a Free Trial
+                            Book A Free Trial Class
                         </Button>
-                        <button
-                            className="w-full sm:w-auto text-[10px] font-black text-white uppercase tracking-[0.2em] transition-all py-6 px-10 group flex items-center gap-4 border border-white/10 hover:bg-white/5 hover:border-white/20 rounded-xl"
-                            onClick={() => document.getElementById('why-rush')?.scrollIntoView({ behavior: 'smooth' })}
-                        >
-                            Our Programs
-                            <span className="group-hover:translate-x-2 transition-transform duration-300">→</span>
-                        </button>
                     </div>
                 </motion.div>
 
@@ -158,37 +166,68 @@ export const Academy: React.FC = () => {
 
 
 
-            {/* Why Rush Advantage */}
-            <section id="why-rush" className="py-40 bg-white w-full">
-                <div className="w-full px-6 md:px-12">
-                    <div className="text-center mb-24">
-                        <h2 className="text-h2 text-black mb-6 leading-[1.1]">
-                            The <span className="text-primary italic">Rush</span> Advantage
+            {/* Why Rush Academy Section */}
+            <section id="why-rush" className="py-24 bg-white w-full">
+                <div className="w-full max-w-[1920px] mx-auto px-6 md:px-12">
+                    <div className="mb-20">
+                        <h2 className="text-4xl md:text-5xl font-black text-black">
+                            Why Rush Academy?
                         </h2>
-                        <p className="text-body-lg text-gray-400 font-light uppercase tracking-[0.2em]">
-                            We don't just train players, we build future champions.
-                        </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-[1920px] mx-auto place-items-stretch">
-                        {benefits.map((benefit, index) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16 w-full">
+                        {[
+                            {
+                                title: 'Expert Coaching',
+                                description: 'At Rush Academy, we pride ourselves on providing top-notch coaching led by experienced and qualified trainers. Our coaches are passionate about nurturing talent, offering personalized guidance, and fostering a positive learning environment, ensuring every player receives the attention they need to develop their soccer skills.',
+                                image: '/images/academy/expert-coaching.png'
+                            },
+                            {
+                                title: 'Comprehensive Development',
+                                description: 'Joining Rush Academy offers more than just soccer training. We focus on a holistic approach to player development, encompassing physical fitness, tactical understanding, mental resilience, and teamwork. Our goal is to mold well-rounded athletes, both on and off the field, setting them up for success in sports and life.',
+                                image: '/images/academy/comprehensive-development.png'
+                            },
+                            {
+                                title: 'State-of-the-Art Facilities',
+                                description: 'As a leading soccer academy, we boast state-of-the-art training facilities designed to optimize player performance. From well-maintained pitches to modern amenities, our infrastructure ensures an ideal environment for players to train, grow, and excel in their soccer journey.',
+                                image: '/images/academy/facilities.png'
+                            },
+                            {
+                                title: 'Competitive Opportunities',
+                                description: 'Rush Academy provides its players with access to competitive leagues and tournaments, both locally and nationally. Participating in such events allows players to showcase their skills, gain valuable match experience, and potentially attract opportunities for higher-level competitions.',
+                                image: '/images/academy/competitive-opportunities.png'
+                            },
+                            {
+                                title: 'Inclusive and Supportive Environment',
+                                description: 'We embrace diversity and welcome players of all ages, genders, and skill levels. Our academy fosters a supportive and inclusive community where players build lasting friendships, learn valuable life skills, and develop a passion for the beautiful game in a fun and nurturing atmosphere.',
+                                image: '/images/academy/inclusive-environment.png'
+                            },
+                            {
+                                title: 'Pathway to Success',
+                                description: 'Rush Academy has a proven track record of producing talented players who have gone on to represent professional clubs, college teams, and even national squads. For aspiring young athletes, our academy serves as a stepping stone towards fulfilling their dreams of playing soccer at higher levels and pursuing a career in the sport they love.',
+                                image: 'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=1949&auto=format&fit=crop'
+                            }
+                        ].map((item, index) => (
                             <motion.div
                                 key={index}
-                                className="group relative w-full h-full flex flex-col items-center text-center p-16 rounded-[4rem] bg-gray-50 border border-transparent hover:border-gray-100 hover:shadow-premium transition-all duration-500 min-h-[600px] justify-center"
+                                className="flex flex-col group"
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.1 }}
                             >
-                                <div className="text-7xl text-black mb-10 transform group-hover:scale-110 group-hover:text-primary transition-all duration-500">
-                                    {benefit.icon}
+                                <div className="mb-6 overflow-hidden rounded-lg aspect-[4/3]">
+                                    <img
+                                        src={item.image}
+                                        alt={item.title}
+                                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                                    />
                                 </div>
-                                <h3 className="text-h3 text-black mb-8 uppercase tracking-wider leading-tight">
-                                    {benefit.title}
+                                <h3 className="text-xl font-bold text-black mb-4">
+                                    {item.title}
                                 </h3>
-                                <div className="h-1.5 w-16 bg-gray-200 mb-10 group-hover:bg-primary group-hover:w-32 transition-all duration-500 rounded-full" />
-                                <p className="text-body-lg text-gray-500 leading-relaxed font-light">
-                                    {benefit.description}
+                                <p className="text-sm text-gray-600 leading-relaxed font-normal">
+                                    {item.description}
                                 </p>
                             </motion.div>
                         ))}
@@ -230,12 +269,27 @@ export const Academy: React.FC = () => {
                                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500">
                                     <span className="text-3xl text-primary">📍</span>
                                 </div>
-                                <h3 className="text-h4 text-white mb-4 uppercase tracking-wider group-hover:text-primary transition-colors">
+                                <h3 className="text-h4 text-white mb-2 uppercase tracking-wider group-hover:text-primary transition-colors">
                                     {location.name}
                                 </h3>
-                                <p className="text-body text-white/40 mb-8 font-light leading-relaxed flex-grow">
+                                <p className="text-body text-primary/80 mb-6 font-medium text-sm">
                                     {location.address}
                                 </p>
+
+                                <div className="w-full bg-white/5 rounded-xl p-6 mb-8 border border-white/5 group-hover:border-white/10 transition-colors">
+                                    <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-4">Batch Details</h5>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-white/60">Days:</span>
+                                            <span className="text-white font-medium">{location.days}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-white/60">Time:</span>
+                                            <span className="text-white font-medium">{location.timings}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="flex items-center gap-4 text-primary font-black uppercase tracking-[0.2em] text-[10px] opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-500 mt-auto">
                                     View on Map
                                     <span>→</span>
@@ -252,11 +306,8 @@ export const Academy: React.FC = () => {
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-40 gap-12">
                         <div className="max-w-3xl">
                             <h2 className="text-h2 text-black mb-10 leading-[1.1]">
-                                Elite <span className="text-primary italic">Mentors</span>
+                                Meet the <span className="text-primary italic">Academy Team</span>
                             </h2>
-                            <p className="text-body-lg text-gray-400 font-light uppercase tracking-[0.2em]">
-                                Technical excellence guided by professional experience.
-                            </p>
                         </div>
                         <div className="h-[1px] flex-grow bg-gray-200 mb-8 hidden lg:block mx-12"></div>
                         <div className="hidden md:block">
@@ -264,7 +315,7 @@ export const Academy: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-12 gap-y-24 lg:gap-x-20 lg:gap-y-32">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-12 gap-y-24 lg:gap-x-20 lg:gap-y-32">
                         {team.map((member, index) => (
                             <motion.div
                                 key={index}
@@ -298,16 +349,13 @@ export const Academy: React.FC = () => {
             </section>
 
             {/* Pricing Section */}
-            <section id="pricing" className="py-40 bg-white w-full">
+            <section id="pricing" className="py-24 bg-white w-full">
                 <div className="w-full max-w-[1920px] mx-auto px-6 md:px-12">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-40 gap-12">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-24 gap-12">
                         <div className="max-w-3xl">
                             <h2 className="text-h2 text-black mb-10 leading-[1.1]">
-                                Strategic <span className="text-primary italic">Investment</span>
+                                Choose your <span className="text-primary italic">plan:</span>
                             </h2>
-                            <p className="text-body-lg text-gray-400 font-light uppercase tracking-[0.2em]">
-                                Flexible programs for every stage of development.
-                            </p>
                         </div>
                         <div className="h-[1px] flex-grow bg-gray-100 mb-8 hidden lg:block mx-12"></div>
                         <div className="hidden md:block">
@@ -315,50 +363,108 @@ export const Academy: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-16 pl-12">
-                        {[
-                            { name: 'Starter', price: '₹4,500', period: '/month', features: ['3 Sessions/Week', 'Standard Kit', 'Quarterly Reports'], featured: false },
-                            { name: 'Pro Academy', price: '₹7,500', period: '/month', features: ['5 Sessions/Week', 'Full Pro Kit', 'Monthly Tech Analysis', 'Scouting Access'], featured: true },
-                            { name: 'Elite Pathway', price: '₹12,000', period: '/month', features: ['Daily Sessions', 'Personal Mentor', 'International Tours', 'Direct Pro Trials'], featured: false }
-                        ].map((plan, index) => (
-                            <motion.div
-                                key={index}
-                                className={`relative p-12 rounded-[2.5rem] border flex flex-col ${plan.featured ? 'bg-black text-white border-black shadow-glow-strong' : 'bg-white text-black border-gray-100 shadow-premium'}`}
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.1 }}
-                            >
-                                {plan.featured && (
-                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-black uppercase tracking-[0.3em] py-3 px-8 rounded-full shadow-glow">
-                                        Most Enrolled
-                                    </div>
-                                )}
-                                <h3 className="text-caption text-primary uppercase tracking-[0.4em] mb-8 text-center">{plan.name}</h3>
-                                <div className="mb-12 text-center">
-                                    <span className="text-h2 font-black leading-none">{plan.price}</span>
-                                    <span className={`text-caption uppercase tracking-widest ml-2 ${plan.featured ? 'text-white/40' : 'text-gray-400'}`}>{plan.period}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                        {/* Quarterly Plan */}
+                        <motion.div
+                            className="relative flex flex-col bg-white shadow-xl transition-all duration-300 hover:shadow-2xl"
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.1 }}
+                        >
+                            <div className="h-12 bg-primary/30 w-full" />
+                            <div className="p-10 flex flex-col items-center text-center flex-grow pt-16">
+                                <h3 className="text-xl font-bold underline mb-8">Quarterly</h3>
+                                <div className="mb-4">
+                                    <span className="text-3xl font-black block mb-2">Starting from INR</span>
+                                    <span className="text-5xl font-black">8,999</span>
                                 </div>
-                                <div className={`h-[1px] w-full mb-12 ${plan.featured ? 'bg-white/10' : 'bg-gray-100'}`} />
-                                <ul className="space-y-6 mb-12 flex-grow">
-                                    {plan.features.map((feature, i) => (
-                                        <li key={i} className="flex items-start gap-4 text-body font-light opacity-80">
-                                            <span className="text-primary text-xl shrink-0 mt-1">✓</span>
-                                            <span>{feature}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                                <div className="flex justify-center mt-auto">
+                                <p className="text-sm italic text-gray-500 mb-12">*Depends on location</p>
+                                <div className="mt-auto w-full">
                                     <Button
-                                        variant={plan.featured ? 'primary' : 'outline'}
-                                        className="max-w-xl h-16"
+                                        variant="primary"
+                                        className="w-full h-14 bg-black text-white hover:bg-gray-800 font-bold uppercase tracking-widest text-sm rounded-lg"
                                         onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                                     >
-                                        Choose Plan
+                                        Free Trial
                                     </Button>
                                 </div>
-                            </motion.div>
-                        ))}
+                            </div>
+                        </motion.div>
+
+                        {/* Semi-annually Plan */}
+                        <motion.div
+                            className="relative flex flex-col bg-white shadow-xl transition-all duration-300 hover:shadow-2xl scale-105 z-10"
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.2 }}
+                        >
+                            <div className="absolute -top-12 right-0 left-0 flex justify-center z-20">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-primary rotate-45 transform origin-center" />
+                                    <div className="relative bg-primary text-black font-bold px-6 py-8 rounded-full flex items-center justify-center w-24 h-24 shadow-lg">
+                                        <span className="flex flex-col items-center text-[10px] uppercase tracking-widest leading-tight">
+                                            Popular
+                                        </span>
+                                        {/* Star shape simulation with CSS clip-path usually better, but keeping simple marker for now or using SVG icon */}
+                                        <svg className="absolute inset-0 w-full h-full text-primary -z-10" viewBox="0 0 100 100" fill="currentColor">
+                                            <polygon points="50 0 61 35 98 35 68 57 79 91 50 70 21 91 32 57 2 35 39 35" />
+                                        </svg>
+                                    </div>
+                                    {/* Using a star icon from lucide/react-icons would be cleaner if available, simplified badge for now */}
+                                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-20 h-20 bg-primary rotate-45" style={{ clipPath: "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)" }}></div>
+                                    <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black font-bold text-[10px] uppercase text-center z-20">Popular</span>
+                                </div>
+
+                            </div>
+                            <div className="h-16 bg-primary/30 w-full mt-4" />
+                            <div className="p-10 flex flex-col items-center text-center flex-grow pt-12">
+                                <h3 className="text-xl font-bold underline mb-8">Semi-annually</h3>
+                                <div className="mb-4">
+                                    <span className="text-3xl font-black block mb-2">Starting from INR</span>
+                                    <span className="text-5xl font-black">14,999</span>
+                                </div>
+                                <p className="text-sm italic text-gray-500 mb-12">*Depends on location</p>
+                                <div className="mt-auto w-full">
+                                    <Button
+                                        variant="primary"
+                                        className="w-full h-14 bg-black text-white hover:bg-gray-800 font-bold uppercase tracking-widest text-sm rounded-lg"
+                                        onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
+                                    >
+                                        Free Trial
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        {/* Annual Program */}
+                        <motion.div
+                            className="relative flex flex-col bg-white shadow-xl transition-all duration-300 hover:shadow-2xl"
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.3 }}
+                        >
+                            <div className="h-12 bg-primary/30 w-full" />
+                            <div className="p-10 flex flex-col items-center text-center flex-grow pt-16">
+                                <h3 className="text-xl font-bold underline mb-8">Annual Program</h3>
+                                <div className="mb-4">
+                                    <span className="text-3xl font-black block mb-2">Starting from INR</span>
+                                    <span className="text-5xl font-black">25,999</span>
+                                </div>
+                                <p className="text-sm italic text-gray-500 mb-12">*Depends on location</p>
+                                <div className="mt-auto w-full">
+                                    <Button
+                                        variant="primary"
+                                        className="w-full h-14 bg-black text-white hover:bg-gray-800 font-bold uppercase tracking-widest text-sm rounded-lg"
+                                        onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
+                                    >
+                                        Free Trial
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
                 </div>
             </section>

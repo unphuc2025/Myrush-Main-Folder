@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import Optional
 import database
+from date_utils import parse_date_safe
 
 router = APIRouter(
     prefix="/courts",
@@ -175,12 +176,9 @@ def get_available_slots(
     try:
         from datetime import datetime, time, timedelta
         import json
-        
-        # Parse the date
-        try:
-            booking_date = datetime.strptime(date, "%Y-%m-%d").date()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+        # Parse the date safely
+        booking_date = parse_date_safe(date, "%Y-%m-%d", "date")
         
         # Get court details with timing data from price_conditions and unavailability_slots
         court_query = """

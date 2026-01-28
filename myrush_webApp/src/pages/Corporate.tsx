@@ -39,35 +39,76 @@ export const Corporate: React.FC = () => {
         {
             title: 'Team Building Redefined',
             description: 'Our sports programs go beyond typical team-building exercises. Engaging in friendly competition and sports challenges helps break down barriers, strengthen bonds, and create a cohesive team environment.',
-            icon: '🤝'
+            image: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?q=80&w=1000' // Runner/Athlete
         },
         {
             title: 'Work-Life Balance',
             description: 'Encouraging employees to participate in sports activities not only promotes physical health but also supports mental well-being. It offers a refreshing break from daily work routines and fosters a positive work-life balance.',
-            icon: '⚖️'
+            image: 'https://images.unsplash.com/photo-1524594152303-9fd13543fe6e?q=80&w=1000' // Nature/Free
         },
         {
             title: 'Increased Productivity',
             description: 'Studies show that physically active employees tend to be more focused, energized, and productive. By incorporating sports into your corporate engagement strategy, you can boost employee motivation and drive overall efficiency.',
-            icon: '📈'
+            image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1000' // Office
         },
         {
             title: 'Enhanced Leadership Skills',
             description: 'Sports engagement provides opportunities for individuals to showcase leadership qualities, nurturing potential leaders within the team.',
-            icon: '👑'
+            image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=1000' // Sports action
         },
         {
             title: 'Improved Communication Skills',
             description: 'Through sports, employees learn to communicate effectively on and off the field, enhancing teamwork and problem-solving abilities.',
-            icon: '💬'
+            image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1000' // Discussion/Classroom like
         },
         {
             title: 'Stress Relief and Well-being',
             description: 'Engaging in physical activities helps reduce stress, anxiety, and burnout, leading to healthier and more focused employees.',
-            icon: '😌'
+            image: 'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=1000' // Badminton/Stress relief
         }
     ];
 
+    // ... (keep intervening code) ...
+
+    {/* Benefits Section */ }
+    <section className="py-20 md:py-32 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+            <div className="text-center mb-16">
+                <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
+                    Why Choose Sports Engagement for Your Team?
+                </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {benefits.map((benefit, index) => (
+                    <motion.div
+                        key={index}
+                        className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: index * 0.1 }}
+                    >
+                        <div className="h-64 overflow-hidden">
+                            <img
+                                src={benefit.image}
+                                alt={benefit.title}
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            />
+                        </div>
+                        <div className="p-8 text-center">
+                            <h3 className="text-xl font-black text-black mb-4 uppercase tracking-wider">
+                                {benefit.title}
+                            </h3>
+                            <p className="text-gray-600 text-sm leading-relaxed">
+                                {benefit.description}
+                            </p>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        </div>
+    </section>
     const packages = [
         {
             name: 'Team Building Package',
@@ -379,37 +420,33 @@ export const Corporate: React.FC = () => {
                         <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
                             Why Choose Sports Engagement for Your Team?
                         </h2>
-                        <div className="text-center mb-12">
-                            <h3 className="text-4xl md:text-6xl font-black text-primary mb-8">Employees x Sports</h3>
-                            <p className="text-gray-600 text-lg max-w-4xl mx-auto leading-relaxed">
-                                Welcome to our Corporate Engagement through Sports page, where we offer exciting and impactful sports programs designed to enhance team cohesion, foster a healthy work-life balance, and maximize employee productivity. We believe that incorporating sports activities into your corporate culture can lead to numerous benefits, including improved teamwork, enhanced communication, and a motivated workforce.
-                            </p>
-                        </div>
-                        <div className="text-center mb-8">
-                            <span className="text-2xl font-black text-primary">Make it</span>
-                        </div>
-                        <h4 className="text-2xl md:text-3xl font-black text-black mb-6">Learn about our services</h4>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {benefits.map((benefit, index) => (
                             <motion.div
                                 key={index}
-                                className="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
+                                className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col h-full"
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.1 }}
                             >
-                                <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">
-                                    {benefit.icon}
+                                <div className="h-64 overflow-hidden shrink-0">
+                                    <img
+                                        src={benefit.image}
+                                        alt={benefit.title}
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                    />
                                 </div>
-                                <h3 className="text-xl font-black text-black mb-4 uppercase tracking-wider">
-                                    {benefit.title}
-                                </h3>
-                                <p className="text-gray-600 text-sm leading-relaxed">
-                                    {benefit.description}
-                                </p>
+                                <div className="p-8 text-center flex-1 flex flex-col">
+                                    <h3 className="text-xl font-black text-black mb-4 uppercase tracking-wider">
+                                        {benefit.title}
+                                    </h3>
+                                    <p className="text-gray-600 text-sm leading-relaxed">
+                                        {benefit.description}
+                                    </p>
+                                </div>
                             </motion.div>
                         ))}
                     </div>

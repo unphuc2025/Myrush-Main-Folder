@@ -965,6 +965,8 @@ class PlayoCourt(BaseModel):
 class PlayoAvailabilityResponse(BaseModel):
     """Response for fetch availability endpoint"""
     courts: List[PlayoCourt]
+    requestStatus: int = 1
+    message: str = "Success"
 
 class PlayoOrderItem(BaseModel):
     """Individual order item in order creation request"""
@@ -973,11 +975,15 @@ class PlayoOrderItem(BaseModel):
     startTime: str  # HH:MM:SS
     endTime: str
     price: Decimal
+    paidAtPlayo: Decimal
     playoOrderId: str
 
 class PlayoOrderCreateRequest(BaseModel):
     """Request to create temporary orders"""
     venueId: str
+    userName: str
+    userMobile: str
+    userEmail: str
     orders: List[PlayoOrderItem]
 
 class PlayoOrderIdMapping(BaseModel):
@@ -1043,6 +1049,31 @@ class PlayoBookingMapRequest(BaseModel):
 class PlayoBookingMapResponse(BaseModel):
     """Response for booking mapping"""
     requestStatus: int
+    message: Optional[str] = None
+
+class PlayoBookingCreateItem(BaseModel):
+    """Individual booking item in booking creation request"""
+    date: str  # YYYY-MM-DD
+    courtId: str
+    startTime: str  # HH:MM:SS
+    endTime: str  # HH:MM:SS (Optional for ticketing)
+    playoOrderId: str
+    price: Decimal
+    paidAtPlayo: Decimal
+    numTickets: Optional[int] = None  # For ticketing (swimming)
+
+class PlayoBookingCreateRequest(BaseModel):
+    """Request to create and confirm bookings"""
+    venueId: str
+    userName: str
+    userMobile: str
+    userEmail: str
+    bookings: List[PlayoBookingCreateItem]
+
+class PlayoBookingCreateResponse(BaseModel):
+    """Response for booking creation"""
+    bookingIds: List[PlayoBookingIdMapping]
+    requestStatus: int  # 1 = success, 0 = failure
     message: Optional[str] = None
 
 # Resolve forward references
