@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
-import { FaHandshake, FaUsers, FaTrophy, FaCalendarAlt } from "react-icons/fa";
+
 
 export const Corporate: React.FC = () => {
     const navigate = useNavigate();

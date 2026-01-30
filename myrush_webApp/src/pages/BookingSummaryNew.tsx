@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { TopNav } from '../components/TopNav';
 import { bookingsApi } from '../api/bookings';
 import { couponsApi } from '../api/coupons';
-import type { AvailableCoupon } from '../api/coupons';
+
 import './BookingSummaryNew.css';
 
 interface BookingSummaryState {
@@ -30,8 +30,6 @@ export const BookingSummaryNew: React.FC = () => {
     const [appliedCoupon, setAppliedCoupon] = useState('');
     const [discount, setDiscount] = useState(0);
     const [submitting, setSubmitting] = useState(false);
-    const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
-    const [loadingCoupons, setLoadingCoupons] = useState(true);
 
     if (!bookingData) {
         navigate(-1);
@@ -105,24 +103,7 @@ export const BookingSummaryNew: React.FC = () => {
         }
     };
 
-    // Fetch available coupons on component mount
-    useEffect(() => {
-        const fetchCoupons = async () => {
-            setLoadingCoupons(true);
-            try {
-                const response = await couponsApi.getAvailableCoupons();
-                if (response.success) {
-                    setAvailableCoupons(response.data);
-                }
-            } catch (error) {
-                console.error('Failed to fetch coupons:', error);
-            } finally {
-                setLoadingCoupons(false);
-            }
-        };
 
-        fetchCoupons();
-    }, []);
 
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const formattedDate = `${bookingData.selectedDate.getDate()} ${monthNames[bookingData.selectedDate.getMonth()]} ${bookingData.selectedDate.getFullYear()}`;

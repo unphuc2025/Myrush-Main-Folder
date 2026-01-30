@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { profileApi } from '../api/profile';
 import type { City, GameType } from '../api/profile';
-import { useAuth } from '../context/AuthContext';
+
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
 export const ProfileSetup: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login, logout } = useAuth();
+    // const { login, logout } = useAuth();
 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [fullName, setFullName] = useState('');
@@ -120,7 +120,7 @@ export const ProfileSetup: React.FC = () => {
                 playing_style: playingStyle,
             };
 
-            const response = await apiClient.post('/profile/', payload);
+            await apiClient.post('/profile/', payload);
 
             // Profile saved successfully, navigate to dashboard
             navigate('/dashboard');

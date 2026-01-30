@@ -5,11 +5,11 @@ import { profileApi, type ProfileData, type City, type GameType } from '../api/p
 import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaUser, FaPhone, FaEnvelope, FaMapMarkerAlt, FaTrophy, FaCalendarAlt, FaVenusMars, FaHandPaper, FaHeartbeat, FaGamepad } from 'react-icons/fa';
+import { FaUser, FaPhone, FaMapMarkerAlt, FaTrophy, FaCalendarAlt, FaVenusMars, FaHandPaper, FaHeartbeat, FaGamepad } from 'react-icons/fa';
 
 export const EditProfile: React.FC = () => {
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { } = useAuth(); // Removed unused logout
 
     // Profile fields matching mobile app
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -132,8 +132,8 @@ export const EditProfile: React.FC = () => {
         <motion.button
             type="button"
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${isSelected
-                    ? 'bg-primary text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-primary text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
             onClick={onClick}
             whileHover={{ scale: 1.05 }}
@@ -382,8 +382,8 @@ export const EditProfile: React.FC = () => {
                                             >
                                                 <span className="text-gray-900">{gameType.name}</span>
                                                 <div className={`w-5 h-5 border-2 rounded flex items-center justify-center ${selectedSports.includes(gameType.name)
-                                                        ? 'bg-primary border-primary'
-                                                        : 'border-gray-300'
+                                                    ? 'bg-primary border-primary'
+                                                    : 'border-gray-300'
                                                     }`}>
                                                     {selectedSports.includes(gameType.name) && (
                                                         <span className="text-white text-xs">✓</span>

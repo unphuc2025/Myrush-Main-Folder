@@ -30,10 +30,11 @@ export interface ProfileData {
     sports?: string[];
     playing_style?: string;
     role?: string;
+    loyalty_points?: number;
 }
 
 export const profileApi = {
-    getProfile: async (phoneNumber?: string) => {
+    getProfile: async (_phoneNumber?: string) => {
         try {
             // Use the correct profile endpoint for reading
             const response = await apiClient.get<ProfileData>('/profile');

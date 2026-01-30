@@ -1,12 +1,246 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
+import { useAuth } from '../context/AuthContext';
+import { TopNav } from '../components/TopNav';
+import { FaCalendarAlt, FaChartLine, FaCheckCircle, FaUserGraduate, FaClock } from 'react-icons/fa';
 
 export const Academy: React.FC = () => {
+    const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
 
+    // Mock state to simulate user journey: 'marketing' | 'pending' | 'student'
+    const [academyState, setAcademyState] = useState<'marketing' | 'pending' | 'student'>('marketing');
 
+    if (!isAuthenticated) {
+        return <AcademyLanding navigate={navigate} />;
+    }
+
+    // In a real app, this would come from an API based on the user's data
+    if (academyState === 'marketing') {
+        return <AcademyEnrollmentView onEnroll={() => setAcademyState('pending')} />;
+    }
+
+    if (academyState === 'pending') {
+        return <AcademyPendingView onUpgrade={() => setAcademyState('student')} />;
+    }
+
+    return <AcademyDashboard />;
+};
+
+// --- LOGGED IN: ENROLLMENT VIEW (NEW USER) ---
+const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll }) => {
+    return (
+        <div className="min-h-screen font-inter relative overflow-hidden">
+            {/* Global Atmosphere */}
+            <div className="fixed inset-0 z-0 mesh-bg opacity-30 pointer-events-none"></div>
+
+            <TopNav />
+            <div className="pt-32 pb-20 px-6 max-w-4xl mx-auto text-center relative z-10">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                >
+                    <div className="inline-block px-4 py-1.5 rounded-full bg-black/5 backdrop-blur-md border border-black/10 text-primary text-xs font-bold uppercase tracking-widest mb-6 shadow-sm">
+                        Complete Your Profile
+                    </div>
+                    <h1 className="text-4xl md:text-5xl font-black font-montserrat uppercase mb-6 text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-black to-gray-700">
+                        Join the <span className="text-primary italic">Academy</span>
+                    </h1>
+                    <p className="text-gray-600 text-lg mb-12 max-w-2xl mx-auto font-medium">
+                        You're logged in but haven't enrolled yet. Submit your application to getting assigned a coach and batch.
+                    </p>
+
+                    <div className="glass-card p-10 rounded-[2.5rem] shadow-xl max-w-xl mx-auto text-left">
+                        <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); onEnroll(); }}>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-2">Preferred Sport</label>
+                                <select className="w-full h-14 bg-gray-50/50 rounded-xl px-4 font-bold border border-gray-100 focus:border-primary focus:ring-0 transition-all outline-none">
+                                    <option>Football</option>
+                                    <option>Badminton</option>
+                                    <option>Cricket</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-2">Experience Level</label>
+                                <select className="w-full h-14 bg-gray-50/50 rounded-xl px-4 font-bold border border-gray-100 focus:border-primary focus:ring-0 transition-all outline-none">
+                                    <option>Beginner</option>
+                                    <option>Intermediate</option>
+                                    <option>Advanced</option>
+                                </select>
+                            </div>
+                            <Button className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-glow hover:scale-[1.02] transition-transform" variant="primary">
+                                Submit Application
+                            </Button>
+                        </form>
+                    </div>
+                </motion.div>
+            </div>
+        </div>
+    );
+};
+
+// --- LOGGED IN: PENDING VIEW ---
+const AcademyPendingView: React.FC<{ onUpgrade: () => void }> = ({ onUpgrade }) => {
+    return (
+        <div className="min-h-screen font-inter relative overflow-hidden">
+            {/* Global Atmosphere */}
+            <div className="fixed inset-0 z-0 mesh-bg opacity-30 pointer-events-none"></div>
+
+            <TopNav />
+            <div className="pt-32 pb-20 px-6 max-w-3xl mx-auto text-center relative z-10">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="glass-card p-12 rounded-[3rem] shadow-xl flex flex-col items-center"
+                >
+                    <div className="w-24 h-24 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center text-4xl mb-8 animate-pulse shadow-inner">
+                        <FaClock />
+                    </div>
+                    <h2 className="text-3xl font-black font-montserrat uppercase mb-4 text-gray-900">Application Pending</h2>
+                    <p className="text-gray-500 mb-8 max-w-md mx-auto font-medium">
+                        Our coaches are reviewing your profile. You will be assigned a batch shortly.
+                    </p>
+
+                    {/* DEMO ONLY BUTTON */}
+                    <button
+                        onClick={onUpgrade}
+                        className="text-xs font-bold text-gray-400 hover:text-primary underline uppercase tracking-widest transition-colors"
+                    >
+                        [Demo: Coach Approved Me]
+                    </button>
+                </motion.div>
+            </div>
+        </div>
+    );
+};
+
+// --- LOGGED IN VIEW: STUDENT DASHBOARD (Existing) ---
+const AcademyDashboard: React.FC = () => {
+    return (
+        <div className="min-h-screen font-inter relative">
+            <div className="fixed inset-0 z-0 mesh-bg opacity-20 pointer-events-none"></div>
+            <TopNav />
+
+            {/* Academy Hero */}
+            <section className="relative h-[50vh] flex items-center justify-center overflow-hidden bg-black">
+                <div className="absolute inset-0 z-0">
+                    <img
+                        src="https://images.unsplash.com/photo-1624880357913-a8539238245b?q=80&w=2070"
+                        alt="Academy Hero"
+                        className="w-full h-full object-cover opacity-50"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-black/40 to-transparent" />
+                </div>
+
+                <div className="relative z-10 text-center w-full px-6 mt-12">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="inline-block mb-4 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-white uppercase tracking-widest"
+                    >
+                        Student Portal
+                    </motion.div>
+                    <motion.h1
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-5xl md:text-7xl font-black font-montserrat uppercase leading-none text-white mb-6"
+                    >
+                        My <span className="text-primary italic">Academy</span>
+                    </motion.h1>
+                </div>
+            </section>
+
+            <div className="-mt-20 relative z-20 px-6 max-w-7xl mx-auto pb-20">
+
+                {/* Info Cards */}
+                {/* Info Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="glass-card p-8 rounded-3xl shadow-sm flex items-start gap-4 hover:shadow-glow transition-all"
+                    >
+                        <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-sm">
+                            <FaUserGraduate />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Current Batch</p>
+                            <h3 className="text-xl font-bold mt-1 text-gray-900">Rajajinagar U-18</h3>
+                            <p className="text-sm text-gray-500 mt-1">Coach: Nikhit Fernandes</p>
+                        </div>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="glass-card p-8 rounded-3xl shadow-sm flex items-start gap-4 hover:shadow-glow transition-all"
+                    >
+                        <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-xl shadow-sm">
+                            <FaCheckCircle />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Attendance</p>
+                            <h3 className="text-xl font-bold mt-1 text-gray-900">85%</h3>
+                            <p className="text-sm text-gray-500 mt-1">22/26 Sessions Attended</p>
+                        </div>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="glass-card p-8 rounded-3xl shadow-sm flex items-start gap-4 hover:shadow-glow transition-all"
+                    >
+                        <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shadow-sm">
+                            <FaChartLine />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Performance</p>
+                            <h3 className="text-xl font-bold mt-1 text-gray-900">Excellent</h3>
+                            <p className="text-sm text-gray-500 mt-1">Top 10% in Speed Tests</p>
+                        </div>
+                    </motion.div>
+                </div>
+
+                {/* Upcoming Classes */}
+                <h2 className="text-2xl font-black font-montserrat uppercase mb-6 drop-shadow-sm">Upcoming Sessions</h2>
+                <div className="glass-card rounded-3xl overflow-hidden shadow-sm">
+                    {[
+                        { date: 'Today', time: '5:00 PM - 7:00 PM', topic: 'Technical Drills: Passing', status: 'Upcoming' },
+                        { date: 'Friday, Oct 27', time: '5:00 PM - 7:00 PM', topic: 'Practice Match', status: 'Scheduled' },
+                        { date: 'Monday, Oct 30', time: '5:00 PM - 7:00 PM', topic: 'Fitness & Agility', status: 'Scheduled' },
+                    ].map((session, i) => (
+                        <div key={i} className="p-6 border-b border-gray-100 last:border-0 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                            <div className="flex items-center gap-6">
+                                <div className="w-12 h-12 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
+                                    <FaCalendarAlt />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-lg">{session.date}</h4>
+                                    <p className="text-sm text-gray-500">{session.time} • {session.topic}</p>
+                                </div>
+                            </div>
+                            <span className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider ${session.status === 'Upcoming' ? 'bg-primary/20 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+                                {session.status}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- GUEST VIEW: LANDING PAGE ---
+const AcademyLanding: React.FC<{ navigate: any }> = () => {
+    // ... Copy of the original Academy content ...
+    // Since I can't partially import, I will re-paste the full original landing page content here
+    // but wrapped in this component.
     const locations = [
         {
             name: 'Rajajinagar',
@@ -65,45 +299,10 @@ export const Academy: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-white font-inter">
+        <div className="min-h-screen bg-white font-inter relative">
+            <div className="fixed inset-0 z-0 mesh-bg opacity-10 pointer-events-none"></div>
             {/* Sticky Navigation */}
-            <motion.nav
-                className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10"
-                initial={{ y: -100 }}
-                animate={{ y: 0 }}
-                transition={{ duration: 0.5 }}
-            >
-                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-                        <img src="/Rush-logo.webp" alt="Rush" className="h-32 md:h-40 w-auto" />
-                    </div>
-                    <div className="hidden md:flex items-center gap-8">
-                        {[
-                            { label: 'Home', path: '/' },
-                            { label: 'Academy', path: '/academy' },
-                            { label: 'Arena', path: '/arena' },
-                            { label: 'Corporate', path: '/corporate' },
-                            { label: 'Events', path: '/dashboard' }
-                        ].map((item) => (
-                            <button
-                                key={item.label}
-                                onClick={() => navigate(item.path)}
-                                className={`text-sm font-bold uppercase tracking-wider transition-colors ${window.location.pathname === item.path ? 'text-primary' : 'text-white hover:text-primary'
-                                    }`}
-                            >
-                                {item.label}
-                            </button>
-                        ))}
-                    </div>
-                    <Button
-                        variant="primary"
-                        onClick={() => navigate('/login')}
-                        className="font-bold bg-primary text-black hover:bg-white hover:text-black uppercase tracking-wider text-sm px-10 py-3 min-w-[150px] shadow-[0_0_15px_rgba(0,210,106,0.5)] hover:shadow-[0_0_25px_rgba(0,210,106,0.6)]"
-                    >
-                        Book Now
-                    </Button>
-                </div>
-            </motion.nav>
+            <TopNav />
 
             {/* Hero Section */}
             <section className="relative h-screen flex items-center justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
@@ -124,7 +323,6 @@ export const Academy: React.FC = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
                 >
-                    {/* Badge */}
                     {/* Badge */}
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -10,6 +10,7 @@ export const Login: React.FC = () => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation(); // Added location hook
 
     const handleSendOTP = async () => {
         if (phoneNumber.length < 10) {
@@ -21,7 +22,8 @@ export const Login: React.FC = () => {
         try {
             const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
             await apiClient.post('/auth/send-otp', { phone_number: formattedPhone });
-            navigate('/verify-otp', { state: { phoneNumber: formattedPhone } });
+            // Preserve the 'from' state if it exists
+            navigate('/verify-otp', { state: { phoneNumber: formattedPhone, from: (location.state as any)?.from } });
         } catch (error) {
             console.error('Failed to send OTP', error);
             alert('Failed to send OTP. Please try again.');

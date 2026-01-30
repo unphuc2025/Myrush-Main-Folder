@@ -2,8 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, type Variants, useScroll, useTransform } from 'framer-motion';
 import { Button } from '../components/ui/Button';
-import { FaInstagram, FaYoutube, FaLinkedin, FaTwitter, FaArrowRight } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
+import { RushArena3D } from '../components/RushArena3D';
 // import { Card } from '../components/ui/Card';
 
 const fadeInUp: Variants = {
@@ -35,6 +35,15 @@ export const LandingPage: React.FC = () => {
     // const headersOpacity = useTransform(scrollY, [0, 100], [0, 1]);
     const heroY = useTransform(scrollY, [0, 500], [0, 150]);
     const { isAuthenticated } = useAuth();
+
+    const arenas = [
+        { name: 'Rush Arena', url: 'https://rush-arena-bcu.talkinglands.studio/' },
+        { name: 'Cooke Town', url: 'https://rush-arena-cooke-town.talkinglands.studio' },
+        { name: 'GT Mall', url: 'https://rush-arena-gtmall.talkinglands.studio' },
+        { name: 'Rajajinagar', url: 'https://rush-arena-rj.talkinglands.studio' }
+    ];
+
+    const [currentArena, setCurrentArena] = React.useState(arenas[0]);
 
     const services = [
         {
@@ -72,19 +81,22 @@ export const LandingPage: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter overflow-x-hidden selection:bg-primary selection:text-black">
+        <div className="min-h-screen bg-black font-inter overflow-x-hidden selection:bg-primary selection:text-black relative">
+            {/* Global Atmosphere */}
+            <div className="fixed inset-0 z-0 mesh-bg opacity-20 pointer-events-none"></div>
+
             {/* Sticky Navigation */}
             <motion.nav
-                className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10"
+                className="fixed top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5"
                 initial={{ y: -100 }}
                 animate={{ y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
                     <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
                         <img src="/Rush-logo.webp" alt="Rush" className="h-32 md:h-40 w-auto" />
                     </div>
-                    <div className="hidden md:flex items-center gap-8">
+                    <div className="hidden md:flex items-center gap-8 bg-white/5 backdrop-blur-md px-8 py-3 rounded-full border border-white/5">
                         {[
                             { label: 'Home', path: '/' },
                             { label: 'Academy', path: '/academy' },
@@ -95,7 +107,7 @@ export const LandingPage: React.FC = () => {
                             <button
                                 key={item.label}
                                 onClick={() => navigate(item.path)}
-                                className="text-sm font-bold text-white hover:text-primary uppercase tracking-wider transition-colors"
+                                className="text-sm font-bold text-gray-300 hover:text-primary hover:scale-105 uppercase tracking-wider transition-all"
                             >
                                 {item.label}
                             </button>
@@ -104,7 +116,7 @@ export const LandingPage: React.FC = () => {
                     {isAuthenticated ? (
                         // Profile icon for authenticated users
                         <button
-                            className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all hover:shadow-lg"
+                            className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all hover:shadow-glow border border-white/10"
                             onClick={() => navigate('/profile')}
                             title="Go to Profile"
                         >
@@ -115,137 +127,62 @@ export const LandingPage: React.FC = () => {
                         </button>
                     ) : (
                         // Login/Signup button for unauthenticated users
-                        <Button
-                            variant="primary"
-                            onClick={() => navigate('/login')}
-                            className="font-bold bg-primary text-black hover:bg-white hover:text-black uppercase tracking-wider text-sm px-10 py-3 min-w-[150px] shadow-[0_0_15px_rgba(0,210,106,0.5)] hover:shadow-[0_0_25px_rgba(0,210,106,0.6)]"
-                        >
-                            Login/Signup
-                        </Button>
+                        <div className="flex items-center gap-4">
+                            <Button
+                                variant="primary"
+                                onClick={() => navigate('/venues')}
+                                className="font-bold bg-primary text-black hover:bg-white hover:text-black uppercase tracking-wider text-sm px-6 py-2 shadow-glow hover:shadow-glow-strong rounded-full transition-all"
+                            >
+                                Book a Court
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={() => navigate('/login')}
+                                className="font-bold bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:text-white uppercase tracking-wider text-sm px-6 py-2 rounded-full transition-all"
+                            >
+                                Login
+                            </Button>
+                        </div>
                     )}
                 </div>
             </motion.nav>
 
             {/* HERO SECTION */}
             <section className="relative h-screen flex items-center justify-center overflow-hidden bg-black">
-                <motion.div style={{ y: heroY }} className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
-                    <img
-                        src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2035"
-                        alt="Hero"
-                        className="w-full h-full object-cover opacity-60"
-                    />
+                <motion.div style={{ y: heroY }} className="absolute inset-0 z-0 opacity-80">
+                    <RushArena3D url={currentArena.url} />
                 </motion.div>
 
-                <div className="relative z-20 text-center px-4 max-w-5xl mx-auto mt-20">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 1 }}
-                        className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase"
-                    >
-                        The Ultimate Sports Platform
-                    </motion.div>
+                {/* Hero Overlay Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black pointer-events-none z-10" />
 
-                    <motion.h1
-                        className="text-5xl md:text-7xl font-black font-montserrat tracking-tighter text-white mb-8 uppercase leading-none"
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2 }}
-                    >
-                        Play <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Like</span><br />
-                        A Pro
-                    </motion.h1>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.4 }}
-                        className="flex flex-col md:flex-row items-center justify-center gap-6"
-                    >
-                        <Button
-                            variant="primary"
-                            size="lg"
-                            onClick={() => navigate('/venues')}
-                            className="bg-primary text-black hover:bg-white hover:text-black text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
-                        >
-                            Book a Court
-                        </Button>
-                        <Button
-                            className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-black text-lg px-12 py-5 min-w-[240px] uppercase tracking-wider font-montserrat font-black rounded-full transition-all duration-300 flex items-center justify-center gap-3 group"
-                        >
-                            Explore Venues <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                    </motion.div>
+                {/* Arena Switcher - Top Right of Hero (below Nav) */}
+                <div className="absolute top-32 right-6 z-30 flex flex-col gap-2 pointer-events-auto">
+                    <div className="glass-card-dark p-3 rounded-2xl">
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-2 text-center">Select Arena</div>
+                        <div className="flex flex-col gap-1">
+                            {arenas.map((arena) => (
+                                <button
+                                    key={arena.name}
+                                    onClick={() => setCurrentArena(arena)}
+                                    className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 text-left ${currentArena.name === arena.name
+                                        ? 'bg-primary text-black shadow-glow scale-105'
+                                        : 'text-white hover:bg-white/10'
+                                        }`}
+                                >
+                                    {arena.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
+
+
             </section>
 
-            {/* RUSH ARENA 3D EXPERIENCE */}
-            <section className="py-20 md:py-32 bg-gradient-to-b from-black via-gray-900 to-black relative overflow-hidden">
-                <div className="max-w-7xl mx-auto px-6 md:px-12">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
-                        viewport={{ once: true }}
-                        className="text-center mb-12"
-                    >
-                        <div className="inline-block mb-4 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase">
-                            Interactive Experience
-                        </div>
-                        <h2 className="text-4xl md:text-6xl font-black text-white font-montserrat uppercase leading-tight mb-6">
-                            Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Rush Arena</span> in 3D
-                        </h2>
-                        <p className="text-gray-400 text-lg max-w-3xl mx-auto leading-relaxed">
-                            Take a virtual tour of our world-class facilities. Navigate through our premium turfs and experience the Rush Arena difference.
-                        </p>
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.8, delay: 0.2 }}
-                        viewport={{ once: true }}
-                        className="relative w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-primary/20 bg-black"
-                        style={{ paddingBottom: '56.25%' }} // 16:9 aspect ratio
-                    >
-                        <iframe
-                            src="https://rush-arena-bcu.talkinglands.studio/"
-                            title="Rush Arena 3D Experience"
-                            className="absolute top-0 left-0 w-full h-full"
-                            style={{ border: 'none' }}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                        />
-                        {/* Loading overlay */}
-                        <div className="absolute inset-0 bg-black flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-500">
-                            <div className="text-primary text-lg font-bold">Loading 3D Experience...</div>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.4 }}
-                        viewport={{ once: true }}
-                        className="text-center mt-12"
-                    >
-                        <p className="text-gray-500 text-sm mb-6">
-                            Use your mouse or touch to navigate • Click and drag to look around
-                        </p>
-                        <Button
-                            variant="primary"
-                            onClick={() => navigate('/venues')}
-                            className="bg-primary text-black hover:bg-white hover:text-black font-bold uppercase tracking-wider text-sm px-10 py-4 shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
-                        >
-                            Book Your Court Now
-                        </Button>
-                    </motion.div>
-                </div>
-            </section>
 
             {/* MARQUEE STRIP */}
-            <div className="bg-primary overflow-hidden py-4 z-30 relative shadow-glow -rotate-1 scale-105 border-y-4 border-black mt-20">
+            <div className="bg-primary/90 backdrop-blur-md overflow-hidden py-4 z-30 relative shadow-glow-strong -rotate-1 scale-105 border-y-4 border-black mt-20">
                 <motion.div
                     className="flex whitespace-nowrap"
                     variants={marqueeVariants}
@@ -260,13 +197,13 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* SERVICES GRID */}
-            <section className="py-20 md:py-32 bg-white">
+            <section className="py-20 md:py-32 relative z-10">
                 <div className="max-w-7xl mx-auto px-6 md:px-12">
                     <div className="mb-16 text-center">
-                        <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
-                            Everything <span className="text-primary">Sport.</span>
+                        <h2 className="text-4xl md:text-6xl font-black text-white font-montserrat uppercase leading-tight mb-6 drop-shadow-lg">
+                            Everything <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Sport.</span>
                         </h2>
-                        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                        <p className="text-gray-300 text-lg max-w-2xl mx-auto font-light">
                             From casual games to professional training, we have got you covered.
                         </p>
                     </div>
@@ -276,7 +213,7 @@ export const LandingPage: React.FC = () => {
                         {services.map((service, i) => (
                             <motion.div
                                 key={i}
-                                className="group relative overflow-hidden rounded-3xl bg-black h-96 shadow-2xl cursor-pointer"
+                                className="glass-card-dark h-96 cursor-pointer relative overflow-hidden group rounded-3xl"
                                 custom={i}
                                 variants={fadeInUp}
                                 initial="hidden"
@@ -284,30 +221,30 @@ export const LandingPage: React.FC = () => {
                                 viewport={{ once: true, margin: "-50px" }}
                                 onClick={() => navigate(service.link)}
                             >
-                                <div className="absolute inset-0">
+                                <div className="absolute inset-0 z-0">
                                     <img
                                         src={service.image}
                                         alt={service.title}
-                                        className="w-full h-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-105"
+                                        className="w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-110 group-hover:opacity-40"
                                     />
                                 </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
 
-                                <div className="absolute inset-0 p-8 flex flex-col justify-between">
+                                <div className="absolute inset-0 p-8 flex flex-col justify-between z-20">
                                     <div className="flex justify-between items-start">
-                                        <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-2xl text-white border border-white/20">
+                                        <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-3xl text-white border border-white/20 shadow-lg group-hover:bg-primary group-hover:text-black transition-colors duration-300">
                                             {service.icon}
                                         </div>
-                                        <div className="w-10 h-10 rounded-full bg-primary text-black flex items-center justify-center opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg font-bold text-lg">
-                                            ↗
+                                        <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 border border-white/20">
+                                            <span className="text-white text-xl">↗</span>
                                         </div>
                                     </div>
 
                                     <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                                        <h3 className="text-2xl md:text-3xl font-black text-white font-montserrat uppercase italic mb-3 leading-tight">
+                                        <h3 className="text-3xl md:text-4xl font-black text-white font-montserrat uppercase italic mb-3 leading-tight drop-shadow-md">
                                             {service.title}
                                         </h3>
-                                        <p className="text-white text-base font-medium leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
+                                        <p className="text-gray-200 text-base font-medium leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
                                             {service.description}
                                         </p>
                                     </div>
@@ -319,7 +256,7 @@ export const LandingPage: React.FC = () => {
                     <div className="text-center mt-12">
                         <button
                             onClick={() => navigate('/venues')}
-                            className="inline-flex items-center gap-2 text-black font-bold uppercase tracking-wider text-sm hover:text-primary transition-colors pb-2 border-b-2 border-transparent hover:border-primary"
+                            className="inline-flex items-center gap-2 text-white font-bold uppercase tracking-wider text-sm hover:text-primary transition-colors pb-2 border-b-2 border-transparent hover:border-primary"
                         >
                             View All Facilities
                             <span className="transition-transform group-hover:translate-x-1">→</span>
@@ -430,54 +367,7 @@ export const LandingPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* FOOTER */}
-            <footer className="bg-black border-t border-white/10 py-20 md:py-32 w-full px-6">
-                <div className="max-w-7xl mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 text-white">
-                        <div className="col-span-1 md:col-span-2">
-                            <img src="/Rush-logo.webp" alt="Rush" className="h-20 mb-6 object-contain" />
-                            <p className="max-w-xl mb-8 text-base leading-relaxed text-white">
-                                The premier destination for sports enthusiasts. Book world-class venues, join elite academies, and compete in high-stakes tournaments.
-                            </p>
-                            <div className="flex gap-6">
-                                <a href="#" className="text-white hover:text-primary transition-colors transform hover:scale-110 duration-200">
-                                    <FaInstagram size={20} />
-                                </a>
-                                <a href="#" className="text-white hover:text-red-500 transition-colors transform hover:scale-110 duration-200">
-                                    <FaYoutube size={20} />
-                                </a>
-                                <a href="#" className="text-white hover:text-blue-500 transition-colors transform hover:scale-110 duration-200">
-                                    <FaLinkedin size={20} />
-                                </a>
-                                <a href="#" className="text-white hover:text-blue-400 transition-colors transform hover:scale-110 duration-200">
-                                    <FaTwitter size={20} />
-                                </a>
-                            </div>
-                        </div>
-                        <div className="col-span-1 md:col-span-1">
-                            <h4 className="text-white font-bold uppercase tracking-wider mb-8 text-lg">Explore</h4>
-                            <ul className="space-y-4 text-base">
-                                {['Academy', 'Arena', 'Corporate', 'Tournaments', 'Events', 'Careers'].map(item => (
-                                    <li key={item}><a href="#" className="hover:text-primary transition-colors block text-white">{item}</a></li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div className="col-span-1 md:col-span-1">
-                            <h4 className="text-white font-bold uppercase tracking-wider mb-8 text-lg">Contact</h4>
-                            <p className="mb-4 text-base leading-relaxed text-white"># 643/2, 12th Main Rd,<br />Rajajinagar, Bengaluru</p>
-                            <p className="mb-4 hover:text-primary cursor-pointer transition-colors text-white">harsha@myrush.in</p>
-                            <p className="text-white font-bold text-xl">+91 7624898999</p>
-                        </div>
-                    </div>
-                    <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-white">
-                        <p className="font-medium tracking-wide">© 2026 Addrush Sports Private Limited.</p>
-                        <div className="flex gap-8 mt-4 md:mt-0">
-                            <a href="#" className="hover:text-gray-400 transition-colors uppercase tracking-wider font-medium">Privacy Policy</a>
-                            <a href="#" className="hover:text-gray-400 transition-colors uppercase tracking-wider font-medium">Terms of Service</a>
-                        </div>
-                    </div>
-                </div>
-            </footer>
+            {/* FOOTER - Removed, now global */}
         </div>
     );
 };

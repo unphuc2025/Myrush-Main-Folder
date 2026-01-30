@@ -45,15 +45,18 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                 <div className="hidden md:flex items-center gap-8">
                     {[
                         { label: homeLabel, path: '/' },
-                        { label: 'Venues', path: '/venues' },
-                        { label: 'Bookings', path: '/bookings' },
-                        { label: 'Profile', path: '/profile' }
+                        { label: 'Book Court', path: '/venues' },
+                        { label: 'Events', path: '/events' },
+                        { label: 'Games', path: '/open-play' },
+                        { label: 'Academy', path: '/academy' },
+                        { label: 'Community', path: '/community' },
+                        { label: 'Store', path: '/store' }
                     ].map((item) => (
                         <button
                             key={item.path}
                             className={`relative text-sm font-medium transition-colors ${isActive(item.path) || (item.path === '/' && location.pathname === '/dashboard')
                                 ? 'text-primary'
-                                : 'text-gray-500 hover:text-black'
+                                : 'text-black hover:text-primary'
                                 }`}
                             onClick={() => navigate(item.path)}
                         >
@@ -72,6 +75,14 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                     {isAuthenticated ? (
                         // Profile icon for authenticated users
                         <div className="flex items-center gap-4">
+                            {/* Loyalty Points Badge */}
+                            <button
+                                onClick={() => navigate('/loyalty')}
+                                className="hidden md:flex items-center gap-2 bg-yellow-400/10 hover:bg-yellow-400/20 px-3 py-1.5 rounded-full border border-yellow-400/30 transition-all group"
+                            >
+                                <span className="text-yellow-600 text-sm font-black">👑 2450</span>
+                                <span className="text-[10px] uppercase font-bold text-gray-500 group-hover:text-black">Pts</span>
+                            </button>
                             {userName && (
                                 <span className="hidden md:block text-sm font-semibold text-black">
                                     Hello, <span className="text-primary">{userName}</span>

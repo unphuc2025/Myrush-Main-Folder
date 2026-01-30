@@ -7,7 +7,7 @@ import { bookingsApi } from '../api/bookings';
 import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaUser, FaPhone, FaEnvelope, FaMapMarkerAlt, FaTrophy, FaCalendarAlt, FaVenusMars, FaEdit, FaHeart, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye } from 'react-icons/fa';
 
 export const Profile: React.FC = () => {
     const navigate = useNavigate();
@@ -26,6 +26,12 @@ export const Profile: React.FC = () => {
     const [selectedRating, setSelectedRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
+
+    // Host Game State
+    const [isHostModalOpen, setIsHostModalOpen] = useState(false);
+    const [selectedBookingForHost, setSelectedBookingForHost] = useState<any | null>(null);
+    const [hostSkillLevel, setHostSkillLevel] = useState('Open');
+    const [hostNumPlayers, setHostNumPlayers] = useState(2);
 
     useEffect(() => {
         const fetchProfileAndStats = async () => {
@@ -85,11 +91,15 @@ export const Profile: React.FC = () => {
                 // Process bookings to determine their actual status
                 const processedBookings = bookingsResponse.data.map((b: any) => {
                     let status = b.status.toLowerCase();
-                    if (status !== 'cancelled' && b.end_time) {
-                        const bookingTime = new Date(`${b.booking_date}T${b.end_time}`);
-                        if (bookingTime < new Date()) {
-                            status = 'completed';
-                        } else {
+                    if (status !== 'cancelled') {
+                        if (b.end_time) {
+                            const bookingTime = new Date(`${b.booking_date}T${b.end_time}`);
+                            if (bookingTime < new Date()) {
+                                status = 'completed';
+                            } else {
+                                status = 'upcoming';
+                            }
+                        } else if (status === 'confirmed') {
                             status = 'upcoming';
                         }
                     }
@@ -226,9 +236,26 @@ export const Profile: React.FC = () => {
         }
     };
 
+    const handleHostGameClick = (booking: any, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedBookingForHost(booking);
+        setHostNumPlayers(2);
+        setHostSkillLevel('Open');
+        setIsHostModalOpen(true);
+    };
+
+    const handleConfirmHostGame = (e: React.FormEvent) => {
+        e.preventDefault();
+        alert(`Game Hosted Successfully!\n\nVenue: ${selectedBookingForHost?.venue_name}\nLevel: ${hostSkillLevel}\nPlayers Needed: ${hostNumPlayers}`);
+        setIsHostModalOpen(false);
+        setSelectedBookingForHost(null);
+    };
+
     const toggleBookingExpansion = (bookingId: string) => {
         setExpandedBookingId(prev => prev === bookingId ? null : bookingId);
     };
+
+
 
     if (isLoading) {
         return (
@@ -332,19 +359,19 @@ export const Profile: React.FC = () => {
                     transition={{ delay: 0.3, duration: 0.6 }}
                     className="flex-1 ml-80 p-8 overflow-y-auto h-[calc(100vh-5rem)]"
                 >
-                    <div className="max-w-4xl">
+                    <div className="max-w-5xl mx-auto">
                         {currentView === 'profile' ? (
                             <>
                                 {/* Profile Header */}
                                 <div className="flex justify-between items-center mb-8">
                                     <div>
-                                        <h1 className="text-3xl font-black text-gray-900 mb-2">Profile Information</h1>
-                                        <p className="text-gray-600">Manage your account details and preferences</p>
+                                        <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Profile <span className="text-primary">Settings</span></h1>
+                                        <p className="text-gray-600 text-lg">Manage your account details and preferences</p>
                                     </div>
                                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                                         <Button
                                             onClick={() => navigate('/profile/edit')}
-                                            className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 border-2 border-primary"
+                                            className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-primary/30 flex items-center gap-2 transition-all"
                                         >
                                             <FaEdit />
                                             Edit Profile
@@ -353,43 +380,47 @@ export const Profile: React.FC = () => {
                                 </div>
 
                                 {/* Profile Details Cards */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                                     {/* Personal Information */}
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.4, duration: 0.6 }}
-                                        className="bg-white rounded-2xl border-2 border-gray-200 p-6"
+                                        className="glass-card rounded-3xl p-8 relative overflow-hidden group"
                                     >
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                                                <FaUser className="text-primary" />
+                                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <FaUser size={120} />
+                                        </div>
+                                        <div className="flex items-center gap-4 mb-8 relative z-10">
+                                            <div className="w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg text-white text-xl">
+                                                <FaUser />
                                             </div>
-                                            <h2 className="text-xl font-bold text-gray-900">Personal Information</h2>
+                                            <h2 className="text-2xl font-bold text-gray-900">Personal Info</h2>
                                         </div>
 
-                                        <div className="space-y-4">
-                                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                <label className="text-sm font-medium text-gray-500 mb-1 block">Full Name</label>
-                                                <p className="text-lg font-semibold text-gray-900">{user?.full_name || 'Not provided'}</p>
+                                        <div className="space-y-6 relative z-10">
+                                            <div>
+                                                <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">Full Name</label>
+                                                <p className="text-xl font-bold text-gray-900">{user?.full_name || 'Not provided'}</p>
                                             </div>
-
-                                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                <label className="text-sm font-medium text-gray-500 mb-1 block">Phone Number</label>
-                                                <p className="text-lg font-semibold text-gray-900">{user?.phone_number}</p>
+                                            <div>
+                                                <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">Phone Number</label>
+                                                <p className="text-xl font-bold text-gray-900">{user?.phone_number}</p>
                                             </div>
-
-                                            {user?.email && (
-                                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                    <label className="text-sm font-medium text-gray-500 mb-1 block">Email Address</label>
-                                                    <p className="text-lg font-semibold text-gray-900">{user.email}</p>
-                                                </div>
-                                            )}
-
-                                            {user?.city && (
-                                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                    <label className="text-sm font-medium text-gray-500 mb-1 block">City</label>
-                                                    <p className="text-lg font-semibold text-gray-900">{user.city}</p>
+                                            {(user?.email || user?.city) && (
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {user?.email && (
+                                                        <div>
+                                                            <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">Email</label>
+                                                            <p className="text-base font-semibold text-gray-900 truncate">{user.email}</p>
+                                                        </div>
+                                                    )}
+                                                    {user?.city && (
+                                                        <div>
+                                                            <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">City</label>
+                                                            <p className="text-base font-semibold text-gray-900">{user.city}</p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -400,127 +431,115 @@ export const Profile: React.FC = () => {
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.5, duration: 0.6 }}
-                                        className="bg-white rounded-2xl border-2 border-gray-200 p-6"
+                                        className="glass-card rounded-3xl p-8 relative overflow-hidden group"
                                     >
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                                                <FaHeart className="text-primary" />
+                                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <FaTrophy size={120} />
+                                        </div>
+                                        <div className="flex items-center gap-4 mb-8 relative z-10">
+                                            <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center shadow-lg text-white text-xl">
+                                                <FaTrophy />
                                             </div>
-                                            <h2 className="text-xl font-bold text-gray-900">Sports & Preferences</h2>
+                                            <h2 className="text-2xl font-bold text-gray-900">Sports Profile</h2>
                                         </div>
 
-                                        <div className="space-y-4">
-                                            {user?.age && (
-                                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                    <label className="text-sm font-medium text-gray-500 mb-1 block">Age</label>
-                                                    <p className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                                        <FaCalendarAlt className="text-primary" />
-                                                        {user.age} years old
-                                                    </p>
-                                                </div>
-                                            )}
-
-                                            {user?.gender && (
-                                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                    <label className="text-sm font-medium text-gray-500 mb-1 block">Gender</label>
-                                                    <p className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                                        <FaVenusMars className="text-primary" />
-                                                        {user.gender}
-                                                    </p>
-                                                </div>
-                                            )}
+                                        <div className="space-y-6 relative z-10">
+                                            <div className="grid grid-cols-2 gap-6">
+                                                {user?.age && (
+                                                    <div>
+                                                        <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">Age</label>
+                                                        <p className="text-xl font-bold text-gray-900">{user.age}</p>
+                                                    </div>
+                                                )}
+                                                {user?.gender && (
+                                                    <div>
+                                                        <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">Gender</label>
+                                                        <p className="text-xl font-bold text-gray-900">{user.gender}</p>
+                                                    </div>
+                                                )}
+                                            </div>
 
                                             {user?.skill_level && (
-                                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                    <label className="text-sm font-medium text-gray-500 mb-1 block">Skill Level</label>
-                                                    <p className="text-lg font-semibold">
-                                                        <span className={`inline-block px-3 py-1 rounded-full text-sm border-2 ${getSkillBadgeColor(user.skill_level)}`}>
-                                                            <FaTrophy className="inline mr-1" />
-                                                            {user.skill_level}
-                                                        </span>
-                                                    </p>
+                                                <div>
+                                                    <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-2 block">Skill Level</label>
+                                                    <span className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold border ${getSkillBadgeColor(user.skill_level)}`}>
+                                                        <FaTrophy className="mr-2" />
+                                                        {user.skill_level}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {user?.sports && user.sports.length > 0 && (
+                                                <div>
+                                                    <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-2 block">Interests</label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {user.sports.map((sport, index) => (
+                                                            <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold">
+                                                                {sport}
+                                                            </span>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
                                     </motion.div>
                                 </div>
 
-                                {/* Sports Interests */}
-                                {user?.sports && user.sports.length > 0 && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.6, duration: 0.6 }}
-                                        className="bg-white rounded-2xl border-2 border-gray-200 p-6 mb-8"
-                                    >
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                                                <span className="text-lg">🎾</span>
-                                            </div>
-                                            <h2 className="text-xl font-bold text-gray-900">Sports Interests</h2>
-                                        </div>
-
-                                        <div className="flex flex-wrap gap-3">
-                                            {user.sports.map((sport, index) => (
-                                                <span
-                                                    key={index}
-                                                    className="px-4 py-2 bg-primary/10 text-primary border-2 border-primary/20 rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-colors"
-                                                >
-                                                    {sport}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                )}
-
                                 {/* Statistics Card */}
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.7, duration: 0.6 }}
-                                    className="bg-white rounded-2xl border-2 border-gray-200 p-6"
+                                    className="mb-8"
                                 >
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                                            <span className="text-lg">📊</span>
-                                        </div>
-                                        <h2 className="text-xl font-bold text-gray-900">Your Statistics</h2>
-                                    </div>
+                                    <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-3">
+                                        Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Performance</span>
+                                    </h2>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-sm font-medium text-blue-600">Total Bookings</p>
-                                                    <p className="text-2xl font-bold text-blue-900">{stats.bookings}</p>
-                                                </div>
-                                                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center border border-blue-300">
-                                                    <span className="text-blue-600 text-xl">📅</span>
-                                                </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        <div className="glass-card rounded-2xl p-6 hover:shadow-glow transition-all cursor-default">
+                                            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Bookings</p>
+                                            <div className="flex justify-between items-end">
+                                                <p className="text-4xl font-black text-gray-900">{stats.bookings}</p>
+                                                <div className="text-blue-500 bg-blue-50 p-2 rounded-lg"><FaCalendarCheck /></div>
                                             </div>
                                         </div>
 
-                                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-200">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-sm font-medium text-green-600">Games Played</p>
-                                                    <p className="text-2xl font-bold text-green-900">{stats.gamesPlayed}</p>
-                                                </div>
-                                                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center border border-green-300">
-                                                    <span className="text-green-600 text-xl">⚽</span>
-                                                </div>
+                                        <div className="glass-card rounded-2xl p-6 hover:shadow-glow transition-all cursor-default">
+                                            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Games Played</p>
+                                            <div className="flex justify-between items-end">
+                                                <p className="text-4xl font-black text-gray-900">{stats.gamesPlayed}</p>
+                                                <div className="text-emerald-500 bg-emerald-50 p-2 rounded-lg"><FaTrophy /></div>
                                             </div>
                                         </div>
 
-                                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl p-4 border-2 border-purple-200">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-sm font-medium text-purple-600">Membership</p>
-                                                    <p className="text-lg font-bold text-purple-900">FREE</p>
-                                                </div>
-                                                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center border border-purple-300">
-                                                    <span className="text-purple-600 text-xl">⭐</span>
-                                                </div>
+                                        <div
+                                            className="glass-card rounded-2xl p-6 cursor-pointer group relative overflow-hidden"
+                                            onClick={() => navigate('/loyalty')}
+                                        >
+                                            <div className="absolute inset-0 bg-yellow-400/5 group-hover:bg-yellow-400/10 transition-colors"></div>
+                                            <p className="text-sm font-bold text-yellow-600 uppercase tracking-wider mb-2 relative z-10">Loyalty Points</p>
+                                            <div className="flex justify-between items-end relative z-10">
+                                                <p className="text-4xl font-black text-yellow-600">{user?.loyalty_points || 0}</p>
+                                                <div className="text-yellow-500 bg-yellow-50 p-2 rounded-lg"><FaGift /></div>
+                                            </div>
+                                            <div className="mt-2 flex items-center gap-1 text-xs font-bold text-yellow-600 group-hover:gap-2 transition-all relative z-10">
+                                                Redeem <span className="text-lg">→</span>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            className="glass-card rounded-2xl p-6 cursor-pointer group relative overflow-hidden"
+                                            onClick={() => navigate('/community')}
+                                        >
+                                            <div className="absolute inset-0 bg-purple-400/5 group-hover:bg-purple-400/10 transition-colors"></div>
+                                            <p className="text-sm font-bold text-purple-600 uppercase tracking-wider mb-2 relative z-10">My Squad</p>
+                                            <div className="flex justify-between items-end relative z-10">
+                                                <p className="text-xl font-black text-purple-900 truncate max-w-[120px]">None</p>
+                                                <div className="text-purple-500 bg-purple-50 p-2 rounded-lg"><FaUser /></div>
+                                            </div>
+                                            <div className="mt-2 flex items-center gap-1 text-xs font-bold text-purple-600 group-hover:gap-2 transition-all relative z-10">
+                                                Join Squad <span className="text-lg">→</span>
                                             </div>
                                         </div>
                                     </div>
@@ -743,6 +762,16 @@ export const Profile: React.FC = () => {
                                                                 </div>
 
                                                                 <div className="flex flex-col gap-2">
+                                                                    {(booking.status === 'upcoming' || booking.status === 'confirmed') && (
+                                                                        <Button
+                                                                            onClick={(e) => handleHostGameClick(booking, e)}
+                                                                            className="bg-primary hover:!bg-primary/90 text-white px-4 py-2 rounded-xl font-medium text-sm border-2 border-primary flex items-center justify-center gap-2"
+                                                                        >
+                                                                            <span className="text-sm">🎮</span>
+                                                                            Host Game
+                                                                        </Button>
+                                                                    )}
+
                                                                     <Button
                                                                         onClick={() => toggleBookingExpansion(booking.id)}
                                                                         className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-4 py-2 rounded-xl font-medium text-sm border-2 border-gray-200 flex items-center justify-center gap-2"
@@ -888,6 +917,84 @@ export const Profile: React.FC = () => {
                     </div>
                 </motion.div>
             </div>
+
+            {/* HOST GAME MODAL */}
+            {isHostModalOpen && selectedBookingForHost && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+                    onClick={() => setIsHostModalOpen(false)}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.9, y: 20 }}
+                        className="bg-white rounded-3xl p-8 max-w-md w-full relative shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => setIsHostModalOpen(false)}
+                            className="absolute top-6 right-6 text-gray-400 hover:text-black transition-colors"
+                        >
+                            <span className="text-xl font-bold">×</span>
+                        </button>
+
+                        <h3 className="text-2xl font-black uppercase mb-2">Host This Game</h3>
+                        <p className="text-gray-500 text-sm mb-6">Invite others to join your booking.</p>
+
+                        <div className="space-y-4 mb-6">
+                            <div className="bg-gray-50 p-4 rounded-xl">
+                                <p className="font-bold text-sm">{selectedBookingForHost.venue_name}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {new Date(selectedBookingForHost.booking_date).toLocaleDateString()} • {selectedBookingForHost.start_time?.slice(0, 5)}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Skill Level</label>
+                                <select
+                                    value={hostSkillLevel}
+                                    onChange={(e) => setHostSkillLevel(e.target.value)}
+                                    className="w-full h-12 border border-gray-200 rounded-xl px-4 font-bold text-sm bg-white focus:border-primary outline-none transition-colors"
+                                >
+                                    <option value="Open">Open for All</option>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Players Needed</label>
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setHostNumPlayers(Math.max(1, hostNumPlayers - 1))}
+                                        className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold hover:bg-gray-200 transition-colors"
+                                    >
+                                        -
+                                    </button>
+                                    <span className="font-black text-xl w-8 text-center">{hostNumPlayers}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setHostNumPlayers(hostNumPlayers + 1)}
+                                        className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold hover:bg-gray-200 transition-colors"
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <Button
+                            className="w-full h-12 text-lg font-bold uppercase bg-primary text-white hover:!bg-primary/90 rounded-xl"
+                            onClick={handleConfirmHostGame}
+                        >
+                            Confirm & Host
+                        </Button>
+
+                    </motion.div>
+                </div>
+            )}
 
             {/* Rating Modal */}
             {showRatingModal && (

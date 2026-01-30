@@ -1,10 +1,10 @@
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
+import { LandingPage } from './LandingPage';
+import { Dashboard } from './Dashboard';
 
 export const Home: React.FC = () => {
-    return (
-        <div style={{ textAlign: 'center', marginTop: '50px' }}>
-            <h1>Welcome to MyRush Web App</h1>
-            <p>Native app features coming soon to the web.</p>
-        </div>
-    );
+    const { isAuthenticated } = useAuth();
+
+    return isAuthenticated ? <Dashboard /> : <LandingPage />;
 };
