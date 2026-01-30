@@ -71,25 +71,25 @@ const VenueHero: React.FC<{
             <p className="text-gray-400 text-lg mb-8 max-w-2xl mx-auto">Discover and book the best sports venues in your city.</p>
 
             <motion.div
-                className="glass-card-dark p-2 rounded-2xl max-w-3xl mx-auto flex flex-col md:flex-row gap-2 shadow-glow"
+                className="bg-white p-2 rounded-2xl max-w-3xl mx-auto flex flex-col md:flex-row gap-2 shadow-xl border border-gray-100"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 }}
             >
-                <div className="flex-1 bg-white/5 rounded-xl px-4 py-3 flex items-center gap-3 border border-transparent focus-within:border-primary/50 transition-colors">
+                <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3 border border-transparent focus-within:border-primary/50 transition-colors">
                     <span className="text-gray-400"><IconSearch /></span>
                     <input
                         type="text"
                         placeholder="Search venues, sports..."
-                        className="bg-transparent border-none outline-none text-white placeholder-gray-500 w-full font-medium"
+                        className="bg-transparent border-none outline-none text-gray-900 placeholder-gray-400 w-full font-medium"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="w-full md:w-64 bg-white/5 rounded-xl px-4 py-3 flex items-center gap-3 border border-transparent focus-within:border-primary/50 transition-colors relative">
+                <div className="w-full md:w-64 bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3 border border-transparent focus-within:border-primary/50 transition-colors relative">
                     <span className="text-primary"><IconMapPin /></span>
                     <select
-                        className="bg-transparent border-none outline-none text-white w-full font-bold appearance-none cursor-pointer [&>option]:text-black"
+                        className="bg-transparent border-none outline-none text-gray-900 w-full font-bold appearance-none cursor-pointer [&>option]:text-black"
                         value={selectedCity}
                         onChange={(e) => setSelectedCity(e.target.value)}
                     >
@@ -113,9 +113,9 @@ const FilterSidebar: React.FC<{
     setSelectedBranch: (b: string) => void;
     branches: Array<{ id: string; name: string }>;
 }> = ({ selectedSport, setSelectedSport, sports, selectedBranch, setSelectedBranch, branches }) => (
-    <div className="glass-card-dark rounded-2xl p-6 shadow-sm sticky top-24">
+    <div className="bg-white rounded-2xl p-6 shadow-sm sticky top-24 border border-gray-100">
         <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-lg font-montserrat uppercase text-white">Filters</h3>
+            <h3 className="font-bold text-lg font-montserrat uppercase text-gray-900">Filters</h3>
             <button className="text-xs font-bold text-gray-500 hover:text-primary transition-colors" onClick={() => {
                 setSelectedSport('All');
                 setSelectedBranch('All');
@@ -125,7 +125,7 @@ const FilterSidebar: React.FC<{
         <div className="mb-6">
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Branch</label>
             <select
-                className="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 text-sm font-medium text-gray-300 focus:outline-none focus:border-primary transition-colors [&>option]:text-black"
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm font-medium text-gray-900 focus:outline-none focus:border-primary transition-colors [&>option]:text-black"
                 value={selectedBranch}
                 onChange={(e) => setSelectedBranch(e.target.value)}
             >
@@ -140,7 +140,7 @@ const FilterSidebar: React.FC<{
         <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Sport</label>
             <select
-                className="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 text-sm font-medium text-gray-300 focus:outline-none focus:border-primary transition-colors [&>option]:text-black"
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm font-medium text-gray-900 focus:outline-none focus:border-primary transition-colors [&>option]:text-black"
                 value={selectedSport}
                 onChange={(e) => setSelectedSport(e.target.value)}
             >
@@ -160,7 +160,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
-        className="group glass-card-dark rounded-xl overflow-hidden shadow-sm hover:shadow-glow transition-all duration-300 cursor-pointer flex flex-col h-full bg-black/40"
+        className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100"
         onClick={onClick}
     >
         <div className="relative h-48 overflow-hidden">
@@ -168,15 +168,15 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
                 src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070'}
                 alt={venue.court_name}
                 loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-100"
             />
-            <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full border border-white/20">
+            <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md text-black text-xs font-bold px-3 py-1 rounded-full border border-white/20 shadow-sm">
                 {venue.game_type}
             </div>
-            <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-sm shadow-md hover:bg-white/20 transition-colors border border-white/20">
+            <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-sm shadow-md hover:bg-white transition-colors border border-gray-100 text-gray-600 hover:text-red-500">
                 ❤️
             </button>
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 translate-y-2 group-hover:translate-y-0 transition-transform">
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 translate-y-2 group-hover:translate-y-0 transition-transform">
                 <p className="text-white text-xs font-bold flex items-center gap-1">
                     <span className="text-primary"><IconMapPin /></span> {venue.location}
                 </p>
@@ -185,10 +185,10 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
 
         <div className="p-5 flex flex-col flex-1">
             <div className="flex justify-between items-start mb-2">
-                <h3 className="font-bold text-lg text-white leading-tight group-hover:text-primary transition-colors">{venue.court_name}</h3>
-                <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded-md border border-white/10">
+                <h3 className="font-bold text-lg text-gray-900 leading-tight group-hover:text-primary transition-colors">{venue.court_name}</h3>
+                <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
                     <span className="text-yellow-500 text-xs">⭐</span>
-                    <span className="text-xs font-bold text-gray-300">
+                    <span className="text-xs font-bold text-gray-700">
                         {venue.rating ? venue.rating.toFixed(1) : '4.8'}
                         {venue.reviewCount && venue.reviewCount > 0 && (
                             <span className="text-gray-500 ml-1">({venue.reviewCount})</span>
@@ -199,22 +199,22 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
 
             <div className="flex flex-wrap gap-2 mb-4">
                 {venue.amenities?.slice(0, 3).map(a => (
-                    <span key={a.id} className="text-[10px] uppercase font-bold text-gray-400 bg-white/5 border border-white/5 px-2 py-1 rounded">{a.name}</span>
-                )) || <span className="text-[10px] uppercase font-bold text-gray-400 bg-white/5 border border-white/5 px-2 py-1 rounded">Parking</span>}
+                    <span key={a.id} className="text-[10px] uppercase font-bold text-gray-600 bg-gray-100 border border-gray-100 px-2 py-1 rounded">{a.name}</span>
+                )) || <span className="text-[10px] uppercase font-bold text-gray-600 bg-gray-100 border border-gray-100 px-2 py-1 rounded">Parking</span>}
                 {venue.amenities && venue.amenities.length > 3 && (
-                    <span className="text-[10px] uppercase font-bold text-gray-500 bg-white/5 border border-white/5 px-2 py-1 rounded">+{venue.amenities.length - 3}</span>
+                    <span className="text-[10px] uppercase font-bold text-gray-500 bg-gray-100 border border-gray-100 px-2 py-1 rounded">+{venue.amenities.length - 3}</span>
                 )}
             </div>
 
-            <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/10">
+            <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
                 <div>
                     <span className="block text-xs text-gray-500 font-medium">Starting from</span>
                     <div className="flex items-baseline gap-1">
-                        <span className="text-lg font-black text-white">₹{venue.prices}</span>
+                        <span className="text-lg font-black text-gray-900">₹{venue.prices}</span>
                         <span className="text-xs text-gray-500 font-medium">/hr</span>
                     </div>
                 </div>
-                <Button variant="secondary" size="sm" className="rounded-lg shadow-none bg-white text-black hover:bg-primary border-none" onClick={(e) => {
+                <Button variant="secondary" size="sm" className="rounded-lg shadow-sm bg-black text-white hover:bg-primary hover:text-black border-none transition-colors" onClick={(e) => {
                     e.stopPropagation();
                     onClick();
                 }}>

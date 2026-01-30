@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
+import { PublicNav } from '../components/PublicNav';
 import { FaCalendarAlt, FaChartLine, FaCheckCircle, FaUserGraduate, FaClock } from 'react-icons/fa';
 
 export const Academy: React.FC = () => {
@@ -302,7 +303,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
         <div className="min-h-screen bg-white font-inter relative">
             <div className="fixed inset-0 z-0 mesh-bg opacity-10 pointer-events-none"></div>
             {/* Sticky Navigation */}
-            <TopNav />
+            <PublicNav />
 
             {/* Hero Section */}
             <section className="relative h-screen flex items-center justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
