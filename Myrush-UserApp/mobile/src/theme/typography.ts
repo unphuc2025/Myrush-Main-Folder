@@ -2,27 +2,13 @@ import { Platform } from 'react-native';
 import { fontScale } from '../utils/responsive';
 
 // Font families
+// Font families
 export const fontFamilies = {
-  regular: Platform.select({
-    ios: 'System',
-    android: 'Roboto',
-    default: 'System',
-  }),
-  medium: Platform.select({
-    ios: 'System',
-    android: 'Roboto-Medium',
-    default: 'System',
-  }),
-  bold: Platform.select({
-    ios: 'System',
-    android: 'Roboto-Bold',
-    default: 'System',
-  }),
-  light: Platform.select({
-    ios: 'System',
-    android: 'Roboto-Light',
-    default: 'System',
-  }),
+  regular: 'Lexend-Regular',
+  medium: 'Lexend-Medium',
+  bold: 'Lexend-Bold',
+  light: 'Lexend-Light',
+  display: 'Lexend-Black', // For "Display XL"
 };
 
 // Font sizes (scaled)

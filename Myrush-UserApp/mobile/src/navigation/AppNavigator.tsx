@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,7 +59,8 @@ const MainTabNavigator = () => {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: '#B0B0B0',
         tabBarStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: colors.background.secondary,
+          borderTopColor: colors.border.dark,
           borderTopWidth: 0,
           elevation: 20,
           shadowColor: '#000',
@@ -165,7 +166,7 @@ export const AppNavigator: React.FC = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={DarkTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

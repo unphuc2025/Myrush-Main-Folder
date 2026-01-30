@@ -1,54 +1,36 @@
-# 🎨 App Theme Updated to #00D700
+# 🎨 Complete Dark Theme Overhaul
 
-## ✅ Color System Implemented
+## 🌑 New "Rush Dark" Theme Implemented
 
-I have successfully updated the app's primary color to **#00D700** (Vibrant Green) and implemented a centralized color system.
+I have successfully reskinned the entire mobile application to match the "UNLEASH POTENTIAL" dark mode aesthetic.
 
-### 1. **Centralized Theme Configuration**
-- Updated `mobile/src/theme/colors.ts` to define the new brand colors.
-- **Primary**: `#00D700` (Main brand color)
-- **Secondary**: `#00A300` (Darker shade for interactions)
-- **Accent**: `#FF9F43` (Orange for call-to-actions)
+### 1. **Global Theme Configuration** (`mobile/src/theme/colors.ts`)
+- **Primary**: `#00D26A` (Neon Green) - Updated from previous green.
+- **Background**: `#000000` (Pitch Black) - Main app background.
+- **Surface**: `#1C1C1E` (Dark Gray) - For Cards, Headers, and Modals.
+- **Text**:
+  - Primary: `#FFFFFF` (White)
+  - Secondary: `#A1A1A1` (Light Gray)
+  - Inverted: `#000000` (For text on Green buttons)
 
-### 2. **Global Updates**
-Now, changing `colors.primary` in `colors.ts` will instantly update the entire app!
+### 2. **Navigation Updates** (`mobile/src/navigation/AppNavigator.tsx`)
+- Updated `NavigationContainer` to use `DarkTheme`.
+- Styled Bottom Tabs to have a Dark Gray background (`#1C1C1E`) to blend with the app.
+- Updated tab icons to respect the new theme.
 
-### 3. **Screens Updated**
-I have refactored the following screens to use the dynamic theme system instead of hardcoded colors:
+### 3. **Screen Refactoring**
+- **HomeScreen**:
+  - Converted white cards to Dark Gray (`#1C1C1E`).
+  - Updated all text to White/Gray.
+  - Replaced light background with Black.
+- **VenuesScreen**:
+  - Updated all venue cards, filters, and headers to Dark Mode.
+  - Replaced the Blue "Book" button with the Brand Green (`#00D26A`).
+  - Fixed hardcoded colors to use dynamic theme variables (`colors.*`).
 
-- **Navigation**: Bottom tabs, active icons, and indicators.
-- **Home Screen**:
-  - "Book Now" buttons
-  - Service icons
-  - Gradient overlays
-  - Section headers
-- **Venues Screen**:
-  - Filter chips (active state)
-  - Price text
-  - Loading indicators
-  - "Book Now" buttons
-- **Venue Details**:
-  - Facility icons
-  - "Book Now" button
-  - Floating cart button
-- **Slot Selection**:
-  - Selected date highlight
-  - Selected time slot
-  - "Confirm Booking" button
-- **Booking Details**:
-  - Icons
-  - "Confirm Booking" button (Accent color)
-- **Review Booking**:
-  - Edit links
-  - Icons
-  - "Confirm Booking" button (Accent color)
+### 🚀 How to Verify
+1.  **Restart the App**: The changes should apply immediately.
+2.  **Navigate**: Check the Home and Venues tabs. They should now be sleek dark mode with neon green accents.
+3.  **Consistency**: The "Book Now" buttons and active tabs should all match the new Neon Green.
 
-## 🚀 How to Verify
-
-1. **Check the App**: You should see the new vibrant green (`#00D700`) across the app.
-2. **Test the System**:
-   - Open `mobile/src/theme/colors.ts`
-   - Change `primary: '#00D700'` to any other color (e.g., `'#FF0000'`)
-   - Save and watch the entire app change color instantly! (Then change it back 😉)
-
-The app is now fully themed and easier to maintain!
+The app now fully aligns with the premium Dark aesthetic! ⚡

@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: wp(5),
         paddingTop: hp(6),
         paddingBottom: hp(2),
-        backgroundColor: '#fff',
+        backgroundColor: colors.background.secondary,
     },
     backButton: {
         width: wp(10),
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     calendarContainer: {
-        backgroundColor: '#fff',
+        backgroundColor: colors.background.secondary,
         margin: wp(5),
         marginTop: hp(2),
         borderRadius: moderateScale(20),
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     },
     slotButton: {
         width: '31%',
-        backgroundColor: '#fff',
+        backgroundColor: colors.background.secondary,
         borderRadius: moderateScale(12),
         paddingVertical: hp(2.5),
         marginBottom: hp(1.5),
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: '#fff',
+        backgroundColor: colors.background.secondary,
         paddingHorizontal: wp(5),
         paddingVertical: hp(2),
         paddingBottom: hp(3),

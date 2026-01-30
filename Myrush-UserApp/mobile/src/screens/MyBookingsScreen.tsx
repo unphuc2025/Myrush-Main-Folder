@@ -405,13 +405,13 @@ const MyBookingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background.secondary,
+        backgroundColor: colors.background.primary,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.background.secondary,
+        backgroundColor: colors.background.primary,
     },
     loadingText: {
         marginTop: hp(2),
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
         paddingTop: hp(2),
     },
     bookingCard: {
-        backgroundColor: colors.background.primary,
+        backgroundColor: colors.background.secondary,
         borderRadius: moderateScale(16),
         padding: wp(4),
         marginBottom: hp(2),
