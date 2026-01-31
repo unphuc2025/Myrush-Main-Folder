@@ -10,7 +10,6 @@ import os
 import shutil
 import json
 from pathlib import Path
-from utils import s3_utils
 
 # Create uploads directory if it doesn't exist
 UPLOAD_DIR_IMAGES = Path("uploads/courts/images")
@@ -93,25 +92,27 @@ async def create_court(
     image_urls = []
     if images:
         for image in images:
-            if image.filename:
-                try:
-                    url = await s3_utils.upload_file_to_s3(image, folder="courts/images")
-                    image_urls.append(url)
-                except Exception as e:
-                    print(f"Error uploading image: {e}")
-                    pass
+            file_extension = os.path.splitext(image.filename)[1]
+            unique_filename = f"{uuid.uuid4()}{file_extension}"
+            file_path = UPLOAD_DIR_IMAGES / unique_filename
+
+            with file_path.open("wb") as buffer:
+                shutil.copyfileobj(image.file, buffer)
+
+            image_urls.append(f"/uploads/courts/images/{unique_filename}")
 
     # Handle video uploads
     video_urls = []
     if videos:
         for video in videos:
-            if video.filename:
-                try:
-                    url = await s3_utils.upload_file_to_s3(video, folder="courts/videos")
-                    video_urls.append(url)
-                except Exception as e:
-                    print(f"Error uploading video: {e}")
-                    pass
+            file_extension = os.path.splitext(video.filename)[1]
+            unique_filename = f"{uuid.uuid4()}{file_extension}"
+            file_path = UPLOAD_DIR_VIDEOS / unique_filename
+
+            with file_path.open("wb") as buffer:
+                shutil.copyfileobj(video.file, buffer)
+
+            video_urls.append(f"/uploads/courts/videos/{unique_filename}")
 
     # Parse price conditions if provided
     price_conditions_data = None
@@ -227,33 +228,52 @@ async def update_court(
     # Handle image uploads
     image_urls = existing_images if existing_images else []
 
-    # Delete old images that are not in existing_images (S3 deletion logic omitted for now, just DB ref update)
-    # Ideally should delete from S3, but for now we just stop referencing them.
+    # Delete old images that are not in existing_images
+    if db_court.images:
+        for old_image_url in db_court.images:
+            if old_image_url not in image_urls:
+                # Extract filename from URL and delete file
+                filename = old_image_url.split('/')[-1]
+                file_path = UPLOAD_DIR_IMAGES / filename
+                if file_path.exists():
+                    file_path.unlink()
 
     # Add new uploaded images
     if images:
         for image in images:
-            if image.filename:
-                try:
-                    url = await s3_utils.upload_file_to_s3(image, folder="courts/images")
-                    image_urls.append(url)
-                except Exception as e:
-                    print(f"Error uploading image: {e}")
-                    pass
+            file_extension = os.path.splitext(image.filename)[1]
+            unique_filename = f"{uuid.uuid4()}{file_extension}"
+            file_path = UPLOAD_DIR_IMAGES / unique_filename
+
+            with file_path.open("wb") as buffer:
+                shutil.copyfileobj(image.file, buffer)
+
+            image_urls.append(f"/uploads/courts/images/{unique_filename}")
 
     # Handle video uploads
     video_urls = existing_videos if existing_videos else []
 
+    # Delete old videos that are not in existing_videos
+    if db_court.videos:
+        for old_video_url in db_court.videos:
+            if old_video_url not in video_urls:
+                # Extract filename from URL and delete file
+                filename = old_video_url.split('/')[-1]
+                file_path = UPLOAD_DIR_VIDEOS / filename
+                if file_path.exists():
+                    file_path.unlink()
+
     # Add new uploaded videos
     if videos:
         for video in videos:
-            if video.filename:
-                try:
-                    url = await s3_utils.upload_file_to_s3(video, folder="courts/videos")
-                    video_urls.append(url)
-                except Exception as e:
-                    print(f"Error uploading video: {e}")
-                    pass
+            file_extension = os.path.splitext(video.filename)[1]
+            unique_filename = f"{uuid.uuid4()}{file_extension}"
+            file_path = UPLOAD_DIR_VIDEOS / unique_filename
+
+            with file_path.open("wb") as buffer:
+                shutil.copyfileobj(video.file, buffer)
+
+            video_urls.append(f"/uploads/courts/videos/{unique_filename}")
 
     # Parse price conditions if provided
     price_conditions_data = None

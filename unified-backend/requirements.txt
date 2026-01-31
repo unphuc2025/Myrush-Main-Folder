@@ -1,5 +1,4 @@
 bcrypt
-boto3
 email-validator
 fastapi
 passlib

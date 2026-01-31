@@ -106,135 +106,303 @@ export const HomeScreen: React.FC = () => {
 			<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 				{/* Header */}
 				<View style={styles.header}>
-					<View>
-						<View style={styles.locationContainer}>
-							<Ionicons name="location-sharp" size={moderateScale(16)} color="#fff" />
-							<Text style={styles.locationText}>Mumbai</Text>
+					<View style={styles.headerLeft}>
+						<View style={styles.avatar}>
+							<Text style={styles.avatarText}>{displayName.charAt(0)}</Text>
 						</View>
-						<View style={styles.greetingContainer}>
-							<Text style={styles.greeting}>Welcome, {displayName}! </Text>
-							<Text style={styles.greetingEmoji}>👋</Text>
+						<View>
+							<Text style={styles.greeting}>Hello</Text>
+							<Text style={styles.userName}>{displayName}</Text>
 						</View>
-						<Text style={styles.subGreeting}>Ready to play?</Text>
 					</View>
-
-					<TouchableOpacity style={styles.notificationButton}>
-						<Ionicons name="notifications" size={moderateScale(20)} color="#fff" />
-					</TouchableOpacity>
+					<View style={styles.headerRight}>
+						<TouchableOpacity
+							style={styles.profileButton}
+							onPress={() => navigation.navigate('ProfileOverview')}
+						>
+							<Ionicons name="person-outline" size={moderateScale(24)} color="#333" />
+						</TouchableOpacity>
+						<TouchableOpacity style={styles.notificationButton}>
+							<Ionicons name="notifications-outline" size={moderateScale(24)} color="#333" />
+						</TouchableOpacity>
+					</View>
 				</View>
 
 				{/* Search Bar */}
 				<View style={styles.searchContainer}>
-					<Ionicons name="search" size={moderateScale(20)} color="#fff" style={styles.searchIcon} />
-					<TextInput
-						style={styles.searchInput}
-						placeholder="Search for games..."
-						placeholderTextColor="#666"
-						value={searchQuery}
-						onChangeText={setSearchQuery}
-					/>
+					<View style={styles.searchBar}>
+						<Ionicons name="search-outline" size={moderateScale(20)} color="#999" />
+						<TextInput
+							style={styles.searchInput}
+							placeholder="Search"
+							placeholderTextColor="#999"
+							value={searchQuery}
+							onChangeText={setSearchQuery}
+						/>
+					</View>
+					<TouchableOpacity style={styles.menuButton}>
+						<Ionicons name="menu" size={moderateScale(24)} color="#fff" />
+					</TouchableOpacity>
 				</View>
 
-				{/* Game On Section (Featured) */}
-				<View style={styles.sectionHeader}>
-					<Text style={styles.sectionTitle}>Game On</Text>
-				</View>
+				{/* Category Pills */}
+				<ScrollView
+					horizontal
+					showsHorizontalScrollIndicator={false}
+					contentContainerStyle={styles.categoryContainer}
+				>
+					{['Sports', 'Game', 'Squad', 'Field', 'Badminton'].map((category, index) => (
+						<TouchableOpacity
+							key={category}
+							style={[styles.categoryPill, index === 0 && styles.categoryPillActive]}
+						>
+							<Text style={[styles.categoryText, index === 0 && styles.categoryTextActive]}>
+								{category}
+							</Text>
+						</TouchableOpacity>
+					))}
+				</ScrollView>
 
+				{/* Field Booking Card */}
 				<TouchableOpacity
-					style={styles.featuredCard}
+					style={styles.heroCard}
 					onPress={() => navigation.navigate('Venues')}
 					activeOpacity={0.9}
 				>
 					<ImageBackground
 						source={require('../../assets/fieldbooking.png')}
-						style={styles.featuredImage}
-						imageStyle={styles.featuredImageStyle}
+						style={styles.heroGradient}
+						imageStyle={styles.heroImageBackground}
+					>
+						<View style={styles.heroOverlay}>
+							<View style={styles.heroContent}>
+								<Text style={styles.heroTitle}>Field Booking</Text>
+								<Text style={styles.heroSubtitle}>
+									Let an AI tell you why {'\n'}you should use MyRush.
+								</Text>
+								<TouchableOpacity style={styles.heroButton}>
+									<Text style={styles.heroButtonText}>Learn more</Text>
+									<Ionicons name="arrow-forward" size={moderateScale(16)} color="#fff" />
+								</TouchableOpacity>
+							</View>
+							<View style={styles.heroImageContainer}>
+								<View style={styles.mockChart}>
+									{[...Array(8)].map((_, i) => (
+										<View
+											key={i}
+											style={[
+												styles.chartBar,
+												{ height: Math.random() * 40 + 20 },
+											]}
+										/>
+									))}
+								</View>
+							</View>
+						</View>
+					</ImageBackground>
+				</TouchableOpacity>
+
+				{/* Trending Events */}
+				<View style={styles.sectionHeader}>
+					<Text style={styles.sectionTitle}>Trending Events</Text>
+				</View>
+				<ScrollView
+					horizontal
+					showsHorizontalScrollIndicator={false}
+					contentContainerStyle={styles.eventsContainer}
+				>
+					<View style={[styles.eventCard, { backgroundColor: '#4A1E5C' }]}>
+						<View style={styles.eventCardContent}>
+							<Text style={styles.eventTitle}>Badminton Facility</Text>
+							<TouchableOpacity
+								style={styles.eventBookButton}
+								onPress={() => navigation.navigate('Venues')}
+							>
+								<Text style={styles.eventBookText}>Book</Text>
+							</TouchableOpacity>
+						</View>
+						<LinearGradient
+							colors={['transparent', colors.primary]}
+							style={styles.eventGradient}
+						/>
+					</View>
+					<View style={[styles.eventCard, { backgroundColor: '#1A3A3A' }]}>
+						<View style={styles.eventCardContent}>
+							<Text style={styles.eventTitle}>Basketball Sport</Text>
+							<TouchableOpacity
+								style={styles.eventBookButton}
+								onPress={() => navigation.navigate('Venues')}
+							>
+								<Text style={styles.eventBookText}>Book</Text>
+							</TouchableOpacity>
+						</View>
+						<LinearGradient
+							colors={['transparent', colors.primary]}
+							style={styles.eventGradient}
+						/>
+					</View>
+				</ScrollView>
+
+				{/* Our Services */}
+				<View style={styles.sectionHeader}>
+					<Text style={styles.sectionTitle}>Our Services</Text>
+				</View>
+				<View style={styles.servicesGrid}>
+					{quickActions.map((action, index) => (
+						<TouchableOpacity
+							key={index}
+							style={styles.serviceItem}
+							onPress={() => {
+								// Field Booking card handles navigation, not this service
+							}}
+						>
+							<LinearGradient
+								colors={[action.color, `${action.color}AA`]}
+								style={styles.serviceIcon}
+								start={{ x: 0, y: 0 }}
+								end={{ x: 1, y: 1 }}
+							>
+								<Ionicons name={action.icon as any} size={moderateScale(24)} color="#fff" />
+							</LinearGradient>
+							<Text style={styles.serviceLabel}>{action.label}</Text>
+						</TouchableOpacity>
+					))}
+				</View>
+
+				{/* Top Recommended */}
+				<View style={styles.sectionHeader}>
+					<Text style={styles.sectionTitle}>Top Recommended</Text>
+					<TouchableOpacity>
+						<Text style={styles.seeAll}>See all</Text>
+					</TouchableOpacity>
+				</View>
+				<View style={styles.recommendedList}>
+					<View style={styles.recommendedItem}>
+						<View style={styles.recommendedIcon}>
+							<Ionicons name="tennisball" size={moderateScale(20)} color={colors.primary} />
+						</View>
+						<View style={styles.recommendedContent}>
+							<Text style={styles.recommendedTitle}>MyRush AI Referee</Text>
+							<Text style={styles.recommendedMeta}>42 Minutes</Text>
+						</View>
+						<View style={styles.recommendedBadge}>
+							<Ionicons name="star" size={moderateScale(16)} color="#FFB800" />
+						</View>
+					</View>
+					<View style={styles.recommendedItem}>
+						<View style={styles.recommendedIcon}>
+							<Ionicons name="trophy" size={moderateScale(20)} color={colors.primary} />
+						</View>
+						<View style={styles.recommendedContent}>
+							<Text style={styles.recommendedTitle}>Badminton</Text>
+							<Text style={styles.recommendedMeta}>15 Facilities</Text>
+						</View>
+						<View style={styles.recommendedBadge}>
+							<Ionicons name="star" size={moderateScale(16)} color="#FFB800" />
+						</View>
+					</View>
+					<View style={styles.recommendedItem}>
+						<View style={styles.recommendedIcon}>
+							<Ionicons name="basketball" size={moderateScale(20)} color={colors.primary} />
+						</View>
+						<View style={styles.recommendedContent}>
+							<Text style={styles.recommendedTitle}>Basketball</Text>
+							<Text style={styles.recommendedMeta}>12 Facilities</Text>
+						</View>
+						<View style={styles.recommendedBadge}>
+							<Ionicons name="star" size={moderateScale(16)} color="#FFB800" />
+						</View>
+					</View>
+				</View>
+
+				{/* Top Booked Players */}
+				<View style={styles.sectionHeader}>
+					<Text style={styles.sectionTitle}>Top Booked Players</Text>
+					<TouchableOpacity>
+						<Text style={styles.seeAll}>See all</Text>
+					</TouchableOpacity>
+				</View>
+				<View style={styles.playersRow}>
+					{topRatedPlayers.map((player, index) => (
+						<View key={index} style={styles.playerCard}>
+							<View style={styles.playerAvatar}>
+								<Text style={styles.playerAvatarText}>{player.name.charAt(0)}</Text>
+							</View>
+							<Text style={styles.playerName}>{player.name}</Text>
+							<Text style={styles.playerRating}>★ {player.rating}</Text>
+						</View>
+					))}
+				</View>
+
+				{/* New Venues */}
+				<View style={styles.sectionHeader}>
+					<Text style={styles.sectionTitle}>New Venues</Text>
+				</View>
+				<TouchableOpacity
+					style={styles.venueCard}
+					activeOpacity={0.9}
+					onPress={() => navigation.navigate('Venues')}
+				>
+					<ImageBackground
+						source={require('../../assets/login-image.png')}
+						style={styles.venueImage}
+						imageStyle={styles.venueImageStyle}
 					>
 						<LinearGradient
-							colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.8)']}
-							style={styles.featuredOverlay}
+							colors={['transparent', 'rgba(0,0,0,0.7)']}
+							style={styles.venueGradient}
 						>
-							<View style={styles.liveBadge}>
-								<View style={styles.liveDot} />
-								<Text style={styles.liveText}>LIVE</Text>
+							<View style={styles.venueInfo}>
+								<Text style={styles.venueName}>Play Court Hall</Text>
+								<Text style={styles.venueMeta}>Bengaluru • ₹800/hr</Text>
 							</View>
-
-							<View style={styles.matchInfo}>
-								<Text style={styles.matchLeague}>PREMIER LEAGUE</Text>
-								<Text style={styles.matchTeams}>Man City vs Arsenal</Text>
-							</View>
+							<TouchableOpacity
+								style={styles.venueBookButton}
+								onPress={() => navigation.navigate('Venues')}
+							>
+								<Text style={styles.venueBookText}>Book</Text>
+							</TouchableOpacity>
 						</LinearGradient>
 					</ImageBackground>
 				</TouchableOpacity>
 
-				{/* Nearby Venues */}
-				<View style={styles.sectionHeader}>
-					<Text style={styles.sectionTitle}>Nearby Venues</Text>
-					<TouchableOpacity onPress={() => navigation.navigate('Venues')}>
-						<Text style={styles.seeAllText}>View All</Text>
-					</TouchableOpacity>
-				</View>
-
-				<ScrollView
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={styles.venuesList}
+				<TouchableOpacity
+					style={styles.venueCard}
+					activeOpacity={0.9}
+					onPress={() => navigation.navigate('Venues')}
 				>
-					<TouchableOpacity
-						style={styles.venueItem}
-						onPress={() => navigation.navigate('Venues')}
+					<ImageBackground
+						source={require('../../assets/dashboard-hero.png')}
+						style={styles.venueImage}
+						imageStyle={styles.venueImageStyle}
 					>
-						<Image
-							source={require('../../assets/dashboard-hero.png')}
-							style={styles.venueItemImage}
-						/>
-						<View style={styles.venueItemInfo}>
-							<Text style={styles.venueItemName}>Central Arena</Text>
-							<Text style={styles.venueItemMeta}>Football • 2km</Text>
-						</View>
-					</TouchableOpacity>
+						<LinearGradient
+							colors={['transparent', 'rgba(0,0,0,0.7)']}
+							style={styles.venueGradient}
+						>
+							<View style={styles.venueInfo}>
+								<Text style={styles.venueName}>Badmiton Indoor Collars</Text>
+								<Text style={styles.venueMeta}>Hyderabad • ₹600/hr</Text>
+							</View>
+							<TouchableOpacity
+								style={styles.venueBookButton}
+								onPress={() => navigation.navigate('Venues')}
+							>
+								<Text style={styles.venueBookText}>Book</Text>
+							</TouchableOpacity>
+						</LinearGradient>
+					</ImageBackground>
+				</TouchableOpacity>
 
-					<TouchableOpacity
-						style={styles.venueItem}
-						onPress={() => navigation.navigate('Venues')}
-					>
-						<View style={[styles.venueItemImage, { backgroundColor: '#333' }]} />
-						<View style={styles.venueItemInfo}>
-							<Text style={styles.venueItemName}>Urban Turf</Text>
-							<Text style={styles.venueItemMeta}>Cricket • 5km</Text>
-						</View>
-					</TouchableOpacity>
-
-					<TouchableOpacity
-						style={styles.venueItem}
-						onPress={() => navigation.navigate('Venues')}
-					>
-						<Image
-							source={require('../../assets/login-image.png')}
-							style={styles.venueItemImage}
-						/>
-						<View style={styles.venueItemInfo}>
-							<Text style={styles.venueItemName}>Sport Plaza</Text>
-							<Text style={styles.venueItemMeta}>Badminton • 3km</Text>
-						</View>
-					</TouchableOpacity>
-				</ScrollView>
-
-				{/* Placeholder for Bottom Padding */}
-				<View style={{ height: hp(12) }} />
+				{/* Padding for bottom nav */}
+				<View style={{ height: hp(10) }} />
 			</ScrollView>
-
-			{/* Floating AI Action Button */}
-			<TouchableOpacity style={styles.fabButton}>
-				<Ionicons name="flash" size={moderateScale(24)} color="#fff" />
-				<Text style={styles.fabText}>AI</Text>
-			</TouchableOpacity>
 
 			{/* Review Reminder Modal */}
 			<ReviewReminderModal
 				visible={showReviewReminder}
 				booking={currentReminderBooking}
-				onGiveRating={() => { }}
+				onGiveRating={() => { }} // Handled internally by modal
 				onSkip={handleSkipReminder}
 				onClose={handleCloseReminder}
 			/>
@@ -245,204 +413,393 @@ export const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#000000', // True Black
+		backgroundColor: '#F5F7FA',
 	},
 	scrollContent: {
-		paddingTop: hp(8),
-		paddingBottom: hp(5),
+		paddingTop: hp(6),
 	},
 	header: {
-		paddingHorizontal: wp(6),
-		marginBottom: hp(3),
 		flexDirection: 'row',
 		justifyContent: 'space-between',
-		alignItems: 'flex-start',
-	},
-	locationContainer: {
-		flexDirection: 'row',
 		alignItems: 'center',
-		marginBottom: hp(0.5),
+		paddingHorizontal: wp(5),
+		marginBottom: hp(2),
 	},
-	locationText: {
-		color: '#9CA3AF',
-		marginLeft: wp(1),
-		fontSize: fontScale(12),
-		fontFamily: 'Lexend-Medium',
-		marginTop: 2, // Alignment adjustment
-	},
-	greetingContainer: {
+	headerLeft: {
 		flexDirection: 'row',
 		alignItems: 'center',
 	},
-	greeting: {
-		fontSize: fontScale(24),
-		fontFamily: 'Lexend-Bold',
+	avatar: {
+		width: wp(12),
+		height: wp(12),
+		borderRadius: wp(6),
+		backgroundColor: colors.primary,
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginRight: wp(3),
+	},
+	avatarText: {
+		fontSize: fontScale(16),
+		fontWeight: '700',
 		color: '#fff',
 	},
-	greetingEmoji: {
-		fontSize: fontScale(20),
+	greeting: {
+		fontSize: fontScale(12),
+		color: '#999',
 	},
-	subGreeting: {
-		fontSize: fontScale(14),
-		color: '#9CA3AF',
-		fontFamily: 'Lexend-Regular',
-		marginTop: 2,
+	userName: {
+		fontSize: fontScale(16),
+		fontWeight: '700',
+		color: '#333',
+	},
+	headerRight: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	profileButton: {
+		width: wp(10),
+		height: wp(10),
+		borderRadius: wp(5),
+		backgroundColor: '#fff',
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginRight: wp(2),
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+		elevation: 3,
 	},
 	notificationButton: {
 		width: wp(10),
 		height: wp(10),
 		borderRadius: wp(5),
-		backgroundColor: '#1C1C1E',
+		backgroundColor: '#fff',
 		justifyContent: 'center',
 		alignItems: 'center',
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+		elevation: 3,
 	},
 	searchContainer: {
-		marginHorizontal: wp(6),
-		marginBottom: hp(4),
-		height: 52,
-		backgroundColor: '#1A1A1A',
-		borderRadius: 26, // Fully rounded
+		flexDirection: 'row',
+		paddingHorizontal: wp(5),
+		marginBottom: hp(2),
+	},
+	searchBar: {
+		flex: 1,
 		flexDirection: 'row',
 		alignItems: 'center',
-		paddingHorizontal: wp(5),
-		borderWidth: 1,
-		borderColor: 'rgba(57, 224, 121, 0.3)', // Subtle green border
-	},
-	searchIcon: {
+		backgroundColor: '#fff',
+		borderRadius: moderateScale(12),
+		paddingHorizontal: wp(4),
+		height: hp(6),
 		marginRight: wp(3),
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.05,
+		shadowRadius: 2,
+		elevation: 2,
 	},
 	searchInput: {
 		flex: 1,
-		color: '#fff',
-		fontFamily: 'Lexend-Regular',
+		marginLeft: wp(2),
 		fontSize: fontScale(14),
+		color: '#333',
+	},
+	menuButton: {
+		width: hp(6),
+		height: hp(6),
+		borderRadius: moderateScale(12),
+		backgroundColor: colors.primary,
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	categoryContainer: {
+		paddingHorizontal: wp(5),
+		marginBottom: hp(2),
+	},
+	categoryPill: {
+		paddingHorizontal: wp(5),
+		paddingVertical: hp(1),
+		borderRadius: moderateScale(20),
+		backgroundColor: '#fff',
+		marginRight: wp(2),
+	},
+	categoryPillActive: {
+		backgroundColor: colors.primary,
+	},
+	categoryText: {
+		fontSize: fontScale(13),
+		color: '#666',
+		fontWeight: '500',
+	},
+	categoryTextActive: {
+		color: '#fff',
+		fontWeight: '600',
+	},
+	heroCard: {
+		marginHorizontal: wp(5),
+		marginBottom: hp(3),
+		borderRadius: moderateScale(20),
+		overflow: 'hidden',
+		height: hp(22),
+	},
+	heroGradient: {
+		flex: 1,
+		flexDirection: 'row',
+		padding: wp(5),
+	},
+	heroImageBackground: {
+		borderRadius: moderateScale(20),
+	},
+	heroOverlay: {
+		flex: 1,
+		flexDirection: 'row',
+		padding: wp(5),
+	},
+	heroContent: {
+		flex: 1,
+		justifyContent: 'space-between',
+	},
+	heroTitle: {
+		fontSize: fontScale(20),
+		fontWeight: '700',
+		color: '#fff',
+		marginBottom: hp(0.5),
+	},
+	heroSubtitle: {
+		fontSize: fontScale(12),
+		color: 'rgba(255,255,255,0.8)',
+		lineHeight: fontScale(18),
+	},
+	heroButton: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		alignSelf: 'flex-start',
+		backgroundColor: 'rgba(255,255,255,0.2)',
+		paddingHorizontal: wp(4),
+		paddingVertical: hp(1),
+		borderRadius: moderateScale(20),
+	},
+	heroButtonText: {
+		fontSize: fontScale(12),
+		color: '#fff',
+		fontWeight: '600',
+		marginRight: wp(1),
+	},
+	heroImageContainer: {
+		width: wp(30),
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	mockChart: {
+		flexDirection: 'row',
+		alignItems: 'flex-end',
+		height: hp(12),
+	},
+	chartBar: {
+		width: 4,
+		backgroundColor: '#4FBB81',
+		marginHorizontal: 2,
+		borderRadius: 2,
 	},
 	sectionHeader: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		paddingHorizontal: wp(6),
-		marginBottom: hp(2),
+		paddingHorizontal: wp(5),
+		marginBottom: hp(1.5),
 	},
 	sectionTitle: {
-		fontSize: fontScale(18),
-		fontFamily: 'Lexend-Bold',
-		color: '#fff',
+		fontSize: fontScale(16),
+		fontWeight: '700',
+		color: '#333',
 	},
-	seeAllText: {
-		color: colors.primary, // #39E079
-		fontSize: fontScale(12),
-		fontFamily: 'Lexend-Bold',
+	seeAll: {
+		fontSize: fontScale(13),
+		color: colors.primary,
+		fontWeight: '500',
 	},
-	featuredCard: {
-		marginHorizontal: wp(6),
-		height: hp(22),
-		marginBottom: hp(4),
-		borderRadius: 24,
+	eventsContainer: {
+		paddingHorizontal: wp(5),
+		marginBottom: hp(3),
+	},
+	eventCard: {
+		width: wp(35),
+		height: hp(18),
+		borderRadius: moderateScale(16),
+		marginRight: wp(3),
 		overflow: 'hidden',
 	},
-	featuredImage: {
+	eventCardContent: {
+		flex: 1,
+		padding: wp(3),
+		justifyContent: 'space-between',
+	},
+	eventTitle: {
+		fontSize: fontScale(14),
+		fontWeight: '600',
+		color: '#fff',
+	},
+	eventBookButton: {
+		alignSelf: 'flex-start',
+		backgroundColor: '#fff',
+		paddingHorizontal: wp(4),
+		paddingVertical: hp(0.5),
+		borderRadius: moderateScale(12),
+	},
+	eventBookText: {
+		fontSize: fontScale(12),
+		color: '#333',
+		fontWeight: '600',
+	},
+	eventGradient: {
+		position: 'absolute',
+		bottom: 0,
+		left: 0,
+		right: 0,
+		height: '50%',
+	},
+	servicesGrid: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		paddingHorizontal: wp(5),
+		marginBottom: hp(3),
+	},
+	serviceItem: {
+		width: '20%',
+		alignItems: 'center',
+		marginBottom: hp(2),
+	},
+	serviceIcon: {
+		width: wp(13),
+		height: wp(13),
+		borderRadius: wp(6.5),
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginBottom: hp(0.5),
+	},
+	serviceLabel: {
+		fontSize: fontScale(11),
+		color: '#666',
+		textAlign: 'center',
+	},
+	recommendedList: {
+		paddingHorizontal: wp(5),
+		marginBottom: hp(3),
+	},
+	recommendedItem: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		backgroundColor: '#fff',
+		borderRadius: moderateScale(12),
+		padding: wp(3),
+		marginBottom: hp(1),
+	},
+	recommendedIcon: {
+		width: wp(10),
+		height: wp(10),
+		borderRadius: wp(5),
+		backgroundColor: '#E0F7F4',
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginRight: wp(3),
+	},
+	recommendedContent: {
+		flex: 1,
+	},
+	recommendedTitle: {
+		fontSize: fontScale(14),
+		fontWeight: '600',
+		color: '#333',
+		marginBottom: 2,
+	},
+	recommendedMeta: {
+		fontSize: fontScale(12),
+		color: '#999',
+	},
+	recommendedBadge: {
+		padding: wp(1),
+	},
+	playersRow: {
+		flexDirection: 'row',
+		paddingHorizontal: wp(5),
+		marginBottom: hp(3),
+	},
+	playerCard: {
+		alignItems: 'center',
+		marginRight: wp(5),
+	},
+	playerAvatar: {
+		width: wp(16),
+		height: wp(16),
+		borderRadius: wp(8),
+		backgroundColor: colors.primary,
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginBottom: hp(0.5),
+	},
+	playerAvatarText: {
+		fontSize: fontScale(18),
+		fontWeight: '700',
+		color: '#fff',
+	},
+	playerName: {
+		fontSize: fontScale(13),
+		fontWeight: '600',
+		color: '#333',
+		marginBottom: 2,
+	},
+	playerRating: {
+		fontSize: fontScale(12),
+		color: '#FFB800',
+	},
+	venueCard: {
+		marginHorizontal: wp(5),
+		marginBottom: hp(2),
+		borderRadius: moderateScale(16),
+		overflow: 'hidden',
+		height: hp(25),
+	},
+	venueImage: {
 		width: '100%',
 		height: '100%',
 	},
-	featuredImageStyle: {
-		borderRadius: 24,
+	venueImageStyle: {
+		borderRadius: moderateScale(16),
 	},
-	featuredOverlay: {
+	venueGradient: {
 		flex: 1,
-		justifyContent: 'space-between',
-		padding: wp(5),
+		justifyContent: 'flex-end',
+		padding: wp(4),
 	},
-	liveBadge: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		backgroundColor: '#FF453A',
-		paddingHorizontal: wp(3),
-		paddingVertical: hp(0.5),
-		borderRadius: 12,
+	venueInfo: {
+		marginBottom: hp(1),
+	},
+	venueName: {
+		fontSize: fontScale(16),
+		fontWeight: '700',
+		color: '#fff',
+		marginBottom: 4,
+	},
+	venueMeta: {
+		fontSize: fontScale(13),
+		color: 'rgba(255,255,255,0.9)',
+	},
+	venueBookButton: {
 		alignSelf: 'flex-start',
-	},
-	liveDot: {
-		width: 6,
-		height: 6,
-		borderRadius: 3,
-		backgroundColor: '#fff',
-		marginRight: wp(1.5),
-	},
-	liveText: {
-		color: '#fff',
-		fontSize: fontScale(10),
-		fontFamily: 'Lexend-Bold',
-		letterSpacing: 1,
-	},
-	matchInfo: {},
-	matchLeague: {
-		color: colors.primary,
-		fontSize: fontScale(12),
-		fontFamily: 'Lexend-Bold',
-		marginBottom: 2,
-		letterSpacing: 0.5,
-	},
-	matchTeams: {
-		color: '#fff',
-		fontSize: fontScale(18),
-		fontFamily: 'Lexend-Bold',
-	},
-	venuesList: {
+		backgroundColor: '#FF4757',
 		paddingHorizontal: wp(6),
+		paddingVertical: hp(0.8),
+		borderRadius: moderateScale(20),
 	},
-	venueItem: {
-		width: wp(40),
-		marginRight: wp(4),
-	},
-	venueItemImage: {
-		width: '100%',
-		height: hp(12),
-		borderTopLeftRadius: 16,
-		borderTopRightRadius: 16,
-		borderBottomLeftRadius: 0,
-		borderBottomRightRadius: 0,
-	},
-	venueItemInfo: {
-		backgroundColor: '#1A1A1A', // Darker surface
-		borderBottomLeftRadius: 16,
-		borderBottomRightRadius: 16,
-		padding: wp(3),
-	},
-	venueItemName: {
+	venueBookText: {
+		fontSize: fontScale(13),
 		color: '#fff',
-		fontSize: fontScale(14),
-		fontFamily: 'Lexend-Bold',
-		marginBottom: 2,
-	},
-	venueItemMeta: {
-		color: '#9CA3AF',
-		fontSize: fontScale(12),
-		fontFamily: 'Lexend-Regular',
-	},
-	fabButton: {
-		position: 'absolute',
-		bottom: hp(12), // Above tab bar
-		right: wp(6),
-		width: 56,
-		height: 56,
-		borderRadius: 28,
-		backgroundColor: '#1A1A1A', // Dark surface
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		shadowColor: '#000',
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.3,
-		shadowRadius: 8,
-		elevation: 6,
-	},
-	fabText: {
-		color: colors.primary,
-		fontSize: fontScale(10),
-		fontFamily: 'Lexend-Bold',
-		marginTop: -2,
+		fontWeight: '600',
 	},
 });
 

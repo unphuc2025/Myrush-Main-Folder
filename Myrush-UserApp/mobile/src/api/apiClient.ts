@@ -74,6 +74,7 @@ class ApiClient {
 
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
+            // Debug log to see which token is being used for each request
             try {
                 const shortToken = `${token.substring(0, 12)}...${token.substring(token.length - 8)}`;
                 console.log('[API Client] Using auth token for', endpoint, ':', shortToken);
@@ -87,44 +88,31 @@ class ApiClient {
         const url = `${this.baseUrl}${endpoint}`;
         console.log('[API Client] Request:', url, options.method || 'GET');
 
-        // Add timeout logic
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        const response = await fetch(url, {
+            ...options,
+            headers,
+        });
 
-        try {
-            const response = await fetch(url, {
-                ...options,
-                headers,
-                signal: controller.signal as any,
-            });
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-                try {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const error = await response.json();
-                        errorMessage = error.detail || error.message || errorMessage;
-                    } else {
-                        const text = await response.text();
-                        console.error('Non-JSON error response:', text.substring(0, 200));
-                        errorMessage = `Server error: ${response.status}`;
-                    }
-                } catch (e) {
-                    // Failed to parse error, use default message
-                    console.error('Error parsing error response:', e);
+        if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const error = await response.json();
+                    errorMessage = error.detail || error.message || errorMessage;
+                } else {
+                    const text = await response.text();
+                    console.error('Non-JSON error response:', text.substring(0, 200));
+                    errorMessage = `Server error: ${response.status}`;
                 }
-                throw new Error(errorMessage);
+            } catch (e) {
+                // Failed to parse error, use default message
+                console.error('Error parsing error response:', e);
             }
-
-            return response.json();
-        } catch (error: any) {
-            if (error.name === 'AbortError') {
-                throw new Error('Request timed out');
-            }
-            throw error;
+            throw new Error(errorMessage);
         }
+
+        return response.json();
     }
 
     /**

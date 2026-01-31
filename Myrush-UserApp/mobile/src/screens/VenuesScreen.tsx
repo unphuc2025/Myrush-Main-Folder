@@ -570,7 +570,7 @@ const VenuesScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background.primary,
+        backgroundColor: '#F5F7FA',
     },
     header: {
         flexDirection: 'row',
@@ -578,9 +578,9 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: wp(4),
         paddingVertical: hp(2),
-        backgroundColor: colors.background.secondary,
+        backgroundColor: '#fff',
         borderBottomWidth: 1,
-        borderBottomColor: colors.border.dark,
+        borderBottomColor: '#F0F0F0',
     },
     backButton: {
         width: moderateScale(40),
@@ -597,11 +597,11 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: fontScale(18),
         fontWeight: '600',
-        color: colors.text.primary,
+        color: '#333',
     },
     headerSubtitle: {
         fontSize: fontScale(12),
-        color: colors.text.secondary,
+        color: '#666',
         marginTop: 2,
     },
     headerRight: {
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     filterContainer: {
-        backgroundColor: colors.background.secondary,
+        backgroundColor: '#fff',
         borderBottomWidth: 1,
         borderBottomColor: '#F0F0F0',
     },
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
     },
     filterChipText: {
         fontSize: fontScale(13),
-        color: colors.text.secondary,
+        color: '#666',
         fontWeight: '500',
     },
     filterChipTextActive: {
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: hp(2),
         fontSize: fontScale(14),
-        color: colors.text.secondary,
+        color: '#666',
     },
     emptyContainer: {
         flex: 1,
@@ -662,12 +662,12 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontSize: fontScale(18),
         fontWeight: '600',
-        color: colors.text.primary,
+        color: '#333',
         marginTop: hp(2),
     },
     emptyText: {
         fontSize: fontScale(14),
-        color: colors.text.secondary,
+        color: '#666',
         textAlign: 'center',
         marginTop: hp(1),
     },
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
         padding: wp(4),
     },
     venueCard: {
-        backgroundColor: colors.background.secondary,
+        backgroundColor: '#fff',
         borderRadius: moderateScale(16),
         marginBottom: hp(2),
         overflow: 'hidden',
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
     venueName: {
         fontSize: fontScale(16),
         fontWeight: '600',
-        color: colors.text.primary,
+        color: '#333',
         marginBottom: hp(1),
     },
     venueMetaRow: {
@@ -713,12 +713,12 @@ const styles = StyleSheet.create({
     },
     venueMeta: {
         fontSize: fontScale(13),
-        color: colors.text.secondary,
+        color: '#666',
         marginLeft: wp(1),
     },
     description: {
         fontSize: fontScale(13),
-        color: colors.text.secondary,
+        color: '#666',
         lineHeight: fontScale(18),
         marginBottom: hp(1),
     },
@@ -742,7 +742,7 @@ const styles = StyleSheet.create({
     },
     moreSports: {
         fontSize: fontScale(11),
-        color: colors.text.secondary,
+        color: '#666',
         alignSelf: 'center',
     },
     priceRow: {
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
     },
     priceLabel: {
         fontSize: fontScale(12),
-        color: colors.text.secondary,
+        color: '#666',
         marginRight: wp(2),
     },
     price: {
@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
     },
     photoCountText: {
         fontSize: fontScale(12),
-        color: colors.text.secondary,
+        color: '#666',
         marginLeft: wp(1),
     },
     videoCount: {
@@ -777,14 +777,14 @@ const styles = StyleSheet.create({
     },
     videoCountText: {
         fontSize: fontScale(12),
-        color: colors.text.secondary,
+        color: '#666',
         marginLeft: wp(1),
     },
     bookButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.primary,
+        backgroundColor: '#2196F3',
         paddingVertical: hp(1.5),
         borderRadius: moderateScale(12),
         marginTop: hp(1.5),
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: colors.background.secondary,
+        backgroundColor: '#fff',
         borderTopLeftRadius: moderateScale(20),
         borderTopRightRadius: moderateScale(20),
         maxHeight: hp(80),
@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
     filterModalTitle: {
         fontSize: fontScale(18),
         fontWeight: '600',
-        color: colors.text.primary,
+        color: '#333',
     },
     closeButton: {
         width: moderateScale(32),
@@ -840,7 +840,7 @@ const styles = StyleSheet.create({
     filterSectionTitle: {
         fontSize: fontScale(16),
         fontWeight: '600',
-        color: colors.text.primary,
+        color: '#333',
         marginBottom: hp(1.5),
     },
     filterEmptyText: {
@@ -867,7 +867,7 @@ const styles = StyleSheet.create({
     },
     locationChipText: {
         fontSize: fontScale(14),
-        color: colors.text.secondary,
+        color: '#666',
         fontWeight: '500',
     },
     locationChipTextActive: {
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     },
     gameTypeChipText: {
         fontSize: fontScale(13),
-        color: colors.text.secondary,
+        color: '#666',
         fontWeight: '500',
     },
     gameTypeChipTextActive: {
@@ -924,7 +924,7 @@ const styles = StyleSheet.create({
     },
     priceChipText: {
         fontSize: fontScale(14),
-        color: colors.text.secondary,
+        color: '#666',
         fontWeight: '500',
     },
     priceChipTextActive: {
@@ -949,7 +949,7 @@ const styles = StyleSheet.create({
     },
     clearButtonText: {
         fontSize: fontScale(16),
-        color: colors.text.secondary,
+        color: '#666',
         fontWeight: '600',
     },
     applyButton: {
