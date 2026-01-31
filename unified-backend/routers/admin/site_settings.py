@@ -7,6 +7,7 @@ from dependencies import require_super_admin
 import os
 import shutil
 from datetime import datetime
+from utils import s3_utils
 
 router = APIRouter(
     prefix="/settings",
@@ -32,7 +33,7 @@ def get_site_settings(db: Session = Depends(get_db)):
     return settings
 
 @router.put("", response_model=schemas.SiteSettingResponse, dependencies=[Depends(require_super_admin)])
-def update_site_settings(
+async def update_site_settings(
     email: str = Form(...),
     contact_number: str = Form(...),
     address: str = Form(...),
@@ -57,19 +58,11 @@ def update_site_settings(
         settings.copyright_text = copyright_text
 
     if site_logo:
-        # Create upload directory if it doesn't exist
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        
-        # specific logic to save file with a safe name
-        file_extension = os.path.splitext(site_logo.filename)[1]
-        file_name = f"site_logo{file_extension}"
-        file_path = os.path.join(UPLOAD_DIR, file_name)
-        
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(site_logo.file, buffer)
-            
-        # Store relative path or URL
-        settings.site_logo = f"/uploads/settings/{file_name}"
+        try:
+            url = await s3_utils.upload_file_to_s3(site_logo, folder="settings")
+            settings.site_logo = url
+        except Exception as e:
+             raise HTTPException(status_code=500, detail=f"Failed to upload logo: {str(e)}")
 
     db.commit()
     db.refresh(settings)

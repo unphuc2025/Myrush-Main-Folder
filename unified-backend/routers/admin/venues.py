@@ -7,6 +7,7 @@ import uuid
 import os
 import shutil
 from pathlib import Path
+from utils import s3_utils
 
 router = APIRouter(
     prefix="/venues",
@@ -53,28 +54,24 @@ async def create_venue(
     if photos:
         for photo in photos:
             if photo.filename:
-                file_extension = os.path.splitext(photo.filename)[1]
-                unique_filename = f"photo_{uuid.uuid4()}{file_extension}"
-                file_path = UPLOAD_DIR / unique_filename
-                
-                with file_path.open("wb") as buffer:
-                    shutil.copyfileobj(photo.file, buffer)
-                
-                photo_urls.append(f"/uploads/venues/{unique_filename}")
+                try:
+                    url = await s3_utils.upload_file_to_s3(photo, folder="venues/photos")
+                    photo_urls.append(url)
+                except Exception as e:
+                    print(f"Error uploading photo: {e}")
+                    pass
 
     # Handle video uploads
     video_urls = []
     if videos:
         for video in videos:
             if video.filename:
-                file_extension = os.path.splitext(video.filename)[1]
-                unique_filename = f"video_{uuid.uuid4()}{file_extension}"
-                file_path = UPLOAD_DIR / unique_filename
-                
-                with file_path.open("wb") as buffer:
-                    shutil.copyfileobj(video.file, buffer)
-                
-                video_urls.append(f"/uploads/venues/{unique_filename}")
+                try:
+                    url = await s3_utils.upload_file_to_s3(video, folder="venues/videos")
+                    video_urls.append(url)
+                except Exception as e:
+                    print(f"Error uploading video: {e}")
+                    pass
 
     db_venue = models.AdminVenue(
         game_type=game_type,
@@ -121,27 +118,23 @@ async def update_venue(
     if photos:
         for photo in photos:
             if photo.filename:
-                file_extension = os.path.splitext(photo.filename)[1]
-                unique_filename = f"photo_{uuid.uuid4()}{file_extension}"
-                file_path = UPLOAD_DIR / unique_filename
-                
-                with file_path.open("wb") as buffer:
-                    shutil.copyfileobj(photo.file, buffer)
-                
-                current_photos.append(f"/uploads/venues/{unique_filename}")
+                try:
+                    url = await s3_utils.upload_file_to_s3(photo, folder="venues/photos")
+                    current_photos.append(url)
+                except Exception as e:
+                    print(f"Error uploading photo: {e}")
+                    pass
 
     current_videos = db_venue.videos or []
     if videos:
         for video in videos:
             if video.filename:
-                file_extension = os.path.splitext(video.filename)[1]
-                unique_filename = f"video_{uuid.uuid4()}{file_extension}"
-                file_path = UPLOAD_DIR / unique_filename
-                
-                with file_path.open("wb") as buffer:
-                    shutil.copyfileobj(video.file, buffer)
-                
-                current_videos.append(f"/uploads/venues/{unique_filename}")
+                try:
+                    url = await s3_utils.upload_file_to_s3(video, folder="venues/videos")
+                    current_videos.append(url)
+                except Exception as e:
+                    print(f"Error uploading video: {e}")
+                    pass
 
     db_venue.game_type = game_type
     db_venue.court_name = court_name
