@@ -79,7 +79,7 @@ async def upload_file_to_s3(file: UploadFile, folder: str = "uploads") -> str:
             Key=s3_key,
             Body=file_content,
             ContentType=file.content_type
-            # ACL='public-read' # Optional: if bucket is not public by default
+            ACL='public-read' # Optional: if bucket is not public by default
         )
         
         # Reset file cursor for further use if needed (standard practice)
