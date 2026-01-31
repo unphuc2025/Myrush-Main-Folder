@@ -78,7 +78,7 @@ async def upload_file_to_s3(file: UploadFile, folder: str = "uploads") -> str:
             Bucket=S3_BUCKET_NAME,
             Key=s3_key,
             Body=file_content,
-            ContentType=file.content_type
+            ContentType=file.content_type,
             ACL='public-read' # Optional: if bucket is not public by default
         )
         
