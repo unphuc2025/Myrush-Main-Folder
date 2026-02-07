@@ -3,26 +3,10 @@ import { fontScale } from '../utils/responsive';
 
 // Font families
 export const fontFamilies = {
-  regular: Platform.select({
-    ios: 'System',
-    android: 'Roboto',
-    default: 'System',
-  }),
-  medium: Platform.select({
-    ios: 'System',
-    android: 'Roboto-Medium',
-    default: 'System',
-  }),
-  bold: Platform.select({
-    ios: 'System',
-    android: 'Roboto-Bold',
-    default: 'System',
-  }),
-  light: Platform.select({
-    ios: 'System',
-    android: 'Roboto-Light',
-    default: 'System',
-  }),
+  regular: 'Lexend_400Regular',
+  medium: 'Lexend_500Medium',
+  bold: 'Lexend_700Bold',
+  light: 'Lexend_300Light',
 };
 
 // Font sizes (scaled)
@@ -59,53 +43,63 @@ export const fontWeights = {
 // Typography presets
 export const typography = {
   h1: {
+    fontFamily: 'Lexend_900Black', // Design System: Display XL (Black 900)
     fontSize: fontSizes['5xl'],
-    fontWeight: fontWeights.bold,
+    fontWeight: undefined, // Let font family handle weight
     lineHeight: fontSizes['5xl'] * lineHeights.tight,
   },
   h2: {
+    fontFamily: 'Lexend_700Bold',
     fontSize: fontSizes['4xl'],
-    fontWeight: fontWeights.bold,
+    fontWeight: undefined,
     lineHeight: fontSizes['4xl'] * lineHeights.tight,
   },
   h3: {
+    fontFamily: 'Lexend_700Bold', // Design System: Heading L
     fontSize: fontSizes['3xl'],
-    fontWeight: fontWeights.semibold,
+    fontWeight: undefined,
     lineHeight: fontSizes['3xl'] * lineHeights.tight,
   },
   h4: {
+    fontFamily: 'Lexend_600SemiBold',
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.semibold,
+    fontWeight: undefined,
     lineHeight: fontSizes['2xl'] * lineHeights.normal,
   },
   h5: {
+    fontFamily: 'Lexend_500Medium',
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.medium,
+    fontWeight: undefined,
     lineHeight: fontSizes.xl * lineHeights.normal,
   },
   body: {
+    fontFamily: 'Lexend_400Regular', // Design System: Body
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.normal,
+    fontWeight: undefined,
     lineHeight: fontSizes.lg * lineHeights.normal,
   },
   bodySmall: {
+    fontFamily: 'Lexend_400Regular',
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.normal,
+    fontWeight: undefined,
     lineHeight: fontSizes.md * lineHeights.normal,
   },
   caption: {
+    fontFamily: 'Lexend_300Light',
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.normal,
+    fontWeight: undefined,
     lineHeight: fontSizes.sm * lineHeights.normal,
   },
   button: {
+    fontFamily: 'Lexend_700Bold', // Design System: Label (Bold)
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
+    fontWeight: undefined,
     lineHeight: fontSizes.lg * lineHeights.tight,
   },
   label: {
+    fontFamily: 'Lexend_700Bold', // Design System: Label (Bold)
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.medium,
+    fontWeight: undefined,
     lineHeight: fontSizes.md * lineHeights.tight,
   },
 };

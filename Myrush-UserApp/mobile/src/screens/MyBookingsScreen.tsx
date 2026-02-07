@@ -280,6 +280,20 @@ const MyBookingsScreen: React.FC = () => {
                             <Ionicons name="ellipsis-horizontal" size={moderateScale(20)} color={colors.text.secondary} />
                         </TouchableOpacity>
                     </View>
+
+                    {/* Host Game Action for Upcoming Bookings */}
+                    {!isCompleted && booking.status.toLowerCase() !== 'cancelled' && (
+                        <TouchableOpacity
+                            style={styles.hostGameButton}
+                            onPress={() => navigation.navigate('PlayTab', {
+                                screen: 'HostGame',
+                                params: { bookingData: booking }
+                            } as any)}
+                        >
+                            <Ionicons name="game-controller-outline" size={16} color={colors.black} style={{ marginRight: 6 }} />
+                            <Text style={styles.hostGameText}>Host Game</Text>
+                        </TouchableOpacity>
+                    )}
                 </TouchableOpacity>
                 {/* Review Section Render */}
                 {showReviewSection && (
@@ -543,6 +557,20 @@ const styles = StyleSheet.create({
         paddingTop: hp(1),
         borderTopWidth: 1,
         borderTopColor: colors.border.light,
+    },
+    hostGameButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.primary,
+        borderRadius: moderateScale(8),
+        paddingVertical: hp(1),
+        marginTop: hp(1.5),
+    },
+    hostGameText: {
+        fontSize: fontScale(14),
+        fontWeight: 'bold',
+        color: colors.black,
     },
     amountText: {
         fontSize: fontScale(20),

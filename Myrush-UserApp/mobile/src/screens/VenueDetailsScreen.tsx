@@ -9,10 +9,14 @@ import {
     Image,
     Dimensions,
     ActivityIndicator,
+    StatusBar,
+    Linking,
+    Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
@@ -99,54 +103,95 @@ const VenueDetailsScreen: React.FC = () => {
         fetchRatingsAndReviews();
     }, [venue.id]);
 
+    const openMap = () => {
+        const label = encodeURIComponent(venue.name);
+        // This is a basic map intent; in a real app you'd use lat/long if available
+        const url = Platform.select({
+            ios: `maps:0,0?q=${label}`,
+            android: `geo:0,0?q=${label}`,
+        });
+        if (url) {
+            Linking.canOpenURL(url).then(supported => {
+                if (supported) {
+                    Linking.openURL(url);
+                }
+            });
+        }
+    };
+
     return (
         <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Header Image */}
+            <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(15) }}>
+                {/* Immersive Header Image */}
                 <ImageBackground
                     source={venue.image}
                     style={styles.headerImage}
                     imageStyle={styles.headerImageStyle}
                 >
-                    <View style={styles.headerOverlay}>
-                        <View style={styles.headerIcons}>
-                            <TouchableOpacity
-                                style={styles.headerButton}
-                                onPress={() => navigation.goBack()}
-                            >
-                                <Ionicons name="arrow-back" size={moderateScale(24)} color="#333" />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.headerButton}
-                                onPress={() => setIsFavorite(!isFavorite)}
-                            >
-                                <Ionicons
-                                    name={isFavorite ? 'heart' : 'heart-outline'}
-                                    size={moderateScale(24)}
-                                    color={isFavorite ? '#FF4757' : '#333'}
-                                />
-                            </TouchableOpacity>
+                    <LinearGradient
+                        colors={['rgba(0,0,0,0.6)', 'transparent', 'rgba(0,0,0,0.8)', '#000000']}
+                        style={styles.gradientOverlay}
+                    >
+                        <View style={styles.headerSafeArea}>
+                            <View style={styles.headerIcons}>
+                                <TouchableOpacity
+                                    style={styles.headerButton}
+                                    onPress={() => navigation.goBack()}
+                                >
+                                    <Ionicons name="arrow-back" size={moderateScale(24)} color="#fff" />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.headerButton}
+                                    onPress={() => setIsFavorite(!isFavorite)}
+                                >
+                                    <Ionicons
+                                        name={isFavorite ? 'heart' : 'heart-outline'}
+                                        size={moderateScale(24)}
+                                        color={isFavorite ? '#FF4757' : '#fff'}
+                                    />
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    </View>
+                    </LinearGradient>
                 </ImageBackground>
 
-                {/* Venue Info */}
+                {/* Venue Info Content */}
                 <View style={styles.content}>
-                    <Text style={styles.venueName}>{venue.name}</Text>
-                    <View style={styles.locationRow}>
-                        <Ionicons name="location-outline" size={moderateScale(16)} color="#999" />
-                        <Text style={styles.locationText}>{venue.location}</Text>
+                    <View style={styles.titleSection}>
+                        <Text style={styles.venueName}>{venue.name}</Text>
+                        <TouchableOpacity style={styles.locationRow} onPress={openMap}>
+                            <Ionicons name="location-outline" size={moderateScale(16)} color={colors.primary} />
+                            <Text style={styles.locationText}>{venue.location}</Text>
+                            <Ionicons name="chevron-forward" size={moderateScale(14)} color="#666" />
+                        </TouchableOpacity>
                     </View>
-                    <View style={styles.ratingRow}>
-                        <Ionicons name="star" size={moderateScale(16)} color="#FFB800" />
-                        <Text style={styles.ratingText}>{venue.rating}</Text>
-                        <Text style={styles.reviewsText}>({venue.reviews} reviews)</Text>
+
+                    <View style={styles.statsRow}>
+                        <View style={styles.statItem}>
+                            <View style={styles.ratingBadge}>
+                                <Ionicons name="star" size={moderateScale(14)} color="#000" />
+                                <Text style={styles.ratingValue}>{venue.rating.toFixed(1)}</Text>
+                            </View>
+                            <Text style={styles.statLabel}>{venue.reviews} Reviews</Text>
+                        </View>
+                        <View style={styles.divider} />
+                        <View style={styles.statItem}>
+                            <Ionicons name="time-outline" size={moderateScale(20)} color="#ccc" />
+                            <Text style={styles.statLabel}>Open 24/7</Text>
+                        </View>
+                        <View style={styles.divider} />
+                        <View style={styles.statItem}>
+                            <Ionicons name="navigate-outline" size={moderateScale(20)} color="#ccc" />
+                            <Text style={styles.statLabel}>2.5 km</Text>
+                        </View>
                     </View>
 
                     {/* Amenities */}
                     {venue.amenities && venue.amenities.length > 0 && (
-                        <>
-                            <Text style={styles.sectionTitle}>Amenities</Text>
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>AMENITIES</Text>
                             <View style={styles.facilitiesGrid}>
                                 {venue.amenities.map((amenity: any, index: number) => (
                                     <View key={index} style={styles.facilityItem}>
@@ -159,110 +204,116 @@ const VenueDetailsScreen: React.FC = () => {
                                                 />
                                             ) : (
                                                 <Ionicons
-                                                    name="star-outline"
+                                                    name="checkmark-circle-outline"
                                                     size={moderateScale(24)}
                                                     color={colors.primary}
                                                 />
                                             )}
                                         </View>
-                                        <Text style={styles.facilityLabel}>{amenity.name}</Text>
+                                        <Text style={styles.facilityLabel} numberOfLines={1}>{amenity.name}</Text>
                                     </View>
                                 ))}
                             </View>
-                        </>
+                        </View>
                     )}
 
                     {/* About */}
-                    <Text style={styles.sectionTitle}>About</Text>
-                    <Text style={styles.aboutText}>{venue.about}</Text>
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>ABOUT VENUE</Text>
+                        <Text style={styles.aboutText}>{venue.about}</Text>
+                    </View>
 
                     {/* Terms and Conditions */}
                     {venue.terms_and_conditions && (
-                        <>
-                            <Text style={styles.sectionTitle}>Terms & Conditions</Text>
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>TERMS & CONDITIONS</Text>
                             <Text style={styles.termsText}>{venue.terms_and_conditions}</Text>
-                        </>
+                        </View>
                     )}
 
                     {/* Reviews */}
-                    <Text style={styles.sectionTitle}>Reviews</Text>
-                    {isLoadingRatings ? (
-                        <View style={styles.reviewsContainer}>
-                            <ActivityIndicator size="large" color={colors.primary} />
-                            <Text style={styles.loadingText}>Loading reviews...</Text>
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>REVIEWS</Text>
+                            {venue.reviews > 0 && (
+                                <TouchableOpacity>
+                                    <Text style={styles.seeAllText}>See All</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
-                    ) : ratings.total_reviews === 0 ? (
-                        <View style={styles.noReviewsContainer}>
-                            <Ionicons name="star-outline" size={moderateScale(48)} color="#ccc" />
-                            <Text style={styles.noReviewsText}>No reviews yet</Text>
-                            <Text style={styles.noReviewsSubtext}>Be the first to review this court!</Text>
-                        </View>
-                    ) : (
-                        <>
-                            {/* Rating Summary */}
-                            <View style={styles.reviewsContainer}>
-                                <Text style={styles.reviewsRating}>{ratings.average_rating.toFixed(1)}</Text>
-                                <View style={styles.starsContainer}>
-                                    {[...Array(5)].map((_, i) => (
-                                        <Ionicons
-                                            key={i}
-                                            name={i < Math.round(ratings.average_rating) ? 'star' : 'star-outline'}
-                                            size={moderateScale(20)}
-                                            color="#FFB800"
-                                        />
-                                    ))}
-                                </View>
-                                <Text style={styles.reviewsCount}>{ratings.total_reviews} reviews</Text>
+
+                        {isLoadingRatings ? (
+                            <View style={styles.loadingState}>
+                                <ActivityIndicator size="small" color={colors.primary} />
                             </View>
-
-                            {/* Reviews List */}
-                            {reviews.length > 0 && reviews.map((review) => (
-                                <View key={review.id} style={styles.reviewCard}>
-                                    <View style={styles.reviewHeader}>
-                                        <Text style={styles.reviewUserName}>{review.user_name}</Text>
-                                        <View style={styles.reviewStars}>
-                                            {[...Array(review.rating)].map((_, i) => (
-                                                <Ionicons key={i} name="star" size={moderateScale(14)} color="#FFB800" />
-                                            ))}
+                        ) : ratings.total_reviews === 0 ? (
+                            <View style={styles.emptyState}>
+                                <Ionicons name="chatbubble-outline" size={moderateScale(32)} color="#333" />
+                                <Text style={styles.emptyStateText}>No reviews yet</Text>
+                            </View>
+                        ) : (
+                            <View style={styles.reviewsList}>
+                                {reviews.map((review, idx) => (
+                                    <View key={review.id || idx} style={styles.reviewCard}>
+                                        <View style={styles.reviewHeader}>
+                                            <View style={styles.reviewUser}>
+                                                <View style={styles.avatarPlaceholder}>
+                                                    <Text style={styles.avatarText}>
+                                                        {review.user_name ? review.user_name.charAt(0).toUpperCase() : 'U'}
+                                                    </Text>
+                                                </View>
+                                                <View>
+                                                    <Text style={styles.reviewUserName}>{review.user_name || 'Anonymous'}</Text>
+                                                    <Text style={styles.reviewDate}>
+                                                        {new Date(review.created_at).toLocaleDateString()}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                            <View style={styles.reviewRating}>
+                                                <Ionicons name="star" size={moderateScale(12)} color="#FFB800" />
+                                                <Text style={styles.reviewRatingText}>{review.rating}</Text>
+                                            </View>
                                         </View>
+                                        {review.review_text && (
+                                            <Text style={styles.reviewText}>{review.review_text}</Text>
+                                        )}
                                     </View>
-                                    {review.review_text && (
-                                        <Text style={styles.reviewText}>{review.review_text}</Text>
-                                    )}
-                                    <Text style={styles.reviewDate}>
-                                        {new Date(review.created_at).toLocaleDateString()}
-                                    </Text>
-                                </View>
-                            ))}
-                        </>
-                    )}
-
-                    {/* Spacer for fixed footer */}
-                    <View style={{ height: hp(12) }} />
+                                ))}
+                            </View>
+                        )}
+                    </View>
                 </View>
             </ScrollView>
 
             {/* Fixed Footer */}
+            <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)', '#000']}
+                style={styles.footerGradient}
+                pointerEvents="none"
+            />
             <View style={styles.footer}>
                 <View style={styles.priceContainer}>
-                    <Text style={styles.priceLabel}>Price</Text>
+                    <Text style={styles.priceLabel}>TOTAL PRICE</Text>
                     <View style={styles.priceRow}>
-                        <Text style={styles.priceAmount}>₹{venue.price}</Text>
-                        <Text style={styles.priceUnit}>/hour</Text>
+                        <Text style={styles.currencySymbol}>₹</Text>
+                        <Text style={styles.priceAmount}>{venue.price}</Text>
+                        <Text style={styles.priceUnit}>/hr</Text>
                     </View>
                 </View>
                 <TouchableOpacity
                     style={styles.bookButton}
                     onPress={() => navigation.navigate('SlotSelection', { venue: venue })}
+                    activeOpacity={0.8}
                 >
-                    <Text style={styles.bookButtonText}>Book Now</Text>
+                    <Text style={styles.bookButtonText}>BOOK SLOT</Text>
+                    <Ionicons name="arrow-forward" size={moderateScale(20)} color="#000" />
                 </TouchableOpacity>
             </View>
 
-            {/* Floating Cart Button */}
+            {/* Floating Cart Button (if needed) */}
             {cartItems > 0 && (
                 <TouchableOpacity style={styles.cartButton}>
-                    <Ionicons name="cart" size={moderateScale(24)} color="#fff" />
+                    <Ionicons name="cart" size={moderateScale(24)} color="#000" />
                     <View style={styles.cartBadge}>
                         <Text style={styles.cartBadgeText}>{cartItems}</Text>
                     </View>
@@ -275,185 +326,245 @@ const VenueDetailsScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA',
+        backgroundColor: '#000000',
     },
     headerImage: {
         width: width,
-        height: hp(35),
+        height: hp(45),
     },
     headerImageStyle: {
-        borderBottomLeftRadius: moderateScale(30),
-        borderBottomRightRadius: moderateScale(30),
+        // No radius, fully immersive
     },
-    headerOverlay: {
+    gradientOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.1)',
-        borderBottomLeftRadius: moderateScale(30),
-        borderBottomRightRadius: moderateScale(30),
+        justifyContent: 'space-between',
+    },
+    headerSafeArea: {
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 44,
     },
     headerIcons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: wp(5),
-        paddingTop: hp(6),
+        paddingTop: hp(1),
     },
     headerButton: {
-        width: wp(10),
-        height: wp(10),
-        borderRadius: wp(5),
-        backgroundColor: '#fff',
+        width: moderateScale(40),
+        height: moderateScale(40),
+        borderRadius: moderateScale(20),
+        backgroundColor: 'rgba(0,0,0,0.3)', // Glass effect
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        backdropFilter: 'blur(10px)', // Note: backdropFilter mostly works on web/some iOS views, mostly visual intent here
     },
     content: {
-        padding: wp(5),
+        paddingHorizontal: wp(5),
+        marginTop: -hp(4), // Overlap with image slightly if needed, but here we just flow naturally from the gradient
+    },
+    titleSection: {
+        marginBottom: hp(3),
     },
     venueName: {
-        fontSize: fontScale(22),
-        fontWeight: '700',
-        color: '#333',
+        fontSize: fontScale(28),
+        fontWeight: '900',
+        color: '#fff',
         marginBottom: hp(1),
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     locationRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: hp(1),
     },
     locationText: {
         fontSize: fontScale(14),
-        color: '#999',
+        color: '#ccc',
         marginLeft: wp(1),
+        marginRight: wp(1),
     },
-    ratingRow: {
+    statsRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: hp(3),
+        justifyContent: 'space-between',
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(16),
+        padding: moderateScale(16),
+        marginBottom: hp(4),
+        borderWidth: 1,
+        borderColor: '#333',
     },
-    ratingText: {
-        fontSize: fontScale(14),
-        fontWeight: '600',
-        color: '#333',
-        marginLeft: wp(1),
+    statItem: {
+        alignItems: 'center',
+        flex: 1,
     },
-    reviewsText: {
-        fontSize: fontScale(13),
-        color: '#999',
-        marginLeft: wp(1),
+    ratingBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.primary,
+        paddingHorizontal: wp(2),
+        paddingVertical: hp(0.3),
+        borderRadius: moderateScale(8),
+        marginBottom: hp(0.5),
+    },
+    ratingValue: {
+        fontSize: fontScale(12),
+        fontWeight: '800',
+        color: '#000',
+        marginLeft: 4,
+    },
+    statLabel: {
+        fontSize: fontScale(12),
+        color: '#9CA3AF',
+        marginTop: 4,
+    },
+    divider: {
+        width: 1,
+        height: '80%',
+        backgroundColor: '#333',
+    },
+    section: {
+        marginBottom: hp(4),
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: hp(2),
     },
     sectionTitle: {
-        fontSize: fontScale(18),
+        fontSize: fontScale(14),
         fontWeight: '700',
-        color: '#333',
+        color: '#9CA3AF',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
         marginBottom: hp(2),
-        marginTop: hp(2),
+    },
+    seeAllText: {
+        color: colors.primary,
+        fontSize: fontScale(14),
+        fontWeight: '600',
     },
     facilitiesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-between',
+        gap: moderateScale(12),
     },
     facilityItem: {
-        width: '22%',
+        width: '31%', // roughly 3 per row with gap
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(12),
+        padding: moderateScale(12),
         alignItems: 'center',
-        marginBottom: hp(2),
+        borderWidth: 1,
+        borderColor: '#333',
     },
     facilityIcon: {
-        width: wp(15),
-        height: wp(15),
-        borderRadius: wp(7.5),
-        backgroundColor: colors.brand.light,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: hp(0.5),
+        marginBottom: hp(1),
     },
     facilityLabel: {
-        fontSize: fontScale(11),
-        color: '#666',
+        fontSize: fontScale(12),
+        color: '#fff',
         textAlign: 'center',
+        fontWeight: '500',
     },
     aboutText: {
         fontSize: fontScale(14),
-        color: '#666',
+        color: '#ccc',
         lineHeight: fontScale(22),
     },
     termsText: {
-        fontSize: fontScale(14),
-        color: '#666',
-        lineHeight: fontScale(22),
-    },
-    reviewsContainer: {
-        alignItems: 'center',
-        paddingVertical: hp(2),
-    },
-    reviewsRating: {
-        fontSize: fontScale(36),
-        fontWeight: '700',
-        color: '#333',
-        marginBottom: hp(1),
-    },
-    starsContainer: {
-        flexDirection: 'row',
-        marginBottom: hp(0.5),
-    },
-    reviewsCount: {
         fontSize: fontScale(13),
         color: '#999',
+        lineHeight: fontScale(20),
     },
-    loadingText: {
-        marginTop: hp(1),
-        fontSize: fontScale(14),
-        color: '#999',
-    },
-    noReviewsContainer: {
+    loadingState: {
+        padding: hp(2),
         alignItems: 'center',
-        paddingVertical: hp(4),
     },
-    noReviewsText: {
-        fontSize: fontScale(16),
-        fontWeight: '600',
+    emptyState: {
+        padding: hp(3),
+        alignItems: 'center',
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(12),
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    emptyStateText: {
         color: '#666',
         marginTop: hp(1),
+        fontSize: fontScale(14),
     },
-    noReviewsSubtext: {
-        fontSize: fontScale(13),
-        color: '#999',
-        marginTop: hp(0.5),
+    reviewsList: {
+        gap: hp(2),
     },
     reviewCard: {
-        backgroundColor: '#F5F7FA',
-        padding: wp(4),
-        borderRadius: moderateScale(12),
-        marginBottom: hp(1.5),
+        backgroundColor: '#1C1C1E',
+        padding: moderateScale(16),
+        borderRadius: moderateScale(16),
+        borderWidth: 1,
+        borderColor: '#333',
     },
     reviewHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: hp(1.5),
+    },
+    reviewUser: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: hp(0.5),
+    },
+    avatarPlaceholder: {
+        width: moderateScale(36),
+        height: moderateScale(36),
+        borderRadius: moderateScale(18),
+        backgroundColor: '#333',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: wp(3),
+    },
+    avatarText: {
+        color: '#fff',
+        fontSize: fontScale(16),
+        fontWeight: '600',
     },
     reviewUserName: {
         fontSize: fontScale(14),
         fontWeight: '600',
-        color: '#333',
-    },
-    reviewStars: {
-        flexDirection: 'row',
-    },
-    reviewText: {
-        fontSize: fontScale(13),
-        color: '#666',
-        lineHeight: fontScale(20),
-        marginVertical: hp(0.5),
+        color: '#fff',
+        marginBottom: 2,
     },
     reviewDate: {
-        fontSize: fontScale(11),
-        color: '#999',
-        marginTop: hp(0.5),
+        fontSize: fontScale(12),
+        color: '#666',
+    },
+    reviewRating: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 184, 0, 0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    reviewRatingText: {
+        color: '#FFB800',
+        fontWeight: '700',
+        fontSize: fontScale(12),
+        marginLeft: 4,
+    },
+    reviewText: {
+        fontSize: fontScale(14),
+        color: '#ccc',
+        lineHeight: fontScale(20),
+    },
+    footerGradient: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: hp(20),
     },
     footer: {
         position: 'absolute',
@@ -463,61 +574,64 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#fff',
+        backgroundColor: '#1C1C1E',
         paddingHorizontal: wp(5),
-        paddingVertical: hp(2),
-        paddingBottom: hp(3),
+        paddingTop: hp(2.5),
+        paddingBottom: Platform.OS === 'ios' ? hp(4) : hp(3),
         borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 10,
+        borderTopColor: '#333',
     },
     priceContainer: {},
     priceLabel: {
-        fontSize: fontScale(12),
-        color: '#999',
-        marginBottom: 2,
+        fontSize: fontScale(10),
+        color: '#9CA3AF',
+        fontWeight: '700',
+        marginBottom: 4,
+        letterSpacing: 0.5,
     },
     priceRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
     },
+    currencySymbol: {
+        color: colors.primary,
+        fontSize: fontScale(18),
+        fontWeight: '700',
+        marginRight: 2,
+    },
     priceAmount: {
         fontSize: fontScale(24),
-        fontWeight: '700',
-        color: '#333',
+        fontWeight: '900',
+        color: '#fff',
     },
     priceUnit: {
-        fontSize: fontScale(14),
+        fontSize: fontScale(12),
+        fontWeight: '600',
         color: '#999',
-        marginLeft: wp(1),
+        marginLeft: 4,
     },
     bookButton: {
+        flexDirection: 'row',
         backgroundColor: colors.primary,
-        paddingHorizontal: wp(10),
+        paddingHorizontal: wp(8),
         paddingVertical: hp(1.8),
-        borderRadius: moderateScale(25),
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        borderRadius: moderateScale(100),
+        alignItems: 'center',
+        gap: wp(2),
     },
     bookButtonText: {
-        fontSize: fontScale(16),
-        fontWeight: '700',
-        color: '#fff',
+        fontSize: fontScale(14),
+        fontWeight: '800',
+        color: '#000',
+        letterSpacing: 0.5,
     },
     cartButton: {
         position: 'absolute',
         bottom: hp(14),
         right: wp(5),
-        width: wp(15),
-        height: wp(15),
-        borderRadius: wp(7.5),
+        width: wp(14),
+        height: wp(14),
+        borderRadius: wp(7),
         backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
@@ -529,18 +643,20 @@ const styles = StyleSheet.create({
     },
     cartBadge: {
         position: 'absolute',
-        top: -5,
-        right: -5,
+        top: -2,
+        right: -2,
         backgroundColor: '#FF4757',
         width: wp(5),
         height: wp(5),
         borderRadius: wp(2.5),
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#000',
     },
     cartBadgeText: {
         fontSize: fontScale(10),
-        fontWeight: '700',
+        fontWeight: '800',
         color: '#fff',
     },
 });

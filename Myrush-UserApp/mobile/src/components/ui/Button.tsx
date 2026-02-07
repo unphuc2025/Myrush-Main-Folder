@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.full, // Design System: rounded-full (999px)
   },
   primary: {
     backgroundColor: colors.primary,
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     ...typography.button,
   },
   primaryText: {
-    color: colors.white,
+    color: colors.black,
   },
   secondaryText: {
     color: colors.white,

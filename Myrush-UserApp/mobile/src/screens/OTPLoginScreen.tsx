@@ -1,17 +1,21 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity, ImageBackground,
+  View, Text, StyleSheet, TextInput, Image,
   KeyboardAvoidingView, Platform, Alert, Dimensions,
+  ImageBackground
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { useAuthStore } from '../store/authStore';
 import { colors } from '../theme/colors';
+import { typography } from '../theme/typography';
+import { spacing, borderRadius } from '../theme/spacing';
 import { RootStackParamList } from '../types';
+import { Container } from '../components/common/Container';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 
 const { width, height } = Dimensions.get('window');
 
@@ -78,11 +82,8 @@ const OTPLoginScreen: React.FC = () => {
       const { otpApi } = require('../api/otp');
       const verifyResponse = await otpApi.verifyOTP(formattedPhone, enteredOTP);
 
-      // Check if user needs to complete profile
       if (verifyResponse.needs_profile) {
         setIsLoading(false);
-        // For new users, store phone number AND OTP temporarily
-        // We'll need the OTP to complete registration with profile data
         Alert.alert(
           'Welcome!',
           'Please complete your profile to continue',
@@ -90,16 +91,14 @@ const OTPLoginScreen: React.FC = () => {
             {
               text: 'OK',
               onPress: () => {
-                // Store phone number and OTP temporarily in auth store
                 const { useAuthStore } = require('../store/authStore');
                 useAuthStore.setState({
                   user: {
                     id: '',
                     phoneNumber: formattedPhone,
                   },
-                  tempOTP: enteredOTP, // Store OTP for profile completion
+                  tempOTP: enteredOTP,
                 });
-                // Navigate to PlayerProfileScreen
                 navigation.navigate('PlayerProfile');
               }
             }
@@ -108,7 +107,6 @@ const OTPLoginScreen: React.FC = () => {
         return;
       }
 
-      // If we have access token, existing user - login directly
       if (verifyResponse.access_token) {
         const success = await loginWithPhone(formattedPhone, enteredOTP);
         if (!success) {
@@ -116,7 +114,6 @@ const OTPLoginScreen: React.FC = () => {
           setOtp(['', '', '', '', '']);
           otpInputs.current[0]?.focus();
         }
-        // Navigation handled by AppNavigator based on auth state
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Verification failed');
@@ -132,232 +129,266 @@ const OTPLoginScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <Container scrollable={false} backgroundColor="#000000" padding={false}>
+      {/* Hero Background Image */}
       <ImageBackground
         source={require('../../assets/login-image.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
         <LinearGradient
-          colors={['rgba(0, 50, 70, 0.85)', 'rgba(0, 80, 100, 0.75)', 'rgba(255, 255, 255, 0.95)']}
-          locations={[0, 0.5, 1]}
+          colors={['transparent', 'rgba(0,0,0,0.8)', '#000000']}
+          locations={[0.4, 0.7, 1]}
           style={styles.gradientOverlay}
         />
       </ImageBackground>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <SafeAreaView style={styles.safeArea} edges={['bottom']}>
-          <View style={styles.card}>
-            <Text style={styles.title}>SPORTS</Text>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <View style={styles.bottomSheetContainer}>
+
+          {/* Branding Section */}
+          <View style={styles.header}>
+            {/*<View style={styles.logoContainer}>
+              <Image
+                source={require('../../assets/icon.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>*/}
+            <Text style={styles.title}>RUSH</Text>
             <Text style={styles.subtitle}>
-              From football to badminton and tennis, get live games, training, and bookings in one place.
+              From football to badminton, get live games, training, and bookings.
             </Text>
+          </View>
+
+          {/* Form Section */}
+          <View style={styles.formContainer}>
             {!showOTP ? (
               <>
-                <View style={styles.inputContainer}>
-                  <Ionicons name="call-outline" size={moderateScale(20)} color="#999" style={styles.phoneIcon} />
-                  <TextInput
-                    style={styles.phoneInput}
-                    placeholder="Enter mobile number"
-                    placeholderTextColor="#999"
-                    keyboardType="phone-pad"
-                    maxLength={10}
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                  />
-                </View>
-                <TouchableOpacity
-                  style={[styles.continueButton, isLoading && styles.buttonDisabled]}
+                <Input
+                  label="Mobile Number"
+                  placeholder="Enter 10-digit number"
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  leftIcon={
+                    <View style={styles.flagContainer}>
+                      <Text style={styles.flagText}>+91</Text>
+                      <View style={styles.flagDivider} />
+                    </View>
+                  }
+                />
+
+                <Button
+                  title="Get OTP"
                   onPress={handleContinue}
-                  disabled={isLoading}
-                >
-                  <Text style={styles.continueButtonText}>{isLoading ? 'Sending...' : 'Next'}</Text>
-                  {!isLoading && <Ionicons name="arrow-forward" size={moderateScale(20)} color="#fff" />}
-                </TouchableOpacity>
+                  loading={isLoading}
+                  fullWidth
+                  style={styles.button}
+                />
               </>
             ) : (
               <>
-                <Text style={styles.otpTitle}>Enter OTP</Text>
-                <Text style={styles.otpSubtitle}>We've sent a 5-digit code to +91 {phoneNumber}</Text>
+                <View style={styles.otpHeader}>
+                  <Text style={styles.otpTitle}>Enter Code</Text>
+                  <Text style={styles.otpSubtitle}>
+                    Sent to +91 {phoneNumber}
+                  </Text>
+                </View>
+
                 <View style={styles.otpContainer}>
                   {otp.map((digit, index) => (
                     <TextInput
                       key={index}
                       ref={(ref) => { otpInputs.current[index] = ref; }}
-                      style={styles.otpInput}
+                      style={[
+                        styles.otpInput,
+                        digit ? styles.otpInputFilled : null,
+                      ]}
                       keyboardType="number-pad"
                       maxLength={1}
                       value={digit}
                       onChangeText={(value) => handleOtpChange(value, index)}
                       onKeyPress={(e) => handleKeyPress(e, index)}
+                      placeholderTextColor={colors.text.secondary}
                     />
                   ))}
                 </View>
-                <TouchableOpacity onPress={handleResendOTP}>
-                  <Text style={styles.resendText}>Resend OTP</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.changeNumberButton}
+
+                <Button
+                  title={isLoading ? 'Verifying...' : 'Verify & Login'}
+                  onPress={() => verifyOTP(otp.join(''))}
+                  loading={isLoading}
+                  fullWidth
+                  style={styles.button}
+                />
+
+                <View style={styles.footerActions}>
+                  <Text style={styles.resendText}>Didn't receive code?</Text>
+                  <Button
+                    title="Resend OTP"
+                    onPress={handleResendOTP}
+                    variant="ghost"
+                    size="small"
+                  />
+                </View>
+
+                <Button
+                  title="Change Number"
                   onPress={() => { setShowOTP(false); setOtp(['', '', '', '', '']); }}
-                >
-                  <Text style={styles.changeNumberText}>Change Number</Text>
-                </TouchableOpacity>
+                  variant="ghost"
+                  textStyle={styles.changeNumberText}
+                />
               </>
             )}
+
             <Text style={styles.termsText}>
               By continuing, you agree to our <Text style={styles.linkText}>Terms</Text> & <Text style={styles.linkText}>Privacy Policy</Text>.
             </Text>
           </View>
-        </SafeAreaView>
+        </View>
       </KeyboardAvoidingView>
-    </View>
+    </Container>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#003246'
-  },
   backgroundImage: {
     position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: height * 0.65, // Cover top 65%
     width: width,
-    height: height * 0.7,
-    top: 0
   },
   gradientOverlay: {
-    ...StyleSheet.absoluteFillObject
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '100%',
   },
   keyboardView: {
     flex: 1,
-    justifyContent: 'flex-end'
+    justifyContent: 'flex-end',
   },
-  safeArea: {
-    flex: 1,
-    justifyContent: 'flex-end'
+  bottomSheetContainer: {
+    paddingHorizontal: moderateScale(24),
+    paddingBottom: hp(5),
+    justifyContent: 'flex-end',
+    minHeight: height * 0.5, // Ensure it takes up bottom half
   },
-  card: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: moderateScale(30),
-    borderTopRightRadius: moderateScale(30),
-    paddingHorizontal: wp(6),
-    paddingTop: hp(3.5),
-    paddingBottom: hp(4),
-    minHeight: hp(40),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  logoContainer: {
+    marginBottom: spacing.md,
+    // Add shadow/glow effect
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
     elevation: 10,
   },
+  logo: {
+    width: moderateScale(80),
+    height: moderateScale(80),
+  },
   title: {
-    fontSize: fontScale(13),
-    fontWeight: '600',
-    color: colors.primary,
+    ...typography.h1,
+    color: colors.text.primary,
     textAlign: 'center',
-    letterSpacing: 3.5,
-    marginBottom: hp(1.5)
+    marginBottom: spacing.xs,
+    letterSpacing: 2,
   },
   subtitle: {
-    fontSize: fontScale(13.5),
-    color: '#555',
+    ...typography.body,
+    color: colors.text.secondary,
     textAlign: 'center',
-    lineHeight: fontScale(21),
-    marginBottom: hp(3.5),
-    paddingHorizontal: wp(3)
+    paddingHorizontal: spacing.xl,
+    marginBottom: spacing.xl,
   },
-  inputContainer: {
+  formContainer: {
+    width: '100%',
+  },
+  flagContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: moderateScale(12),
-    paddingHorizontal: wp(4),
-    marginBottom: hp(2.5),
-    height: hp(7),
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
+    paddingRight: spacing.sm,
   },
-  phoneIcon: {
-    marginRight: wp(3)
-  },
-  phoneInput: {
-    flex: 1,
-    fontSize: fontScale(15),
-    color: '#333'
-  },
-  continueButton: {
-    backgroundColor: colors.primary,
-    borderRadius: moderateScale(12),
-    height: hp(7),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: hp(2.5),
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.primaryLight
-  },
-  continueButtonText: {
-    color: '#fff',
-    fontSize: fontScale(16),
+  flagText: {
+    ...typography.body,
+    color: colors.text.primary,
     fontWeight: '600',
-    marginRight: wp(2)
+  },
+  flagDivider: {
+    width: 1,
+    height: '60%',
+    backgroundColor: colors.border.light,
+    marginLeft: spacing.sm,
+  },
+  button: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  otpHeader: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
   },
   otpTitle: {
-    fontSize: fontScale(18),
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: hp(1)
+    ...typography.h3,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   otpSubtitle: {
-    fontSize: fontScale(13),
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: hp(2.5)
+    ...typography.body,
+    color: colors.text.secondary,
   },
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: hp(2),
-    paddingHorizontal: wp(2)
+    marginBottom: spacing.xl,
   },
   otpInput: {
-    width: wp(12),
-    height: wp(12),
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: moderateScale(10),
+    width: wp(14),
+    height: wp(14),
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.background.secondary,
+    color: colors.text.primary,
+    fontSize: fontScale(24),
     textAlign: 'center',
-    fontSize: fontScale(20),
-    fontWeight: '600',
-    color: '#333',
-    backgroundColor: '#f9f9f9'
+    fontWeight: 'bold',
+    borderWidth: 1,
+    borderColor: colors.transparent,
+  },
+  otpInputFilled: {
+    borderColor: colors.primary,
+    backgroundColor: colors.background.tertiary,
+  },
+  footerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
   resendText: {
-    fontSize: fontScale(14),
-    color: colors.primary,
-    textAlign: 'center',
-    fontWeight: '500',
-    marginBottom: hp(1.5)
-  },
-  changeNumberButton: {
-    marginBottom: hp(2)
+    ...typography.bodySmall,
+    color: colors.text.secondary,
+    marginRight: spacing.sm,
   },
   changeNumberText: {
-    fontSize: fontScale(13),
-    color: '#666',
-    textAlign: 'center'
+    color: colors.text.secondary,
   },
   termsText: {
-    fontSize: fontScale(11),
-    color: '#999',
+    ...typography.caption,
+    color: colors.text.tertiary,
     textAlign: 'center',
-    lineHeight: fontScale(16),
+    marginTop: spacing.lg,
   },
   linkText: {
     color: colors.primary,

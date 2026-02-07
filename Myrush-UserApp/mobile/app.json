@@ -3,14 +3,14 @@
     "name": "MyRush",
     "slug": "myrush",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
@@ -29,7 +29,19 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Lexend_300Light.ttf",
+            "./assets/fonts/Lexend_400Regular.ttf",
+            "./assets/fonts/Lexend_500Medium.ttf",
+            "./assets/fonts/Lexend_600SemiBold.ttf",
+            "./assets/fonts/Lexend_700Bold.ttf",
+            "./assets/fonts/Lexend_900Black.ttf"
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {

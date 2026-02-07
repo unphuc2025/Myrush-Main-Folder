@@ -3,15 +3,14 @@ import {
     View,
     Text,
     StyleSheet,
-    TextInput,
     TouchableOpacity,
     ScrollView,
     ActivityIndicator,
-    Platform,
+    StatusBar,
+    Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
@@ -20,6 +19,9 @@ import { RootStackParamList } from '../types';
 import { venuesApi, Venue } from '../api/venues';
 import { profileApi } from '../api/profile';
 import { useAuthStore } from '../store/authStore';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type CreateTournamentNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CreateTournament'>;
 
@@ -41,14 +43,9 @@ const CreateTournamentScreen = () => {
     const [endDate, setEndDate] = useState('');
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
-    // const [location, setLocation] = useState(''); // Replaced
     const [format, setFormat] = useState('Knockout');
     const [rules, setRules] = useState('');
     const [entryFee, setEntryFee] = useState('');
-
-    // Date picker modal states
-    const [isStartDatePickerVisible, setStartDatePickerVisible] = useState(false);
-    const [isEndDatePickerVisible, setEndDatePickerVisible] = useState(false);
 
     // Data State
     const [userCity, setUserCity] = useState('');
@@ -66,11 +63,10 @@ const CreateTournamentScreen = () => {
     const [showSportDropdown, setShowSportDropdown] = useState(false);
     const [showFormatDropdown, setShowFormatDropdown] = useState(false);
     const [showBranchDropdown, setShowBranchDropdown] = useState(false);
-    const [showCodeDropdown, setShowCodeDropdown] = useState(false); // Code/Coach dropdown
+    const [showCodeDropdown, setShowCodeDropdown] = useState(false);
 
     const formats = ['Knockout', 'League', 'Round Robin', 'Group + Knockout'];
 
-    // 1. Fetch Game Types (Independent of City)
     useEffect(() => {
         const fetchGameTypes = async () => {
             try {
@@ -83,29 +79,20 @@ const CreateTournamentScreen = () => {
             }
         };
         fetchGameTypes();
-    }, []);
 
-    // 2. Fetch User Profile to get City
-    useEffect(() => {
         const fetchProfile = async () => {
             setIsProfileLoading(true);
             try {
                 const response = await profileApi.getProfile('');
                 let city = '';
-
                 if (response.success && response.data?.city) {
                     city = response.data.city;
                 } else {
-                    // Fallback to auth store city or default
                     city = (user as any)?.city || 'Hyderabad';
-                    console.log('Using fallback city:', city);
                 }
-
                 setUserCity(city);
                 fetchCourts(city);
-
             } catch (error) {
-                console.error('Error fetching profile:', error);
                 const fallbackCity = (user as any)?.city || 'Hyderabad';
                 setUserCity(fallbackCity);
                 fetchCourts(fallbackCity);
@@ -116,11 +103,9 @@ const CreateTournamentScreen = () => {
         fetchProfile();
     }, []);
 
-    // 3. Fetch Courts for City (Used for filtering branches/codes)
     const fetchCourts = async (city: string) => {
         setIsLoading(true);
         try {
-            // Fetch all courts for the city
             const response = await venuesApi.getVenues({ city });
             if (response.success && response.data) {
                 setAllCourts(response.data);
@@ -132,19 +117,13 @@ const CreateTournamentScreen = () => {
         }
     };
 
-    // 4. Update Branches when Sport or AllCourts change
     useEffect(() => {
         if (selectedSport && allCourts.length > 0) {
-            // Filter courts by game type (Sport)
             const sportCourts = allCourts.filter(court =>
                 court.game_type?.toLowerCase() === selectedSport.toLowerCase()
             );
-
-            // Extract unique branches
             const uniqueBranches = Array.from(new Set(sportCourts.map(c => c.branch_name || 'Unknown Branch').filter(b => b !== 'Unknown Branch')));
             setBranches(uniqueBranches);
-
-            // Reset selections if they are no longer valid
             if (selectedBranch && !uniqueBranches.includes(selectedBranch)) {
                 setSelectedBranch('');
                 setSelectedCourt(null);
@@ -154,7 +133,6 @@ const CreateTournamentScreen = () => {
         }
     }, [selectedSport, allCourts]);
 
-    // 5. Update Filtered Courts (Codes) when Branch or Sport changes
     useEffect(() => {
         if (selectedBranch && selectedSport && allCourts.length > 0) {
             const branchCourts = allCourts.filter(court =>
@@ -171,623 +149,320 @@ const CreateTournamentScreen = () => {
         }
     }, [selectedBranch, selectedSport, allCourts]);
 
-    // Date formatting function
-    const formatDate = (date: Date) => {
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = date.toLocaleString('default', { month: 'short' });
-        const year = date.getFullYear();
-        return `${day} ${month} ${year}`;
-    };
-
-    // Date picker handlers
-    const handleStartDateConfirm = (date: Date) => {
-        const formattedDate = formatDate(date);
-        setStartDate(formattedDate);
-        setStartDatePickerVisible(false);
-    };
-
-    const handleEndDateConfirm = (date: Date) => {
-        const formattedDate = formatDate(date);
-        setEndDate(formattedDate);
-        setEndDatePickerVisible(false);
-    };
-
-    const hideStartDatePicker = () => {
-        setStartDatePickerVisible(false);
-    };
-
-    const hideEndDatePicker = () => {
-        setEndDatePickerVisible(false);
-    };
 
     const handleBack = () => {
-        if (step === 3) {
-            setStep(2);
-        } else if (step === 2) {
-            setStep(1);
-        } else {
-            navigation.goBack();
-        }
+        if (step === 3) setStep(2);
+        else if (step === 2) setStep(1);
+        else navigation.goBack();
     };
 
     const handleContinue = () => {
         if (step === 1) {
-            // Basic validation
-            if (!tournamentName.trim()) {
-                alert('Please enter a tournament name');
-                return;
-            }
-            if (!selectedSport) {
-                alert('Please select a sport');
-                return;
-            }
+            if (!tournamentName.trim()) { alert('Please enter a tournament name'); return; }
+            if (!selectedSport) { alert('Please select a sport'); return; }
             setStep(2);
         } else if (step === 2) {
-            // Validate Step 2
-            if (!selectedBranch) {
-                alert('Please select a Branch');
-                return;
-            }
-            if (!selectedCourt) {
-                alert('Please select a Code (Court)');
-                return;
-            }
-            if (!startDate.trim()) {
-                alert('Please enter a start date');
-                return;
-            }
-            if (!endDate.trim()) {
-                alert('Please enter an end date');
-                return;
-            }
-            if (!startTime.trim()) {
-                alert('Please enter a start time');
-                return;
-            }
-            if (!endTime.trim()) {
-                alert('Please enter an end time');
-                return;
-            }
+            if (!selectedBranch) { alert('Please select a Branch'); return; }
+            if (!selectedCourt) { alert('Please select a Code (Court)'); return; }
+            if (!startDate.trim() || !endDate.trim()) { alert('Please check dates'); return; }
             setStep(3);
         } else {
-            // Step 3: Create Tournament
-            // Submit logic would go here
-            console.log('Creating Tournament:', {
-                tournamentName,
-                selectedSport,
-                visibility,
-                startDate,
-                endDate,
-                branch: selectedBranch,
-                code: selectedCourt!.court_name, // Using court name as Code
-                courtId: selectedCourt!.id,
-                format,
-                rules,
-                entryFee
-            });
+            // Create
+            console.log('Creating Tournament:', { tournamentName, selectedSport, visibility, startDate, endDate, branch: selectedBranch, code: selectedCourt?.court_name });
             alert('Tournament Created Successfully!');
             navigation.goBack();
         }
     };
 
-    const renderStep1 = () => (
-        <View style={styles.formContainer}>
-            {/* Tournament Name */}
-            <View style={styles.inputGroup}>
-                <Text style={styles.label}>Tournament Name</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter tournament name"
-                    placeholderTextColor="#9CA3AF"
-                    value={tournamentName}
-                    onChangeText={setTournamentName}
-                />
-            </View>
+    const ProgressBar = () => (
+        <View style={styles.progressContainer}>
+            {[1, 2, 3].map(s => (
+                <View key={s} style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <View style={[styles.stepCircle, step >= s && styles.stepCircleActive]}>
+                        <Text style={[styles.stepNumber, step >= s && styles.stepNumberActive]}>{s}</Text>
+                    </View>
+                    {s < 3 && <View style={[styles.stepLine, step > s && styles.stepLineActive]} />}
+                </View>
+            ))}
+        </View>
+    );
 
-            {/* Sport Type (Fetched from Admin Table) */}
-            <View style={[styles.inputGroup, { zIndex: 10 }]}>
+    const renderDropdown = (
+        isVisible: boolean,
+        setIsVisible: (v: boolean) => void,
+        items: string[],
+        onSelect: (item: string) => void,
+        title: string
+    ) => (
+        <Modal visible={isVisible} transparent animationType="fade">
+            <TouchableOpacity style={styles.modalOverlay} onPress={() => setIsVisible(false)}>
+                <View style={styles.dropdownModal}>
+                    <Text style={styles.dropdownTitle}>{title}</Text>
+                    <ScrollView style={{ maxHeight: hp(40) }}>
+                        {items.length > 0 ? items.map(item => (
+                            <TouchableOpacity
+                                key={item}
+                                style={styles.dropdownModalItem}
+                                onPress={() => onSelect(item)}
+                            >
+                                <Text style={styles.dropdownItemText}>{item}</Text>
+                            </TouchableOpacity>
+                        )) : (
+                            <Text style={styles.noItemsText}>No items available</Text>
+                        )}
+                    </ScrollView>
+                </View>
+            </TouchableOpacity>
+        </Modal>
+    );
+
+    const renderStep1 = () => (
+        <View style={styles.stepContainer}>
+            <Input
+                label="Tournament Name"
+                placeholder="e.g. Summer Open 2024"
+                value={tournamentName}
+                onChangeText={setTournamentName}
+                containerStyle={styles.inputSpacing}
+            />
+
+            <View style={styles.inputSpacing}>
                 <Text style={styles.label}>Sport Type</Text>
-                {/* 
-                   Display Logic:
-                   - If loading game types, show loading.
-                   - If availableSports empty, show "No sports".
-                */}
                 <TouchableOpacity
                     style={styles.dropdownTrigger}
-                    onPress={() => setShowSportDropdown(!showSportDropdown)}
+                    onPress={() => setShowSportDropdown(true)}
                 >
-                    <Text style={[styles.dropdownText, !selectedSport && styles.placeholderText]}>
-                        {selectedSport || (availableSports.length > 0 ? 'Select a sport' : 'Loading sports...')}
+                    <Text style={[styles.dropdownValue, !selectedSport && styles.placeholderText]}>
+                        {selectedSport || 'Select a sport'}
                     </Text>
-                    <Ionicons name="chevron-down" size={20} color="#6B7280" />
+                    <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
                 </TouchableOpacity>
-
-                {showSportDropdown && (
-                    <View style={styles.dropdownList}>
-                        {availableSports.length > 0 ? (
-                            availableSports.map((sport) => (
-                                <TouchableOpacity
-                                    key={sport}
-                                    style={styles.dropdownItem}
-                                    onPress={() => {
-                                        setSelectedSport(sport);
-                                        setShowSportDropdown(false);
-                                    }}
-                                >
-                                    <Text style={styles.dropdownItemText}>{sport}</Text>
-                                </TouchableOpacity>
-                            ))
-                        ) : (
-                            <View style={styles.dropdownItem}>
-                                <Text style={styles.dropdownItemText}>No sports found</Text>
-                            </View>
-                        )}
-                    </View>
+                {renderDropdown(
+                    showSportDropdown,
+                    setShowSportDropdown,
+                    availableSports,
+                    (item) => { setSelectedSport(item); setShowSportDropdown(false); },
+                    "Select Sport"
                 )}
             </View>
 
-            {/* Visibility */}
-            <View style={styles.inputGroup}>
+            <View style={styles.inputSpacing}>
                 <Text style={styles.label}>Visibility</Text>
                 <View style={styles.visibilityContainer}>
-                    <TouchableOpacity
-                        style={[styles.visibilityOption, visibility === 'Public' && styles.visibilityActive]}
-                        onPress={() => setVisibility('Public')}
-                    >
-                        <Text style={[styles.visibilityText, visibility === 'Public' && styles.visibilityTextActive]}>Public</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.visibilityOption, visibility === 'Private' && styles.visibilityActive]}
-                        onPress={() => setVisibility('Private')}
-                    >
-                        <Text style={[styles.visibilityText, visibility === 'Private' && styles.visibilityTextActive]}>Private</Text>
-                    </TouchableOpacity>
+                    {['Public', 'Private'].map((type) => (
+                        <TouchableOpacity
+                            key={type}
+                            style={[
+                                styles.visibilityOption,
+                                visibility === type && styles.visibilityOptionActive
+                            ]}
+                            onPress={() => setVisibility(type as any)}
+                        >
+                            <Text style={[
+                                styles.visibilityText,
+                                visibility === type && styles.visibilityTextActive
+                            ]}>{type}</Text>
+                        </TouchableOpacity>
+                    ))}
                 </View>
             </View>
         </View>
     );
 
     const renderStep2 = () => (
-        <View style={styles.formContainer}>
-            {/* Tournament Name (Read Only or Editable) */}
-            <View style={styles.inputGroup}>
-                <Text style={styles.label}>Tournament Name</Text>
-                <TextInput
-                    style={styles.input}
-                    value={tournamentName}
-                    onChangeText={setTournamentName}
-                    placeholder="e.g., Summer Padel Open"
-                    editable={false} // Make read-only in step 2 usually
+        <View style={styles.stepContainer}>
+            <View style={styles.row}>
+                <Input
+                    label="Start Date"
+                    placeholder="DD MMM"
+                    value={startDate}
+                    onChangeText={setStartDate}
+                    containerStyle={{ flex: 1, marginRight: 8 }}
+                    leftIcon={<Ionicons name="calendar-outline" size={18} color="#666" />}
+                />
+                <Input
+                    label="End Date"
+                    placeholder="DD MMM"
+                    value={endDate}
+                    onChangeText={setEndDate}
+                    containerStyle={{ flex: 1, marginLeft: 8 }}
+                    leftIcon={<Ionicons name="calendar-outline" size={18} color="#666" />}
                 />
             </View>
 
-            {/* Dates Row */}
             <View style={styles.row}>
-                <View style={[styles.inputGroup, { flex: 1, marginRight: wp(2) }]}>
-                    <Text style={styles.label}>Start Date</Text>
-                    <View style={styles.dateInputContainer}>
-                        <Ionicons name="calendar-outline" size={20} color="#6B7280" style={styles.inputIcon} />
-                        <TextInput
-                            style={[styles.input, styles.inputWithIcon]}
-                            placeholder="DD MMM YYYY"
-                            placeholderTextColor="#9CA3AF"
-                            value={startDate}
-                            onChangeText={(text) => {
-                                setStartDate(text);
-                                // Auto-format as user types
-                                if (text.length === 2 && !text.includes(' ')) {
-                                    setStartDate(text + ' ');
-                                } else if (text.length === 6 && text.split(' ').length === 2) {
-                                    setStartDate(text + ' ');
-                                }
-                            }}
-                        />
-                    </View>
-                    <Text style={styles.hintText}>Example: 25 Dec 2025</Text>
-                </View>
-                <View style={[styles.inputGroup, { flex: 1, marginLeft: wp(2) }]}>
-                    <Text style={styles.label}>End Date</Text>
-                    <View style={styles.dateInputContainer}>
-                        <Ionicons name="calendar-outline" size={20} color="#6B7280" style={styles.inputIcon} />
-                        <TextInput
-                            style={[styles.input, styles.inputWithIcon]}
-                            placeholder="DD MMM YYYY"
-                            placeholderTextColor="#9CA3AF"
-                            value={endDate}
-                            onChangeText={(text) => {
-                                setEndDate(text);
-                                // Auto-format as user types
-                                if (text.length === 2 && !text.includes(' ')) {
-                                    setEndDate(text + ' ');
-                                } else if (text.length === 6 && text.split(' ').length === 2) {
-                                    setEndDate(text + ' ');
-                                }
-                            }}
-                        />
-                    </View>
-                    <Text style={styles.hintText}>Example: 30 Dec 2025</Text>
-                </View>
+                <Input
+                    label="Start Time"
+                    placeholder="HH:MM"
+                    value={startTime}
+                    onChangeText={setStartTime}
+                    containerStyle={{ flex: 1, marginRight: 8 }}
+                    maxLength={5}
+                />
+                <Input
+                    label="End Time"
+                    placeholder="HH:MM"
+                    value={endTime}
+                    onChangeText={setEndTime}
+                    containerStyle={{ flex: 1, marginLeft: 8 }}
+                    maxLength={5}
+                />
             </View>
 
-            {/* Times Row */}
-            <View style={styles.row}>
-                <View style={[styles.inputGroup, { flex: 1, marginRight: wp(2) }]}>
-                    <Text style={styles.label}>Start Time</Text>
-                    <View style={styles.dateInputContainer}>
-                        <Ionicons name="time-outline" size={20} color="#6B7280" style={styles.inputIcon} />
-                        <TextInput
-                            style={[styles.input, styles.inputWithIcon]}
-                            placeholder="HH:MM"
-                            placeholderTextColor="#9CA3AF"
-                            value={startTime}
-                            onChangeText={(text) => {
-                                setStartTime(text);
-                                // Auto-format as user types (HH:MM)
-                                if (text.length === 2 && !text.includes(':')) {
-                                    setStartTime(text + ':');
-                                }
-                            }}
-                            keyboardType="numeric"
-                            maxLength={5}
-                        />
-                    </View>
-                    <Text style={styles.hintText}>Example: 09:00</Text>
-                </View>
-                <View style={[styles.inputGroup, { flex: 1, marginLeft: wp(2) }]}>
-                    <Text style={styles.label}>End Time</Text>
-                    <View style={styles.dateInputContainer}>
-                        <Ionicons name="time-outline" size={20} color="#6B7280" style={styles.inputIcon} />
-                        <TextInput
-                            style={[styles.input, styles.inputWithIcon]}
-                            placeholder="HH:MM"
-                            placeholderTextColor="#9CA3AF"
-                            value={endTime}
-                            onChangeText={(text) => {
-                                setEndTime(text);
-                                // Auto-format as user types (HH:MM)
-                                if (text.length === 2 && !text.includes(':')) {
-                                    setEndTime(text + ':');
-                                }
-                            }}
-                            keyboardType="numeric"
-                            maxLength={5}
-                        />
-                    </View>
-                    <Text style={styles.hintText}>Example: 17:00</Text>
-                </View>
-            </View>
-
-            {/* Branch Dropdown */}
-            <View style={[styles.inputGroup, { zIndex: 20 }]}>
+            <View style={styles.inputSpacing}>
                 <Text style={styles.label}>Branch</Text>
                 <TouchableOpacity
                     style={styles.dropdownTrigger}
-                    onPress={() => setShowBranchDropdown(!showBranchDropdown)}
+                    onPress={() => setShowBranchDropdown(true)}
                 >
-                    <Text style={[styles.dropdownText, !selectedBranch && styles.placeholderText]}>
-                        {selectedBranch || (branches.length > 0 ? 'Select Valid Branch' : (allCourts.length === 0 ? `No venues in ${userCity}` : 'Select Sport first'))}
+                    <Text style={[styles.dropdownValue, !selectedBranch && styles.placeholderText]}>
+                        {selectedBranch || 'Select Branch'}
                     </Text>
-                    <Ionicons name="chevron-down" size={20} color="#6B7280" />
+                    <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
                 </TouchableOpacity>
-
-                {showBranchDropdown && (
-                    <View style={styles.dropdownList}>
-                        {branches.length > 0 ? (
-                            branches.map((branch) => (
-                                <TouchableOpacity
-                                    key={branch}
-                                    style={styles.dropdownItem}
-                                    onPress={() => {
-                                        setSelectedBranch(branch);
-                                        setShowBranchDropdown(false);
-                                        // Reset court on branch change
-                                        setSelectedCourt(null);
-                                    }}
-                                >
-                                    <Text style={styles.dropdownItemText}>{branch}</Text>
-                                </TouchableOpacity>
-                            ))
-                        ) : (
-                            <View style={styles.dropdownItem}>
-                                <Text style={styles.dropdownItemText}>No branches available</Text>
-                            </View>
-                        )}
-                    </View>
+                {renderDropdown(
+                    showBranchDropdown,
+                    setShowBranchDropdown,
+                    branches,
+                    (item) => { setSelectedBranch(item); setShowBranchDropdown(false); setSelectedCourt(null); },
+                    "Select Branch"
                 )}
             </View>
 
-            {/* Code / Court Dropdown */}
             {selectedBranch && (
-                <View style={[styles.inputGroup, { zIndex: 10 }]}>
-                    {/* Using 'Code' label as requested in flow details */}
-                    <Text style={styles.label}>Code</Text>
+                <View style={styles.inputSpacing}>
+                    <Text style={styles.label}>Code (Court)</Text>
                     <TouchableOpacity
                         style={styles.dropdownTrigger}
-                        onPress={() => setShowCodeDropdown(!showCodeDropdown)}
+                        onPress={() => setShowCodeDropdown(true)}
                     >
-                        <Text style={[styles.dropdownText, !selectedCourt && styles.placeholderText]}>
-                            {selectedCourt?.court_name || 'Select Code'}
+                        <Text style={[styles.dropdownValue, !selectedCourt && styles.placeholderText]}>
+                            {selectedCourt?.court_name || 'Select Court'}
                         </Text>
-                        <Ionicons name="chevron-down" size={20} color="#6B7280" />
+                        <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
                     </TouchableOpacity>
-
-                    {showCodeDropdown && (
-                        <View style={styles.dropdownList}>
-                            {filteredCourts.length > 0 ? (
-                                filteredCourts.map((court) => (
-                                    <TouchableOpacity
-                                        key={court.id}
-                                        style={styles.dropdownItem}
-                                        onPress={() => {
-                                            setSelectedCourt(court);
-                                            setShowCodeDropdown(false);
-                                        }}
-                                    >
-                                        <Text style={styles.dropdownItemText}>{court.court_name}</Text>
-                                    </TouchableOpacity>
-                                ))
-                            ) : (
-                                <View style={styles.dropdownItem}>
-                                    <Text style={styles.dropdownItemText}>No codes available</Text>
-                                </View>
-                            )}
-                        </View>
+                    {renderDropdown(
+                        showCodeDropdown,
+                        setShowCodeDropdown,
+                        filteredCourts.map(c => c.court_name),
+                        (itemName) => {
+                            const court = filteredCourts.find(c => c.court_name === itemName);
+                            if (court) { setSelectedCourt(court); setShowCodeDropdown(false); }
+                        },
+                        "Select Court Code"
                     )}
                 </View>
             )}
 
-            {/* Tournament Format */}
-            <View style={[styles.inputGroup, { zIndex: 9 }]}>
-                <Text style={styles.label}>Tournament Format</Text>
+            <View style={styles.inputSpacing}>
+                <Text style={styles.label}>Format</Text>
                 <TouchableOpacity
                     style={styles.dropdownTrigger}
-                    onPress={() => setShowFormatDropdown(!showFormatDropdown)}
+                    onPress={() => setShowFormatDropdown(true)}
                 >
-                    <Text style={styles.dropdownText}>{format}</Text>
-                    <Ionicons name="caret-down-outline" size={16} color="#6B7280" />
+                    <Text style={styles.dropdownValue}>{format}</Text>
+                    <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
                 </TouchableOpacity>
-                {showFormatDropdown && (
-                    <View style={styles.dropdownList}>
-                        {formats.map((item) => (
-                            <TouchableOpacity
-                                key={item}
-                                style={styles.dropdownItem}
-                                onPress={() => {
-                                    setFormat(item);
-                                    setShowFormatDropdown(false);
-                                }}
-                            >
-                                <Text style={styles.dropdownItemText}>{item}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
+                {renderDropdown(showFormatDropdown, setShowFormatDropdown, formats, (f) => { setFormat(f); setShowFormatDropdown(false); }, "Select Format")}
             </View>
 
-            {/* Specific Rules */}
-            <View style={styles.inputGroup}>
-                <Text style={styles.label}>Specific Rules</Text>
-                <TextInput
-                    style={[styles.input, styles.textArea]}
-                    placeholder="e.g., 3 sets per match, tie-break at 6-6..."
-                    placeholderTextColor="#9CA3AF"
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                    value={rules}
-                    onChangeText={setRules}
-                />
-            </View>
+            <Input
+                label="Entry Fee ($)"
+                placeholder="0.00"
+                value={entryFee}
+                onChangeText={setEntryFee}
+                keyboardType="numeric"
+                containerStyle={styles.inputSpacing}
+            />
 
-            {/* Entry Fee */}
-            <View style={styles.inputGroup}>
-                <Text style={styles.label}>Entry Fee</Text>
-                <View style={styles.dateInputContainer}>
-                    <Text style={styles.currencySymbol}>$</Text>
-                    <TextInput
-                        style={[styles.input, styles.inputWithCurrency]}
-                        placeholder="0.00"
-                        placeholderTextColor="#9CA3AF"
-                        keyboardType="numeric"
-                        value={entryFee}
-                        onChangeText={setEntryFee}
-                    />
-                </View>
-            </View>
-
+            <Input
+                label="Rules"
+                placeholder="Specific rules..."
+                value={rules}
+                onChangeText={setRules}
+                multiline
+                numberOfLines={3}
+                containerStyle={styles.inputSpacing}
+                style={{ height: 80, textAlignVertical: 'top' }}
+            />
         </View>
     );
 
     const renderStep3 = () => (
-        <View style={styles.formContainer}>
-            {/* Tournament Summary Header */}
-            <View style={styles.summaryHeader}>
-                <Ionicons name="trophy-outline" size={24} color="#00C853" />
-                <Text style={styles.summaryTitle}>Tournament Summary</Text>
-                <Text style={styles.summarySubtitle}>Review your tournament details</Text>
-            </View>
+        <View style={styles.stepContainer}>
+            <View style={styles.summaryCard}>
+                <View style={styles.summaryHeader}>
+                    <Ionicons name="trophy" size={24} color={colors.primary} />
+                    <Text style={styles.summaryTitle}>{tournamentName}</Text>
+                    <Text style={styles.summaryBadge}>{visibility}</Text>
+                </View>
 
-            {/* Tournament Details */}
-            <View style={styles.summarySection}>
-                <Text style={styles.sectionTitle}>Basic Information</Text>
+                <View style={styles.divider} />
+
                 <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Name:</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(1)}
-                    >
-                        <Text style={styles.summaryValue}>{tournamentName}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
+                    <Text style={styles.summaryLabel}>Sport</Text>
+                    <Text style={styles.summaryValue}>{selectedSport}</Text>
                 </View>
                 <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Sport:</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(1)}
-                    >
-                        <Text style={styles.summaryValue}>{selectedSport}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
+                    <Text style={styles.summaryLabel}>Format</Text>
+                    <Text style={styles.summaryValue}>{format}</Text>
                 </View>
                 <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Visibility:</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(1)}
-                    >
-                        <Text style={styles.summaryValue}>{visibility}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
+                    <Text style={styles.summaryLabel}>Date</Text>
+                    <Text style={styles.summaryValue}>{startDate} - {endDate}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Time</Text>
+                    <Text style={styles.summaryValue}>{startTime} - {endTime}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Fee</Text>
+                    <Text style={[styles.summaryValue, { color: '#FF9F43' }]}>${entryFee || 'Free'}</Text>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.summaryLoc}>
+                    <Ionicons name="location" size={16} color={colors.text.secondary} />
+                    <Text style={styles.summaryLocText}>{selectedBranch}, {selectedCourt?.court_name}</Text>
                 </View>
             </View>
 
-            {/* Schedule & Location */}
-            <View style={styles.summarySection}>
-                <Text style={styles.sectionTitle}>Schedule & Location</Text>
-                <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Start Date:</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(2)}
-                    >
-                        <Text style={styles.summaryValue}>{startDate}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Start Time:</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(2)}
-                    >
-                        <Text style={styles.summaryValue}>{startTime}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>End Date:</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(2)}
-                    >
-                        <Text style={styles.summaryValue}>{endDate}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>End Time:</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(2)}
-                    >
-                        <Text style={styles.summaryValue}>{endTime}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Branch:</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(2)}
-                    >
-                        <Text style={styles.summaryValue}>{selectedBranch}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Court:</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(2)}
-                    >
-                        <Text style={styles.summaryValue}>{selectedCourt?.court_name}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* Tournament Rules */}
-            <View style={styles.summarySection}>
-                <Text style={styles.sectionTitle}>Tournament Details</Text>
-                <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Format:</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(2)}
-                    >
-                        <Text style={styles.summaryValue}>{format}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Entry Fee:</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(2)}
-                    >
-                        <Text style={styles.summaryValue}>${entryFee || '0.00'}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* Rules */}
-            {rules.trim() && (
-                <View style={styles.summarySection}>
-                    <Text style={styles.sectionTitle}>Rules</Text>
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => setStep(2)}
-                    >
-                        <Text style={styles.summaryValue}>{rules}</Text>
-                        <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            {/* Participants Section (Placeholder) */}
-            <View style={styles.summarySection}>
-                <Text style={styles.sectionTitle}>Participants</Text>
-                <Text style={styles.participantsText}>Participants will be able to join once the tournament is published.</Text>
-            </View>
+            <Text style={styles.termsText}>
+                By publishing this tournament, you agree to the platform rules and hosting guidelines.
+            </Text>
         </View>
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top']}>
+            <StatusBar barStyle="light-content" backgroundColor="#000" />
+
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={28} color="#000" />
+                <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
+                    <Ionicons name="chevron-back" size={24} color="#FFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Create Tournament</Text>
-                <View style={{ width: 28 }} />
+                <View style={{ width: 24 }} />
             </View>
 
-            <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-                nestedScrollEnabled={true}
-            >
-                {step === 1 ? renderStep1() : step === 2 ? renderStep2() : renderStep3()}
+            <ProgressBar />
+
+            <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: hp(10) }}>
+                {step === 1 && renderStep1()}
+                {step === 2 && renderStep2()}
+                {step === 3 && renderStep3()}
             </ScrollView>
 
-
-
             <View style={styles.footer}>
-                <TouchableOpacity
-                    style={styles.continueButton}
+                <Button
+                    title={step === 3 ? "Publish Tournament" : "Continue"}
                     onPress={handleContinue}
-                >
-                    <Text style={styles.continueButtonText}>
-                        {step === 1 ? 'Continue' : step === 2 ? 'Review Tournament' : 'Publish Tournament'}
-                    </Text>
-                </TouchableOpacity>
+                    fullWidth
+                    style={styles.continueBtn}
+                />
             </View>
-
-
         </SafeAreaView>
     );
 };
@@ -795,7 +470,7 @@ const CreateTournamentScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#000000',
     },
     header: {
         flexDirection: 'row',
@@ -803,278 +478,220 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: wp(5),
         paddingVertical: hp(2),
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
     },
-    backButton: {
-        padding: 4,
+    backBtn: {
+        padding: 8,
     },
     headerTitle: {
-        fontSize: fontScale(20),
-        fontWeight: '700',
-        color: '#111827',
+        color: '#FFF',
+        fontSize: fontScale(18),
+        fontWeight: 'bold',
+    },
+    progressContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: wp(10),
+        marginBottom: hp(3),
+        marginTop: hp(1),
+    },
+    stepCircle: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: '#333',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#444',
+    },
+    stepCircleActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    stepNumber: {
+        color: '#AAA',
+        fontWeight: 'bold',
+        fontSize: 12,
+    },
+    stepNumberActive: {
+        color: '#000',
+    },
+    stepLine: {
+        height: 2,
+        backgroundColor: '#333',
+        flex: 1,
+        marginHorizontal: 8,
+    },
+    stepLineActive: {
+        backgroundColor: colors.primary,
     },
     content: {
         flex: 1,
+        paddingHorizontal: wp(5),
     },
-    scrollContent: {
-        padding: wp(5),
-        paddingBottom: hp(10), // Extra padding for dropdowns at bottom
-    },
-    formContainer: {
-        gap: hp(2.5),
-    },
-    inputGroup: {
+    stepContainer: {
         gap: hp(1),
-        position: 'relative',
     },
     label: {
-        fontSize: fontScale(16),
-        fontWeight: '600',
-        color: '#6B7280', // Grey label
+        color: '#AAA',
+        marginBottom: 8,
+        fontSize: 14,
     },
-    input: {
-        backgroundColor: '#FFFFFF',
-        borderWidth: 1,
-        borderColor: '#9CA3AF', // Grey border
-        borderRadius: moderateScale(8), // More rectangular
-        paddingHorizontal: wp(4),
-        paddingVertical: hp(1.5),
-        fontSize: fontScale(16),
-        color: '#1F2937',
+    inputSpacing: {
+        marginBottom: hp(2.5),
     },
-    placeholderText: {
-        color: '#9CA3AF',
+    row: {
+        flexDirection: 'row',
+        gap: 16,
     },
-    // Dropdown Styles
     dropdownTrigger: {
         flexDirection: 'row',
-        alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#F3F4F6', // Light grey bg
-        borderRadius: moderateScale(25), // Rounded pills for dropdowns in Step 1
-        paddingHorizontal: wp(5),
-        paddingVertical: hp(1.8),
-    },
-    dropdownText: {
-        fontSize: fontScale(16),
-        color: '#1F2937',
-        fontWeight: '500',
-    },
-    dropdownList: {
-        position: 'absolute',
-        top: '100%',
-        left: 0,
-        right: 0,
-        backgroundColor: '#FFFFFF',
-        borderRadius: moderateScale(12),
+        alignItems: 'center',
+        backgroundColor: '#1A1A1A',
+        borderRadius: 999,
+        paddingHorizontal: 20,
+        paddingVertical: 14,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
-        marginTop: 4,
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-        zIndex: 200,
-        maxHeight: hp(25), // Scroll limit
+        borderColor: 'transparent', // #333
+        minHeight: 52,
     },
-    dropdownItem: {
-        paddingVertical: hp(1.5),
-        paddingHorizontal: wp(4),
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
+    dropdownValue: {
+        color: '#FFF',
+        fontSize: 16,
     },
-    dropdownItemText: {
-        fontSize: fontScale(16),
-        color: '#374151',
+    placeholderText: {
+        color: '#666',
     },
-
-    // Visibility Toggle
     visibilityContainer: {
         flexDirection: 'row',
-        backgroundColor: '#F3F4F6',
-        borderRadius: moderateScale(30), // Pill shape
+        backgroundColor: '#1A1A1A',
+        borderRadius: 999,
         padding: 4,
     },
     visibilityOption: {
         flex: 1,
-        paddingVertical: hp(1.5),
+        paddingVertical: 10,
         alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: moderateScale(25),
+        borderRadius: 999,
     },
-    visibilityActive: {
-        backgroundColor: '#00C853', // Brand Green active
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+    visibilityOptionActive: {
+        backgroundColor: '#333',
     },
     visibilityText: {
-        fontSize: fontScale(16),
+        color: '#666',
         fontWeight: '600',
-        color: '#6B7280',
     },
     visibilityTextActive: {
-        color: '#FFFFFF',
+        color: '#FFF',
     },
-
-    // Step 2 specific styles
-    row: {
-        flexDirection: 'row',
-        marginBottom: hp(1),
-    },
-    dateInputContainer: {
-        position: 'relative',
-        justifyContent: 'center',
-    },
-    inputWithIcon: {
-        paddingLeft: wp(12),
-        backgroundColor: '#FFFFFF',
-        borderRadius: moderateScale(4), // Shallower radius for Step 2 inputs to match image
-        borderColor: '#6B7280',
-    },
-    inputIcon: {
-        position: 'absolute',
-        left: wp(3),
-        zIndex: 1,
-    },
-    textArea: {
-        height: hp(15),
-        textAlignVertical: 'top',
-        borderRadius: moderateScale(4),
-    },
-    currencySymbol: {
-        position: 'absolute',
-        left: wp(4),
-        fontSize: fontScale(18),
-        fontWeight: '700',
-        color: '#111827',
-        zIndex: 1,
-    },
-    inputWithCurrency: {
-        paddingLeft: wp(8),
-        borderRadius: moderateScale(4),
-    },
-    inputError: {
-        borderColor: '#EF4444', // Red border for errors
-    },
-    errorText: {
-        fontSize: fontScale(12),
-        color: '#EF4444', // Red text for errors
-        marginTop: hp(0.5),
-    },
-    datePickerButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderWidth: 1,
-        borderColor: '#9CA3AF',
-        borderRadius: moderateScale(4),
-        paddingHorizontal: wp(4),
-        paddingVertical: hp(1.5),
-    },
-    datePickerText: {
-        fontSize: fontScale(16),
-        color: '#1F2937',
-        marginLeft: wp(2),
-    },
-    hintText: {
-        fontSize: fontScale(12),
-        color: '#6B7280',
-        marginTop: hp(0.5),
-    },
-
-    // Footer
     footer: {
         padding: wp(5),
+        paddingBottom: hp(4),
         borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
+        borderTopColor: '#1A1A1A',
+        backgroundColor: '#000',
     },
-    continueButton: {
-        backgroundColor: '#00C853', // Brand Green
-        paddingVertical: hp(2),
-        borderRadius: moderateScale(30),
-        alignItems: 'center',
-        shadowColor: '#00C853',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
+    continueBtn: {
+        backgroundColor: colors.primary,
     },
-    continueButtonText: {
-        color: '#FFFFFF',
-        fontSize: fontScale(18),
-        fontWeight: '700',
+    // Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'center',
+        padding: wp(5),
     },
-
-    // Summary Screen Styles
+    dropdownModal: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: 16,
+        padding: 16,
+        maxHeight: hp(50),
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    dropdownTitle: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    dropdownModalItem: {
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#2C2C2E',
+    },
+    dropdownItemText: {
+        color: '#DDD',
+        fontSize: 16,
+    },
+    noItemsText: {
+        color: '#666',
+        textAlign: 'center',
+        padding: 20,
+    },
+    summaryCard: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: '#333',
+    },
     summaryHeader: {
         alignItems: 'center',
-        paddingVertical: hp(2),
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
-        marginBottom: hp(2),
+        gap: 8,
+        marginBottom: 16,
     },
     summaryTitle: {
-        fontSize: fontScale(24),
-        fontWeight: '700',
-        color: '#111827',
-        marginTop: hp(1),
+        color: '#FFF',
+        fontSize: 20,
+        fontWeight: 'bold',
     },
-    summarySubtitle: {
-        fontSize: fontScale(14),
-        color: '#6B7280',
-        marginTop: hp(0.5),
+    summaryBadge: {
+        backgroundColor: '#2C2C2E',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        color: '#AAA',
+        fontSize: 12,
+        textTransform: 'uppercase',
     },
-    summarySection: {
-        backgroundColor: '#F9FAFB',
-        borderRadius: moderateScale(12),
-        padding: wp(4),
-        marginBottom: hp(2),
-    },
-    sectionTitle: {
-        fontSize: fontScale(18),
-        fontWeight: '600',
-        color: '#111827',
-        marginBottom: hp(1.5),
+    divider: {
+        height: 1,
+        backgroundColor: '#333',
+        marginVertical: 16,
     },
     summaryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: hp(1),
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        marginBottom: 12,
     },
     summaryLabel: {
-        fontSize: fontScale(16),
-        fontWeight: '500',
-        color: '#6B7280',
-        flex: 1,
+        color: '#888',
+        fontSize: 14,
     },
     summaryValue: {
-        fontSize: fontScale(16),
+        color: '#FFF',
+        fontSize: 14,
         fontWeight: '600',
-        color: '#111827',
-        flex: 2,
-        textAlign: 'right',
     },
-    editButton: {
+    summaryLoc: {
         flexDirection: 'row',
         alignItems: 'center',
-        flex: 2,
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
+        gap: 6,
     },
-    participantsText: {
-        fontSize: fontScale(14),
-        color: '#6B7280',
-        fontStyle: 'italic',
+    summaryLocText: {
+        color: '#AAA',
+        fontSize: 13,
+    },
+    termsText: {
+        color: '#555',
+        fontSize: 12,
         textAlign: 'center',
-        paddingVertical: hp(1),
-    },
+        marginTop: 16,
+        paddingHorizontal: 20,
+    }
 });
 
 export default CreateTournamentScreen;

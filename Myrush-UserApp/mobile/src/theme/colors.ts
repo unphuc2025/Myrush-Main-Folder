@@ -1,15 +1,15 @@
 export const colors = {
   // Primary colors (Brand)
-  primary: '#00D700',
-  primaryDark: '#00A300',
-  primaryLight: '#33DF33',
+  primary: '#39E079', // Neon form Design System
+  primaryDark: '#2DB361',
+  primaryLight: '#60E693',
 
   // Brand specific
   brand: {
-    primary: '#00D700',
-    secondary: '#00A300',
-    light: '#E5FBE5', // Very light green for backgrounds
-    muted: '#80EB80',
+    primary: '#39E079',
+    secondary: '#2DB361',
+    light: '#EBFCEF', // Very light green for backgrounds
+    muted: '#9CA3AF', // Muted text from Design System
   },
 
   // Secondary colors
@@ -46,24 +46,24 @@ export const colors = {
 
   // Background colors
   background: {
-    primary: '#FFFFFF',
-    secondary: '#F2F2F7',
-    tertiary: '#E5E5EA',
+    primary: '#000000', // True Black
+    secondary: '#1A1A1A', // Surface Dark (Inputs)
+    tertiary: '#1C1C1E', // Card Surface
   },
 
   // Text colors
   text: {
-    primary: '#000000',
-    secondary: '#3C3C43',
-    tertiary: '#8E8E93',
-    inverted: '#FFFFFF',
+    primary: '#FFFFFF',
+    secondary: '#9CA3AF', // Text Muted
+    tertiary: '#6B7280',
+    inverted: '#000000',
   },
 
   // Border colors
   border: {
-    light: '#E5E5EA',
-    medium: '#C7C7CC',
-    dark: '#8E8E93',
+    light: '#38383A',
+    medium: '#48484A',
+    dark: '#636366',
   },
 
   // Transparent

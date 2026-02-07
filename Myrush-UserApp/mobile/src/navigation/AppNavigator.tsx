@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,10 +16,28 @@ import { HomeScreen } from '../screens/HomeScreen';
 import VenueDetailsScreen from '../screens/VenueDetailsScreen';
 import SlotSelectionScreen from '../screens/SlotSelectionScreen';
 import BookingDetailsScreen from '../screens/BookingDetailsScreen';
-import ReviewBookingScreen from '../screens/ReviewBookingScreen';
+import BookingSuccessScreen from '../screens/BookingSuccessScreen';
 import ReviewsScreen from '../screens/ReviewsScreen';
 import CreateTournamentScreen from '../screens/CreateTournamentScreen';
+import JoinGameScreen from '../screens/JoinGameScreen';
+import HostGameScreen from '../screens/HostGameScreen';
+import TrainScreen from '../screens/TrainScreen';
+import CoachDetailsScreen from '../screens/CoachDetailsScreen';
+import CommunityScreen from '../screens/CommunityScreen';
+import LeaderboardScreen from '../screens/LeaderboardScreen';
+import SquadListScreen from '../screens/SquadListScreen';
+import SquadDetailsScreen from '../screens/SquadDetailsScreen';
+import CreateSquadScreen from '../screens/CreateSquadScreen';
+import ChatListScreen from '../screens/ChatListScreen';
+import ChatDetailScreen from '../screens/ChatDetailScreen';
+import StoreScreen from '../screens/StoreScreen';
+import PaymentsScreen from '../screens/PaymentsScreen';
+import SupportScreen from '../screens/SupportScreen';
+import EventsScreen from '../screens/EventsScreen';
+import RedemptionStoreScreen from '../screens/RedemptionStoreScreen';
+import MembershipScreen from '../screens/MembershipScreen';
 import { colors } from '../theme/colors';
+import { spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { useResponsive } from '../hooks/useResponsive';
@@ -26,130 +45,120 @@ import { useResponsive } from '../hooks/useResponsive';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
-// Bottom Tab Navigator Component
-const MainTabNavigator = () => {
-  const { rs, isSmall, isLarge } = useResponsive();
+// Home Stack Navigator (Nested to keep Tabs visible)
+const HomeStack = createNativeStackNavigator<RootStackParamList>();
 
-  // Responsive tab bar height based on device size
-  const tabBarHeight = rs(70, 75, 80, 85); // small, medium, large, tablet
-  const tabBarPaddingBottom = rs(8, 10, 12, 15);
-  const tabBarPaddingTop = rs(6, 8, 10, 12);
+const HomeStackNavigator = () => {
+  return (
+    <HomeStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background.primary } }}>
+      <HomeStack.Screen name="Home" component={HomeScreen} />
+      <HomeStack.Screen name="Venues" component={VenuesScreen} />
+      <HomeStack.Screen name="VenueDetails" component={VenueDetailsScreen} />
+      <HomeStack.Screen name="SlotSelection" component={SlotSelectionScreen} />
+      <HomeStack.Screen name="BookingDetails" component={BookingDetailsScreen} />
+
+      <HomeStack.Screen name="Reviews" component={ReviewsScreen} />
+      <HomeStack.Screen name="Store" component={StoreScreen} />
+      <HomeStack.Screen name="Payments" component={PaymentsScreen} />
+      <HomeStack.Screen name="Support" component={SupportScreen} />
+      <HomeStack.Screen name="Events" component={EventsScreen} />
+      <HomeStack.Screen name="RedemptionStore" component={RedemptionStoreScreen} />
+      <HomeStack.Screen name="Membership" component={MembershipScreen} />
+      <HomeStack.Screen name="ProfileOverview" component={ProfileOverviewScreen} />
+    </HomeStack.Navigator>
+  );
+};
+
+// Play Stack
+const PlayStack = createNativeStackNavigator<RootStackParamList>();
+const PlayStackNavigator = () => {
+  return (
+    <PlayStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background.primary } }}>
+      <PlayStack.Screen name="Play" component={PlayScreen} />
+      <PlayStack.Screen name="CreateTournament" component={CreateTournamentScreen} />
+      <PlayStack.Screen name="JoinGame" component={JoinGameScreen} />
+      <PlayStack.Screen name="HostGame" component={HostGameScreen} />
+    </PlayStack.Navigator>
+  );
+};
+
+// Train Stack
+const TrainStack = createNativeStackNavigator<RootStackParamList>();
+const TrainStackNavigator = () => {
+  return (
+    <TrainStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background.primary } }}>
+      <TrainStack.Screen name="Train" component={TrainScreen} />
+      <TrainStack.Screen name="CoachDetails" component={CoachDetailsScreen} />
+      {/* Reuse Booking Flow */}
+      <TrainStack.Screen name="SlotSelection" component={SlotSelectionScreen} />
+      <TrainStack.Screen name="BookingDetails" component={BookingDetailsScreen} />
+      <TrainStack.Screen name="BookingSuccess" component={BookingSuccessScreen} />
+    </TrainStack.Navigator>
+  );
+};
+
+
+
+// Community Stack
+const CommunityStack = createNativeStackNavigator<RootStackParamList>();
+const CommunityStackNavigator = () => {
+  return (
+    <CommunityStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background.primary } }}>
+      <CommunityStack.Screen name="Community" component={CommunityScreen} />
+      <CommunityStack.Screen name="Leaderboard" component={LeaderboardScreen} />
+      <CommunityStack.Screen name="SquadList" component={SquadListScreen} />
+      <CommunityStack.Screen name="SquadDetails" component={SquadDetailsScreen} />
+      <CommunityStack.Screen name="CreateSquad" component={CreateSquadScreen} />
+      <CommunityStack.Screen name="ChatList" component={ChatListScreen} />
+      <CommunityStack.Screen name="ChatDetail" component={ChatDetailScreen} />
+    </CommunityStack.Navigator>
+  );
+};
+
+const MainTabNavigator = () => {
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#1C1C1E',
+          borderTopColor: '#333',
+          paddingBottom: Math.max(insets.bottom, 5), // Use safe area bottom or minimum 5
+          height: 60 + (insets.bottom > 0 ? insets.bottom - 5 : 0), // Adjust height dynamically
+        },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.text.secondary,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: any;
 
-          if (route.name === 'Home') {
+          if (route.name === 'HomeTab') {
             iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Play') {
-            iconName = focused ? 'location' : 'location-outline';
-          } else if (route.name === 'Bookings') {
-            iconName = 'calendar';
-          } else if (route.name === 'Train') {
-            iconName = focused ? 'barbell' : 'barbell-outline';
-          } else if (route.name === 'Community') {
+          } else if (route.name === 'PlayTab') {
+            iconName = focused ? 'game-controller' : 'game-controller-outline';
+          } else if (route.name === 'BookTab') {
+            iconName = focused ? 'calendar' : 'calendar-outline';
+          } else if (route.name === 'TrainTab') {
+            iconName = focused ? 'fitness' : 'fitness-outline';
+          } else if (route.name === 'CommunityTab') {
             iconName = focused ? 'people' : 'people-outline';
           }
 
-          return <Ionicons name={iconName} size={moderateScale(size)} color={color} />;
-        },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: '#B0B0B0',
-        tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 0,
-          elevation: 20,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
-          height: tabBarHeight,
-          paddingBottom: tabBarPaddingBottom,
-          paddingTop: tabBarPaddingTop,
-          paddingHorizontal: wp(2.5),
-        },
-        tabBarLabelStyle: {
-          fontSize: fontScale(rs(10, 11, 12, 13)), // responsive font size
-          fontWeight: '500',
-          marginTop: hp(-0.8),
+          return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ tabBarLabel: 'Home' }}
-      />
-      <Tab.Screen
-        name="Play"
-        component={PlayScreen}
-        options={{ tabBarLabel: 'Play' }}
-      />
-      <Tab.Screen
-        name="Bookings"
-        component={MyBookingsScreen}
-        options={{
-          tabBarLabel: 'Bookings',
-          tabBarIconStyle: {
-            marginTop: hp(-2.5),
-          },
-          tabBarLabelStyle: {
-            fontSize: fontScale(rs(11, 12, 13, 14)), // responsive font size
-            fontWeight: '600',
-            marginTop: hp(-0.8),
-            color: colors.primary,
-            position: 'absolute',
-            bottom: rs(3, 5, 6, 8), // responsive bottom position
-          },
-          tabBarIcon: ({ focused }) => {
-            const iconSize = rs(55, 65, 70, 75); // responsive icon size
-            const iconDimension = rs(50, 60, 65, 70); // responsive width/height
-            const iconBorderRadius = iconDimension / 2;
-            const iconMarginBottom = rs(20, 25, 28, 32);
-
-            return (
-              <View
-                style={{
-                  width: iconDimension,
-                  height: iconDimension,
-                  borderRadius: iconBorderRadius,
-                  backgroundColor: colors.primary,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  marginBottom: iconMarginBottom,
-                  elevation: 10,
-                  shadowColor: colors.primary,
-                  shadowOffset: { width: 0, height: 5 },
-                  shadowOpacity: 0.4,
-                  shadowRadius: 10,
-                  borderWidth: 3,
-                  borderColor: 'rgba(255,255,255,0.3)',
-                }}
-              >
-                <Ionicons name="calendar" size={moderateScale(iconSize * 0.43)} color="#fff" />
-              </View>
-            );
-          },
-        }}
-      />
-      <Tab.Screen
-        name="Train"
-        component={HomeScreen}
-        options={{ tabBarLabel: 'Train' }}
-      />
-      <Tab.Screen
-        name="Community"
-        component={PlayerProfileScreen}
-        options={{ tabBarLabel: 'Community' }}
-      />
+      <Tab.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: 'Home' }} />
+      <Tab.Screen name="PlayTab" component={PlayStackNavigator} options={{ title: 'Play' }} />
+      <Tab.Screen name="BookTab" component={MyBookingsScreen} options={{ title: 'Book' }} />
+      <Tab.Screen name="TrainTab" component={TrainStackNavigator} options={{ title: 'Train' }} />
+      <Tab.Screen name="CommunityTab" component={CommunityStackNavigator} options={{ title: 'Community' }} />
     </Tab.Navigator>
   );
 };
 
-export const AppNavigator: React.FC = () => {
+export const AppNavigator = () => {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
 
   useEffect(() => {
@@ -177,13 +186,7 @@ export const AppNavigator: React.FC = () => {
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
             <Stack.Screen name="ProfileOverview" component={ProfileOverviewScreen} />
             <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
-            <Stack.Screen name="Reviews" component={ReviewsScreen} />
-            <Stack.Screen name="Venues" component={VenuesScreen} />
-            <Stack.Screen name="VenueDetails" component={VenueDetailsScreen} />
-            <Stack.Screen name="SlotSelection" component={SlotSelectionScreen} />
-            <Stack.Screen name="BookingDetails" component={BookingDetailsScreen} />
-            <Stack.Screen name="ReviewBooking" component={ReviewBookingScreen} />
-            <Stack.Screen name="CreateTournament" component={CreateTournamentScreen} />
+            <Stack.Screen name="BookingSuccess" component={BookingSuccessScreen} />
           </>
         ) : (
           <>
@@ -202,6 +205,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.background.primary,
+  },
+  container: {
+    flex: 1,
+    position: 'relative',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: moderateScale(100), // Adjusted to clear Bottom Tab Bar
+    right: moderateScale(16),
+    width: moderateScale(56),
+    height: moderateScale(56),
+    borderRadius: 28,
+    backgroundColor: '#1C1C1E', // Dark Grey
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    zIndex: 999,
+  },
+  fabText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#39E079',
+    marginTop: 2,
   },
 });
 

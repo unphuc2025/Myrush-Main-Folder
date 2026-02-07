@@ -86,10 +86,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.background.secondary,
-    minHeight: moderateScale(50),
+    borderColor: colors.transparent, // cleaner look
+    borderRadius: borderRadius.full, // Design System: Rounded Full
+    backgroundColor: colors.background.secondary, // #1A1A1A
+    minHeight: moderateScale(52), // Design System: 52px
   },
   focused: {
     borderColor: colors.primary,

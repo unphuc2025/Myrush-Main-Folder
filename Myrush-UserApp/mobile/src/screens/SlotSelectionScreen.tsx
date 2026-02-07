@@ -7,8 +7,12 @@ import {
     TouchableOpacity,
     Dimensions,
     ActivityIndicator,
+    StatusBar,
+    SafeAreaView,
+    Image,
+    Platform
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
@@ -27,16 +31,15 @@ const SlotSelectionScreen: React.FC = () => {
 
     // Get current date
     const today = new Date();
-    const currentDay = today.getDate();
 
-    const [selectedDate, setSelectedDate] = useState(currentDay);
+    // States
+    const [selectedDate, setSelectedDate] = useState(today.getDate());
+    const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedSlots, setSelectedSlots] = useState<Array<{
         time: string;
         display_time: string;
         price: number;
     }>>([]);
-    const [currentMonth, setCurrentMonth] = useState(new Date()); // Current month
-    const [cartItems, setCartItems] = useState(1);
     const [isLoadingSlots, setIsLoadingSlots] = useState(false);
     const [availableSlots, setAvailableSlots] = useState<Array<{
         time: string;
@@ -45,16 +48,23 @@ const SlotSelectionScreen: React.FC = () => {
         available: boolean;
     }>>([]);
 
+    // Data from params
     const venueName = route.params?.venue?.court_name || route.params?.venue?.name || 'Play Arena HSR';
+    const venueLocation = route.params?.venue?.location || 'Bengaluru';
     const venueId = route.params?.venue?.id || '';
-    const pitchName = 'Pitch 1';
+    const pitchName = 'Pitch 1 - Football'; // You could make this dynamic if API provides it
+
+    const monthNames = [
+        'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+        'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
+    ];
+
+    const weekDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
     // Check if a date is in the past
-    const isPastDate = (day: number, month: Date, isCurrentMonth: boolean) => {
-        if (!isCurrentMonth) return true; // Previous/next month dates are always disabled
-
+    const isPastDate = (day: number, month: Date) => {
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Reset time for accurate comparison
+        today.setHours(0, 0, 0, 0);
 
         const checkDate = new Date(month.getFullYear(), month.getMonth(), day);
         checkDate.setHours(0, 0, 0, 0);
@@ -66,58 +76,30 @@ const SlotSelectionScreen: React.FC = () => {
     const generateCalendarDays = () => {
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth();
-        const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const prevMonthDays = new Date(year, month, 0).getDate();
 
         const days = [];
 
-        // Previous month days (always disabled)
-        for (let i = firstDay - 1; i >= 0; i--) {
-            days.push({
-                day: prevMonthDays - i,
-                isCurrentMonth: false,
-                isPast: true
-            });
-        }
-
-        // Current month days
+        // Only generate valid days for this month
         for (let i = 1; i <= daysInMonth; i++) {
-            const isPast = isPastDate(i, currentMonth, true);
+            const date = new Date(year, month, i);
+            const isPast = isPastDate(i, currentMonth);
+
+            // Only add current/future days or recent past if needed loop logic
+            // For simpler UI, let's just show full month but disable past
             days.push({
                 day: i,
-                isCurrentMonth: true,
-                isPast
+                weekDay: weekDays[date.getDay()],
+                isPast,
+                fullDate: date
             });
         }
-
         return days;
     };
 
-    // Check if we can navigate to previous month
-    const canNavigateToPreviousMonth = () => {
-        const today = new Date();
-        const currentYear = today.getFullYear();
-        const currentMonthIndex = today.getMonth();
-
-        const displayYear = currentMonth.getFullYear();
-        const displayMonthIndex = currentMonth.getMonth();
-
-        // Can't go before current month
-        if (displayYear < currentYear) return false;
-        if (displayYear === currentYear && displayMonthIndex <= currentMonthIndex) return false;
-
-        return true;
-    };
-
-    const monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-
-    // Fetch available slots when date changes
+    // Check availability logic
     useEffect(() => {
-        if (venueId && selectedDate) {
+        if (venueId) {
             fetchAvailableSlots();
         }
     }, [selectedDate, currentMonth]);
@@ -125,7 +107,6 @@ const SlotSelectionScreen: React.FC = () => {
     const fetchAvailableSlots = async () => {
         setIsLoadingSlots(true);
         try {
-            // Format date as YYYY-MM-DD
             const year = currentMonth.getFullYear();
             const month = (currentMonth.getMonth() + 1).toString().padStart(2, '0');
             const day = selectedDate.toString().padStart(2, '0');
@@ -136,9 +117,7 @@ const SlotSelectionScreen: React.FC = () => {
 
             if (response.success && response.data) {
                 setAvailableSlots(response.data.slots);
-                console.log('[SLOT SELECTION] Loaded', response.data.slots.length, 'slots');
             } else {
-                console.error('[SLOT SELECTION] Failed to fetch slots:', response.error);
                 setAvailableSlots([]);
             }
         } catch (error) {
@@ -149,6 +128,18 @@ const SlotSelectionScreen: React.FC = () => {
         }
     };
 
+    // Group available slots
+    const morningSlots = availableSlots.filter(s => {
+        const hour = parseInt(s.time.split(':')[0]);
+        return hour < 16; // Before 4 PM
+    });
+
+    const eveningSlots = availableSlots.filter(s => {
+        const hour = parseInt(s.time.split(':')[0]);
+        return hour >= 16; // 4 PM onwards
+    });
+
+
     const handleConfirmBooking = () => {
         if (selectedSlots.length === 0) {
             alert('Please select at least one time slot');
@@ -156,13 +147,6 @@ const SlotSelectionScreen: React.FC = () => {
         }
 
         const totalPrice = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
-
-        console.log('Navigating to ReviewBooking with:', {
-            selectedSlots,
-            totalPrice,
-            venueName,
-            date: selectedDate
-        });
 
         navigation.navigate('BookingDetails', {
             venue: venueName,
@@ -172,478 +156,453 @@ const SlotSelectionScreen: React.FC = () => {
             month: monthNames[currentMonth.getMonth()],
             monthIndex: currentMonth.getMonth(),
             year: currentMonth.getFullYear(),
-            selectedSlots: selectedSlots, // Pass array of slots
+            selectedSlots: selectedSlots,
             totalPrice: totalPrice,
         });
     };
 
+    const toggleSlotSelection = (slot: any) => {
+        const isSelected = selectedSlots.some(s => s.display_time === slot.display_time);
+        if (isSelected) {
+            setSelectedSlots(prev => prev.filter(s => s.display_time !== slot.display_time));
+        } else {
+            setSelectedSlots(prev => [...prev, slot]);
+        }
+    };
+
+    const calendarData = generateCalendarDays();
+
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="#000" />
+
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => navigation.goBack()}
                 >
-                    <Ionicons name="arrow-back" size={moderateScale(24)} color="#333" />
+                    <Ionicons name="arrow-back" size={moderateScale(24)} color="#fff" />
                 </TouchableOpacity>
-                <View style={styles.headerTitleContainer}>
-                    <Text style={styles.headerTitle}>{venueName}</Text>
-                    <Text style={styles.headerSubtitle}>{pitchName}</Text>
+                <View style={styles.headerInfo}>
+                    <Text style={styles.headerTitle}>Select Slot</Text>
+                    <Text style={styles.headerSubtitle} numberOfLines={1}>
+                        {venueName} • {venueLocation.split(',')[0]}
+                    </Text>
                 </View>
-                <View style={{ width: wp(10) }} />
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Calendar */}
-                <View style={styles.calendarContainer}>
-                    <View style={styles.calendarHeader}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+
+                {/* Month Navigation */}
+                <View style={styles.monthHeader}>
+                    <Text style={styles.monthText}>
+                        {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                    </Text>
+                    <View style={styles.monthControls}>
                         <TouchableOpacity
                             onPress={() => {
-                                if (canNavigateToPreviousMonth()) {
-                                    const newDate = new Date(currentMonth);
-                                    newDate.setMonth(newDate.getMonth() - 1);
+                                const newDate = new Date(currentMonth);
+                                newDate.setMonth(newDate.getMonth() - 1);
+                                if (newDate >= new Date(new Date().setDate(1))) { // Limit to current month start
                                     setCurrentMonth(newDate);
                                 }
                             }}
-                            disabled={!canNavigateToPreviousMonth()}
+                            style={styles.monthIcon}
                         >
-                            <Ionicons
-                                name="chevron-back"
-                                size={moderateScale(24)}
-                                color={canNavigateToPreviousMonth() ? "#333" : "#ccc"}
-                            />
+                            <Ionicons name="chevron-back" size={moderateScale(20)} color="#fff" />
                         </TouchableOpacity>
-                        <Text style={styles.monthText}>
-                            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-                        </Text>
                         <TouchableOpacity
                             onPress={() => {
                                 const newDate = new Date(currentMonth);
                                 newDate.setMonth(newDate.getMonth() + 1);
                                 setCurrentMonth(newDate);
                             }}
+                            style={styles.monthIcon}
                         >
-                            <Ionicons name="chevron-forward" size={moderateScale(24)} color="#333" />
+                            <Ionicons name="chevron-forward" size={moderateScale(20)} color="#fff" />
                         </TouchableOpacity>
                     </View>
+                </View>
 
-                    {/* Week Days */}
-                    <View style={styles.weekDaysRow}>
-                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-                            <Text key={index} style={styles.weekDayText}>{day}</Text>
-                        ))}
-                    </View>
-
-                    {/* Calendar Grid */}
-                    <View style={styles.calendarGrid}>
-                        {generateCalendarDays().map((item, index) => {
-                            const isDisabled = !item.isCurrentMonth || item.isPast;
-                            const isSelected = selectedDate === item.day && item.isCurrentMonth && !item.isPast;
+                {/* Horizontal Date Picker */}
+                <View style={styles.datePickerContainer}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.datesScroll}
+                        contentContainerStyle={styles.datesScrollContent}
+                        decelerationRate="fast"
+                        overScrollMode="never"
+                    >
+                        {calendarData.map((item, index) => {
+                            const isSelected = selectedDate === item.day;
+                            const isDisabled = item.isPast;
 
                             return (
                                 <TouchableOpacity
                                     key={index}
-                                    style={[
-                                        styles.dayCell,
-                                        isDisabled && styles.dayCellInactive,
-                                        isSelected && styles.dayCellSelected,
-                                    ]}
-                                    onPress={() => {
-                                        if (!isDisabled) {
-                                            setSelectedDate(item.day);
-                                        }
-                                    }}
+                                    activeOpacity={0.7}
                                     disabled={isDisabled}
+                                    onPress={() => setSelectedDate(item.day)}
+                                    style={[
+                                        styles.dateCard,
+                                        isSelected && styles.dateCardSelected,
+                                        isDisabled && styles.dateCardDisabled
+                                    ]}
                                 >
-                                    <Text
-                                        style={[
-                                            styles.dayText,
-                                            isDisabled && styles.dayTextInactive,
-                                            isSelected && styles.dayTextSelected,
-                                        ]}
-                                    >
+                                    <Text style={[
+                                        styles.dayNameText,
+                                        isSelected && styles.dayNameTextSelected,
+                                        isDisabled && styles.textDisabled
+                                    ]}>
+                                        {item.weekDay}
+                                    </Text>
+                                    <Text style={[
+                                        styles.dateNumText,
+                                        isSelected && styles.dateNumTextSelected,
+                                        isDisabled && styles.textDisabled
+                                    ]}>
                                         {item.day}
                                     </Text>
                                 </TouchableOpacity>
-                            );
+                            )
                         })}
+                    </ScrollView>
+                </View>
+
+                {/* Slots Section */}
+                {isLoadingSlots ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={styles.loadingText}>Fetching available slots...</Text>
                     </View>
-                </View>
+                ) : availableSlots.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <Ionicons name="calendar-outline" size={moderateScale(48)} color="#333" />
+                        <Text style={styles.emptyText}>No slots available for this date.</Text>
+                    </View>
+                ) : (
+                    <>
+                        {/* Morning Section */}
+                        {morningSlots.length > 0 && (
+                            <View style={styles.slotSection}>
+                                <View style={styles.sectionHeader}>
+                                    <Feather name="sun" size={moderateScale(18)} color="#999" />
+                                    <Text style={styles.sectionTitle}>MORNING</Text>
+                                </View>
+                                <View style={styles.slotsGrid}>
+                                    {morningSlots.map((slot, index) => {
+                                        const isSelected = selectedSlots.some(s => s.display_time === slot.display_time);
+                                        return (
+                                            <TouchableOpacity
+                                                key={`m-${index}`}
+                                                style={[
+                                                    styles.slotChip,
+                                                    isSelected && styles.slotChipSelected
+                                                ]}
+                                                onPress={() => toggleSlotSelection(slot)}
+                                            >
+                                                <Text style={[
+                                                    styles.slotTime,
+                                                    isSelected && styles.slotTimeSelected
+                                                ]}>{slot.display_time}</Text>
+                                                {isSelected && (
+                                                    <View style={styles.slotDot} />
+                                                )}
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        )}
 
-                {/* Available Slots */}
-                <View style={styles.slotsContainer}>
-                    <Text style={styles.slotsTitle}>
-                        Available Slots for {monthNames[currentMonth.getMonth()]} {selectedDate}
-                    </Text>
-                    {isLoadingSlots ? (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="large" color={colors.primary} />
-                            <Text style={styles.loadingText}>Loading available slots...</Text>
-                        </View>
-                    ) : availableSlots.length === 0 ? (
-                        <View style={styles.emptyContainer}>
-                            <Ionicons name="calendar-outline" size={moderateScale(40)} color="#ccc" />
-                            <Text style={styles.emptyText}>No available slots for this date</Text>
-                        </View>
-                    ) : (
-                        <View style={styles.slotsGrid}>
-                            {availableSlots.map((slot, index) => {
-                                const isSelected = selectedSlots.some(
-                                    s => s.display_time === slot.display_time
-                                );
+                        {/* Evening Section */}
+                        {eveningSlots.length > 0 && (
+                            <View style={styles.slotSection}>
+                                <View style={styles.sectionHeader}>
+                                    <Ionicons name="moon-outline" size={moderateScale(18)} color="#999" />
+                                    <Text style={styles.sectionTitle}>EVENING</Text>
+                                </View>
+                                <View style={styles.slotsGrid}>
+                                    {eveningSlots.map((slot, index) => {
+                                        const isSelected = selectedSlots.some(s => s.display_time === slot.display_time);
+                                        return (
+                                            <TouchableOpacity
+                                                key={`e-${index}`}
+                                                style={[
+                                                    styles.slotChip,
+                                                    isSelected && styles.slotChipSelected
+                                                ]}
+                                                onPress={() => toggleSlotSelection(slot)}
+                                            >
+                                                <Text style={[
+                                                    styles.slotTime,
+                                                    isSelected && styles.slotTimeSelected
+                                                ]}>{slot.display_time}</Text>
+                                                {isSelected && (
+                                                    <View style={styles.slotDot} />
+                                                )}
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        )}
+                    </>
+                )}
 
-                                return (
-                                    <TouchableOpacity
-                                        key={index}
-                                        style={[
-                                            styles.slotButton,
-                                            isSelected && styles.slotButtonSelected,
-                                        ]}
-                                        onPress={() => {
-                                            if (isSelected) {
-                                                // Remove from selection
-                                                setSelectedSlots(prev =>
-                                                    prev.filter(s => s.display_time !== slot.display_time)
-                                                );
-                                                console.log('Deselected slot:', slot.display_time);
-                                            } else {
-                                                // Add to selection
-                                                setSelectedSlots(prev => [...prev, slot]);
-                                                console.log('Selected slot:', slot.display_time, 'Price:', slot.price);
-                                            }
-                                        }}
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.slotText,
-                                                isSelected && styles.slotTextSelected,
-                                            ]}
-                                        >
-                                            {slot.display_time}
-                                        </Text>
-                                        <Text
-                                            style={[
-                                                styles.slotPrice,
-                                                isSelected && styles.slotPriceSelected,
-                                            ]}
-                                        >
-                                            ₹{slot.price}
-                                        </Text>
-                                        {isSelected && (
-                                            <Ionicons
-                                                name="checkmark-circle"
-                                                size={moderateScale(18)}
-                                                color="#fff"
-                                                style={styles.checkmark}
-                                            />
-                                        )}
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-                    )}
-                </View>
-
-                {/* Spacer */}
-                <View style={{ height: hp(15) }} />
             </ScrollView>
 
-            {/* Fixed Footer */}
+            {/* Footer */}
             <View style={styles.footer}>
-                <View style={styles.totalPriceContainer}>
-                    <Text style={styles.totalPriceLabel}>Total Price</Text>
-                    <Text style={styles.totalPriceAmount}>
+                <View style={styles.priceInfo}>
+                    <Text style={styles.totalLabel}>TOTAL AMOUNT</Text>
+                    <Text style={styles.totalAmount}>
                         ₹{selectedSlots.reduce((sum, slot) => sum + slot.price, 0)}
                     </Text>
                 </View>
-                {selectedSlots.length > 0 && (
-                    <Text style={styles.selectedSlotsCount}>
-                        {selectedSlots.length} slot{selectedSlots.length > 1 ? 's' : ''} selected
-                    </Text>
-                )}
                 <TouchableOpacity
-                    style={styles.confirmButton}
+                    style={styles.payButton}
                     onPress={handleConfirmBooking}
+                    activeOpacity={0.8}
                 >
-                    <Text style={styles.confirmButtonText}>Confirm Booking</Text>
+                    <Text style={styles.payButtonText}>PAY NOW</Text>
                 </TouchableOpacity>
             </View>
-
-            {/* Floating Cart Button */}
-            {cartItems > 0 && (
-                <TouchableOpacity style={styles.cartButton}>
-                    <Ionicons name="cart" size={moderateScale(24)} color="#fff" />
-                    <View style={styles.cartBadge}>
-                        <Text style={styles.cartBadgeText}>{cartItems}</Text>
-                    </View>
-                </TouchableOpacity>
-            )}
-        </View>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA',
+        backgroundColor: '#000000',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
         paddingHorizontal: wp(5),
-        paddingTop: hp(6),
+        paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 30) + hp(3) : hp(7),
         paddingBottom: hp(2),
-        backgroundColor: '#fff',
     },
     backButton: {
-        width: wp(10),
-        height: wp(10),
+        width: moderateScale(40),
+        height: moderateScale(40),
         justifyContent: 'center',
-        alignItems: 'center',
+        alignItems: 'flex-start',
     },
-    headerTitleContainer: {
+    headerInfo: {
+        marginLeft: wp(2),
         flex: 1,
-        alignItems: 'center',
     },
     headerTitle: {
-        fontSize: fontScale(16),
+        fontSize: fontScale(22),
         fontWeight: '700',
-        color: '#333',
+        color: '#fff',
     },
     headerSubtitle: {
         fontSize: fontScale(13),
-        color: '#999',
+        color: '#666',
         marginTop: 2,
     },
-    calendarContainer: {
-        backgroundColor: '#fff',
-        margin: wp(5),
-        marginTop: hp(2),
-        borderRadius: moderateScale(20),
-        padding: wp(4),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+    scrollContent: {
+        paddingBottom: hp(15),
     },
-    calendarHeader: {
+    monthHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: hp(3),
+        paddingHorizontal: wp(5),
+        marginTop: hp(2),
+        marginBottom: hp(2),
     },
     monthText: {
         fontSize: fontScale(16),
-        fontWeight: '600',
-        color: '#333',
+        fontWeight: '800',
+        color: '#fff',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
-    weekDaysRow: {
+    monthControls: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
+        gap: wp(4),
+    },
+    monthIcon: {
+        padding: 4,
+    },
+    datePickerContainer: {
+        height: hp(12),
         marginBottom: hp(2),
     },
-    weekDayText: {
-        fontSize: fontScale(13),
-        color: '#999',
-        fontWeight: '500',
-        width: width / 9,
-        textAlign: 'center',
+    datesScroll: {
+        flexGrow: 0,
     },
-    calendarGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
+    datesScrollContent: {
+        paddingHorizontal: wp(5),
     },
-    dayCell: {
-        width: width / 9,
-        height: hp(5),
+    dateCard: {
+        width: wp(16),
+        height: hp(10), // Taller vertical card
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(16),
         justifyContent: 'center',
         alignItems: 'center',
-        marginVertical: hp(0.5),
+        marginRight: wp(3),
+        borderWidth: 1,
+        borderColor: '#333',
     },
-    dayCellInactive: {
+    dateCardSelected: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    dateCardDisabled: {
         opacity: 0.3,
     },
-    dayCellSelected: {
-        backgroundColor: colors.primary,
-        borderRadius: moderateScale(20),
+    dayNameText: {
+        fontSize: fontScale(12),
+        color: '#999',
+        marginBottom: hp(0.5),
+        fontWeight: '600',
+        textTransform: 'uppercase',
     },
-    dayText: {
-        fontSize: fontScale(14),
-        color: '#333',
+    dayNameTextSelected: {
+        color: '#000',
+        fontWeight: '700',
     },
-    dayTextInactive: {
-        color: '#ccc',
-    },
-    dayTextSelected: {
+    dateNumText: {
+        fontSize: fontScale(18),
         color: '#fff',
         fontWeight: '700',
     },
-    slotsContainer: {
-        paddingHorizontal: wp(5),
-        marginTop: hp(1),
+    dateNumTextSelected: {
+        color: '#000',
+        fontWeight: '800',
     },
-    slotsTitle: {
-        fontSize: fontScale(16),
-        fontWeight: '700',
-        color: '#333',
+    textDisabled: {
+        color: '#666',
+    },
+    loadingContainer: {
+        marginTop: hp(5),
+        alignItems: 'center',
+    },
+    loadingText: {
+        color: '#666',
+        marginTop: hp(2),
+        fontSize: fontScale(14),
+    },
+    emptyContainer: {
+        marginTop: hp(5),
+        alignItems: 'center',
+    },
+    emptyText: {
+        color: '#666',
+        marginTop: hp(2),
+        fontSize: fontScale(14),
+    },
+    slotSection: {
+        marginBottom: hp(4),
+        paddingHorizontal: wp(5),
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginBottom: hp(2),
+        gap: wp(2),
+    },
+    sectionTitle: {
+        fontSize: fontScale(14),
+        fontWeight: '700',
+        color: '#999',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
     slotsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-between',
+        gap: wp(3), // Use gap for consistent spacing
     },
-    slotButton: {
-        width: '31%',
-        backgroundColor: '#fff',
+    slotChip: {
+        width: (width - wp(10) - wp(6)) / 3, // 3 columns accurately
+        backgroundColor: '#1C1C1E',
         borderRadius: moderateScale(12),
-        paddingVertical: hp(2.5),
-        marginBottom: hp(1.5),
-        justifyContent: 'center',
+        paddingVertical: hp(1.8),
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-        minHeight: hp(8),
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#333',
+        position: 'relative',
+        overflow: 'hidden',
     },
-    slotButtonSelected: {
-        backgroundColor: colors.primary,
+    slotChipSelected: {
+        backgroundColor: '#1C1C1E', // Keep dark bg but green border
+        borderColor: colors.primary,
+        borderWidth: 2, // Thicker border
     },
-    slotText: {
-        fontSize: fontScale(13),
+    slotTime: {
+        fontSize: fontScale(12),
+        color: '#ccc',
         fontWeight: '600',
-        color: '#333',
-        textAlign: 'center',
     },
-    slotTextSelected: {
-        color: '#fff',
+    slotTimeSelected: {
+        color: colors.primary,
+        fontWeight: '700',
     },
-    slotPrice: {
-        fontSize: fontScale(11),
-        fontWeight: '500',
-        color: '#666',
-        marginTop: hp(0.5),
-        textAlign: 'center',
-    },
-    slotPriceSelected: {
-        color: '#fff',
-    },
-    loadingContainer: {
-        paddingVertical: hp(4),
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    loadingText: {
-        marginTop: hp(1),
-        fontSize: fontScale(13),
-        color: '#666',
-    },
-    emptyContainer: {
-        paddingVertical: hp(4),
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    emptyText: {
-        marginTop: hp(1),
-        fontSize: fontScale(13),
-        color: '#999',
+    slotDot: {
+        position: 'absolute',
+        top: 6,
+        right: 6,
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: colors.primary,
     },
     footer: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: '#fff',
-        paddingHorizontal: wp(5),
-        paddingVertical: hp(2),
-        paddingBottom: hp(3),
+        backgroundColor: '#1C1C1E',
+        paddingHorizontal: wp(6),
+        paddingTop: hp(2.5),
+        paddingBottom: hp(4),
         borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 10,
-    },
-    totalPriceContainer: {
+        borderTopColor: '#333',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: hp(1.5),
+        borderTopLeftRadius: moderateScale(24),
+        borderTopRightRadius: moderateScale(24),
     },
-    totalPriceLabel: {
-        fontSize: fontScale(14),
-        color: '#999',
+    priceInfo: {
+        flex: 1,
     },
-    totalPriceAmount: {
-        fontSize: fontScale(18),
-        fontWeight: '700',
-        color: '#333',
-    },
-    confirmButton: {
-        backgroundColor: colors.primary,
-        paddingVertical: hp(2),
-        borderRadius: moderateScale(25),
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    confirmButtonText: {
-        fontSize: fontScale(16),
-        fontWeight: '700',
-        color: '#fff',
-    },
-    cartButton: {
-        position: 'absolute',
-        bottom: hp(16),
-        right: wp(5),
-        width: wp(15),
-        height: wp(15),
-        borderRadius: wp(7.5),
-        backgroundColor: colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
-    },
-    cartBadge: {
-        position: 'absolute',
-        top: -5,
-        right: -5,
-        backgroundColor: '#FF4757',
-        width: wp(5),
-        height: wp(5),
-        borderRadius: wp(2.5),
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    cartBadgeText: {
+    totalLabel: {
         fontSize: fontScale(10),
+        color: '#999',
         fontWeight: '700',
+        letterSpacing: 0.5,
+        marginBottom: 4,
+    },
+    totalAmount: {
+        fontSize: fontScale(24),
         color: '#fff',
+        fontWeight: '700',
     },
-    checkmark: {
-        position: 'absolute',
-        top: hp(0.5),
-        right: wp(1),
+    payButton: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: wp(8),
+        paddingVertical: hp(1.8),
+        borderRadius: moderateScale(30),
+        minWidth: wp(40),
+        alignItems: 'center',
     },
-    selectedSlotsCount: {
-        fontSize: fontScale(12),
-        color: '#666',
-        textAlign: 'center',
-        marginBottom: hp(1),
+    payButtonText: {
+        color: '#000',
+        fontSize: fontScale(14),
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
 });
 

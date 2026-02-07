@@ -17,25 +17,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  
+
   const { login, isLoading, error, clearError } = useAuthStore();
   const { rs, moderateScale } = useResponsive();
 
   const validate = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
-    
+
     if (!email) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = 'Please enter a valid email';
     }
-    
+
     if (!password) {
       newErrors.password = 'Password is required';
     } else if (password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -53,8 +53,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={[styles.content, { paddingHorizontal: rs(16, 24, 32, 48) }]}>
-          <Text style={[styles.title, { fontSize: rs(28, 32, 36, 40) }]}>
+        <View style={[styles.content, { paddingHorizontal: moderateScale(24) }]}>
+          <Text style={[styles.title, { fontSize: rs(32, 36, 40, 48) }]}>
             Welcome Back
           </Text>
           <Text style={styles.subtitle}>Sign in to continue</Text>
@@ -96,7 +96,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
             <Text style={styles.footerText}>Don't have an account?</Text>
             <Button
               title="Sign Up"
-              onPress={onNavigateToRegister || (() => {})}
+              onPress={onNavigateToRegister || (() => { })}
               variant="ghost"
             />
           </View>
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing['2xl'],
+    marginTop: spacing.xl,
   },
   footerText: {
     ...typography.body,

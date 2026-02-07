@@ -8,10 +8,12 @@ import {
     Dimensions,
     Platform,
     Image,
+    StatusBar,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
@@ -45,19 +47,36 @@ const ProfileOverviewScreen = () => {
         fetchProfileData();
     }, [user?.phoneNumber]);
 
+    const renderMenuItem = (icon: any, title: string, onPress?: () => void, badge?: string) => (
+        <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+            <View style={styles.menuIconContainer}>
+                <Ionicons name={icon} size={moderateScale(20)} color={colors.primary} />
+            </View>
+            <Text style={styles.menuItemText}>{title}</Text>
+            {badge && (
+                <View style={styles.menuBadge}>
+                    <Text style={styles.menuBadgeText}>{badge}</Text>
+                </View>
+            )}
+            <Ionicons name="chevron-forward" size={moderateScale(18)} color="#666" />
+        </TouchableOpacity>
+    );
+
     return (
         <View style={styles.container}>
+            <StatusBar barStyle="light-content" />
+
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.headerButton}
                     onPress={() => navigation.goBack()}
                 >
-                    <Ionicons name="chevron-back" size={moderateScale(24)} color="#000" />
+                    <Ionicons name="chevron-back" size={moderateScale(24)} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Profile</Text>
                 <TouchableOpacity style={styles.headerButton}>
-                    <Ionicons name="settings-outline" size={moderateScale(24)} color="#000" />
+                    <Ionicons name="settings-outline" size={moderateScale(24)} color="#fff" />
                 </TouchableOpacity>
             </View>
 
@@ -65,167 +84,102 @@ const ProfileOverviewScreen = () => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {/* Profile Section */}
-                <View style={styles.profileSection}>
+                {/* Profile Header Section */}
+                <LinearGradient
+                    colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+                    style={styles.profileCard}
+                >
                     <View style={styles.avatarContainer}>
                         <View style={styles.avatar}>
-                            <Ionicons name="person" size={moderateScale(40)} color="#999" />
+                            <Ionicons name="person" size={moderateScale(35)} color="#FFF" />
                         </View>
                         <View style={styles.verifiedBadge}>
-                            <Ionicons name="checkmark" size={moderateScale(12)} color="#fff" />
+                            <Ionicons name="checkmark" size={moderateScale(10)} color="#fff" />
                         </View>
                     </View>
-                    <Text style={styles.userName}>{profileData?.full_name || 'User Name'}</Text>
-                    <Text style={styles.userLocation}>{profileData?.city || 'New York, USA'}</Text>
 
-                    <TouchableOpacity
-                        style={styles.editProfileButton}
-                        onPress={() => navigation.navigate('PlayerProfile')}
-                    >
-                        <Text style={styles.editProfileButtonText}>Edit Profile</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Stats Section */}
-                <View style={styles.statsContainer}>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statValue}>1,200</Text>
-                        <Text style={styles.statLabel}>Karma Points</Text>
+                    <View style={styles.profileInfo}>
+                        <Text style={styles.userName}>{profileData?.full_name || 'MyRush User'}</Text>
+                        <Text style={styles.userHandle}>@{profileData?.full_name?.replace(/\s/g, '').toLowerCase() || 'player'}</Text>
+                        <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('PlayerProfile')}>
+                            <Text style={styles.editButtonText}>Edit Profile</Text>
+                        </TouchableOpacity>
                     </View>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statValue}>88</Text>
-                        <Text style={styles.statLabel}>Games Played</Text>
-                    </View>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statValue}>150</Text>
-                        <Text style={styles.statLabel}>Hours Trained</Text>
-                    </View>
-                </View>
+                </LinearGradient>
 
-                {/* User Type Badge */}
-                <View style={styles.userTypeBadge}>
-                    <Text style={styles.userTypeTitle}>GOLD MEMBER</Text>
-                    <Text style={styles.userTypeSubtitle}>Elite Perks</Text>
-                </View>
-
-                {/* Track Progress */}
-                <View style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>Track Your Progress</Text>
-                    <TouchableOpacity style={styles.progressRow}>
-                        <View style={styles.progressInfo}>
-                            <Text style={styles.progressTitle}>Level 5 Achieved!</Text>
-                            <Text style={styles.progressSubtitle}>You're 50% away from Level 6</Text>
-                        </View>
-                        <View style={styles.progressIndicatorWrapper}>
-                            <View style={styles.progressCircle}>
-                                <Text style={styles.progressPercentageText}>65%</Text>
-                            </View>
-                        </View>
-                        <Ionicons name="chevron-forward" size={moderateScale(20)} color="#999" />
-                    </TouchableOpacity>
-                </View>
-
-                {/* My Sports */}
-                <View style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>My Sports</Text>
-                    <View style={styles.sportsGrid}>
-                        {profileData?.sports?.map((sport, index) => (
-                            <View key={index} style={styles.sportRow}>
-                                <Text style={styles.sportName}>{sport}</Text>
-                                <Text style={styles.sportLevel}>
-                                    {profileData?.skill_level || 'Intermediate'}
-                                </Text>
-                            </View>
-                        )) || (
-                                <>
-                                    <View style={styles.sportRow}>
-                                        <Text style={styles.sportName}>Padel</Text>
-                                        <Text style={styles.sportLevel}>Intermediate</Text>
-                                    </View>
-                                    <View style={styles.sportRow}>
-                                        <Text style={styles.sportName}>Running</Text>
-                                        <Text style={styles.sportLevel}>Advanced</Text>
-                                    </View>
-                                </>
-                            )}
-                    </View>
-                </View>
-
-                {/* My Achievements */}
-                <View style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>My Achievements</Text>
-                    <View style={styles.achievementsRow}>
-                        <View style={styles.achievementBadge}>
-                            <View style={[styles.achievementIcon, { backgroundColor: '#C8F7DC' }]}>
-                                <Ionicons name="trophy" size={moderateScale(24)} color={colors.primary} />
-                            </View>
-                            <Text style={styles.achievementText}>First Match{'\n'}Win</Text>
-                        </View>
-                        <View style={styles.achievementBadge}>
-                            <View style={[styles.achievementIcon, { backgroundColor: '#C8F7DC' }]}>
-                                <Ionicons name="timer" size={moderateScale(24)} color={colors.primary} />
-                            </View>
-                            <Text style={styles.achievementText}>10 Hours{'\n'}Trained</Text>
-                        </View>
-                        <View style={styles.achievementBadge}>
-                            <View style={[styles.achievementIcon, { backgroundColor: '#C8F7DC' }]}>
-                                <Ionicons name="medal" size={moderateScale(24)} color={colors.primary} />
-                            </View>
-                            <Text style={styles.achievementText}>Top 10{'\n'}Player</Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* My Teams */}
-                <View style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>My Teams</Text>
-                    <TouchableOpacity style={styles.teamRow}>
-                        <View style={styles.teamIconContainer}>
-                            <View style={[styles.teamIcon, { backgroundColor: '#FFE4E4' }]}>
-                                <Text style={styles.teamIconText}>PP</Text>
-                            </View>
-                        </View>
-                        <Text style={styles.teamName}>Padel Pros</Text>
-                        <Ionicons name="chevron-forward" size={moderateScale(20)} color="#999" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.teamRow}>
-                        <View style={styles.teamIconContainer}>
-                            <View style={[styles.teamIcon, { backgroundColor: '#006D5B' }]}>
-                                <Ionicons name="water" size={moderateScale(16)} color="#fff" />
-                            </View>
-                        </View>
-                        <Text style={styles.teamName}>City Runners</Text>
-                        <Ionicons name="chevron-forward" size={moderateScale(20)} color="#999" />
-                    </TouchableOpacity>
-                </View>
-
-                {/* Community */}
-                <TouchableOpacity style={styles.menuItem}>
-                    <Ionicons name="people-outline" size={moderateScale(22)} color="#333" />
-                    <Text style={styles.menuItemText}>Community</Text>
-                    <Ionicons name="chevron-forward" size={moderateScale(20)} color="#999" />
-                </TouchableOpacity>
-
-                {/* Offers */}
-                <TouchableOpacity style={styles.menuItem}>
-                    <Ionicons name="pricetag-outline" size={moderateScale(22)} color="#333" />
-                    <Text style={styles.menuItemText}>Offers</Text>
-                    <Ionicons name="chevron-forward" size={moderateScale(20)} color="#999" />
-                </TouchableOpacity>
-
-                {/* Reviews & Ratings */}
+                {/* Loyalty Program Section */}
                 <TouchableOpacity
-                    style={[styles.menuItem, { marginBottom: hp(3) }]}
-                    onPress={() => navigation.navigate('Reviews')}
+                    style={styles.loyaltyCard}
+                    onPress={() => navigation.navigate('RedemptionStore')}
                 >
-                    <Ionicons name="star-outline" size={moderateScale(22)} color="#333" />
-                    <Text style={styles.menuItemText}>Reviews & Ratings</Text>
-                    <View style={styles.ratingBadge}>
-                        <Text style={styles.ratingText}>4</Text>
-                        <Ionicons name="star" size={moderateScale(10)} color="#FFA000" />
-                    </View>
-                    <Ionicons name="chevron-forward" size={moderateScale(20)} color="#999" />
+                    <LinearGradient
+                        colors={['#FFD700', '#FFA000']} // Gold Gradient
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.loyaltyGradient}
+                    >
+                        <View style={styles.loyaltyHeader}>
+                            <View>
+                                <Text style={styles.loyaltyLabel}>MYRUSH LOYALTY</Text>
+                                <Text style={styles.loyaltyTier}>Gold Member</Text>
+                            </View>
+                            <MaterialCommunityIcons name="crown" size={moderateScale(32)} color="#FFF" />
+                        </View>
+
+                        <View style={styles.pointsContainer}>
+                            <Text style={styles.pointsValue}>1,250</Text>
+                            <Text style={styles.pointsLabel}>Rush Points</Text>
+                        </View>
+
+                        <View style={styles.progressContainer}>
+                            <View style={styles.progressBarBg}>
+                                <View style={[styles.progressBarFill, { width: '60%' }]} />
+                            </View>
+                            <Text style={styles.progressText}>750 points to Platinum</Text>
+                        </View>
+                    </LinearGradient>
                 </TouchableOpacity>
+
+                {/* Stats Grid */}
+                <View style={styles.statsGrid}>
+                    <View style={styles.statBox}>
+                        <Text style={styles.statNumber}>12</Text>
+                        <Text style={styles.statLabel}>Games</Text>
+                    </View>
+                    <View style={styles.statBox}>
+                        <Text style={styles.statNumber}>4.8</Text>
+                        <Text style={styles.statLabel}>Rating</Text>
+                    </View>
+                    <View style={styles.statBox}>
+                        <Text style={styles.statNumber}>8</Text>
+                        <Text style={styles.statLabel}>MVP</Text>
+                    </View>
+                    <View style={styles.statBox}>
+                        <Text style={styles.statNumber}>92%</Text>
+                        <Text style={styles.statLabel}>Reliability</Text>
+                    </View>
+                </View>
+
+                {/* Menu Options */}
+                <View style={styles.menuContainer}>
+                    <Text style={styles.sectionHeader}>Account</Text>
+
+                    {renderMenuItem('people-outline', 'Community', () => navigation.navigate('Community' as any))}
+                    {renderMenuItem('calendar-outline', 'My Bookings', () => navigation.navigate('BookTab'))}
+                    {renderMenuItem('ribbon-outline', 'Memberships', () => navigation.navigate('Membership'))}
+                    {renderMenuItem('trophy-outline', 'Tournaments', () => { })}
+                    {renderMenuItem('card-outline', 'Payment Methods', () => { })}
+
+                    <Text style={[styles.sectionHeader, { marginTop: hp(3) }]}>Support</Text>
+                    {renderMenuItem('help-circle-outline', 'Help & Support', () => { })}
+                    {renderMenuItem('shield-checkmark-outline', 'Privacy Policy', () => { })}
+
+                    <TouchableOpacity style={styles.logoutButton}>
+                        <Text style={styles.logoutText}>Log Out</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <Text style={styles.versionText}>Version 1.0.0</Text>
             </ScrollView>
         </View>
     );
@@ -234,304 +188,253 @@ const ProfileOverviewScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA',
+        backgroundColor: colors.background.primary, // Dark background
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: wp(5),
-        paddingTop: Platform.OS === 'ios' ? hp(6) : hp(4),
+        paddingTop: Platform.OS === 'ios' ? hp(7) : hp(5),
         paddingBottom: hp(2),
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+        backgroundColor: colors.background.primary,
     },
     headerButton: {
         width: moderateScale(40),
         height: moderateScale(40),
+        borderRadius: moderateScale(20),
+        backgroundColor: '#1C1C1E',
         justifyContent: 'center',
         alignItems: 'center',
     },
     headerTitle: {
         fontSize: fontScale(18),
-        fontWeight: '600',
-        color: '#000',
+        fontWeight: 'bold',
+        color: '#fff',
     },
     scrollContent: {
-        paddingBottom: hp(3),
-    },
-    profileSection: {
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        paddingVertical: hp(3),
+        paddingBottom: hp(12),
         paddingHorizontal: wp(5),
-        marginBottom: hp(2),
+    },
+    profileCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: wp(4),
+        borderRadius: moderateScale(16),
+        marginBottom: hp(3),
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     avatarContainer: {
         position: 'relative',
-        marginBottom: hp(1.5),
+        marginRight: wp(4),
     },
     avatar: {
-        width: wp(22),
-        height: wp(22),
-        borderRadius: wp(11),
-        backgroundColor: '#F0D5D5',
+        width: wp(16),
+        height: wp(16),
+        borderRadius: wp(8),
+        backgroundColor: '#333',
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 2,
+        borderColor: colors.primary,
     },
     verifiedBadge: {
         position: 'absolute',
         bottom: 0,
         right: 0,
-        width: wp(6),
-        height: wp(6),
-        borderRadius: wp(3),
         backgroundColor: colors.primary,
+        width: wp(5),
+        height: wp(5),
+        borderRadius: wp(2.5),
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 2,
-        borderColor: '#fff',
+        borderWidth: 1.5,
+        borderColor: '#000',
+    },
+    profileInfo: {
+        flex: 1,
     },
     userName: {
-        fontSize: fontScale(20),
+        fontSize: fontScale(18),
         fontWeight: 'bold',
-        color: '#000',
-        marginBottom: hp(0.5),
-    },
-    userLocation: {
-        fontSize: fontScale(13),
-        color: '#999',
-        marginBottom: hp(2),
-    },
-    editProfileButton: {
-        backgroundColor: colors.primary,
-        paddingHorizontal: wp(20),
-        paddingVertical: hp(1.5),
-        borderRadius: moderateScale(25),
-    },
-    editProfileButtonText: {
         color: '#fff',
+        marginBottom: 2,
+    },
+    userHandle: {
         fontSize: fontScale(14),
-        fontWeight: '600',
-    },
-    statsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: wp(5),
-        marginBottom: hp(2),
-    },
-    statCard: {
-        flex: 1,
-        backgroundColor: '#fff',
-        padding: wp(3),
-        marginHorizontal: wp(1),
-        borderRadius: moderateScale(12),
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    statValue: {
-        fontSize: fontScale(20),
-        fontWeight: 'bold',
-        color: '#000',
-        marginBottom: hp(0.5),
-    },
-    statLabel: {
-        fontSize: fontScale(11),
-        color: '#666',
-        textAlign: 'center',
-    },
-    userTypeBadge: {
-        backgroundColor: '#D4AF37',
-        marginHorizontal: wp(5),
-        marginBottom: hp(2),
-        padding: hp(2),
-        borderRadius: moderateScale(15),
-        alignItems: 'center',
-    },
-    userTypeTitle: {
-        fontSize: fontScale(16),
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: hp(0.3),
-    },
-    userTypeSubtitle: {
-        fontSize: fontScale(12),
-        color: '#fff',
-        opacity: 0.9,
-    },
-    sectionCard: {
-        backgroundColor: '#fff',
-        marginHorizontal: wp(5),
-        marginBottom: hp(2),
-        padding: wp(4),
-        borderRadius: moderateScale(15),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    sectionTitle: {
-        fontSize: fontScale(16),
-        fontWeight: '600',
-        color: '#000',
+        color: '#888',
         marginBottom: hp(1.5),
     },
-    progressRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    progressInfo: {
-        flex: 1,
-    },
-    progressTitle: {
-        fontSize: fontScale(14),
-        fontWeight: '600',
-        color: '#000',
-        marginBottom: hp(0.3),
-    },
-    progressSubtitle: {
-        fontSize: fontScale(11),
-        color: '#999',
-    },
-    progressIndicatorWrapper: {
-        marginRight: wp(2),
-    },
-    progressCircle: {
-        width: wp(12),
-        height: wp(12),
-        borderRadius: wp(6),
-        borderWidth: 4,
-        borderColor: colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#E8F5F1',
-    },
-    progressPercentageText: {
-        fontSize: fontScale(11),
-        fontWeight: '600',
-        color: colors.primary,
-    },
-    sportsGrid: {
-        gap: hp(1),
-    },
-    sportRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+    editButton: {
+        backgroundColor: '#333',
         paddingVertical: hp(0.8),
+        paddingHorizontal: wp(4),
+        borderRadius: moderateScale(8),
+        alignSelf: 'flex-start',
     },
-    sportName: {
-        fontSize: fontScale(14),
-        color: '#000',
+    editButtonText: {
+        color: '#fff',
+        fontSize: fontScale(12),
+        fontWeight: '600',
     },
-    sportLevel: {
-        fontSize: fontScale(13),
-        color: '#666',
+    loyaltyCard: {
+        marginBottom: hp(3),
+        borderRadius: moderateScale(16),
+        overflow: 'hidden',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
     },
-    achievementsRow: {
+    loyaltyGradient: {
+        padding: wp(5),
+    },
+    loyaltyHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: hp(2),
     },
-    achievementBadge: {
-        alignItems: 'center',
-        flex: 1,
+    loyaltyLabel: {
+        fontSize: fontScale(10),
+        fontWeight: '700',
+        color: 'rgba(0,0,0,0.6)',
+        letterSpacing: 1,
+        marginBottom: 4,
     },
-    achievementIcon: {
-        width: wp(15),
-        height: wp(15),
+    loyaltyTier: {
+        fontSize: fontScale(22),
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    pointsContainer: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        marginBottom: hp(2),
+    },
+    pointsValue: {
+        fontSize: fontScale(28),
+        fontWeight: '800',
+        color: '#000',
+        marginRight: 6,
+    },
+    pointsLabel: {
+        fontSize: fontScale(14),
+        fontWeight: '600',
+        color: 'rgba(0,0,0,0.7)',
+    },
+    progressContainer: {
+        width: '100%',
+    },
+    progressBarBg: {
+        height: 6,
+        backgroundColor: 'rgba(0,0,0,0.1)',
+        borderRadius: 3,
+        marginBottom: 8,
+    },
+    progressBarFill: {
+        height: '100%',
+        backgroundColor: '#000',
+        borderRadius: 3,
+    },
+    progressText: {
+        fontSize: fontScale(11),
+        color: 'rgba(0,0,0,0.6)',
+        fontWeight: '500',
+    },
+    statsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        gap: wp(3),
+        marginBottom: hp(3),
+    },
+    statBox: {
+        width: (width - wp(10) - wp(9)) / 4, // 4 items with gap
+        aspectRatio: 1,
+        backgroundColor: '#1C1C1E',
         borderRadius: moderateScale(12),
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: hp(0.8),
+        borderWidth: 1,
+        borderColor: '#333',
     },
-    achievementText: {
+    statNumber: {
+        fontSize: fontScale(18),
+        fontWeight: 'bold',
+        color: colors.primary,
+        marginBottom: 4,
+    },
+    statLabel: {
         fontSize: fontScale(10),
-        color: '#666',
-        textAlign: 'center',
-        lineHeight: fontScale(13),
+        color: '#888',
     },
-    teamRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: hp(1),
-        borderBottomWidth: 1,
-        borderBottomColor: '#F5F5F5',
+    menuContainer: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(16),
+        padding: wp(4),
+        marginBottom: hp(3),
     },
-    teamIconContainer: {
-        marginRight: wp(3),
-    },
-    teamIcon: {
-        width: wp(10),
-        height: wp(10),
-        borderRadius: moderateScale(8),
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    teamIconText: {
+    sectionHeader: {
         fontSize: fontScale(12),
-        fontWeight: '600',
-        color: '#FF6B6B',
-    },
-    teamName: {
-        flex: 1,
-        fontSize: fontScale(14),
-        color: '#000',
+        fontWeight: '700',
+        color: '#666',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: hp(2),
+        marginLeft: wp(1),
     },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        marginHorizontal: wp(5),
-        marginBottom: hp(1),
-        padding: wp(4),
-        borderRadius: moderateScale(12),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 2,
+        paddingVertical: hp(1.8),
+        borderBottomWidth: 1,
+        borderBottomColor: '#333',
+    },
+    menuIconContainer: {
+        width: moderateScale(32),
+        height: moderateScale(32),
+        borderRadius: moderateScale(8),
+        backgroundColor: 'rgba(212, 255, 0, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: wp(3),
     },
     menuItemText: {
         flex: 1,
-        fontSize: fontScale(14),
-        color: '#333',
-        marginLeft: wp(3),
+        fontSize: fontScale(15),
+        color: '#fff',
+        fontWeight: '500',
     },
-    ratingBadge: {
-        flexDirection: 'row',
+    menuBadge: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+        marginRight: 8,
+    },
+    menuBadgeText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    logoutButton: {
+        marginTop: hp(2),
+        paddingVertical: hp(1.5),
         alignItems: 'center',
-        backgroundColor: '#FFF3E0',
-        paddingHorizontal: wp(2),
-        paddingVertical: hp(0.3),
-        borderRadius: moderateScale(12),
-        marginRight: wp(2),
     },
-    ratingText: {
+    logoutText: {
+        color: '#FF453A',
+        fontSize: fontScale(15),
+        fontWeight: '600',
+    },
+    versionText: {
+        textAlign: 'center',
+        color: '#444',
         fontSize: fontScale(12),
-        fontWeight: '600',
-        color: '#FFA000',
-        marginRight: wp(0.5),
-    },
-    progressCircleContainer: {
-        position: 'relative',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    progressTextContainer: {
-        position: 'absolute',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    progressPercentage: {
-        fontSize: fontScale(14),
-        fontWeight: '600',
-        color: colors.primary,
+        marginBottom: hp(2),
     },
 });
 

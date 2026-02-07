@@ -12,16 +12,37 @@ export type RootStackParamList = {
   Reviews: undefined;
   Venues: undefined;
   Settings: undefined;
-  MainTabs: undefined;
+  MainTabs: { screen?: string; params?: any };
   Play: undefined;
   Book: undefined;
   Train: undefined;
+  CoachDetails: { coachId: string };
   Community: undefined;
+  Leaderboard: undefined;
+  SquadList: undefined;
+  SquadDetails: { squadId: string };
+  CreateSquad: undefined;
+  ChatList: undefined;
+  ChatDetail: { chatId: string; userName: string };
+  Store: undefined;
+  Payments: undefined;
+  Support: undefined;
+  Events: undefined;
+  RedemptionStore: undefined;
+  Membership: undefined;
   VenueDetails: { venue?: any };
-  SlotSelection: { venue?: any };
+  SlotSelection: { venue?: any; venueId?: string; venueName?: string; sport?: string }; // Updated for coach booking
   BookingDetails: { venue?: string; venueObject?: any; pitch?: string; date?: number; month?: string; year?: number; monthIndex?: number; timeSlot?: string; slotPrice?: number; selectedSlots?: Array<{ time: string; display_time: string; price: number; }>; totalPrice?: number; };
-  ReviewBooking: { venue?: string; venueObject?: any; pitch?: string; date?: number; month?: string; year?: number; monthIndex?: number; timeSlot?: string; slotPrice?: number; numPlayers?: number; teamName?: string; specialRequests?: string; selectedSlots?: Array<{ time: string; display_time: string; price: number; }>; totalPrice?: number; };
+  BookingSuccess: { venue?: string; date?: any; timeSlot?: string; totalAmount?: number; bookingId?: string; selectedSlots?: Array<any> };
   CreateTournament: undefined;
+  JoinGame: { gameData?: any };
+  HostGame: { bookingData: any };
+  // Tab Keys
+  HomeTab: undefined;
+  PlayTab: undefined;
+  BookTab: undefined;
+  TrainTab: undefined;
+  CommunityTab: undefined;
 };
 
 // User types

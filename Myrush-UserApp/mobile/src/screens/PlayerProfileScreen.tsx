@@ -11,8 +11,9 @@ import {
     Platform,
     Image,
     Alert,
+    SafeAreaView
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,6 +26,18 @@ import { profileApi, City, GameType } from '../api/profile';
 const { width } = Dimensions.get('window');
 
 type RootNavigation = NativeStackNavigationProp<RootStackParamList>;
+
+// Premium Dark Theme Colors
+const THEME = {
+    background: '#000000',
+    surface: '#121212',
+    surfaceHighlight: '#1C1C1E',
+    textPrimary: '#FFFFFF',
+    textSecondary: '#9CA3AF',
+    primary: colors.primary, // #39E079 usually
+    border: '#2C2C2E',
+    inputBg: '#1C1C1E',
+};
 
 const PlayerProfileScreen = () => {
     const navigation = useNavigation<RootNavigation>();
@@ -205,26 +218,25 @@ const PlayerProfileScreen = () => {
 
     return (
         <View style={styles.container}>
+            <View style={styles.safeAreaTop} /> {/* Safe Area Background */}
+
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                {/* Header Section */}
-                <View style={styles.headerContainer}>
-                    <ImageBackground
-                        source={require('../../assets/login-image.png')} // Using existing image as placeholder
-                        style={styles.headerImage}
-                        resizeMode="cover"
-                    >
-                        <LinearGradient
-                            colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.6)']}
-                            style={styles.headerGradient}
-                        />
+
+                {/* Header Gradient & Back Button */}
+                <LinearGradient
+                    colors={['#1F1F1F', '#000000']}
+                    style={styles.headerContainer}
+                >
+                    <View style={styles.headerNav}>
                         <TouchableOpacity
-                            style={styles.backButton}
+                            style={styles.iconButton}
                             onPress={() => navigation.goBack()}
                         >
-                            <Ionicons name="arrow-back" size={moderateScale(24)} color="#fff" />
+                            <Ionicons name="arrow-back" size={24} color="#fff" />
                         </TouchableOpacity>
+
                         <TouchableOpacity
-                            style={styles.logoutButton}
+                            style={styles.iconButton}
                             onPress={async () => {
                                 Alert.alert(
                                     'Logout',
@@ -246,190 +258,201 @@ const PlayerProfileScreen = () => {
                                 );
                             }}
                         >
-                            <Ionicons name="log-out-outline" size={moderateScale(24)} color="#fff" />
+                            <Ionicons name="log-out-outline" size={24} color="#fff" />
                         </TouchableOpacity>
-                        <View style={styles.headerContent}>
-                            <Text style={styles.headerTitle}>Let's build your player profile</Text>
-                            <Text style={styles.headerSubtitle}>Personalize training, games, and tournaments for you!</Text>
+                    </View>
+
+                    <View style={styles.headerTitles}>
+                        <Text style={styles.headerTitle}>Player Profile</Text>
+                        <Text style={styles.headerSubtitle}>Personalize your MyRush experience</Text>
+                    </View>
+                </LinearGradient>
+
+                {/* Profile Core Info (Avatar + Name) */}
+                <View style={styles.avatarSection}>
+                    <View style={styles.avatarWrapper}>
+                        <View style={styles.avatarPlaceholder}>
+                            <Text style={styles.avatarInitials}>
+                                {fullName ? fullName.charAt(0).toUpperCase() : 'P'}
+                            </Text>
                         </View>
-                    </ImageBackground>
+                        <TouchableOpacity style={styles.cameraBadge}>
+                            <Ionicons name="camera" size={14} color="#000" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
-                {/* Profile Info Section */}
-                <View style={styles.sectionContainer}>
-                    <View style={styles.profileHeader}>
-                        <View style={styles.avatarContainer}>
-                            <View style={styles.avatarPlaceholder}>
-                                <Ionicons name="person-outline" size={moderateScale(30)} color={colors.primary} />
+                {/* Main Form Fields */}
+                <View style={styles.formContainer}>
+
+                    {/* Phone (Read Only) */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Phone Number</Text>
+                        <View style={[styles.inputContainer, styles.readOnlyInput]}>
+                            <Ionicons name="call-outline" size={20} color={THEME.textSecondary} />
+                            <Text style={[styles.inputText, { color: THEME.textSecondary, marginLeft: 10 }]}>
+                                {phoneNumber}
+                            </Text>
+                            <Ionicons name="lock-closed-outline" size={16} color={THEME.textSecondary} style={{ marginLeft: 'auto' }} />
+                        </View>
+                    </View>
+
+                    {/* Full Name */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Full Name</Text>
+                        <View style={styles.inputContainer}>
+                            <Ionicons name="person-outline" size={20} color={THEME.textSecondary} />
+                            <TextInput
+                                style={styles.textInput}
+                                placeholder="Enter your full name"
+                                placeholderTextColor={THEME.textSecondary}
+                                value={fullName}
+                                onChangeText={setFullName}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Age & City Row */}
+                    <View style={styles.row}>
+                        <View style={[styles.inputGroup, { flex: 0.4 }]}>
+                            <Text style={styles.label}>Age</Text>
+                            <View style={styles.inputContainer}>
+                                <TextInput
+                                    style={[styles.textInput, { textAlign: 'center' }]}
+                                    placeholder="00"
+                                    placeholderTextColor={THEME.textSecondary}
+                                    keyboardType="number-pad"
+                                    value={age}
+                                    onChangeText={setAge}
+                                />
                             </View>
-                            <TouchableOpacity style={styles.cameraButton}>
-                                <Ionicons name="camera" size={moderateScale(14)} color="#fff" />
+                        </View>
+
+                        <View style={[styles.inputGroup, { flex: 0.55 }]}>
+                            <Text style={styles.label}>City</Text>
+                            <TouchableOpacity
+                                style={styles.inputContainer}
+                                onPress={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
+                            >
+                                <Text style={[styles.inputText, !city && { color: THEME.textSecondary }]}>
+                                    {city || 'Select City'}
+                                </Text>
+                                <Ionicons name="chevron-down" size={20} color={THEME.textSecondary} style={{ marginLeft: 'auto' }} />
                             </TouchableOpacity>
-                        </View>
-                        <View style={styles.mainInputs}>
-                            <View style={styles.inputWrapper}>
-                                <Ionicons name="call-outline" size={moderateScale(18)} color="#999" style={styles.inputIcon} />
-                                <TextInput
-                                    style={[styles.input, styles.inputReadOnly]}
-                                    placeholder="Phone number"
-                                    placeholderTextColor="#999"
-                                    value={phoneNumber}
-                                    editable={false}
-                                />
-                                <Ionicons name="lock-closed-outline" size={moderateScale(14)} color="#999" />
-                            </View>
-                            <View style={styles.inputWrapper}>
-                                <Ionicons name="person-outline" size={moderateScale(18)} color="#999" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Full name"
-                                    placeholderTextColor="#999"
-                                    value={fullName}
-                                    onChangeText={setFullName}
-                                />
-                            </View>
-                            <View style={styles.rowInputs}>
-                                <View style={[styles.inputWrapper, { flex: 0.4, marginRight: wp(2) }]}>
-                                    <TextInput
-                                        style={[styles.input, { textAlign: 'center' }]}
-                                        placeholder="Age"
-                                        placeholderTextColor="#999"
-                                        keyboardType="number-pad"
-                                        value={age}
-                                        onChangeText={setAge}
-                                    />
-                                </View>
-                                <View style={[styles.inputWrapper, { flex: 0.6 }]}>
-                                    <TouchableOpacity
-                                        style={styles.cityDropdown}
-                                        onPress={() => setIsCityDropdownOpen(prev => !prev)}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.cityDropdownText,
-                                                !city && styles.cityDropdownPlaceholder,
-                                            ]}
+
+                            {/* City Dropdown */}
+                            {isCityDropdownOpen && (
+                                <View style={styles.dropdownList}>
+                                    {cities.map((c) => (
+                                        <TouchableOpacity
+                                            key={c.id}
+                                            style={styles.dropdownItem}
+                                            onPress={() => {
+                                                setCity(c.name);
+                                                setCityId(c.id);
+                                                setIsCityDropdownOpen(false);
+                                            }}
                                         >
-                                            {city || 'Select City / Town'}
-                                        </Text>
-                                        <Ionicons
-                                            name={isCityDropdownOpen ? 'chevron-up' : 'chevron-down'}
-                                            size={moderateScale(18)}
-                                            color="#999"
-                                        />
-                                    </TouchableOpacity>
-                                    {isCityDropdownOpen && (
-                                        <View style={styles.cityDropdownOptions}>
-                                            {cities.map(c => (
-                                                <TouchableOpacity
-                                                    key={c.id}
-                                                    style={styles.cityOption}
-                                                    onPress={() => {
-                                                        setCity(c.name);
-                                                        setCityId(c.id);
-                                                        setIsCityDropdownOpen(false);
-                                                    }}
-                                                >
-                                                    <Text style={styles.cityOptionText}>{c.name}</Text>
-                                                </TouchableOpacity>
-                                            ))}
-                                        </View>
-                                    )}
+                                            <Text style={styles.dropdownItemText}>{c.name}</Text>
+                                        </TouchableOpacity>
+                                    ))}
                                 </View>
-                            </View>
+                            )}
                         </View>
                     </View>
-                </View>
 
-                {/* Gender Section */}
-                <View style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>Gender</Text>
-                    <View style={styles.chipContainer}>
-                        {genders.map(g => renderChip(g, gender === g, () => setGender(g)))}
+                    {/* Gender */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionHeader}>Gender</Text>
+                        <View style={styles.chipRow}>
+                            {genders.map(g => renderChip(g, gender === g, () => setGender(g)))}
+                        </View>
                     </View>
-                </View>
 
-                {/* Handedness Section */}
-                <View style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>Handedness</Text>
-                    <View style={styles.chipContainer}>
-                        {handednessOptions.map(h => renderChip(h, handedness === h, () => setHandedness(h)))}
+                    {/* Handedness */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionHeader}>Handedness</Text>
+                        <View style={styles.chipRow}>
+                            {handednessOptions.map(h => renderChip(h, handedness === h, () => setHandedness(h)))}
+                        </View>
                     </View>
-                </View>
 
-                {/* Skill Level Section */}
-                <View style={styles.sectionCard}>
-                    <View style={styles.titleRow}>
-                        <Ionicons name="star-outline" size={moderateScale(18)} color="#FFA000" style={{ marginRight: 5 }} />
-                        <Text style={styles.sectionTitle}>Skill level</Text>
+                    {/* Skill Level */}
+                    <View style={styles.section}>
+                        <View style={styles.iconHeader}>
+                            <Ionicons name="star" size={16} color={THEME.primary} style={{ marginRight: 6 }} />
+                            <Text style={styles.sectionHeader}>Skill Level</Text>
+                        </View>
+                        <View style={styles.chipRow}>
+                            {skillLevels.map(s => renderChip(s, skillLevel === s, () => setSkillLevel(s)))}
+                        </View>
                     </View>
-                    <View style={styles.chipContainer}>
-                        {skillLevels.map(s => renderChip(s, skillLevel === s, () => setSkillLevel(s)))}
-                    </View>
-                </View>
 
-                {/* Favorite Sports Section */}
-                <View style={styles.sectionCard}>
-                    <View style={styles.titleRow}>
-                        <Ionicons name="heart-outline" size={moderateScale(18)} color="#FF4081" style={{ marginRight: 5 }} />
-                        <Text style={styles.sectionTitle}>Favorite sports</Text>
+                    {/* Playing Style */}
+                    <View style={styles.section}>
+                        <View style={styles.iconHeader}>
+                            <Ionicons name="flash" size={16} color={THEME.primary} style={{ marginRight: 6 }} />
+                            <Text style={styles.sectionHeader}>Playing Style</Text>
+                        </View>
+                        <View style={styles.chipRow}>
+                            {playingStyles.map(p => renderChip(p, playingStyle === p, () => setPlayingStyle(p)))}
+                        </View>
                     </View>
-                    <View style={styles.sportsDropdown}>
+
+                    {/* Favorite Sports */}
+                    <View style={styles.section}>
+                        <View style={styles.iconHeader}>
+                            <Ionicons name="heart" size={16} color="#FF4081" style={{ marginRight: 6 }} />
+                            <Text style={styles.sectionHeader}>Favorite Sports</Text>
+                        </View>
                         <TouchableOpacity
-                            style={styles.dropdownButton}
+                            style={styles.inputContainer}
                             onPress={() => setIsSportsDropdownOpen(!isSportsDropdownOpen)}
                         >
-                            <Text style={selectedSports.length > 0 ? styles.dropdownSelectedText : styles.dropdownPlaceholderText}>
-                                {selectedSports.length > 0 ? selectedSports.join(', ') : 'Select sports'}
+                            <Text style={[styles.inputText, selectedSports.length === 0 && { color: THEME.textSecondary }]}>
+                                {selectedSports.length > 0 ? selectedSports.join(', ') : 'Select Sports'}
                             </Text>
-                            <Ionicons name={isSportsDropdownOpen ? 'chevron-up' : 'chevron-down'} size={moderateScale(18)} color="#999" />
+                            <Ionicons name="chevron-down" size={20} color={THEME.textSecondary} style={{ marginLeft: 'auto' }} />
                         </TouchableOpacity>
+
                         {isSportsDropdownOpen && (
-                            <View style={styles.sportsDropdownOptions}>
-                                {gameTypes.map(g => (
+                            <View style={styles.dropdownList}>
+                                {gameTypes.map((g) => (
                                     <TouchableOpacity
                                         key={g.id}
-                                        style={styles.sportsOption}
+                                        style={styles.dropdownItem}
                                         onPress={() => toggleSelection(g.name, selectedSports, setSelectedSports)}
                                     >
-                                        <Text style={styles.sportsOptionText}>{g.name}</Text>
-                                        <View style={styles.checkbox}>
-                                            {selectedSports.includes(g.name) && <Ionicons name="checkmark" size={moderateScale(16)} color={colors.primary} />}
-                                        </View>
+                                        <Text style={styles.dropdownItemText}>{g.name}</Text>
+                                        {selectedSports.includes(g.name) && (
+                                            <Ionicons name="checkmark" size={18} color={THEME.primary} />
+                                        )}
                                     </TouchableOpacity>
                                 ))}
                             </View>
                         )}
                     </View>
-                </View>
 
-                {/* Playing Style Section */}
-                <View style={[styles.sectionCard, { marginBottom: hp(10) }]}>
-                    <View style={styles.titleRow}>
-                        <Ionicons name="flash-outline" size={moderateScale(18)} color={colors.primary} style={{ marginRight: 5 }} />
-                        <Text style={styles.sectionTitle}>Playing style</Text>
-                    </View>
-                    <View style={styles.chipContainer}>
-                        {playingStyles.map(p => renderChip(p, playingStyle === p, () => setPlayingStyle(p)))}
-                    </View>
+                    <View style={{ height: 100 }} />
                 </View>
-
             </ScrollView>
 
-            {/* Continue Button */}
+            {/* Sticky Footer */}
             <View style={styles.footer}>
                 <TouchableOpacity
-                    style={styles.continueButton}
+                    style={styles.saveButton}
                     onPress={handleContinue}
                     disabled={isSaving}
                 >
-                    <Text style={styles.continueButtonText}>
-                        {isSaving ? 'Saving...' : 'Continue'}
-                    </Text>
-                    {!isSaving && (
-                        <Ionicons name="chevron-forward" size={moderateScale(20)} color="#fff" />
-                    )}
+                    <LinearGradient
+                        colors={[THEME.primary, '#32C76A']}
+                        style={styles.gradientButton}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                    >
+                        <Text style={styles.saveButtonText}>{isSaving ? 'SAVING...' : 'SAVE PROFILE'}</Text>
+                        {!isSaving && <Ionicons name="arrow-forward" size={20} color="#000" />}
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
         </View>
@@ -439,287 +462,232 @@ const PlayerProfileScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA',
+        backgroundColor: THEME.background,
+    },
+    safeAreaTop: {
+        height: Platform.OS === 'ios' ? 40 : 0, // Simplified safe area
+        backgroundColor: '#1F1F1F',
     },
     scrollContent: {
-        paddingBottom: hp(5),
+        paddingBottom: 20,
     },
     headerContainer: {
-        height: hp(25),
-        width: width,
-        marginBottom: hp(2),
+        paddingHorizontal: 20,
+        paddingTop: Platform.OS === 'android' ? 40 : 10,
+        paddingBottom: 30,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        marginBottom: 20,
     },
-    headerImage: {
-        width: '100%',
-        height: '100%',
-        justifyContent: 'flex-end',
+    headerNav: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 20,
     },
-    headerGradient: {
-        ...StyleSheet.absoluteFillObject,
+    iconButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    headerContent: {
-        padding: wp(5),
-        paddingBottom: hp(4),
+    headerTitles: {
+        marginTop: 10,
     },
     headerTitle: {
-        color: '#fff',
-        fontSize: fontScale(18),
+        fontSize: 28,
         fontWeight: 'bold',
-        marginBottom: hp(0.5),
+        color: '#FFF',
+        marginBottom: 5,
     },
     headerSubtitle: {
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: fontScale(12),
+        fontSize: 14,
+        color: THEME.textSecondary,
     },
-    backButton: {
-        position: 'absolute',
-        top: Platform.OS === 'ios' ? hp(6) : hp(4),
-        left: wp(5),
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        width: moderateScale(40),
-        height: moderateScale(40),
-        borderRadius: moderateScale(20),
-        justifyContent: 'center',
+    // Avatar
+    avatarSection: {
         alignItems: 'center',
-        zIndex: 10,
+        marginTop: -50,
+        marginBottom: 20,
     },
-    logoutButton: {
-        position: 'absolute',
-        top: Platform.OS === 'ios' ? hp(6) : hp(4),
-        right: wp(5),
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        width: moderateScale(40),
-        height: moderateScale(40),
-        borderRadius: moderateScale(20),
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10,
-    },
-    sectionContainer: {
-        paddingHorizontal: wp(4),
-        marginTop: -hp(5),
-    },
-    profileHeader: {
-        backgroundColor: '#fff',
-        borderRadius: moderateScale(20),
-        padding: wp(4),
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 3,
-        marginBottom: hp(2),
-    },
-    avatarContainer: {
+    avatarWrapper: {
         position: 'relative',
-        marginRight: wp(4),
     },
     avatarPlaceholder: {
-        width: wp(18),
-        height: wp(18),
-        borderRadius: wp(9),
-        backgroundColor: colors.brand.light,
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: '#1C1C1E',
+        borderWidth: 3,
+        borderColor: THEME.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 2,
-        borderColor: colors.primary,
+        shadowColor: 'rgba(57, 224, 121, 0.5)',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 8,
     },
-    cameraButton: {
+    avatarInitials: {
+        fontSize: 36,
+        fontWeight: 'bold',
+        color: '#FFF',
+    },
+    cameraBadge: {
         position: 'absolute',
         bottom: 0,
         right: 0,
-        backgroundColor: colors.primary,
-        width: wp(7),
-        height: wp(7),
-        borderRadius: wp(3.5),
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: THEME.primary,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
-        borderColor: '#fff',
+        borderColor: '#000',
     },
-    mainInputs: {
-        flex: 1,
+    // Form
+    formContainer: {
+        paddingHorizontal: 20,
     },
-    inputWrapper: {
-        backgroundColor: '#F5F7FA',
-        borderRadius: moderateScale(10),
-        paddingHorizontal: wp(3),
-        height: hp(5.5),
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: hp(1.5),
+    inputGroup: {
+        marginBottom: 20,
     },
-    rowInputs: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    inputIcon: {
-        marginRight: wp(2),
-    },
-    input: {
-        flex: 1,
-        fontSize: fontScale(14),
-        color: '#333',
-    },
-    inputReadOnly: {
-        color: '#999',
-    },
-    cityDropdown: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flex: 1,
-    },
-    cityDropdownText: {
-        fontSize: fontScale(14),
-        color: '#333',
-    },
-    cityDropdownPlaceholder: {
-        color: '#999',
-    },
-    cityDropdownOptions: {
-        marginTop: hp(0.5),
-        backgroundColor: '#fff',
-        borderRadius: moderateScale(10),
-        paddingVertical: hp(0.5),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 4,
-    },
-    cityOption: {
-        paddingVertical: hp(0.8),
-        paddingHorizontal: wp(3),
-    },
-    cityOptionText: {
-        fontSize: fontScale(13),
-        color: '#333',
-    },
-    sectionCard: {
-        backgroundColor: '#fff',
-        borderRadius: moderateScale(20),
-        padding: wp(5),
-        marginHorizontal: wp(4),
-        marginBottom: hp(2),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.03,
-        shadowRadius: 5,
-        elevation: 2,
-    },
-    sectionTitle: {
-        fontSize: fontScale(14),
+    label: {
+        color: THEME.textSecondary,
+        fontSize: 12,
         fontWeight: '600',
-        color: '#333',
-        marginBottom: hp(2),
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
-    titleRow: {
+    inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: hp(2),
+        backgroundColor: THEME.inputBg,
+        borderRadius: 12,
+        paddingHorizontal: 15,
+        height: 50,
+        borderWidth: 1,
+        borderColor: THEME.border,
     },
-    chipContainer: {
+    readOnlyInput: {
+        opacity: 0.7,
+        backgroundColor: '#111',
+    },
+    textInput: {
+        flex: 1,
+        color: '#FFF',
+        fontSize: 14,
+        height: '100%',
+        marginLeft: 10,
+    },
+    inputText: {
+        color: '#FFF',
+        fontSize: 14,
+    },
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    // Dropdown
+    dropdownList: {
+        position: 'absolute',
+        top: 60,
+        left: 0,
+        right: 0,
+        backgroundColor: '#252525',
+        borderRadius: 12,
+        padding: 5,
+        zIndex: 100,
+        borderWidth: 1,
+        borderColor: '#444',
+        shadowColor: '#000',
+        elevation: 5,
+    },
+    dropdownItem: {
+        paddingVertical: 12,
+        paddingHorizontal: 15,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        borderBottomWidth: 1,
+        borderBottomColor: '#333',
+    },
+    dropdownItemText: {
+        color: '#FFF',
+        fontSize: 14,
+    },
+    // Chips & Sections
+    section: {
+        marginBottom: 25,
+    },
+    sectionHeader: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 12,
+    },
+    iconHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    chipRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: wp(2),
+        gap: 10,
     },
     chip: {
-        backgroundColor: '#F5F7FA',
-        paddingHorizontal: wp(4),
-        paddingVertical: hp(1),
-        borderRadius: moderateScale(20),
-        marginBottom: hp(1),
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+        backgroundColor: THEME.surfaceHighlight,
+        borderWidth: 1,
+        borderColor: THEME.border,
     },
     chipSelected: {
-        backgroundColor: colors.primary,
+        backgroundColor: THEME.primary,
+        borderColor: THEME.primary,
     },
     chipText: {
-        fontSize: fontScale(12),
-        color: '#666',
-        fontWeight: '500',
-    },
-    chipTextSelected: {
-        color: '#fff',
+        color: THEME.textSecondary,
+        fontSize: 12,
         fontWeight: '600',
     },
+    chipTextSelected: {
+        color: '#000',
+        fontWeight: 'bold',
+    },
+    // Footer
     footer: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: '#fff',
-        padding: wp(5),
-        paddingBottom: Platform.OS === 'ios' ? hp(4) : wp(5),
+        padding: 20,
+        backgroundColor: 'rgba(0,0,0,0.9)',
         borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
+        borderTopColor: '#222',
     },
-    continueButton: {
-        backgroundColor: colors.primary,
-        height: hp(6.5),
-        borderRadius: moderateScale(30),
+    saveButton: {
+        height: 56,
+        borderRadius: 28,
+        overflow: 'hidden',
+    },
+    gradientButton: {
+        flex: 1,
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
+        gap: 10,
     },
-    continueButtonText: {
-        color: '#fff',
-        fontSize: fontScale(16),
-        fontWeight: '600',
-        marginRight: wp(1),
-    },
-    sportsDropdown: {
-    },
-    dropdownButton: {
-        backgroundColor: '#F5F7FA',
-        borderRadius: moderateScale(10),
-        paddingHorizontal: wp(3),
-        height: hp(5.5),
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    dropdownSelectedText: {
-        fontSize: fontScale(14),
-        color: '#333',
-    },
-    dropdownPlaceholderText: {
-        fontSize: fontScale(14),
-        color: '#999',
-    },
-    sportsDropdownOptions: {
-        marginTop: hp(0.5),
-        backgroundColor: '#fff',
-        borderRadius: moderateScale(10),
-        paddingVertical: hp(0.5),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 4,
-    },
-    sportsOption: {
-        paddingVertical: hp(0.8),
-        paddingHorizontal: wp(3),
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    sportsOptionText: {
-        fontSize: fontScale(13),
-        color: '#333',
-    },
-    checkbox: {
-        width: moderateScale(20),
-        height: moderateScale(20),
-        borderWidth: 2,
-        borderColor: '#ddd',
-        borderRadius: moderateScale(4),
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#fff',
+    saveButtonText: {
+        color: '#000',
+        fontSize: 16,
+        fontWeight: '900',
+        letterSpacing: 1,
     },
 });
 

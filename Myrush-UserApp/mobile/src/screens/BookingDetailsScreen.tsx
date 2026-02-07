@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -6,355 +6,908 @@ import {
     ScrollView,
     TouchableOpacity,
     TextInput,
-    Image,
+    StatusBar,
+    SafeAreaView,
+    KeyboardAvoidingView,
+    Platform,
+    Alert,
+    ActivityIndicator,
+    Modal,
+    FlatList,
+    PanResponder,
+    Animated,
+    Dimensions
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
+import { couponsApi, bookingsApi } from '../api/venues';
+import { useAuthStore } from '../store/authStore';
 
 type BookingDetailsRouteProp = RouteProp<RootStackParamList, 'BookingDetails'>;
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 
-const BookingDetailsScreen: React.FC = () => {
-    const navigation = useNavigation<Navigation>();
-    const route = useRoute<BookingDetailsRouteProp>();
-    const [numPlayers, setNumPlayers] = useState(2);
-    const [teamName, setTeamName] = useState('');
-    const [specialRequests, setSpecialRequests] = useState('');
-    const [cartItems, setCartItems] = useState(1);
+// Slide Button Component (PanResponder Version)
+const SlideToPay = ({ amount, onSlideSuccess }: { amount: number, onSlideSuccess: () => void }) => {
+    const BUTTON_HEIGHT = hp(7);
+    const CONTAINER_PADDING = 4;
+    const BUTTON_WIDTH = wp(90);
+    const SWIPEABLE_DIMENSIONS = BUTTON_HEIGHT - (CONTAINER_PADDING * 2);
+    const H_SWIPE_RANGE = BUTTON_WIDTH - SWIPEABLE_DIMENSIONS - (CONTAINER_PADDING * 2);
 
-    const { venue, date, month, timeSlot, selectedSlots, totalPrice, venueObject, year, monthIndex, slotPrice } = route.params || {};
+    const [toggled, setToggled] = useState(false);
+    const pan = useRef(new Animated.ValueXY()).current;
 
-    const handleIncrement = () => {
-        setNumPlayers(prev => prev + 1);
-    };
+    // Animate text opacity based on drag
+    const textOpacity = pan.x.interpolate({
+        inputRange: [0, H_SWIPE_RANGE / 2],
+        outputRange: [1, 0],
+        extrapolate: 'clamp',
+    });
 
-    const handleDecrement = () => {
-        if (numPlayers > 1) {
-            setNumPlayers(prev => prev - 1);
-        }
-    };
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: () => {
+                // Initialize
+            },
+            onPanResponderMove: Animated.event(
+                [null, { dx: pan.x }],
+                { useNativeDriver: false }
+            ),
+            onPanResponderRelease: (e, gestureState) => {
+                if (toggled) return;
 
-    const handleConfirmBooking = () => {
-        navigation.navigate('ReviewBooking', {
-            venue,
-            date,
-            month,
-            timeSlot,
-            selectedSlots, // Pass array of slots
-            totalPrice, // Pass total price
-            slotPrice,
-            numPlayers,
-            teamName,
-            specialRequests,
-            venueObject,
-            year,
-            monthIndex,
-        });
+                if (gestureState.dx > H_SWIPE_RANGE * 0.7) { // Trigger at 70%
+                    // Complete the swipe
+                    Animated.spring(pan, {
+                        toValue: { x: H_SWIPE_RANGE, y: 0 },
+                        useNativeDriver: false,
+                    }).start(() => {
+                        setToggled(true);
+                        onSlideSuccess();
+                    });
+                } else {
+                    // Reset
+                    Animated.spring(pan, {
+                        toValue: { x: 0, y: 0 },
+                        useNativeDriver: false,
+                    }).start();
+                }
+            },
+        })
+    ).current;
+
+    // Clamp the slide movement
+    const slideTransform = {
+        transform: [{
+            translateX: pan.x.interpolate({
+                inputRange: [0, H_SWIPE_RANGE],
+                outputRange: [0, H_SWIPE_RANGE],
+                extrapolate: 'clamp',
+            })
+        }]
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.slideButtonContainer, { width: BUTTON_WIDTH, height: BUTTON_HEIGHT }]}>
+            {/* Background Text */}
+            <Animated.Text style={[styles.slideText, { opacity: textOpacity }]}>
+                SLIDE TO PAY ₹{amount}
+            </Animated.Text>
+
+            {/* Slider Handle */}
+            <Animated.View
+                {...panResponder.panHandlers}
+                style={[
+                    styles.slideHandle,
+                    {
+                        width: SWIPEABLE_DIMENSIONS,
+                        height: SWIPEABLE_DIMENSIONS,
+                        top: CONTAINER_PADDING,
+                        left: CONTAINER_PADDING
+                    },
+                    slideTransform
+                ]}
+            >
+                <Ionicons name="arrow-forward" size={24} color="#000" />
+            </Animated.View>
+        </View>
+    );
+};
+
+const BookingDetailsScreen: React.FC = () => {
+    const navigation = useNavigation<Navigation>();
+    const route = useRoute<BookingDetailsRouteProp>();
+
+    // Params
+    const { venue, date, month, timeSlot, selectedSlots, totalPrice } = route.params || {};
+
+    // State for functionality
+    const [numPlayers, setNumPlayers] = useState(2);
+    const [teamName, setTeamName] = useState('');
+    const [specialRequests, setSpecialRequests] = useState('');
+    const [isBookingLoading, setIsBookingLoading] = useState(false);
+    const { user } = useAuthStore();
+
+    // Coupon State
+    const [couponCode, setCouponCode] = useState('');
+    const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+    const [showCouponDropdown, setShowCouponDropdown] = useState(false);
+    const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+    const [couponResult, setCouponResult] = useState<{
+        valid: boolean;
+        discount_percentage?: number;
+        discount_amount?: number;
+        final_amount?: number;
+        message: string;
+    } | null>(null);
+
+    // Financials
+    const platformFee = 20;
+
+    // Calculate Costs Dynamic
+    const calculateBasePrice = () => {
+        // As per user request: Cost calculated based on Number of Players
+        // Assuming Price passed (totalPrice) is per-slot/per-game base.
+        // Formula: (Slots Total * Players). 
+        // Note: If totalPrice is already aggregate of slots, we multipy by players.
+        return (totalPrice || 0) * numPlayers;
+    };
+
+    const basePrice = calculateBasePrice();
+    const discountAmount = couponResult?.valid && couponResult.discount_amount ? couponResult.discount_amount : 0;
+    const finalTotal = basePrice + platformFee - discountAmount;
+
+    // Load Coupons
+    useEffect(() => {
+        loadAvailableCoupons();
+    }, []);
+
+    // Recalculate coupon if players change (since base total changes)
+    useEffect(() => {
+        if (couponResult?.valid && couponCode) {
+            validateCoupon(couponCode); // Re-validate with new total
+        }
+    }, [numPlayers]);
+
+    const loadAvailableCoupons = async () => {
+        try {
+            const result = await couponsApi.getAvailableCoupons();
+            if (result.success && result.data) {
+                setAvailableCoupons(result.data);
+            }
+        } catch (error) {
+            console.error('Failed to load coupons', error);
+        }
+    };
+
+    const validateCoupon = async (code: string) => {
+        if (!code.trim()) return;
+
+        setIsValidatingCoupon(true);
+        try {
+            const currentTotal = calculateBasePrice(); // Check against base price
+            const result = await couponsApi.validateCoupon(code.trim(), currentTotal);
+
+            if (result.success && result.data) {
+                setCouponResult(result.data);
+                if (!result.data.valid) {
+                    // Optional: Toast or specific error state, avoiding alert spam on typing/auto-recalc
+                    // For manual Apply:
+                }
+            } else {
+                setCouponResult({ valid: false, message: 'Invalid Coupon' });
+            }
+        } catch (error) {
+            console.error('Coupon validation error', error);
+        } finally {
+            setIsValidatingCoupon(false);
+        }
+    };
+
+    const handleApplyManual = () => {
+        if (!couponCode.trim()) {
+            Alert.alert('Error', 'Please enter a coupon code');
+            return;
+        }
+        validateCoupon(couponCode).then(() => {
+            // We can check local state or assume updated object from effect/promise, 
+            // sadly state updates are async. We'll rely on the visual feedback.
+        });
+    };
+
+    const handleSelectCoupon = (coupon: any) => {
+        setCouponCode(coupon.code);
+        setShowCouponDropdown(false);
+        validateCoupon(coupon.code);
+    };
+
+    const handleRemoveCoupon = () => {
+        setCouponCode('');
+        setCouponResult(null);
+    };
+
+    const handleIncrement = () => setNumPlayers(prev => prev + 1);
+    const handleDecrement = () => numPlayers > 1 && setNumPlayers(prev => prev - 1);
+
+    const handleConfirmBooking = async () => {
+        if (isBookingLoading) return;
+
+        setIsBookingLoading(true);
+        try {
+            // Construct Date String (YYYY-MM-DD)
+            const formattedMonth = (route.params?.monthIndex !== undefined ? route.params.monthIndex + 1 : 1).toString().padStart(2, '0');
+            const formattedDay = (date || 1).toString().padStart(2, '0');
+            const bookingDate = `${route.params?.year || 2024}-${formattedMonth}-${formattedDay}`;
+
+            // Duration (assuming 60 mins per slot for now if not provided)
+            const duration = (selectedSlots?.length || 1) * 60;
+
+            const result = await bookingsApi.createBooking({
+                userId: user?.id || 'guest',
+                courtId: route.params?.venueObject?.id || 'unknown_court',
+                bookingDate: bookingDate,
+                startTime: timeSlot || selectedSlots?.[0]?.time || "07:00",
+                durationMinutes: duration,
+                numberOfPlayers: numPlayers,
+                pricePerHour: route.params?.slotPrice || 200,
+                teamName: teamName,
+                specialRequests: specialRequests,
+
+                // Detailed data
+                timeSlots: selectedSlots,
+                originalAmount: finalTotal + (couponResult?.discount_amount || 0),
+                discountAmount: couponResult?.discount_amount || 0,
+                couponCode: couponResult?.valid ? couponCode : undefined,
+                totalAmount: finalTotal
+            });
+
+            if (result.success && result.data) {
+                // Success! Navigate to Success Screen
+                navigation.navigate('BookingSuccess', {
+                    venue: venue || "Central Arena",
+                    date: `${month} ${date}`,
+                    timeSlot: timeSlot || "7:00 AM",
+                    totalAmount: finalTotal,
+                    bookingId: result.data.id || result.data.booking_id || '#839201',
+                    selectedSlots
+                });
+            } else {
+                Alert.alert('Booking Failed', result.error || 'Could not complete your booking. Please try again.');
+            }
+
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'An unexpected error occurred.');
+        } finally {
+            setIsBookingLoading(false);
+        }
+    };
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="#000" />
+
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => navigation.goBack()}
                 >
-                    <Ionicons name="arrow-back" size={moderateScale(24)} color={colors.text.primary} />
+                    <Ionicons name="arrow-back" size={moderateScale(24)} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Booking Details</Text>
+                <Text style={styles.headerTitle}>Checkout</Text>
                 <View style={{ width: wp(10) }} />
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Venue Image */}
-                <View style={styles.imageContainer}>
-                    <Image
-                        source={require('../../assets/dashboard-hero.png')}
-                        style={styles.venueImage}
-                        resizeMode="cover"
-                    />
-                </View>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+            >
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-                <View style={styles.content}>
-                    {/* Booking Summary */}
-                    <Text style={styles.sectionLabel}>BOOKING SUMMARY</Text>
-                    <Text style={styles.venueName}>{venue}</Text>
-                    <Text style={styles.dateText}>Wed, {date} {month?.substring(0, 3)}</Text>
-                    <Text style={styles.timeText}>{timeSlot}</Text>
-
-                    {/* Number of Players */}
-                    <View style={styles.playersContainer}>
-                        <View style={styles.playersLabelRow}>
-                            <Ionicons name="people-outline" size={moderateScale(24)} color={colors.primary} />
-                            <Text style={styles.playersLabel}>Number of Players</Text>
+                    {/* 1. BOOKING DETAILS (Players & Team) */}
+                    <Text style={styles.sectionHeader}>BOOKING DETAILS</Text>
+                    <View style={styles.detailsCard}>
+                        {/* Number of Players */}
+                        <View style={styles.playerRow}>
+                            <View>
+                                <Text style={styles.inputLabel}>Number of Players</Text>
+                                <Text style={styles.inputSubLabel}>Total players on pitch</Text>
+                            </View>
+                            <View style={styles.counterContainer}>
+                                <TouchableOpacity onPress={handleDecrement} style={styles.counterBtn}>
+                                    <Ionicons name="remove" size={16} color="#fff" />
+                                </TouchableOpacity>
+                                <Text style={styles.counterText}>{numPlayers}</Text>
+                                <TouchableOpacity onPress={handleIncrement} style={styles.counterBtn}>
+                                    <Ionicons name="add" size={16} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                        <View style={styles.counterContainer}>
-                            <TouchableOpacity
-                                style={styles.counterButton}
-                                onPress={handleDecrement}
-                            >
-                                <Ionicons name="remove" size={moderateScale(20)} color={colors.text.primary} />
-                            </TouchableOpacity>
-                            <Text style={styles.counterValue}>{numPlayers}</Text>
-                            <TouchableOpacity
-                                style={styles.counterButton}
-                                onPress={handleIncrement}
-                            >
-                                <Ionicons name="add" size={moderateScale(20)} color={colors.text.primary} />
-                            </TouchableOpacity>
+
+                        {/* Inputs */}
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Team Name (Optional)"
+                            placeholderTextColor="#666"
+                            value={teamName}
+                            onChangeText={setTeamName}
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Special Requests (Optional)"
+                            placeholderTextColor="#666"
+                            value={specialRequests}
+                            onChangeText={setSpecialRequests}
+                        />
+                    </View>
+
+                    {/* 2. OFFERS & COUPONS */}
+                    <Text style={styles.sectionHeader}>OFFERS & COUPONS</Text>
+                    <View style={styles.couponContainer}>
+                        {couponResult?.valid ? (
+                            <View style={styles.couponAppliedWrapper}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.couponAppliedCode}>{couponCode}</Text>
+                                    <Text style={styles.couponAppliedMsg}>
+                                        Save ₹{couponResult.discount_amount} with this code
+                                    </Text>
+                                </View>
+                                <TouchableOpacity onPress={handleRemoveCoupon}>
+                                    <Ionicons name="close-circle" size={24} color={colors.error} />
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <>
+                                <View style={styles.couponInputWrapper}>
+                                    <MaterialCommunityIcons name="ticket-percent-outline" size={20} color="#666" style={styles.couponIcon} />
+                                    <TextInput
+                                        style={styles.couponInput}
+                                        placeholder="Enter Coupon Code"
+                                        placeholderTextColor="#666"
+                                        value={couponCode}
+                                        onChangeText={setCouponCode}
+                                        autoCapitalize="characters"
+                                    />
+                                    <TouchableOpacity onPress={() => setShowCouponDropdown(true)}>
+                                        <Ionicons name="chevron-down" size={20} color="#666" />
+                                    </TouchableOpacity>
+                                </View>
+                                <TouchableOpacity
+                                    style={[styles.applyBtn, isValidatingCoupon && { opacity: 0.7 }]}
+                                    onPress={handleApplyManual}
+                                    disabled={isValidatingCoupon}
+                                >
+                                    {isValidatingCoupon ? (
+                                        <ActivityIndicator size="small" color={colors.primary} />
+                                    ) : (
+                                        <Text style={styles.applyBtnText}>APPLY</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+
+                    {/* 3. ORDER SUMMARY */}
+                    <Text style={styles.sectionHeader}>ORDER SUMMARY</Text>
+                    <View style={styles.orderCard}>
+                        <View style={styles.venueRow}>
+                            <View style={styles.venueIcon}>
+                                <MaterialCommunityIcons name="soccer-field" size={moderateScale(24)} color="#fff" />
+                            </View>
+                            <View style={styles.venueInfo}>
+                                <Text style={styles.venueName}>{venue}</Text>
+                                <Text style={styles.venueDetails}>
+                                    {month} {date}, {timeSlot} • {selectedSlots?.length} Slot(s)
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.divider} />
+
+                        <View style={styles.costRow}>
+                            <Text style={styles.costLabel}>Base Price (x{numPlayers} Players)</Text>
+                            <Text style={styles.costValue}>₹{basePrice}</Text>
+                        </View>
+                        <View style={styles.costRow}>
+                            <Text style={styles.costLabel}>Platform Fee</Text>
+                            <Text style={styles.costValue}>₹{platformFee}</Text>
+                        </View>
+                        {discountAmount > 0 && (
+                            <View style={styles.costRow}>
+                                <Text style={[styles.costLabel, { color: colors.primary }]}>Discount</Text>
+                                <Text style={[styles.costValue, { color: colors.primary }]}>- ₹{discountAmount}</Text>
+                            </View>
+                        )}
+
+                        <View style={[styles.divider, { marginVertical: hp(1) }]} />
+
+                        <View style={styles.totalRow}>
+                            <Text style={styles.totalLabel}>Total Amount</Text>
+                            <Text style={styles.totalValue}>₹{finalTotal}</Text>
                         </View>
                     </View>
 
-                    {/* Team Name */}
-                    <Text style={styles.inputLabel}>Team Name (Optional)</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Enter your team's name"
-                        placeholderTextColor={colors.text.tertiary}
-                        value={teamName}
-                        onChangeText={setTeamName}
-                    />
+                    {/* 4. PAYMENT METHOD */}
+                    <Text style={styles.sectionHeader}>PAYMENT METHOD</Text>
 
-                    {/* Special Requests */}
-                    <Text style={styles.inputLabel}>Special Requests (Optional)</Text>
-                    <TextInput
-                        style={[styles.input, styles.textArea]}
-                        placeholder="e.g., need extra stumps"
-                        placeholderTextColor={colors.text.tertiary}
-                        value={specialRequests}
-                        onChangeText={setSpecialRequests}
-                        multiline
-                        numberOfLines={4}
-                        textAlignVertical="top"
-                    />
+                    {/* RushPay Card */}
+                    <LinearGradient
+                        colors={['#1C1C1E', '#2C2C2E']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.paymentCard}
+                    >
+                        <View style={styles.cardHeader}>
+                            <Text style={styles.cardBrand}>RUSHPAY</Text>
+                            <MaterialCommunityIcons name="contactless-payment" size={20} color="#ccc" />
+                        </View>
+                        <Text style={styles.cardNum}>•••• •••• •••• 4288</Text>
+                        <View style={styles.cardFooter}>
+                            <Text style={styles.cardHolder}>AJAY P</Text>
+                            <Text style={styles.cardExpiry}>12/28</Text>
+                        </View>
+                    </LinearGradient>
 
-                    {/* Spacer */}
-                    <View style={{ height: hp(12) }} />
-                </View>
-            </ScrollView>
+                    {/* Other Options */}
+                    <View style={styles.optionCard}>
+                        <View style={styles.optionRow}>
+                            <MaterialCommunityIcons name="bank" size={20} color="#fff" />
+                            <Text style={styles.optionText}>UPI / GPay</Text>
+                        </View>
+                    </View>
+                    <View style={styles.optionCard}>
+                        <View style={styles.optionRow}>
+                            <Ionicons name="card-outline" size={20} color="#fff" />
+                            <Text style={styles.optionText}>Credit / Debit Card</Text>
+                        </View>
+                    </View>
 
-            {/* Fixed Footer */}
+                </ScrollView>
+            </KeyboardAvoidingView>
+
+            {/* Footer */}
             <View style={styles.footer}>
-                <TouchableOpacity
-                    style={styles.confirmButton}
-                    onPress={handleConfirmBooking}
-                >
-                    <Text style={styles.confirmButtonText}>Confirm Booking</Text>
-                </TouchableOpacity>
+                <SlideToPay
+                    amount={finalTotal}
+                    onSlideSuccess={handleConfirmBooking}
+                />
             </View>
 
-            {/* Floating Cart Button */}
-            {cartItems > 0 && (
-                <TouchableOpacity style={styles.cartButton}>
-                    <Ionicons name="cart" size={moderateScale(24)} color={colors.white} />
-                    <View style={styles.cartBadge}>
-                        <Text style={styles.cartBadgeText}>{cartItems}</Text>
+            {/* Coupon Dropdown Modal */}
+            <Modal
+                visible={showCouponDropdown}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowCouponDropdown(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Select Coupon</Text>
+                            <TouchableOpacity onPress={() => setShowCouponDropdown(false)}>
+                                <Ionicons name="close" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                        <FlatList
+                            data={availableCoupons}
+                            keyExtractor={(item) => item.code}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={styles.modalCouponItem}
+                                    onPress={() => handleSelectCoupon(item)}
+                                >
+                                    <View>
+                                        <Text style={styles.modalCouponCode}>{item.code}</Text>
+                                        <Text style={styles.modalCouponDesc}>{item.description}</Text>
+                                    </View>
+                                    <Text style={styles.modalCouponValue}>
+                                        {item.discount_type === 'percentage' ? `${item.discount_value}%` : `₹${item.discount_value}`} OFF
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                            ListEmptyComponent={<Text style={{ color: '#666', textAlign: 'center', marginTop: 20 }}>No coupons found</Text>}
+                        />
                     </View>
-                </TouchableOpacity>
-            )}
-        </View>
+                </View>
+            </Modal>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background.secondary,
+        backgroundColor: '#000000',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: wp(5),
-        paddingTop: hp(6),
+        paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp(2) : hp(6),
         paddingBottom: hp(2),
-        backgroundColor: colors.background.primary,
     },
     backButton: {
-        width: wp(10),
-        height: wp(10),
-        justifyContent: 'center',
-        alignItems: 'center',
+        padding: 4,
     },
     headerTitle: {
-        fontSize: fontScale(16),
+        fontSize: fontScale(18),
         fontWeight: '700',
-        color: colors.text.primary,
+        color: '#fff',
     },
-    imageContainer: {
-        height: hp(25),
-        backgroundColor: colors.brand.light,
-        justifyContent: 'center',
-        alignItems: 'center',
+    scrollContent: {
+        paddingHorizontal: wp(5),
+        paddingBottom: hp(15),
     },
-    venueImage: {
-        width: '100%',
-        height: '100%',
-    },
-    content: {
-        padding: wp(5),
-    },
-    sectionLabel: {
-        fontSize: fontScale(11),
-        fontWeight: '600',
-        color: colors.primary,
-        marginBottom: hp(1),
-        letterSpacing: 0.5,
-    },
-    venueName: {
-        fontSize: fontScale(20),
+    sectionHeader: {
+        fontSize: fontScale(12),
         fontWeight: '700',
-        color: colors.text.primary,
-        marginBottom: hp(0.5),
+        color: '#666',
+        marginTop: hp(3),
+        marginBottom: hp(1.5),
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
-    dateText: {
-        fontSize: fontScale(14),
-        color: colors.text.secondary,
-        marginBottom: hp(0.3),
+    // Booking Details
+    detailsCard: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(16),
+        padding: moderateScale(16),
+        borderWidth: 1,
+        borderColor: '#333',
+        gap: hp(2),
     },
-    timeText: {
-        fontSize: fontScale(14),
-        color: colors.text.secondary,
-        marginBottom: hp(3),
-    },
-    playersContainer: {
+    playerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: colors.background.primary,
-        borderRadius: moderateScale(16),
-        padding: wp(4),
-        marginBottom: hp(3),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
     },
-    playersLabelRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    playersLabel: {
+    inputLabel: {
         fontSize: fontScale(14),
+        color: '#fff',
         fontWeight: '600',
-        color: colors.text.primary,
-        marginLeft: wp(2),
+    },
+    inputSubLabel: {
+        fontSize: fontScale(10),
+        color: '#666',
+        marginTop: 2,
     },
     counterContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: wp(3),
     },
-    counterButton: {
-        width: wp(8),
-        height: wp(8),
-        borderRadius: wp(4),
-        backgroundColor: colors.gray[50],
+    counterBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#333',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    counterValue: {
-        fontSize: fontScale(18),
-        fontWeight: '700',
-        color: colors.text.primary,
-        marginHorizontal: wp(4),
-        minWidth: wp(8),
+    counterText: {
+        fontSize: fontScale(16),
+        fontWeight: '600',
+        color: '#fff',
+        minWidth: 20,
         textAlign: 'center',
     },
-    inputLabel: {
-        fontSize: fontScale(14),
-        fontWeight: '600',
-        color: colors.text.primary,
-        marginBottom: hp(1),
-    },
     input: {
-        backgroundColor: colors.background.primary,
-        borderRadius: moderateScale(12),
-        paddingHorizontal: wp(4),
-        paddingVertical: hp(1.5),
+        backgroundColor: '#000',
+        borderRadius: moderateScale(10),
+        padding: moderateScale(12),
+        color: '#fff',
         fontSize: fontScale(14),
-        color: colors.text.primary,
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    // Coupon Section
+    couponContainer: {
+        flexDirection: 'row',
+        gap: wp(2),
+        minHeight: hp(6),
+    },
+    couponInputWrapper: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(12),
+        borderWidth: 1,
+        borderColor: '#333',
+        paddingHorizontal: wp(3),
+    },
+    couponIcon: {
+        marginRight: wp(2),
+    },
+    couponInput: {
+        flex: 1,
+        color: '#fff',
+        fontSize: fontScale(14),
+        paddingVertical: hp(1.5),
+    },
+    applyBtn: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(12),
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: wp(5),
+        borderWidth: 1,
+        borderColor: colors.primary,
+    },
+    applyBtnText: {
+        color: colors.primary,
+        fontSize: fontScale(12),
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+    couponAppliedWrapper: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(204, 255, 0, 0.1)', // Light primary tint
+        borderRadius: moderateScale(12),
+        padding: moderateScale(12),
+        borderWidth: 1,
+        borderColor: colors.primary,
+        justifyContent: 'space-between'
+    },
+    couponAppliedCode: {
+        color: colors.primary,
+        fontWeight: '700',
+        fontSize: fontScale(14),
+        marginBottom: 2
+    },
+    couponAppliedMsg: {
+        color: '#ccc',
+        fontSize: fontScale(12)
+    },
+    // Order Card
+    orderCard: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(16),
+        padding: moderateScale(16),
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    venueRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginBottom: hp(2),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
     },
-    textArea: {
-        height: hp(15),
-        paddingTop: hp(1.5),
+    venueIcon: {
+        width: moderateScale(40),
+        height: moderateScale(40),
+        borderRadius: moderateScale(8),
+        backgroundColor: '#333',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: wp(3),
     },
+    venueInfo: {
+        flex: 1,
+    },
+    venueName: {
+        fontSize: fontScale(14),
+        fontWeight: '700',
+        color: '#fff',
+        marginBottom: 2,
+    },
+    venueDetails: {
+        fontSize: fontScale(12),
+        color: '#999',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#333',
+        marginVertical: hp(1.5),
+    },
+    costRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: hp(0.5),
+    },
+    costLabel: {
+        fontSize: fontScale(13),
+        color: '#999',
+    },
+    costValue: {
+        fontSize: fontScale(13),
+        color: '#ccc',
+    },
+    totalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    totalLabel: {
+        fontSize: fontScale(16),
+        fontWeight: '700',
+        color: '#fff',
+    },
+    totalValue: {
+        fontSize: fontScale(20),
+        fontWeight: '700',
+        color: colors.primary, // Green
+    },
+    // Payment Area
+    paymentCard: {
+        borderRadius: moderateScale(16),
+        padding: moderateScale(20),
+        height: hp(22),
+        justifyContent: 'space-between',
+        marginBottom: hp(1.5),
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    cardBrand: {
+        fontSize: fontScale(16),
+        fontWeight: '900',
+        color: '#fff',
+        fontStyle: 'italic',
+    },
+    cardNum: {
+        fontSize: fontScale(18),
+        color: '#fff',
+        letterSpacing: 2,
+        marginTop: hp(2),
+    },
+    cardFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    cardHolder: {
+        fontSize: fontScale(10),
+        color: '#999',
+        textTransform: 'uppercase',
+    },
+    cardExpiry: {
+        fontSize: fontScale(10),
+        color: '#999',
+    },
+    optionCard: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(12),
+        padding: moderateScale(16),
+        marginBottom: hp(1),
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    optionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: wp(3),
+    },
+    optionText: {
+        color: '#fff',
+        fontSize: fontScale(14),
+        fontWeight: '500',
+    },
+    // Footer
     footer: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: colors.background.primary,
-        paddingHorizontal: wp(5),
-        paddingVertical: hp(2),
-        paddingBottom: hp(3),
-        borderTopWidth: 1,
-        borderTopColor: colors.border.light,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 10,
+        padding: wp(5),
+        paddingBottom: hp(4),
+        backgroundColor: '#000',
     },
-    confirmButton: {
-        backgroundColor: colors.primary,
-        paddingVertical: hp(2),
-        borderRadius: moderateScale(25),
-        justifyContent: 'center',
+    payButton: {
+        backgroundColor: '#1C1C1E',
+        height: hp(7),
+        borderRadius: moderateScale(100),
+        flexDirection: 'row',
         alignItems: 'center',
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        paddingHorizontal: wp(2),
+        borderWidth: 1,
+        borderColor: colors.primary, // Green border
     },
-    confirmButtonText: {
-        fontSize: fontScale(16),
-        fontWeight: '700',
-        color: colors.white,
-    },
-    cartButton: {
-        position: 'absolute',
-        bottom: hp(14),
-        right: wp(5),
-        width: wp(15),
-        height: wp(15),
-        borderRadius: wp(7.5),
+    payIconContainer: {
+        width: hp(6),
+        height: hp(6),
+        borderRadius: hp(3),
         backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
     },
-    cartBadge: {
+    payButtonText: {
+        flex: 1,
+        textAlign: 'center',
+        color: '#fff',
+        fontSize: fontScale(14),
+        fontWeight: '700',
+        letterSpacing: 1,
+        marginRight: hp(6),
+    },
+    // Slide Button Styles
+    slideButtonContainer: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(100),
+        alignSelf: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#333',
+        position: 'relative',
+    },
+    slideText: {
         position: 'absolute',
-        top: -5,
-        right: -5,
-        backgroundColor: colors.error,
-        width: wp(5),
-        height: wp(5),
-        borderRadius: wp(2.5),
+        width: '100%',
+        textAlign: 'center',
+        color: '#fff',
+        backgroundColor: 'transparent',
+        fontSize: fontScale(14),
+        fontWeight: '800',
+        letterSpacing: 2,
+        zIndex: 1,
+    },
+    slideHandle: {
+        backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
+        borderRadius: moderateScale(100),
+        position: 'absolute',
+        zIndex: 2,
     },
-    cartBadgeText: {
-        fontSize: fontScale(10),
+    // Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#1C1C1E',
+        borderTopLeftRadius: moderateScale(24),
+        borderTopRightRadius: moderateScale(24),
+        padding: wp(5),
+        maxHeight: hp(60),
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: hp(2),
+    },
+    modalTitle: {
+        fontSize: fontScale(18),
         fontWeight: '700',
-        color: colors.white,
+        color: '#fff',
+    },
+    modalCouponItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: hp(2),
+        borderBottomWidth: 1,
+        borderBottomColor: '#333',
+    },
+    modalCouponCode: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: fontScale(14),
+    },
+    modalCouponDesc: {
+        color: '#999',
+        fontSize: fontScale(12),
+        marginTop: 2,
+    },
+    modalCouponValue: {
+        color: colors.primary,
+        fontWeight: '700',
+        fontSize: fontScale(14),
     },
 });
 
