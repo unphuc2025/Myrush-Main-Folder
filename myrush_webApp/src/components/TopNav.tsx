@@ -24,7 +24,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-            <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
+            <div className="w-full px-6 h-full flex items-center justify-between">
                 {showBackButton ? (
                     <button
                         className="flex items-center gap-2 text-black hover:text-primary transition-colors font-medium"
@@ -37,7 +37,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                     </button>
                 ) : (
                     <div className="cursor-pointer" onClick={() => navigate('/')}>
-                        <img src="/Rush-logo.webp" alt="MyRush" className="h-20 md:h-24 w-auto" />
+                        <img src="/Rush-logo.webp" alt="MyRush" className="h-24 md:h-28 w-auto" />
                     </div>
                 )}
 
@@ -46,7 +46,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                     {[
                         { label: homeLabel, path: '/' },
                         { label: 'Book Court', path: '/venues' },
-                        { label: 'Events', path: '/events' },
+                        { label: 'Pickleball', path: '/pickleball' },
                         { label: 'Games', path: '/open-play' },
                         { label: 'Academy', path: '/academy' },
                         { label: 'Community', path: '/community' },
@@ -107,12 +107,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                         </div>
                     ) : (
                         // Login/Signup button for unauthenticated users
-                        <button
-                            className="bg-primary text-white hover:bg-primary/90 px-6 py-2 rounded-full text-sm font-bold transition-all hover:shadow-md shadow-glow"
-                            onClick={() => navigate('/login')}
-                        >
-                            Login/Signup
-                        </button>
+                        null
                     )}
                 </div>
             </div>

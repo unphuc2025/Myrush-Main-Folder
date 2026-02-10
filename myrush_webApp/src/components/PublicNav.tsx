@@ -26,9 +26,9 @@ export const PublicNav: React.FC = () => {
             animate={{ y: 0 }}
             transition={{ duration: 0.5 }}
         >
-            <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
+            <div className="w-full px-6 h-24 flex items-center justify-between">
                 <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
-                    <img src="/Rush-logo.webp" alt="Rush" className="h-32 md:h-40 w-auto" />
+                    <img src="/Rush-logo.webp" alt="Rush" className="h-24 md:h-28 w-auto" />
                 </div>
                 <div className="hidden md:flex items-center gap-8 bg-white/5 backdrop-blur-md px-8 py-3 rounded-full border border-white/5">
                     {[
@@ -36,7 +36,7 @@ export const PublicNav: React.FC = () => {
                         { label: 'Academy', path: '/academy' },
                         { label: 'Arena', path: '/arena' },
                         { label: 'Corporate', path: '/corporate' },
-                        { label: 'Events', path: '/dashboard' }
+                        { label: 'Pickleball', path: '/pickleball' }
                     ].map((item) => (
                         <button
                             key={item.label}
@@ -68,13 +68,6 @@ export const PublicNav: React.FC = () => {
                             className="font-bold bg-primary text-black hover:bg-white hover:text-black uppercase tracking-wider text-sm px-6 py-2 shadow-glow hover:shadow-glow-strong rounded-full transition-all"
                         >
                             Book a Court
-                        </Button>
-                        <Button
-                            variant="primary"
-                            onClick={() => navigate('/login')}
-                            className="font-bold bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:text-white uppercase tracking-wider text-sm px-6 py-2 rounded-full transition-all"
-                        >
-                            Login
                         </Button>
                     </div>
                 )}

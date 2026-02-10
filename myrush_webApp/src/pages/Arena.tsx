@@ -1,10 +1,21 @@
 import React from 'react';
+import { PublicNav } from '../components/PublicNav';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { FaMapMarkerAlt, FaClock, FaUsers, FaStar } from "react-icons/fa";
 import { apiClient } from '../api/client';
 import { courtsApi } from '../api/courts';
+
+
+const FALLBACK_IMAGES = [
+    'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=2070', // Soccer
+    'https://images.unsplash.com/photo-1543351611-58f69d7c1781?q=80&w=2070', // Night turf
+    'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2070', // Indoor soccer
+    'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070', // Turf
+    'https://images.unsplash.com/photo-1518605348399-f495143aeb29?q=80&w=2070', // Futsal
+    'https://images.unsplash.com/photo-1555862124-a4ebae639a62?q=80&w=2070', // Cricket
+];
 
 export const Arena: React.FC = () => {
     const navigate = useNavigate();
@@ -101,45 +112,10 @@ export const Arena: React.FC = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-white font-inter">
+        <div className="min-h-screen bg-white font-inter selection:bg-primary selection:text-black">
             {/* Sticky Navigation */}
-            <motion.nav
-                className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10"
-                initial={{ y: -100 }}
-                animate={{ y: 0 }}
-                transition={{ duration: 0.5 }}
-            >
-                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-                        <img src="/Rush-logo.webp" alt="Rush" className="h-32 md:h-40 w-auto" />
-                    </div>
-                    <div className="hidden md:flex items-center gap-8">
-                        {[
-                            { label: 'Home', path: '/' },
-                            { label: 'Academy', path: '/academy' },
-                            { label: 'Arena', path: '/arena' },
-                            { label: 'Corporate', path: '/corporate' },
-                            { label: 'Events', path: '/dashboard' }
-                        ].map((item) => (
-                            <button
-                                key={item.label}
-                                onClick={() => navigate(item.path)}
-                                className={`text-sm font-bold uppercase tracking-wider transition-colors ${window.location.pathname === item.path ? 'text-primary' : 'text-white hover:text-primary'
-                                    }`}
-                            >
-                                {item.label}
-                            </button>
-                        ))}
-                    </div>
-                    <Button
-                        variant="primary"
-                        onClick={() => navigate('/login')}
-                        className="font-bold bg-primary text-black hover:bg-white hover:text-black uppercase tracking-wider text-sm px-10 py-3 min-w-[150px] shadow-[0_0_15px_rgba(0,210,106,0.5)] hover:shadow-[0_0_25px_rgba(0,210,106,0.6)]"
-                    >
-                        Book Now
-                    </Button>
-                </div>
-            </motion.nav>
+            {/* Sticky Navigation */}
+            <PublicNav />
 
             {/* Hero Section */}
             <section className="relative min-h-screen flex items-center justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
@@ -185,7 +161,7 @@ export const Arena: React.FC = () => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="text-lg px-8 py-4 min-w-[200px]"
+                            className="bg-primary text-black hover:bg-white hover:text-black text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
                             onClick={() => navigate('/venues')}
                         >
                             Explore Venues
@@ -208,10 +184,10 @@ export const Arena: React.FC = () => {
             </section>
 
             {/* Features Section */}
-            <section id="features" className="py-40 bg-white w-full">
-                <div className="w-full px-6 md:px-12">
-                    <div className="text-center mb-24">
-                        <h2 className="text-h2 text-black mb-6 leading-[1.1]">
+            <section id="features" className="py-12 md:py-16 bg-white w-full">
+                <div className="w-full px-6">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
                             Premium <span className="text-primary italic">Facilities</span>
                         </h2>
                         <p className="text-body-lg text-gray-400 font-light uppercase tracking-[0.2em]">
@@ -219,7 +195,7 @@ export const Arena: React.FC = () => {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full max-w-[1920px] mx-auto place-items-stretch">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full max-w-7xl mx-auto place-items-stretch">
                         {features.map((feature, index) => (
                             <motion.div
                                 key={index}
@@ -246,11 +222,11 @@ export const Arena: React.FC = () => {
             </section>
 
             {/* Venues Showcase */}
-            <section className="py-40 bg-gray-50 w-full">
-                <div className="w-full max-w-[1920px] mx-auto px-6 md:px-12">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-40 gap-12">
+            <section className="py-12 md:py-16 bg-gray-50 w-full">
+                <div className="w-full max-w-7xl mx-auto px-6">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-h2 text-black mb-10 leading-[1.1]">
+                            <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
                                 Our <span className="text-primary italic">Venues</span>
                             </h2>
                             <p className="text-body-lg text-gray-400 font-light uppercase tracking-[0.2em]">
@@ -275,6 +251,7 @@ export const Arena: React.FC = () => {
                             </div>
                         ) : (
                             venues.map((venue, index) => (
+
                                 <motion.div
                                     key={venue.id}
                                     className="bg-white rounded-3xl overflow-hidden shadow-premium hover:shadow-premium-hover transition-all duration-500 group cursor-pointer"
@@ -286,7 +263,7 @@ export const Arena: React.FC = () => {
                                 >
                                     <div className="relative h-64 overflow-hidden">
                                         <img
-                                            src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070'}
+                                            src={venue.photos?.[0] || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]}
                                             alt={venue.court_name}
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         />
@@ -334,14 +311,14 @@ export const Arena: React.FC = () => {
             </section>
 
             {/* Amenities Section */}
-            <section className="py-40 bg-black relative overflow-hidden w-full">
+            <section className="py-12 md:py-16 bg-black relative overflow-hidden w-full">
                 <div className="absolute inset-0 bg-dark-gradient opacity-100 z-0" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(0,210,106,0.15),transparent)] pointer-events-none z-0" />
 
-                <div className="w-full max-w-[1920px] mx-auto relative z-10 px-6 md:px-12">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-40 gap-12">
+                <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-h2 text-white mb-10 leading-[1.1]">
+                            <h2 className="text-3xl md:text-5xl font-black text-white font-montserrat uppercase leading-tight mb-6">
                                 Complete <span className="text-primary italic">Amenities</span>
                             </h2>
                             <p className="text-body-lg text-white/40 font-light uppercase tracking-[0.2em]">
@@ -380,8 +357,8 @@ export const Arena: React.FC = () => {
             </section>
 
             {/* CTA Section */}
-            <section className="py-40 bg-white w-full">
-                <div className="w-full max-w-[1920px] mx-auto px-6 md:px-12 text-center">
+            <section className="py-12 md:py-16 bg-white w-full">
+                <div className="w-full max-w-7xl mx-auto px-6 text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
