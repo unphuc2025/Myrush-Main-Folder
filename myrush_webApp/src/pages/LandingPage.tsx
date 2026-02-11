@@ -2,8 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, type Variants, useScroll, useTransform } from 'framer-motion';
 import { Button } from '../components/ui/Button';
-
-import { RushArena3D } from '../components/RushArena3D';
+import { FaInstagram, FaYoutube, FaLinkedin, FaTwitter, FaArrowRight } from 'react-icons/fa';
+// import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 // import { Card } from '../components/ui/Card';
 
@@ -35,16 +35,6 @@ export const LandingPage: React.FC = () => {
     const { scrollY } = useScroll();
     // const headersOpacity = useTransform(scrollY, [0, 100], [0, 1]);
     const heroY = useTransform(scrollY, [0, 500], [0, 150]);
-
-
-    const arenas = [
-        { name: 'Rush Arena', url: 'https://rush-arena-bcu.talkinglands.studio/' },
-        { name: 'Cooke Town', url: 'https://rush-arena-cooke-town.talkinglands.studio' },
-        { name: 'GT Mall', url: 'https://rush-arena-gtmall.talkinglands.studio' },
-        { name: 'Rajajinagar', url: 'https://rush-arena-rj.talkinglands.studio' }
-    ];
-
-    const [currentArena, setCurrentArena] = React.useState(arenas[0]);
 
     const services = [
         {
@@ -82,50 +72,67 @@ export const LandingPage: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-black font-inter overflow-x-hidden selection:bg-primary selection:text-black relative">
-            {/* Global Atmosphere */}
-            <div className="fixed inset-0 z-0 mesh-bg opacity-20 pointer-events-none"></div>
-
+        <div className="min-h-screen bg-gray-50 font-inter overflow-x-hidden selection:bg-primary selection:text-black">
+            {/* Sticky Navigation */}
             {/* Sticky Navigation */}
             <PublicNav />
 
             {/* HERO SECTION */}
             <section className="relative h-screen flex items-center justify-center overflow-hidden bg-black">
-                <motion.div style={{ y: heroY }} className="absolute inset-0 z-0 opacity-100">
-                    <RushArena3D url={currentArena.url} />
+                <motion.div style={{ y: heroY }} className="absolute inset-0 z-0">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
+                    <img
+                        src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2035"
+                        alt="Hero"
+                        className="w-full h-full object-cover opacity-60"
+                    />
                 </motion.div>
 
-                {/* Hero Overlay Gradient - REMOVED for brightness */}
-                {/* <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black pointer-events-none z-10" /> */}
+                <div className="relative z-20 text-center px-4 max-w-5xl mx-auto mt-20">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 1 }}
+                        className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase"
+                    >
+                        The Ultimate Sports Platform
+                    </motion.div>
 
+                    <motion.h1
+                        className="text-5xl md:text-7xl font-black font-montserrat tracking-tighter text-white mb-8 uppercase leading-none"
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                    >
+                        Play <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Like</span><br />
+                        A Pro
+                    </motion.h1>
 
-                {/* Arena Switcher - Top Right of Hero (below Nav) */}
-                <div className="absolute top-32 right-6 z-30 flex flex-col gap-2 pointer-events-auto">
-                    <div className="glass-card-dark p-3 rounded-2xl">
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-2 text-center">Select Arena</div>
-                        <div className="flex flex-col gap-1">
-                            {arenas.map((arena) => (
-                                <button
-                                    key={arena.name}
-                                    onClick={() => setCurrentArena(arena)}
-                                    className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 text-left ${currentArena.name === arena.name
-                                        ? 'bg-primary text-black shadow-glow scale-105'
-                                        : 'text-white hover:bg-white/10'
-                                        }`}
-                                >
-                                    {arena.name}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.4 }}
+                        className="flex flex-col md:flex-row items-center justify-center gap-6"
+                    >
+                        <Button
+                            variant="primary"
+                            size="lg"
+                            onClick={() => navigate('/venues')}
+                            className="bg-primary text-black hover:bg-white hover:text-black text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                        >
+                            Book a Court
+                        </Button>
+                        <Button
+                            className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-black text-lg px-12 py-5 min-w-[240px] uppercase tracking-wider font-montserrat font-black rounded-full transition-all duration-300 flex items-center justify-center gap-3 group"
+                        >
+                            Explore Venues <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
+                        </Button>
+                    </motion.div>
                 </div>
-
-
             </section>
 
-
             {/* MARQUEE STRIP */}
-            <div className="bg-primary/90 backdrop-blur-md overflow-hidden py-4 z-30 relative shadow-glow-strong -rotate-1 scale-105 border-y-4 border-black mt-20">
+            <div className="bg-primary overflow-hidden py-4 z-30 relative shadow-glow -rotate-1 scale-105 border-y-4 border-black mt-20">
                 <motion.div
                     className="flex whitespace-nowrap"
                     variants={marqueeVariants}
@@ -140,13 +147,13 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* SERVICES GRID */}
-            <section className="py-20 md:py-32 relative z-10">
-                <div className="max-w-7xl mx-auto px-6 md:px-12">
+            <section className="py-12 md:py-16 bg-white">
+                <div className="max-w-7xl mx-auto px-6">
                     <div className="mb-16 text-center">
-                        <h2 className="text-4xl md:text-6xl font-black text-white font-montserrat uppercase leading-tight mb-6 drop-shadow-lg">
-                            Everything <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Sport.</span>
+                        <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
+                            Everything <span className="text-primary">Sport.</span>
                         </h2>
-                        <p className="text-gray-300 text-lg max-w-2xl mx-auto font-light">
+                        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
                             From casual games to professional training, we have got you covered.
                         </p>
                     </div>
@@ -156,7 +163,7 @@ export const LandingPage: React.FC = () => {
                         {services.map((service, i) => (
                             <motion.div
                                 key={i}
-                                className="glass-card-dark h-96 cursor-pointer relative overflow-hidden group rounded-3xl"
+                                className="group relative overflow-hidden rounded-3xl bg-black h-96 shadow-2xl cursor-pointer"
                                 custom={i}
                                 variants={fadeInUp}
                                 initial="hidden"
@@ -164,30 +171,30 @@ export const LandingPage: React.FC = () => {
                                 viewport={{ once: true, margin: "-50px" }}
                                 onClick={() => navigate(service.link)}
                             >
-                                <div className="absolute inset-0 z-0">
+                                <div className="absolute inset-0">
                                     <img
                                         src={service.image}
                                         alt={service.title}
-                                        className="w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-110 group-hover:opacity-40"
+                                        className="w-full h-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-105"
                                     />
                                 </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
 
-                                <div className="absolute inset-0 p-8 flex flex-col justify-between z-20">
+                                <div className="absolute inset-0 p-8 flex flex-col justify-between">
                                     <div className="flex justify-between items-start">
-                                        <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-3xl text-white border border-white/20 shadow-lg group-hover:bg-primary group-hover:text-black transition-colors duration-300">
+                                        <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-2xl text-white border border-white/20">
                                             {service.icon}
                                         </div>
-                                        <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 border border-white/20">
-                                            <span className="text-white text-xl">↗</span>
+                                        <div className="w-10 h-10 rounded-full bg-primary text-black flex items-center justify-center opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg font-bold text-lg">
+                                            ↗
                                         </div>
                                     </div>
 
                                     <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                                        <h3 className="text-3xl md:text-4xl font-black text-white font-montserrat uppercase italic mb-3 leading-tight drop-shadow-md">
+                                        <h3 className="text-2xl md:text-3xl font-black text-white font-montserrat uppercase italic mb-3 leading-tight">
                                             {service.title}
                                         </h3>
-                                        <p className="text-gray-200 text-base font-medium leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
+                                        <p className="text-white text-base font-medium leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
                                             {service.description}
                                         </p>
                                     </div>
@@ -199,7 +206,7 @@ export const LandingPage: React.FC = () => {
                     <div className="text-center mt-12">
                         <button
                             onClick={() => navigate('/venues')}
-                            className="inline-flex items-center gap-2 text-white font-bold uppercase tracking-wider text-sm hover:text-primary transition-colors pb-2 border-b-2 border-transparent hover:border-primary"
+                            className="inline-flex items-center gap-2 text-black font-bold uppercase tracking-wider text-sm hover:text-primary transition-colors pb-2 border-b-2 border-transparent hover:border-primary"
                         >
                             View All Facilities
                             <span className="transition-transform group-hover:translate-x-1">→</span>
@@ -209,8 +216,8 @@ export const LandingPage: React.FC = () => {
             </section>
 
             {/* CLIENTS SECTION */}
-            <section className="py-20 md:py-32 bg-gray-50 overflow-hidden relative">
-                <div className="max-w-7xl mx-auto px-6 md:px-12 text-center mb-16">
+            <section className="py-12 md:py-16 bg-gray-50 overflow-hidden relative">
+                <div className="max-w-7xl mx-auto px-6 text-center mb-12">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -284,7 +291,7 @@ export const LandingPage: React.FC = () => {
             </section>
 
             {/* UNCOUCH CTA */}
-            <section className="py-100 bg-black text-center px-4 relative overflow-hidden flex flex-col justify-center items-center min-h-[70vh]">
+            <section className="py-16 md:py-24 bg-black text-center px-4 relative overflow-hidden flex flex-col justify-center items-center min-h-[60vh]">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[150px] pointer-events-none" />
                 <div className="relative z-10 max-w-6xl mx-auto flex flex-col items-center">
                     <motion.h2
@@ -310,7 +317,8 @@ export const LandingPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* FOOTER - Removed, now global */}
+            {/* FOOTER */}
+
         </div>
     );
 };

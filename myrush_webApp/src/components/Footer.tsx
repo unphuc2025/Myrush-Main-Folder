@@ -27,10 +27,9 @@ export const Footer: React.FC = () => {
                         </div>
                     </div>
                     <div className="col-span-1 md:col-span-1">
-                        <h4 className="text-white font-bold uppercase tracking-wider mb-8 text-lg">Explore</h4>
                         <ul className="space-y-4 text-base">
-                            {['Academy', 'Arena', 'Corporate', 'Tournaments', 'Events', 'Careers'].map(item => (
-                                <li key={item}><a href="#" className="hover:text-primary transition-colors block text-gray-400 hover:text-white">{item}</a></li>
+                            {['Academy', 'Arena', 'Corporate', 'Tournaments', 'Pickleball', 'Careers'].map(item => (
+                                <li key={item}><a href={item === 'Pickleball' ? '/pickleball' : '#'} className="hover:text-primary transition-colors block text-gray-400 hover:text-white">{item}</a></li>
                             ))}
                         </ul>
                     </div>
