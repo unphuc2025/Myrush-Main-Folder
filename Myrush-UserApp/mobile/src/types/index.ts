@@ -33,7 +33,7 @@ export type RootStackParamList = {
   VenueDetails: { venue?: any };
   SlotSelection: { venue?: any; venueId?: string; venueName?: string; sport?: string }; // Updated for coach booking
   BookingDetails: { venue?: string; venueObject?: any; pitch?: string; date?: number; month?: string; year?: number; monthIndex?: number; timeSlot?: string; slotPrice?: number; selectedSlots?: Array<{ time: string; display_time: string; price: number; }>; totalPrice?: number; };
-  BookingSuccess: { venue?: string; date?: any; timeSlot?: string; totalAmount?: number; bookingId?: string; selectedSlots?: Array<any> };
+  BookingSuccess: { venue?: string; date?: any; timeSlot?: string; totalAmount?: number; bookingId?: string; selectedSlots?: Array<any>; paymentId?: string };
   CreateTournament: undefined;
   JoinGame: { gameData?: any };
   HostGame: { bookingData: any };

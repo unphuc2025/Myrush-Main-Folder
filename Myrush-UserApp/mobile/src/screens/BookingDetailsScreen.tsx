@@ -25,7 +25,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
-import { couponsApi, bookingsApi } from '../api/venues';
+import RazorpayCheckout from 'react-native-razorpay';
+import { couponsApi, bookingsApi, paymentsApi } from '../api/venues';
 import { useAuthStore } from '../store/authStore';
 
 type BookingDetailsRouteProp = RouteProp<RootStackParamList, 'BookingDetails'>;
@@ -249,42 +250,98 @@ const BookingDetailsScreen: React.FC = () => {
             // Duration (assuming 60 mins per slot for now if not provided)
             const duration = (selectedSlots?.length || 1) * 60;
 
-            const result = await bookingsApi.createBooking({
-                userId: user?.id || 'guest',
+            // 1. Create Order on Backend
+            const orderResult = await paymentsApi.createOrder({
                 courtId: route.params?.venueObject?.id || 'unknown_court',
                 bookingDate: bookingDate,
                 startTime: timeSlot || selectedSlots?.[0]?.time || "07:00",
                 durationMinutes: duration,
+                timeSlots: selectedSlots || [],
                 numberOfPlayers: numPlayers,
-                pricePerHour: route.params?.slotPrice || 200,
-                teamName: teamName,
-                specialRequests: specialRequests,
-
-                // Detailed data
-                timeSlots: selectedSlots,
-                originalAmount: finalTotal + (couponResult?.discount_amount || 0),
-                discountAmount: couponResult?.discount_amount || 0,
-                couponCode: couponResult?.valid ? couponCode : undefined,
-                totalAmount: finalTotal
+                couponCode: couponResult?.valid ? couponCode : undefined
             });
 
-            if (result.success && result.data) {
-                // Success! Navigate to Success Screen
-                navigation.navigate('BookingSuccess', {
-                    venue: venue || "Central Arena",
-                    date: `${month} ${date}`,
-                    timeSlot: timeSlot || "7:00 AM",
-                    totalAmount: finalTotal,
-                    bookingId: result.data.id || result.data.booking_id || '#839201',
-                    selectedSlots
-                });
-            } else {
-                Alert.alert('Booking Failed', result.error || 'Could not complete your booking. Please try again.');
+            if (!orderResult.success || !orderResult.data) {
+                Alert.alert('Order Failed', orderResult.error || 'Could not initiate payment.');
+                setIsBookingLoading(false);
+                return;
             }
 
+            const { id: order_id, key_id, amount, currency } = orderResult.data;
+
+            // 2. Open Razorpay Checkout
+            const options = {
+                description: `Booking for ${venue}`,
+                image: 'https://your-logo-url.png', // Optional
+                currency: currency,
+                key: key_id,
+                amount: amount,
+                name: 'MyRush',
+                order_id: order_id,
+                prefill: {
+                    email: user?.email || 'user@example.com',
+                    contact: user?.phoneNumber || '',
+                    name: user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'MyRush User'
+                },
+                theme: { color: colors.primary }
+            };
+
+            RazorpayCheckout.open(options).then(async (data: any) => {
+                // handle success
+                console.log('Razorpay Success:', data);
+
+                // 3. Create Booking with Payment Details
+                const result = await bookingsApi.createBooking({
+                    userId: user?.id || 'guest',
+                    courtId: route.params?.venueObject?.id || 'unknown_court',
+                    bookingDate: bookingDate,
+                    startTime: timeSlot || selectedSlots?.[0]?.time || "07:00",
+                    durationMinutes: duration,
+                    numberOfPlayers: numPlayers,
+                    pricePerHour: route.params?.slotPrice || 200,
+                    teamName: teamName,
+                    specialRequests: specialRequests,
+
+                    // Detailed data
+                    timeSlots: selectedSlots,
+                    originalAmount: finalTotal + (couponResult?.discount_amount || 0),
+                    discountAmount: couponResult?.discount_amount || 0,
+                    couponCode: couponResult?.valid ? couponCode : undefined,
+                    totalAmount: finalTotal,
+
+                    // Razorpay Details
+                    razorpay_payment_id: data.razorpay_payment_id,
+                    razorpay_order_id: data.razorpay_order_id,
+                    razorpay_signature: data.razorpay_signature,
+                    payment_status: 'success'
+                });
+
+                if (result.success && result.data) {
+                    // Success! Navigate to Success Screen
+                    navigation.navigate('BookingSuccess', {
+                        venue: venue || "Central Arena",
+                        date: `${month} ${date}`,
+                        timeSlot: timeSlot || "7:00 AM",
+                        totalAmount: finalTotal,
+                        bookingId: result.data.id || result.data.booking_id || '#839201',
+                        selectedSlots,
+                        paymentId: data.razorpay_payment_id
+                    });
+                } else {
+                    Alert.alert('Booking Failed', result.error || 'Payment successful but booking creation failed. Please contact support.');
+                }
+            }).catch((error: any) => {
+                // handle failure
+                console.log('Razorpay Error:', error);
+                // Razorpay returns error object with code and description
+                Alert.alert('Payment Cancelled', error.description || 'Payment was cancelled or failed.');
+            }).finally(() => {
+                setIsBookingLoading(false);
+            });
+
         } catch (error: any) {
+            console.error('Booking Flow Error:', error);
             Alert.alert('Error', error.message || 'An unexpected error occurred.');
-        } finally {
             setIsBookingLoading(false);
         }
     };

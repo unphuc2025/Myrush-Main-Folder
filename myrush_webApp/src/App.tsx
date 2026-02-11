@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { Academy } from './pages/Academy';
 import { Arena } from './pages/Arena';
 import { Corporate } from './pages/Corporate';
+import { Pickleball } from './pages/Pickleball';
 import { Events } from './pages/Events';
 import { Loyalty } from './pages/Loyalty';
 import { OpenPlay } from './pages/OpenPlay';
@@ -55,6 +56,7 @@ const AppContent = () => {
           <Route path="/academy" element={<Academy />} />
           <Route path="/arena" element={<Arena />} />
           <Route path="/corporate" element={<Corporate />} />
+          <Route path="/pickleball" element={<Pickleball />} />
           <Route path="/events" element={<Events />} />
           <Route path="/open-play" element={<OpenPlay />} />
           <Route path="/store" element={<Store />} />

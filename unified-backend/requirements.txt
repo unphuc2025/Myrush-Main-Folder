@@ -11,3 +11,4 @@ requests
 sqlalchemy
 uvicorn[standard]
 boto3
+razorpay

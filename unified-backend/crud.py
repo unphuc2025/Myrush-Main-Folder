@@ -277,7 +277,10 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             "team_name": booking.team_name,
             "special_requests": booking.special_requests,
             "status": "confirmed",
-            "payment_status": "pending"
+            "payment_status": booking.payment_status or "pending",
+            "payment_id": booking.razorpay_payment_id,
+            "razorpay_order_id": booking.razorpay_order_id,
+            "razorpay_signature": booking.razorpay_signature,
         }
 
         print(f"[CRUD BOOKING] Creating booking with data: {booking_data}")

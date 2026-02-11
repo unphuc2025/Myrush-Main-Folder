@@ -1,11 +1,10 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { PublicNav } from '../components/PublicNav';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 
 
 export const Corporate: React.FC = () => {
-    const navigate = useNavigate();
 
     const services = [
         {
@@ -131,45 +130,10 @@ export const Corporate: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-white font-inter">
+        <div className="min-h-screen bg-white font-inter selection:bg-primary selection:text-black">
             {/* Sticky Navigation */}
-            <motion.nav
-                className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10"
-                initial={{ y: -100 }}
-                animate={{ y: 0 }}
-                transition={{ duration: 0.5 }}
-            >
-                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-                        <img src="/Rush-logo.webp" alt="Rush" className="h-32 md:h-40 w-auto" />
-                    </div>
-                    <div className="hidden md:flex items-center gap-8">
-                        {[
-                            { label: 'Home', path: '/' },
-                            { label: 'Academy', path: '/academy' },
-                            { label: 'Arena', path: '/arena' },
-                            { label: 'Corporate', path: '/corporate' },
-                            { label: 'Events', path: '/dashboard' }
-                        ].map((item) => (
-                            <button
-                                key={item.label}
-                                onClick={() => navigate(item.path)}
-                                className={`text-sm font-bold uppercase tracking-wider transition-colors ${window.location.pathname === item.path ? 'text-primary' : 'text-white hover:text-primary'
-                                    }`}
-                            >
-                                {item.label}
-                            </button>
-                        ))}
-                    </div>
-                    <Button
-                        variant="primary"
-                        onClick={() => navigate('/login')}
-                        className="font-bold bg-primary text-black hover:bg-white hover:text-black uppercase tracking-wider text-sm px-10 py-3 min-w-[150px] shadow-[0_0_15px_rgba(0,210,106,0.5)] hover:shadow-[0_0_25px_rgba(0,210,106,0.6)]"
-                    >
-                        Book Now
-                    </Button>
-                </div>
-            </motion.nav>
+            {/* Sticky Navigation */}
+            <PublicNav />
 
             {/* Hero Section */}
             <section className="relative min-h-screen flex items-center justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
@@ -213,7 +177,7 @@ export const Corporate: React.FC = () => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="text-lg px-8 py-4 min-w-[200px]"
+                            className="bg-primary text-black hover:bg-white hover:text-black text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
                             onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Enquire Now
@@ -229,9 +193,9 @@ export const Corporate: React.FC = () => {
             </section>
 
             {/* Services Section */}
-            <section id="services" className="py-20 md:py-32 bg-white">
-                <div className="max-w-7xl mx-auto px-6 md:px-12">
-                    <div className="mb-16 text-center">
+            <section id="services" className="py-12 md:py-16 bg-white">
+                <div className="max-w-7xl mx-auto px-6">
+                    <div className="mb-12 text-center">
                         <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
                             Corporate <span className="text-primary">Services</span>
                         </h2>
@@ -244,7 +208,7 @@ export const Corporate: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 mb-16">
                         {/* Large featured card */}
                         <motion.div
-                            className="group relative overflow-hidden rounded-3xl bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-500 md:col-span-8"
+                            className="group relative overflow-hidden rounded-3xl bg-gray-50 shadow-premium hover:shadow-premium-hover transition-all duration-500 md:col-span-8"
                             custom={0}
                             variants={{
                                 hidden: { opacity: 0, y: 30 },
@@ -278,7 +242,7 @@ export const Corporate: React.FC = () => {
 
                         {/* Medium card */}
                         <motion.div
-                            className="group relative overflow-hidden rounded-3xl bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-500 md:col-span-4"
+                            className="group relative overflow-hidden rounded-3xl bg-gray-50 shadow-premium hover:shadow-premium-hover transition-all duration-500 md:col-span-4"
                             custom={1}
                             variants={{
                                 hidden: { opacity: 0, y: 30 },
@@ -312,7 +276,7 @@ export const Corporate: React.FC = () => {
 
                         {/* Small cards row */}
                         <motion.div
-                            className="group relative overflow-hidden rounded-3xl bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-500 md:col-span-4"
+                            className="group relative overflow-hidden rounded-3xl bg-gray-50 shadow-premium hover:shadow-premium-hover transition-all duration-500 md:col-span-4"
                             custom={2}
                             variants={{
                                 hidden: { opacity: 0, y: 30 },
@@ -345,7 +309,7 @@ export const Corporate: React.FC = () => {
                         </motion.div>
 
                         <motion.div
-                            className="group relative overflow-hidden rounded-3xl bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-500 md:col-span-4"
+                            className="group relative overflow-hidden rounded-3xl bg-gray-50 shadow-premium hover:shadow-premium-hover transition-all duration-500 md:col-span-4"
                             custom={3}
                             variants={{
                                 hidden: { opacity: 0, y: 30 },
@@ -378,7 +342,7 @@ export const Corporate: React.FC = () => {
                         </motion.div>
 
                         <motion.div
-                            className="group relative overflow-hidden rounded-3xl bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-500 md:col-span-4"
+                            className="group relative overflow-hidden rounded-3xl bg-gray-50 shadow-premium hover:shadow-premium-hover transition-all duration-500 md:col-span-4"
                             custom={4}
                             variants={{
                                 hidden: { opacity: 0, y: 30 },
@@ -414,9 +378,9 @@ export const Corporate: React.FC = () => {
             </section>
 
             {/* Benefits Section */}
-            <section className="py-20 md:py-32 bg-gray-50">
-                <div className="max-w-7xl mx-auto px-6 md:px-12">
-                    <div className="text-center mb-16">
+            <section className="py-12 md:py-16 bg-gray-50">
+                <div className="max-w-7xl mx-auto px-6">
+                    <div className="text-center mb-12">
                         <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
                             Why Choose Sports Engagement for Your Team?
                         </h2>
@@ -426,7 +390,7 @@ export const Corporate: React.FC = () => {
                         {benefits.map((benefit, index) => (
                             <motion.div
                                 key={index}
-                                className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col h-full"
+                                className="group relative overflow-hidden bg-white rounded-2xl shadow-premium hover:shadow-premium-hover transition-all duration-300 flex flex-col h-full"
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
@@ -454,12 +418,12 @@ export const Corporate: React.FC = () => {
             </section>
 
             {/* Packages Section */}
-            <section className="py-20 md:py-32 bg-black relative overflow-hidden">
+            <section className="py-12 md:py-16 bg-black relative overflow-hidden">
                 <div className="absolute inset-0 bg-dark-gradient opacity-100 z-0" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(0,210,106,0.15),transparent)] pointer-events-none z-0" />
 
-                <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
-                    <div className="text-center mb-16">
+                <div className="max-w-7xl mx-auto px-6 relative z-10">
+                    <div className="text-center mb-12">
                         <h2 className="text-3xl md:text-5xl font-black text-white font-montserrat uppercase leading-tight mb-6">
                             Package <span className="text-primary">Options</span>
                         </h2>
@@ -515,8 +479,8 @@ export const Corporate: React.FC = () => {
             </section>
 
             {/* Video Section */}
-            <section className="py-20 md:py-32 bg-white">
-                <div className="max-w-7xl mx-auto px-6 md:px-12 text-center">
+            <section className="py-12 md:py-16 bg-white">
+                <div className="max-w-7xl mx-auto px-6 text-center">
                     <h2 className="text-3xl md:text-5xl font-black text-black mb-8">
                         "Corporate Sports Engagement in Action: Watch Our Videos"
                     </h2>
@@ -527,8 +491,8 @@ export const Corporate: React.FC = () => {
             </section>
 
             {/* Newsletter Section */}
-            <section className="py-20 md:py-32 bg-gray-100">
-                <div className="max-w-4xl mx-auto px-6 md:px-12 text-center">
+            <section className="py-12 md:py-16 bg-gray-100">
+                <div className="max-w-4xl mx-auto px-6 text-center">
                     <h2 className="text-3xl md:text-5xl font-black text-black mb-8">
                         Stay in the loop
                     </h2>
@@ -549,8 +513,8 @@ export const Corporate: React.FC = () => {
             </section>
 
             {/* Contact Section */}
-            <section id="contact" className="py-20 md:py-32 bg-white">
-                <div className="max-w-4xl mx-auto px-6 md:px-12 text-center">
+            <section id="contact" className="py-12 md:py-16 bg-white">
+                <div className="max-w-4xl mx-auto px-6 text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}

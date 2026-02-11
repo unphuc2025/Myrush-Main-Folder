@@ -571,6 +571,11 @@ class BookingCreate(BaseModel):
     coupon_code: Optional[str] = None
     status: Optional[str] = None
     payment_status: Optional[str] = None
+    
+    # Razorpay Fields
+    razorpay_order_id: Optional[str] = None
+    razorpay_payment_id: Optional[str] = None
+    razorpay_signature: Optional[str] = None
 
 class BookingResponse(BaseModel):
     """Response model for bookings"""

@@ -65,38 +65,113 @@ export const BookingSummary: React.FC = () => {
         }
     };
 
+    const loadRazorpay = () => {
+        return new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
+
     const handleConfirm = async () => {
         setSubmitting(true);
         try {
+            const isLoaded = await loadRazorpay();
+            if (!isLoaded) {
+                alert('Razorpay SDK failed to load. Are you online?');
+                setSubmitting(false);
+                return;
+            }
+
             const sortedSlots = [...state.selectedSlots].sort((a, b) => a.time.localeCompare(b.time));
             const startTime = sortedSlots[0].time;
             const durationMinutes = sortedSlots.length * 60;
 
-            const payload = {
+            // 1. Create Payment Order
+            const orderRes = await bookingsApi.createPaymentOrder({
                 courtId: state.venueId,
                 bookingDate: state.date,
                 startTime: startTime,
                 durationMinutes: durationMinutes,
-                numberOfPlayers: numPlayers,
-                pricePerHour: sortedSlots[0].price,
-                teamName: teamName,
                 timeSlots: state.selectedSlots,
-                totalAmount: totalAmount
+                numberOfPlayers: numPlayers,
+                couponCode: couponCode // Pass current coupon code state
+            });
+
+            if (!orderRes.success || !orderRes.data) {
+                alert('Failed to initiate payment: ' + (orderRes.data?.detail || 'Unknown error'));
+                setSubmitting(false);
+                return;
+            }
+
+            const { id: order_id, amount, currency, key_id } = orderRes.data;
+
+            // 2. Open Razorpay Checkout
+            const options = {
+                key: key_id,
+                amount: amount,
+                currency: currency,
+                name: "MyRush",
+                description: `Booking for ${venue.court_name}`,
+                image: "https://your-logo-url.com/logo.png", // Replace with valid logo
+                order_id: order_id,
+                handler: async function (response: any) {
+                    // 3. Verify & Create Booking
+                    try {
+                        const payload = {
+                            courtId: state.venueId,
+                            bookingDate: state.date,
+                            startTime: startTime,
+                            durationMinutes: durationMinutes,
+                            numberOfPlayers: numPlayers,
+                            pricePerHour: sortedSlots[0].price,
+                            teamName: teamName,
+                            timeSlots: state.selectedSlots,
+                            totalAmount: totalAmount, // This is client-side calc, backend uses its own
+                            // Razorpay Details
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature
+                        };
+
+                        const res = await bookingsApi.createBooking(payload);
+
+                        if (res.success) {
+                            alert('Booking Confirmed!');
+                            navigate('/bookings');
+                        } else {
+                            alert('Payment successful but booking creation failed. Please contact support. ' + (res.data?.detail || ''));
+                        }
+                    } catch (err: any) {
+                        alert('Error confirming booking: ' + err.message);
+                    }
+                },
+                prefill: {
+                    name: "MyRush User", // Ideally dynamic user details
+                    email: "user@example.com",
+                    contact: "9999999999"
+                },
+                notes: {
+                    address: "MyRush Corporate Office"
+                },
+                theme: {
+                    color: "#3399cc"
+                }
             };
 
-            const res = await bookingsApi.createBooking(payload);
+            const paymentObject = new (window as any).Razorpay(options);
+            paymentObject.open();
 
-            if (res.success) {
-                alert('Booking Confirmed!');
-                navigate('/bookings');
-            } else {
-                alert('Booking failed: ' + (res.data?.detail || 'Unknown error'));
-            }
         } catch (error) {
             console.error(error);
-            alert('An error occurred');
+            alert('An error occurred during transaction');
         } finally {
-            setSubmitting(false);
+            setSubmitting(false); // Note: Razorpay modal stays open, but we reset button state. 
+            // Might want to keep it loading until handler returns, but Razorpay is async. 
+            // Actually, keep submitting true creates better UX if we handle failures in handler.
+            // But for now, reset on modal open/error.
         }
     };
 

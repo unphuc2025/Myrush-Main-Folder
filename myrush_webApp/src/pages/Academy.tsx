@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
-import { TopNav } from '../components/TopNav';
 import { PublicNav } from '../components/PublicNav';
+import { TopNav } from '../components/TopNav';
 import { FaCalendarAlt, FaChartLine, FaCheckCircle, FaUserGraduate, FaClock } from 'react-icons/fa';
 
 export const Academy: React.FC = () => {
@@ -238,10 +238,8 @@ const AcademyDashboard: React.FC = () => {
 };
 
 // --- GUEST VIEW: LANDING PAGE ---
-const AcademyLanding: React.FC<{ navigate: any }> = () => {
-    // ... Copy of the original Academy content ...
-    // Since I can't partially import, I will re-paste the full original landing page content here
-    // but wrapped in this component.
+const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
+
     const locations = [
         {
             name: 'Rajajinagar',
@@ -300,8 +298,9 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-white font-inter relative">
+        <div className="min-h-screen bg-white font-inter relative selection:bg-primary selection:text-black">
             <div className="fixed inset-0 z-0 mesh-bg opacity-10 pointer-events-none"></div>
+            {/* Sticky Navigation */}
             {/* Sticky Navigation */}
             <PublicNav />
 
@@ -348,7 +347,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="w-full sm:w-auto min-w-[240px] h-16 text-lg"
+                            className="bg-primary text-black hover:bg-white hover:text-black text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
                             onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Book A Free Trial Class
@@ -366,10 +365,10 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
 
 
             {/* Why Rush Academy Section */}
-            <section id="why-rush" className="py-24 bg-white w-full">
-                <div className="w-full max-w-[1920px] mx-auto px-6 md:px-12">
-                    <div className="mb-20">
-                        <h2 className="text-4xl md:text-5xl font-black text-black">
+            <section id="why-rush" className="py-12 md:py-16 bg-white w-full">
+                <div className="w-full max-w-7xl mx-auto px-6">
+                    <div className="mb-12">
+                        <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight">
                             Why Rush Academy?
                         </h2>
                     </div>
@@ -435,14 +434,14 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
             </section>
 
             {/* Our Locations */}
-            <section id="our-locations" className="py-40 bg-black relative overflow-hidden w-full">
+            <section id="our-locations" className="py-12 md:py-16 bg-black relative overflow-hidden w-full">
                 <div className="absolute inset-0 bg-dark-gradient opacity-100 z-0" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(0,210,106,0.15),transparent)] pointer-events-none z-0" />
 
-                <div className="w-full max-w-[1920px] mx-auto relative z-10 px-6 md:px-12">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-40 gap-12">
+                <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-h2 text-white mb-10 leading-[1.1]">
+                            <h2 className="text-3xl md:text-5xl font-black text-white font-montserrat uppercase leading-tight mb-6">
                                 Our <span className="text-primary italic">Centers</span>
                             </h2>
                             <p className="text-body-lg text-white/40 font-light uppercase tracking-[0.2em]">
@@ -455,43 +454,46 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                         {locations.map((location, index) => (
                             <motion.div
                                 key={index}
-                                className="bg-white/[0.03] backdrop-blur-xl rounded-3xl p-12 border border-white/10 hover:bg-white/[0.05] hover:border-primary/30 transition-all duration-500 group cursor-pointer min-h-[20px] flex flex-col items-center text-center"
-                                initial={{ opacity: 0, y: 30 }}
+                                className="bg-white/5 backdrop-blur-sm rounded-3xl p-8 border border-white/10 hover:border-primary/50 hover:bg-white/10 transition-all duration-300 group cursor-pointer flex flex-col h-full relative overflow-hidden"
+                                initial={{ opacity: 0, y: 20 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.05 }}
                             >
-                                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500">
-                                    <span className="text-3xl text-primary">📍</span>
-                                </div>
-                                <h3 className="text-h4 text-white mb-2 uppercase tracking-wider group-hover:text-primary transition-colors">
-                                    {location.name}
-                                </h3>
-                                <p className="text-body text-primary/80 mb-6 font-medium text-sm">
-                                    {location.address}
-                                </p>
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/30 transition-colors" />
 
-                                <div className="w-full bg-white/5 rounded-xl p-6 mb-8 border border-white/5 group-hover:border-white/10 transition-colors">
-                                    <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-4">Batch Details</h5>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-white/60">Days:</span>
-                                            <span className="text-white font-medium">{location.days}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-white/60">Time:</span>
-                                            <span className="text-white font-medium">{location.timings}</span>
-                                        </div>
+                                <div className="flex items-start justify-between mb-6 relative z-10">
+                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/10 group-hover:scale-110 transition-transform duration-300">
+                                        <span className="text-2xl">📍</span>
+                                    </div>
+                                    <div className="px-3 py-1 rounded-full border border-white/10 bg-white/5 text-[10px] font-bold uppercase tracking-widest text-white/60">
+                                        Open
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-4 text-primary font-black uppercase tracking-[0.2em] text-[10px] opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-500 mt-auto">
-                                    View on Map
-                                    <span>→</span>
+                                <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-wide group-hover:text-primary transition-colors">
+                                    {location.name}
+                                </h3>
+                                <p className="text-sm text-gray-400 mb-8 font-medium line-clamp-2">
+                                    {location.address}
+                                </p>
+
+                                <div className="mt-auto w-full bg-black/40 rounded-xl p-5 border border-white/5 group-hover:border-primary/30 transition-colors">
+                                    <div className="space-y-3">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-primary">Days</span>
+                                            <span className="text-sm font-bold text-white">{location.days}</span>
+                                        </div>
+                                        <div className="w-full h-[1px] bg-white/10" />
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-primary">Timings</span>
+                                            <span className="text-sm font-bold text-white">{location.timings}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </motion.div>
                         ))}
@@ -500,11 +502,11 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
             </section>
 
             {/* The Coaches */}
-            <section id="meet-the-team" className="py-40 bg-gray-50 w-full">
-                <div className="w-full max-w-[1920px] mx-auto px-6 md:px-12">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-40 gap-12">
+            <section id="meet-the-team" className="py-12 md:py-16 bg-gray-50 w-full">
+                <div className="w-full max-w-7xl mx-auto px-6">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-h2 text-black mb-10 leading-[1.1]">
+                            <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
                                 Meet the <span className="text-primary italic">Academy Team</span>
                             </h2>
                         </div>
@@ -548,11 +550,11 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
             </section>
 
             {/* Pricing Section */}
-            <section id="pricing" className="py-24 bg-white w-full">
-                <div className="w-full max-w-[1920px] mx-auto px-6 md:px-12">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-24 gap-12">
+            <section id="pricing" className="py-12 md:py-16 bg-white w-full">
+                <div className="w-full max-w-7xl mx-auto px-6">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-h2 text-black mb-10 leading-[1.1]">
+                            <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
                                 Choose your <span className="text-primary italic">plan:</span>
                             </h2>
                         </div>
@@ -565,7 +567,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
                         {/* Quarterly Plan */}
                         <motion.div
-                            className="relative flex flex-col bg-white shadow-xl transition-all duration-300 hover:shadow-2xl"
+                            className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover"
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
@@ -593,7 +595,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
 
                         {/* Semi-annually Plan */}
                         <motion.div
-                            className="relative flex flex-col bg-white shadow-xl transition-all duration-300 hover:shadow-2xl scale-105 z-10"
+                            className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover scale-105 z-10"
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
@@ -639,7 +641,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
 
                         {/* Annual Program */}
                         <motion.div
-                            className="relative flex flex-col bg-white shadow-xl transition-all duration-300 hover:shadow-2xl"
+                            className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover"
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
@@ -669,11 +671,11 @@ const AcademyLanding: React.FC<{ navigate: any }> = () => {
             </section>
 
             {/* Enrollment Section */}
-            <section id="enroll-section" className="py-48 bg-black relative overflow-hidden px-6">
+            <section id="enroll-section" className="py-12 md:py-16 bg-black relative overflow-hidden px-6">
                 <div className="absolute inset-0 bg-dark-gradient opacity-100 z-0" />
                 <div className="absolute -top-1/4 -right-1/4 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
 
-                <div className="w-full max-w-[1920px] mx-auto relative z-10 px-6 md:px-12">
+                <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-32 items-center">
                         <div className="justify-self-start">
                             <motion.div
