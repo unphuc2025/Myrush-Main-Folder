@@ -186,7 +186,9 @@ from routers.user import (
     coupons as user_coupons,
     reviews as user_reviews,
     notifications,
-    courts_ratings
+    notifications,
+    courts_ratings,
+    payments
 )
 
 # Include user routers with /api/user prefix
@@ -199,6 +201,7 @@ app.include_router(user_coupons.router, prefix="/api/user", tags=["User Coupons"
 app.include_router(user_reviews.router, prefix="/api/user", tags=["User Reviews"])
 app.include_router(notifications.router, prefix="/api/user", tags=["User Notifications"])
 app.include_router(courts_ratings.router, prefix="/api/user", tags=["User Court Ratings"])
+app.include_router(payments.router, prefix="/api/user", tags=["Payments"])
 
 # ============================================================================
 # PLAYO INTEGRATION ROUTER

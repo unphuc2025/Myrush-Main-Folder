@@ -370,6 +370,8 @@ class Booking(Base):
     status = Column(String(50), default='confirmed')
     payment_status = Column(String(50), default='pending')
     payment_id = Column(String(255))
+    razorpay_order_id = Column(String(255))
+    razorpay_signature = Column(String(500))
     coupon_id = Column(UUID(as_uuid=True), ForeignKey("admin_coupons.id"), nullable=True)
     
     # Playo Integration Fields

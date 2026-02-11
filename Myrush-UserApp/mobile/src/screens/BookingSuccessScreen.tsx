@@ -22,7 +22,8 @@ const BookingSuccessScreen: React.FC = () => {
         timeSlot = "7:00 AM",
         totalAmount = 1200,
         bookingId = "#839201",
-        selectedSlots
+        selectedSlots,
+        paymentId
     } = route.params || {};
 
     const handleViewBookings = () => {
@@ -67,7 +68,10 @@ const BookingSuccessScreen: React.FC = () => {
                     </LinearGradient>
 
                     <Text style={styles.confirmedText}>Booking Confirmed</Text>
-                    <Text style={styles.idText}>ID: {bookingId}</Text>
+                    <Text style={styles.idText}>Booking ID: {bookingId}</Text>
+                    {paymentId && (
+                        <Text style={[styles.idText, { marginTop: 4, opacity: 0.7 }]}>Payment Ref: {paymentId}</Text>
+                    )}
                 </View>
 
                 {/* Details Ticket */}
