@@ -320,7 +320,7 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
                             <select
                                 value={formData.status}
                                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-slate-800 focus:ring-0 outline-none transition-all font-medium text-lg appearance-none shadow-sm hover:border-slate-300"
+                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-slate-800 focus:ring-0 outline-none transition-all font-medium text-lg appearance-none shadow-sm hover:border-slate-300 text-slate-900"
                             >
                                 <option value="pending">Pending</option>
                                 <option value="confirmed">Confirmed</option>

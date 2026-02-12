@@ -215,7 +215,7 @@ function Coupons() {
                                         type="text"
                                         required
                                         maxLength={20}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 uppercase"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 uppercase text-slate-900"
                                         value={formData.code}
                                         onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                                         placeholder="SUMMER50"
@@ -224,7 +224,7 @@ function Coupons() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
                                     <select
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                         value={formData.discount_type}
                                         onChange={e => setFormData({ ...formData, discount_type: e.target.value })}
                                     >
@@ -240,7 +240,7 @@ function Coupons() {
                                         required
                                         min="0"
                                         step="0.01"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                         value={formData.discount_value}
                                         onChange={e => setFormData({ ...formData, discount_value: e.target.value })}
                                     />
@@ -252,7 +252,7 @@ function Coupons() {
                                         <input
                                             type="number"
                                             min="0"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                             value={formData.max_discount}
                                             onChange={e => setFormData({ ...formData, max_discount: e.target.value })}
                                             placeholder="Optional limit"
@@ -265,7 +265,7 @@ function Coupons() {
                                     <input
                                         type="number"
                                         min="0"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                         value={formData.min_order_value}
                                         onChange={e => setFormData({ ...formData, min_order_value: e.target.value })}
                                         placeholder="0"
@@ -277,7 +277,7 @@ function Coupons() {
                                     <input
                                         type="date"
                                         required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                         value={formData.start_date}
                                         onChange={e => setFormData({ ...formData, start_date: e.target.value })}
                                     />
@@ -287,7 +287,7 @@ function Coupons() {
                                     <input
                                         type="date"
                                         required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                         value={formData.end_date}
                                         onChange={e => setFormData({ ...formData, end_date: e.target.value })}
                                     />
@@ -298,7 +298,7 @@ function Coupons() {
                                     <input
                                         type="number"
                                         min="1"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                         value={formData.usage_limit}
                                         onChange={e => setFormData({ ...formData, usage_limit: e.target.value })}
                                         placeholder="Unlimited if empty"
@@ -309,7 +309,7 @@ function Coupons() {
                                     <input
                                         type="number"
                                         min="1"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                         value={formData.per_user_limit}
                                         onChange={e => setFormData({ ...formData, per_user_limit: e.target.value })}
                                     />
@@ -318,7 +318,7 @@ function Coupons() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Applicable To</label>
                                     <select
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                         value={formData.applicable_type}
                                         onChange={e => setFormData({ ...formData, applicable_type: e.target.value, applicable_ids: [] })}
                                     >
@@ -382,7 +382,7 @@ function Coupons() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                                 <textarea
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                     rows="3"
                                     value={formData.description}
                                     onChange={e => setFormData({ ...formData, description: e.target.value })}
@@ -393,7 +393,7 @@ function Coupons() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Terms & Conditions</label>
                                 <textarea
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                     rows="3"
                                     value={formData.terms_condition}
                                     onChange={e => setFormData({ ...formData, terms_condition: e.target.value })}
@@ -459,7 +459,7 @@ function Coupons() {
                             <input
                                 type="text"
                                 placeholder="Search by code or description..."
-                                className="pl-10 pr-4 py-2 w-full md:w-96 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 shadow-sm"
+                                className="pl-10 pr-4 py-2 w-full md:w-96 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 shadow-sm text-slate-900"
                                 value={searchQuery}
                                 onChange={handleSearch}
                             />

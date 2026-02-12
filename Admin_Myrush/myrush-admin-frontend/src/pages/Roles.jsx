@@ -52,7 +52,7 @@ const Roles = () => {
             loadRoles();
         } catch (err) {
             console.error('Error toggling status:', err);
-            setError('Failed to toggle role status. Backend might not support it.');
+            setError(err.message || 'Failed to toggle role status');
         }
     };
 

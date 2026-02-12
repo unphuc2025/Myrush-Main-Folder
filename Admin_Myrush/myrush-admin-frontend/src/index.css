@@ -20,3 +20,19 @@
     scrollbar-width: none;
   }
 }
+
+/* Global input and label text color fix */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="date"],
+textarea,
+select {
+  color: #0f172a !important;
+}
+
+label {
+  color: #1e293b !important;
+}

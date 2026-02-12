@@ -28,6 +28,13 @@ function BranchesSettings() {
     addressLine1: '',
     addressLine2: '',
     groundOverview: '',
+    termsCondition: '',
+    rule: '',
+    googleMapUrl: '',
+    price: '',
+    maxPlayers: '',
+    phoneNumber: '',
+    email: '',
     groundType: 'single',
     selectedGames: [],
     selectedAmenities: [],
@@ -157,6 +164,13 @@ function BranchesSettings() {
       addressLine1: '',
       addressLine2: '',
       groundOverview: '',
+      termsCondition: '',
+      rule: '',
+      googleMapUrl: '',
+      price: '',
+      maxPlayers: '',
+      phoneNumber: '',
+      email: '',
       groundType: 'single',
       selectedGames: [],
       selectedAmenities: [],
@@ -209,6 +223,13 @@ function BranchesSettings() {
       addressLine1: branch.address_line1 || '',
       addressLine2: branch.address_line2 || '',
       groundOverview: branch.ground_overview || '',
+      termsCondition: branch.terms_condition || '',
+      rule: branch.rule || '',
+      googleMapUrl: branch.google_map_url || '',
+      price: branch.price || '',
+      maxPlayers: branch.max_players || '',
+      phoneNumber: branch.phone_number || '',
+      email: branch.email || '',
       groundType: branch.ground_type || 'single',
       selectedGames: branch.game_types?.map(gt => gt.id) || [],
       selectedAmenities: branch.amenities?.map(am => am.id) || [],
@@ -343,6 +364,13 @@ function BranchesSettings() {
       submitData.append('address_line1', formData.addressLine1);
       submitData.append('address_line2', formData.addressLine2);
       submitData.append('ground_overview', formData.groundOverview);
+      submitData.append('terms_condition', formData.termsCondition);
+      submitData.append('rule', formData.rule);
+      submitData.append('google_map_url', formData.googleMapUrl);
+      submitData.append('price', formData.price);
+      submitData.append('max_players', formData.maxPlayers);
+      submitData.append('phone_number', formData.phoneNumber);
+      submitData.append('email', formData.email);
       submitData.append('ground_type', formData.groundType);
       submitData.append('opening_hours', JSON.stringify(formData.openingHours));
       submitData.append('is_active', formData.isActive);
@@ -477,7 +505,7 @@ function BranchesSettings() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
               required
             />
           </div>
@@ -542,7 +570,7 @@ function BranchesSettings() {
                 <select
                   value={formData.cityId}
                   onChange={(e) => setFormData({ ...formData, cityId: e.target.value, areaId: '' })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
                   required
                 >
                   <option value="">Select City</option>
@@ -603,7 +631,7 @@ function BranchesSettings() {
                 <select
                   value={formData.areaId}
                   onChange={(e) => setFormData({ ...formData, areaId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
                   disabled={!formData.cityId}
                 >
                   <option value="">Select Area</option>
@@ -630,6 +658,18 @@ function BranchesSettings() {
             </div>
           </div>
 
+          {/* Google Map URL */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Google Map URL</label>
+            <input
+              type="text"
+              value={formData.googleMapUrl}
+              onChange={(e) => setFormData({ ...formData, googleMapUrl: e.target.value })}
+              placeholder="https://maps.google.com/..."
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
+            />
+          </div>
+
           {/* Address Lines */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -638,7 +678,7 @@ function BranchesSettings() {
                 type="text"
                 value={formData.addressLine1}
                 onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
                 required
               />
             </div>
@@ -648,7 +688,7 @@ function BranchesSettings() {
                 type="text"
                 value={formData.addressLine2}
                 onChange={(e) => setFormData({ ...formData, addressLine2: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
               />
             </div>
           </div>
@@ -660,8 +700,77 @@ function BranchesSettings() {
               value={formData.groundOverview}
               onChange={(e) => setFormData({ ...formData, groundOverview: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              placeholder="Brief description about the ground..."
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
             />
+          </div>
+
+          {/* Terms & Conditions */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Terms & Conditions</label>
+            <textarea
+              value={formData.termsCondition}
+              onChange={(e) => setFormData({ ...formData, termsCondition: e.target.value })}
+              rows={3}
+              placeholder="Enter terms and conditions..."
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
+            />
+          </div>
+
+          {/* Rules / Cancellation Policy */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Rules / Cancellation Policy</label>
+            <textarea
+              value={formData.rule}
+              onChange={(e) => setFormData({ ...formData, rule: e.target.value })}
+              rows={3}
+              placeholder="Enter rules or cancellation policy..."
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
+            />
+          </div>
+
+          {/* Pricing & Contact Info */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Price Per Hour (₹)</label>
+              <input
+                type="number"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                placeholder="e.g. 1500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Max Players per Slot</label>
+              <input
+                type="number"
+                value={formData.maxPlayers}
+                onChange={(e) => setFormData({ ...formData, maxPlayers: e.target.value })}
+                placeholder="e.g. 14"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Phone Number</label>
+              <input
+                type="tel"
+                value={formData.phoneNumber}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                placeholder="Contact Number"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="Contact Email"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
+              />
+            </div>
           </div>
 
           {/* Ground Type & Select Games - Grid Layout */}

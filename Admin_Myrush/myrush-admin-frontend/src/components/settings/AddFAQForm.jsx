@@ -85,7 +85,7 @@ const AddFAQForm = ({ isOpen, onClose, onFaqAdded, editingFaq }) => {
                                     required
                                     value={formData.question}
                                     onChange={(e) => setFormData(prev => ({ ...prev, question: e.target.value }))}
-                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-900"
                                     placeholder="e.g. How do I reset my password?"
                                 />
                             </div>
@@ -99,7 +99,7 @@ const AddFAQForm = ({ isOpen, onClose, onFaqAdded, editingFaq }) => {
                                     rows={4}
                                     value={formData.answer}
                                     onChange={(e) => setFormData(prev => ({ ...prev, answer: e.target.value }))}
-                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm resize-none"
+                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm resize-none text-slate-900"
                                     placeholder="Enter the answer here..."
                                 />
                             </div>

@@ -39,7 +39,7 @@ const Header = ({ sidebarOpen, setSidebarOpen }) => {
                             <input
                                 type="text"
                                 placeholder="Type to search..."
-                                className="w-full bg-transparent pl-9 pr-4 text-black focus:outline-none dark:text-white xl:w-125"
+                                className="w-full bg-transparent pl-9 pr-4 text-black focus:outline-none dark:text-white xl:w-125 text-slate-900"
                             />
                         </div>
                     </form>
