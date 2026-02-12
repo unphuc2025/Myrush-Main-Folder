@@ -7,6 +7,8 @@ export interface User {
     phone_number?: string;
     first_name: string;
     last_name: string;
+    city?: string; // Added city
+    avatar_url?: string; // Added avatar_url
     is_active: boolean;
     created_at: string;
 }

@@ -247,7 +247,7 @@ export const BookingSummary: React.FC = () => {
                                         type="text"
                                         value={teamName}
                                         onChange={(e) => setTeamName(e.target.value)}
-                                        className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 font-medium focus:border-black transition-colors"
+                                        className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 font-medium focus:border-black transition-colors text-gray-900"
                                         placeholder="e.g. Thunder Strikers"
                                     />
                                 </div>
@@ -298,7 +298,7 @@ export const BookingSummary: React.FC = () => {
                                                 type="text"
                                                 value={couponCode}
                                                 onChange={(e) => setCouponCode(e.target.value)}
-                                                className="w-full h-11 pl-10 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold uppercase placeholder:normal-case focus:border-primary/50"
+                                                className="w-full h-11 pl-10 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold uppercase placeholder:normal-case focus:border-primary/50 text-gray-900"
                                                 placeholder="Enter code"
                                             />
                                         </div>

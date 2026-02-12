@@ -113,7 +113,7 @@ function AddPolicyForm({ onCancel, onSave, initialData = null }) {
                                 type="text"
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-slate-800 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300"
+                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-slate-800 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300 text-slate-900"
                                 placeholder={formData.type === 'cancellation' ? "e.g. Standard Cancellation" : "e.g. Booking Rules"}
                                 required
                             />
@@ -132,7 +132,7 @@ function AddPolicyForm({ onCancel, onSave, initialData = null }) {
                                     max="100"
                                     value={formData.value}
                                     onChange={e => setFormData({ ...formData, value: e.target.value })}
-                                    className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-red-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300"
+                                    className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-red-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300 text-slate-900"
                                     placeholder="20"
                                     required
                                 />
@@ -149,7 +149,7 @@ function AddPolicyForm({ onCancel, onSave, initialData = null }) {
                                     value={formData.content}
                                     onChange={e => setFormData({ ...formData, content: e.target.value })}
                                     rows={8}
-                                    className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 outline-none transition-all font-medium text-sm leading-relaxed placeholder:text-slate-300 shadow-sm hover:border-slate-300 resize-none"
+                                    className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 outline-none transition-all font-medium text-sm leading-relaxed placeholder:text-slate-300 shadow-sm hover:border-slate-300 resize-none text-slate-900"
                                     placeholder="Enter the full terms and conditions text here..."
                                     required
                                 />

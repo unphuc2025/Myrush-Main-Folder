@@ -10,7 +10,8 @@ import {
     StatusBar,
     SafeAreaView,
     Image,
-    Platform
+    Platform,
+    Alert
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -85,14 +86,15 @@ const SlotSelectionScreen: React.FC = () => {
             const date = new Date(year, month, i);
             const isPast = isPastDate(i, currentMonth);
 
-            // Only add current/future days or recent past if needed loop logic
-            // For simpler UI, let's just show full month but disable past
-            days.push({
-                day: i,
-                weekDay: weekDays[date.getDay()],
-                isPast,
-                fullDate: date
-            });
+            // Only add current/future days
+            if (!isPast) {
+                days.push({
+                    day: i,
+                    weekDay: weekDays[date.getDay()],
+                    isPast,
+                    fullDate: date
+                });
+            }
         }
         return days;
     };
@@ -166,6 +168,10 @@ const SlotSelectionScreen: React.FC = () => {
         if (isSelected) {
             setSelectedSlots(prev => prev.filter(s => s.display_time !== slot.display_time));
         } else {
+            if (selectedSlots.length >= 4) {
+                Alert.alert('Limit Reached', 'You can only select up to 4 slots per booking.');
+                return;
+            }
             setSelectedSlots(prev => [...prev, slot]);
         }
     };

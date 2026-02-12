@@ -3,9 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 import models, schemas
 from database import get_db
-from dependencies import require_super_admin
-import os
-import shutil
+from dependencies import require_super_admin, PermissionChecker
 from datetime import datetime
 from utils import s3_utils
 
@@ -14,9 +12,7 @@ router = APIRouter(
     tags=["Site Settings"]
 )
 
-UPLOAD_DIR = "uploads/settings"
-
-@router.get("", response_model=schemas.SiteSettingResponse)
+@router.get("", response_model=schemas.SiteSettingResponse, dependencies=[Depends(PermissionChecker("Settings", "view"))])
 def get_site_settings(db: Session = Depends(get_db)):
     settings = db.query(models.SiteSetting).first()
     if not settings:
@@ -32,7 +28,7 @@ def get_site_settings(db: Session = Depends(get_db)):
         db.refresh(settings)
     return settings
 
-@router.put("", response_model=schemas.SiteSettingResponse, dependencies=[Depends(require_super_admin)])
+@router.put("", response_model=schemas.SiteSettingResponse, dependencies=[Depends(PermissionChecker("Settings", "edit"))])
 async def update_site_settings(
     email: str = Form(...),
     contact_number: str = Form(...),

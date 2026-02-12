@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
 	View,
 	Text,
@@ -9,6 +9,11 @@ import {
 	ImageBackground,
 	Dimensions,
 	Image,
+	Modal,
+	FlatList,
+	TouchableWithoutFeedback,
+	ActivityIndicator,
+	Alert,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -22,6 +27,8 @@ import { typography } from '../theme/typography';
 import { spacing, borderRadius } from '../theme/spacing';
 import { RootStackParamList } from '../types';
 import { Container } from '../components/common/Container';
+import { profileApi, City, ProfileData } from '../api/profile';
+import { venuesApi, Venue } from '../api/venues';
 
 const { width } = Dimensions.get('window');
 
@@ -34,41 +41,118 @@ export const HomeScreen: React.FC = () => {
 	const [activeCategory, setActiveCategory] = useState('Sports');
 	const [spinModalVisible, setSpinModalVisible] = useState(false);
 
+	// City Selection State
+	const [cities, setCities] = useState<City[]>([]);
+	const [isCityModalVisible, setCityModalVisible] = useState(false);
+	const [isUpdatingCity, setIsUpdatingCity] = useState(false);
+
+	// Venues State
+	const [venues, setVenues] = useState<Venue[]>([]);
+	const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
+	const [isLoadingVenues, setIsLoadingVenues] = useState(true);
+
+	useEffect(() => {
+		loadCities();
+		loadVenues();
+	}, []);
+
+	const loadCities = async () => {
+		const response = await profileApi.getCities();
+		if (response.success) {
+			setCities(response.data);
+		}
+	};
+
+	const loadVenues = async () => {
+		setIsLoadingVenues(true);
+		// Optionally filter by user's city if available, for now fetch all
+		const response = await venuesApi.getVenues();
+		if (response.success) {
+			setVenues(response.data);
+			setFilteredVenues(response.data);
+		} else {
+			Alert.alert('Error', 'Failed to fetch venues');
+		}
+		setIsLoadingVenues(false);
+	};
+
+	const handleUpdateCity = async (selectedCity: City) => {
+		setIsUpdatingCity(true);
+		try {
+			// 1. Fetch current full profile data (needed for save payload)
+			const profileRes = await profileApi.getProfile('');
+			if (!profileRes.success || !profileRes.data) {
+				Alert.alert('Error', 'Could not retrieve user profile to update.');
+				return;
+			}
+
+			const currentData = profileRes.data as ProfileData;
+
+			// 2. Prepare payload with NEW city but EXISTING other data
+			const payload = {
+				phoneNumber: currentData.phone_number,
+				fullName: currentData.full_name,
+				age: currentData.age,
+				city: selectedCity.name,
+				city_id: selectedCity.id,
+				gender: currentData.gender,
+				handedness: currentData.handedness,
+				skillLevel: currentData.skill_level,
+				sports: currentData.sports,
+				playingStyle: currentData.playing_style
+			};
+
+			// 3. Save Profile
+			const saveRes = await profileApi.saveProfile(payload);
+			if (saveRes.success) {
+				// 4. Update Auth Store (so Header reflects change instantly)
+				await useAuthStore.getState().checkAuth();
+				setCityModalVisible(false);
+				// Refresh venues if needed based on new city
+				// loadVenues(); 
+			} else {
+				Alert.alert('Update Failed', saveRes.message || 'Failed to update city.');
+			}
+
+		} catch (error) {
+			console.error('Failed to update city:', error);
+			Alert.alert('Error', 'An error occurred while updating city.');
+		} finally {
+			setIsUpdatingCity(false);
+		}
+	};
+
 	const displayName = user?.fullName?.split(' ')[0] || user?.firstName || 'Alex';
 
-	const categories = ['Sports', 'Game', 'Squad', 'Field', 'Badminton'];
+	// Updated categories to match venue types better
+	const categories = ['Sports', 'Football', 'Cricket', 'Badminton'];
 
 	const quickActions = [
 		{ icon: 'football', label: 'Book Court', color: colors.primary, route: 'Venues' },
 		{ icon: 'card', label: 'Payments', color: colors.primary, route: 'Payments' },
-		{ icon: 'chatbubble', label: 'Support', color: colors.primary, route: 'Support' },
-		{ icon: 'cart', label: 'Store', color: colors.primary, route: 'Store' },
-		{ icon: 'trophy', label: 'Events', color: colors.primary, route: 'Events' },
+		// { icon: 'chatbubble', label: 'Support', color: colors.primary, route: 'Support' },
+		// { icon: 'cart', label: 'Store', color: colors.primary, route: 'Store' },
+		// { icon: 'trophy', label: 'Events', color: colors.primary, route: 'Events' },
 	];
 
-	const nearbyVenues = [
-		{
-			id: '1',
-			name: 'Central Arena',
-			type: 'Football',
-			distance: '2km',
-			image: require('../../assets/fieldbooking.png'),
-		},
-		{
-			id: '2',
-			name: 'Urban Turf',
-			type: 'Cricket',
-			distance: '5km',
-			image: null,
-		},
-		{
-			id: '3',
-			name: 'Smash Court',
-			type: 'Badminton',
-			distance: '3km',
-			image: require('../../assets/dashboard-hero.png'),
-		},
-	];
+	useEffect(() => {
+		let result = venues;
+
+		// 1. Search Filter
+		if (searchQuery) {
+			result = result.filter(venue =>
+				venue.court_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				venue.game_type.toLowerCase().includes(searchQuery.toLowerCase())
+			);
+		}
+
+		// 2. Category Filter
+		if (activeCategory && activeCategory !== 'Sports') {
+			result = result.filter(venue => venue.game_type.includes(activeCategory));
+		}
+
+		setFilteredVenues(result);
+	}, [searchQuery, activeCategory, venues]);
 
 	const topRatedPlayers = [
 		{ name: 'John S', rating: 4.9 },
@@ -80,28 +164,41 @@ export const HomeScreen: React.FC = () => {
 	return (
 		<Container scrollable={false} backgroundColor="#000000" padding={false}>
 			<View style={{ flex: 1 }}>
+				{/* Sticky Header */}
+				<View style={[styles.header, { paddingHorizontal: moderateScale(20), paddingTop: hp(2), marginBottom: 0, paddingBottom: spacing.md, backgroundColor: '#000' }]}>
+					<TouchableOpacity
+						style={styles.locationRow}
+						onPress={() => setCityModalVisible(true)}
+					>
+						<Ionicons name="location-sharp" size={moderateScale(16)} color="#fff" />
+						<View>
+							<Text style={styles.locationLabel}>LOCATION</Text>
+							<Text style={styles.locationValue}>{user?.city || 'Select City'}</Text>
+						</View>
+						<Ionicons name="caret-down" size={moderateScale(12)} color="#888" style={{ marginLeft: 4, marginTop: 12 }} />
+					</TouchableOpacity>
+					<TouchableOpacity
+						style={[styles.notificationButton, user?.avatarUrl ? { padding: 0, overflow: 'hidden', borderWidth: 1, borderColor: '#333' } : {}]}
+						onPress={() => navigation.navigate('ProfileOverview')}
+					>
+						{user?.avatarUrl ? (
+							<Image
+								source={{ uri: user.avatarUrl }}
+								style={{ width: '100%', height: '100%' }}
+								resizeMode="cover"
+							/>
+						) : (
+							<Ionicons name="person" size={moderateScale(20)} color="#fff" />
+						)}
+					</TouchableOpacity>
+				</View>
+
+
 				<ScrollView
 					showsVerticalScrollIndicator={false}
 					contentContainerStyle={styles.scrollContent}
 				>
 					<View style={styles.content}>
-
-						{/* Header */}
-						<View style={styles.header}>
-							<View style={styles.locationRow}>
-								<Ionicons name="location-sharp" size={moderateScale(16)} color="#fff" />
-								<View>
-									<Text style={styles.locationLabel}>LOCATION</Text>
-									<Text style={styles.locationValue}>{user?.city || 'Select City'}</Text>
-								</View>
-							</View>
-							<TouchableOpacity
-								style={styles.notificationButton}
-								onPress={() => navigation.navigate('ProfileOverview')}
-							>
-								<Ionicons name="person" size={moderateScale(20)} color="#fff" />
-							</TouchableOpacity>
-						</View>
 
 						{/* Welcome */}
 						<View style={styles.welcomeContainer}>
@@ -204,25 +301,33 @@ export const HomeScreen: React.FC = () => {
 							showsHorizontalScrollIndicator={false}
 							contentContainerStyle={styles.venuesList}
 						>
-							{nearbyVenues.map((venue) => (
-								<TouchableOpacity
-									key={venue.id}
-									style={styles.venueCard}
-									onPress={() => navigation.navigate('Venues')}
-								>
-									<View style={styles.venueImageContainer}>
-										{venue.image ? (
-											<Image source={venue.image} style={styles.venueImage} resizeMode="cover" />
-										) : (
-											<View style={[styles.venueImage, { backgroundColor: '#333' }]} />
-										)}
-									</View>
-									<View style={styles.venueInfo}>
-										<Text style={styles.venueName}>{venue.name}</Text>
-										<Text style={styles.venueMeta}>{venue.type} • {venue.distance}</Text>
-									</View>
-								</TouchableOpacity>
-							))}
+							{isLoadingVenues ? (
+								<ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 20 }} />
+							) : filteredVenues.length > 0 ? (
+								filteredVenues.map((venue) => (
+									<TouchableOpacity
+										key={venue.id}
+										style={styles.venueCard}
+										onPress={() => navigation.navigate('VenueDetails', { venue: venue })}
+									>
+										<View style={styles.venueImageContainer}>
+											{venue.photos && venue.photos.length > 0 ? (
+												<Image source={{ uri: venue.photos[0] }} style={styles.venueImage} resizeMode="cover" />
+											) : (
+												<View style={[styles.venueImage, { backgroundColor: '#333', alignItems: 'center', justifyContent: 'center' }]}>
+													<Ionicons name="image-outline" size={24} color="#666" />
+												</View>
+											)}
+										</View>
+										<View style={styles.venueInfo}>
+											<Text style={styles.venueName} numberOfLines={1}>{venue.court_name}</Text>
+											<Text style={styles.venueMeta} numberOfLines={1}>{venue.game_type} • {venue.location}</Text>
+										</View>
+									</TouchableOpacity>
+								))
+							) : (
+								<Text style={{ color: '#6B7280', padding: 20 }}>No venues found.</Text>
+							)}
 						</ScrollView>
 
 						{/* Trending Events */}
@@ -325,6 +430,59 @@ export const HomeScreen: React.FC = () => {
 					visible={spinModalVisible}
 					onClose={() => setSpinModalVisible(false)}
 				/>
+
+				{/* City Selection Modal */}
+				<Modal
+					visible={isCityModalVisible}
+					transparent={true}
+					animationType="fade"
+					onRequestClose={() => setCityModalVisible(false)}
+				>
+					<TouchableWithoutFeedback onPress={() => setCityModalVisible(false)}>
+						<View style={styles.modalOverlay}>
+							<TouchableWithoutFeedback onPress={() => { }}>
+								<View style={styles.modalContent}>
+									<Text style={styles.modalTitle}>Select City</Text>
+
+									{isUpdatingCity ? (
+										<View style={{ padding: 20, alignItems: 'center' }}>
+											<ActivityIndicator size="large" color={colors.primary} />
+											<Text style={{ color: '#aaa', marginTop: 10 }}>Updating Location...</Text>
+										</View>
+									) : (
+										<FlatList
+											data={cities}
+											keyExtractor={(item) => item.id}
+											renderItem={({ item }) => (
+												<TouchableOpacity
+													style={styles.modalItem}
+													onPress={() => handleUpdateCity(item)}
+												>
+													<Text style={styles.modalItemText}>{item.name}</Text>
+													{user?.city === item.name && (
+														<Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+													)}
+												</TouchableOpacity>
+											)}
+											ListEmptyComponent={
+												<Text style={{ color: '#aaa', textAlign: 'center', padding: 20 }}>
+													Loading cities...
+												</Text>
+											}
+										/>
+									)}
+
+									<TouchableOpacity
+										style={styles.closeButton}
+										onPress={() => setCityModalVisible(false)}
+									>
+										<Text style={styles.closeButtonText}>Cancel</Text>
+									</TouchableOpacity>
+								</View>
+							</TouchableWithoutFeedback>
+						</View>
+					</TouchableWithoutFeedback>
+				</Modal>
 			</View>
 		</Container>
 	);
@@ -332,7 +490,7 @@ export const HomeScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
 	scrollContent: {
-		paddingBottom: moderateScale(15), // Matches TabBar height exactly, no extra gap
+		paddingBottom: moderateScale(100), // Increased to ensure clearance above TabBar and Android Nav Bar
 	},
 	content: {
 		paddingHorizontal: moderateScale(20),
@@ -691,5 +849,53 @@ const styles = StyleSheet.create({
 	spinSubtitle: {
 		fontSize: 12,
 		color: 'rgba(255,255,255,0.9)',
+	},
+	// Modal Styles
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0,0,0,0.7)',
+		justifyContent: 'center',
+		alignItems: 'center',
+		padding: 20,
+	},
+	modalContent: {
+		backgroundColor: '#1E1E1E',
+		borderRadius: 16,
+		width: '100%',
+		maxHeight: '60%',
+		padding: 20,
+		borderWidth: 1,
+		borderColor: '#333',
+	},
+	modalTitle: {
+		color: '#FFF',
+		fontSize: 18,
+		fontWeight: 'bold',
+		marginBottom: 15,
+		textAlign: 'center',
+	},
+	modalItem: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		paddingVertical: 15,
+		borderBottomWidth: 1,
+		borderBottomColor: '#333',
+	},
+	modalItemText: {
+		color: '#FFF',
+		fontSize: 16,
+	},
+	closeButton: {
+		marginTop: 20,
+		backgroundColor: '#333',
+		paddingVertical: 12,
+		borderRadius: 8,
+		alignItems: 'center',
+	},
+	closeButtonText: {
+		color: '#FFF',
+		fontWeight: 'bold',
+		fontSize: 16,
 	},
 });

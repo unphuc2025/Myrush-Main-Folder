@@ -100,9 +100,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# Mount uploads static directory
+# Mount uploads directory for static file serving
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-
 
 
 # Root endpoint
@@ -227,3 +226,5 @@ print("Admin API: http://localhost:8000/api/admin")
 print("User API: http://localhost:8000/api/user")
 print("API Docs: http://localhost:8000/docs")
 print("="*60 + "\n")
+# Trigger reload
+

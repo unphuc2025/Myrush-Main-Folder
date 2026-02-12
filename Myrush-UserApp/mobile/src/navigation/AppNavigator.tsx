@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, TouchableOpacity, Text, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -117,6 +117,7 @@ const CommunityStackNavigator = () => {
 
 const MainTabNavigator = () => {
   const insets = useSafeAreaInsets();
+  const { user } = useAuthStore();
 
   return (
     <Tab.Navigator
@@ -142,6 +143,16 @@ const MainTabNavigator = () => {
           } else if (route.name === 'TrainTab') {
             iconName = focused ? 'fitness' : 'fitness-outline';
           } else if (route.name === 'CommunityTab') {
+            if (user?.avatarUrl) {
+              return (
+                <View style={{
+                  width: size, height: size, borderRadius: size / 2,
+                  overflow: 'hidden', borderWidth: focused ? 1 : 0, borderColor: color
+                }}>
+                  <Image source={{ uri: user.avatarUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                </View>
+              );
+            }
             iconName = focused ? 'people' : 'people-outline';
           }
 
@@ -152,8 +163,8 @@ const MainTabNavigator = () => {
       <Tab.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: 'Home' }} />
       <Tab.Screen name="PlayTab" component={PlayStackNavigator} options={{ title: 'Play' }} />
       <Tab.Screen name="BookTab" component={MyBookingsScreen} options={{ title: 'Book' }} />
-      <Tab.Screen name="TrainTab" component={TrainStackNavigator} options={{ title: 'Train' }} />
-      <Tab.Screen name="CommunityTab" component={CommunityStackNavigator} options={{ title: 'Community' }} />
+      {/* <Tab.Screen name="TrainTab" component={TrainStackNavigator} options={{ title: 'Train' }} /> */}
+      {/* <Tab.Screen name="CommunityTab" component={CommunityStackNavigator} options={{ title: 'Community' }} /> */}
     </Tab.Navigator>
   );
 };

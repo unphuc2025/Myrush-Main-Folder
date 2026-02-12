@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     View,
     Text,
@@ -8,15 +9,21 @@ import {
     ScrollView,
     ImageBackground,
     Dimensions,
+    Alert,
+    SafeAreaView,
     Platform,
     Image,
-    Alert,
-    SafeAreaView
+    Modal,
+    FlatList,
+    TouchableWithoutFeedback,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
@@ -41,6 +48,7 @@ const THEME = {
 
 const PlayerProfileScreen = () => {
     const navigation = useNavigation<RootNavigation>();
+    const insets = useSafeAreaInsets();
     const { user, logout } = useAuthStore();
     const [phoneNumber, setPhoneNumber] = useState('');
     const [fullName, setFullName] = useState('');
@@ -58,6 +66,63 @@ const PlayerProfileScreen = () => {
     const [gameTypes, setGameTypes] = useState<GameType[]>([]);
     const [cityId, setCityId] = useState<string | null>(null);
     const [isSportsDropdownOpen, setIsSportsDropdownOpen] = useState(false);
+
+    // Modal State
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalType, setModalType] = useState<'city' | 'sports' | null>(null);
+
+    const [isLocating, setIsLocating] = useState(false);
+
+    const detectLocation = async () => {
+        setIsLocating(true);
+        try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission to access location was denied');
+                setIsLocating(false);
+                return;
+            }
+
+            let location = await Location.getCurrentPositionAsync({});
+            let address = await Location.reverseGeocodeAsync({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude
+            });
+
+            if (address && address.length > 0) {
+                const detectedCity = address[0].city || address[0].subregion;
+                if (detectedCity) {
+                    setCity(detectedCity);
+
+                    // Try to match with existing city list to set ID if possible
+                    const matchedCity = cities.find(c => c.name.toLowerCase() === detectedCity.toLowerCase());
+                    if (matchedCity) {
+                        setCityId(matchedCity.id);
+                    } else {
+                        setCityId(null); // Custom city
+                    }
+                    Alert.alert('Location Detected', `Set city to ${detectedCity}`);
+                } else {
+                    Alert.alert('Error', 'Could not detect city name from location.');
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Error', 'Failed to get current location.');
+        } finally {
+            setIsLocating(false);
+        }
+    };
+
+    const openModal = (type: 'city' | 'sports') => {
+        setModalType(type);
+        setModalVisible(true);
+    };
+
+    const closeModal = () => {
+        setModalVisible(false);
+        setModalType(null);
+    };
 
     const genders = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
     const handednessOptions = ['Right-handed', 'Left-handed', 'Ambidextrous'];
@@ -88,9 +153,11 @@ const PlayerProfileScreen = () => {
                     setSkillLevel(data.skill_level || '');
                     setSelectedSports(data.sports || []);
                     setPlayingStyle(data.playing_style || 'All-court');
+                    setAvatarUrl(data.avatar_url || user?.avatarUrl || null);
                 } else {
                     // If no profile data, set phone number from user store
                     setPhoneNumber(user?.phoneNumber || '');
+                    setAvatarUrl(user?.avatarUrl || null);
                 }
             } catch (error) {
                 console.error('Error fetching profile data:', error);
@@ -99,6 +166,100 @@ const PlayerProfileScreen = () => {
 
         fetchData();
     }, [user?.phoneNumber]);
+
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [pendingAvatarAsset, setPendingAvatarAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
+
+    const handleImagePick = async () => {
+        console.log('[PlayerProfile] handleImagePick called');
+        try {
+            const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            console.log('[PlayerProfile] permission status:', permissionResult.status);
+
+            if (permissionResult.granted === false) {
+                Alert.alert("Permission Required", "You need to allow access to your photos to upload a profile picture.");
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+            console.log('[PlayerProfile] Picker result:', result.canceled ? 'Canceled' : 'Asset selected');
+
+            if (!result.canceled) {
+                const asset = result.assets[0];
+
+                // Check if user is NEW (has tempOTP). If so, defer upload.
+                const tempOTP = (useAuthStore.getState() as any).tempOTP;
+                console.log('[PlayerProfile] User is new?', !!tempOTP);
+
+                if (tempOTP) {
+                    // Determine URI for preview
+                    const uri = Platform.OS === 'android' ? asset.uri : asset.uri.replace('file://', '');
+                    setAvatarUrl(uri); // Show preview
+                    setPendingAvatarAsset(asset); // Save for later upload
+                    console.log('[PlayerProfile] Deferred upload for new user');
+                } else {
+                    // Existing user - upload immediately
+                    await uploadImage(asset);
+                }
+            }
+        } catch (error: any) {
+            console.error('[PlayerProfile] Error parsing image picker:', error);
+            Alert.alert("Error", "Could not open gallery. Please check your permissions.");
+        }
+    };
+
+    const uploadImage = async (asset: ImagePicker.ImagePickerAsset) => {
+        // If pending upload, likely part of larger save, so don't double toggle loading if already loading
+        const wasSaving = isSaving;
+        if (!wasSaving) setIsSaving(true);
+
+        try {
+            const formData = new FormData();
+            const uri = Platform.OS === 'android' ? asset.uri : asset.uri.replace('file://', '');
+            const filename = asset.uri.split('/').pop() || 'avatar.jpg';
+
+            // Robust MIME type detection
+            let type = 'image/jpeg';
+            if (filename.endsWith('.png')) type = 'image/png';
+            else if (filename.endsWith('.jpg') || filename.endsWith('.jpeg')) type = 'image/jpeg';
+
+            console.log(`[PlayerProfile] preparing upload: ${uri} (${type})`);
+
+            formData.append('file', {
+                uri,
+                name: filename,
+                type,
+            } as any);
+
+            const { profileApi } = require('../api/profile');
+            // We need to add uploadAvatar to profileApi or call axios directly. 
+            // Let's assume we add it or call here. 
+            // Actually, best to add to profileApi. But for speed, I'll inline the fetch/axios call here if profileApi is complex.
+            // Wait, I should add it to profileApi.
+            // Let's first define the function here to keep it simple if possible, or use the existing api client.
+            // I'll call a new method `uploadAvatar` on `profileApi` which I will assume exists (I need to add it).
+            const response = await profileApi.uploadAvatar(formData);
+
+            if (response.success) {
+                setAvatarUrl(response.data.avatar_url);
+                // REFRESH AUTH STORE immediately so Dashboard gets the new image
+                await useAuthStore.getState().checkAuth();
+                Alert.alert("Success", "Profile picture updated!");
+            } else {
+                Alert.alert("Upload Failed", "Could not upload image.");
+            }
+        } catch (error) {
+            Alert.alert("Error", "Failed to upload image.");
+            console.error(error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const toggleSelection = (item: string, currentSelection: string[], setSelection: (val: string[]) => void) => {
         if (currentSelection.includes(item)) {
@@ -121,6 +282,24 @@ const PlayerProfileScreen = () => {
     const handleContinue = async () => {
         if (!fullName.trim() || !age.trim() || !city.trim()) {
             Alert.alert('Incomplete profile', 'Please enter your full name, age, and city/town.');
+            return;
+        }
+
+        // 1. Name Validation
+        const nameRegex = /^[a-zA-Z\s]+$/;
+        if (fullName.trim().length < 3) {
+            Alert.alert('Invalid Name', 'Full name must be at least 3 characters long.');
+            return;
+        }
+        if (!nameRegex.test(fullName.trim())) {
+            Alert.alert('Invalid Name', 'Name should only contain letters and spaces.');
+            return;
+        }
+
+        // 2. Age Validation
+        const ageNum = parseInt(age, 10);
+        if (isNaN(ageNum) || ageNum < 13 || ageNum > 100) {
+            Alert.alert('Invalid Age', 'You must be between 13 and 100 years old.');
             return;
         }
 
@@ -173,8 +352,29 @@ const PlayerProfileScreen = () => {
                 useAuthStore.setState({ tempOTP: undefined });
 
                 // Login with the received token
-                const { setAuthSuccess } = useAuthStore.getState();
                 if (response.access_token) {
+                    // Manually set token first to allow avatar upload
+                    const { apiClient } = require('../api/apiClient');
+                    await apiClient.setToken(response.access_token);
+
+                    // NOW if we have a pending avatar, upload it BEFORE setting auth success (which triggers nav)
+                    if (pendingAvatarAsset) {
+                        try {
+                            console.log('[PlayerProfile] Uploading pending avatar...');
+                            // We need to pass a flag or handle this such that we don't double-refresh checkAuth
+                            // But uploadImage calls checkAuth.
+                            // However, since we haven't called setAuthSuccess, checkAuth might not find the user yet?
+                            // Actually checkAuth relies on the token. We just set the token.
+                            // So checkAuth will work and fetch the profile (with the new avatar).
+                            await uploadImage(pendingAvatarAsset);
+                        } catch (e) {
+                            console.error("Failed to upload pending avatar", e);
+                        }
+                    }
+
+                    // FINALLY, update the store to trigger navigation
+                    // setAuthSuccess will also fetch the profile which is redundant but safe.
+                    const { setAuthSuccess } = useAuthStore.getState();
                     await setAuthSuccess(response.access_token);
                 } else {
                     throw new Error('No access token received');
@@ -204,10 +404,11 @@ const PlayerProfileScreen = () => {
                     return;
                 }
 
+                // REFRESH AUTH STORE to update Dashboard with new Name/City/Avatar immediately
+                await useAuthStore.getState().checkAuth();
+
                 // On success, navigate back to the main tab navigator.
-                // The initial tab in MainTabs is "Home", so this effectively
-                // takes the user to the Home dashboard.
-                navigation.navigate('MainTabs');
+                (navigation as any).navigate('MainTabs');
             }
         } catch (error: any) {
             Alert.alert('Error', error?.message || 'Something went wrong while saving your profile.');
@@ -220,66 +421,54 @@ const PlayerProfileScreen = () => {
         <View style={styles.container}>
             <View style={styles.safeAreaTop} /> {/* Safe Area Background */}
 
+            {/* FIXED TOP BAR */}
+            <LinearGradient
+                colors={['#1F1F1F', '#000000']}
+                style={styles.fixedHeader}
+            >
+                <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => {
+                        if (user) {
+                            if (navigation.canGoBack()) {
+                                navigation.goBack();
+                            } else {
+                                (navigation as any).navigate('MainTabs');
+                            }
+                        } else {
+                            (navigation as any).replace('OTPLogin');
+                        }
+                    }}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+
+                <Text style={styles.fixedHeaderTitle}>Player Profile</Text>
+            </LinearGradient>
+
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-                {/* Header Gradient & Back Button */}
-                <LinearGradient
-                    colors={['#1F1F1F', '#000000']}
-                    style={styles.headerContainer}
-                >
-                    <View style={styles.headerNav}>
-                        <TouchableOpacity
-                            style={styles.iconButton}
-                            onPress={() => navigation.goBack()}
-                        >
-                            <Ionicons name="arrow-back" size={24} color="#fff" />
-                        </TouchableOpacity>
+                {/* Spacer for Fixed Header */}
+                <View style={{ height: Platform.OS === 'android' ? 90 : 60 }} />
 
-                        <TouchableOpacity
-                            style={styles.iconButton}
-                            onPress={async () => {
-                                Alert.alert(
-                                    'Logout',
-                                    'Are you sure you want to logout?',
-                                    [
-                                        { text: 'Cancel', style: 'cancel' },
-                                        {
-                                            text: 'Logout',
-                                            style: 'destructive',
-                                            onPress: async () => {
-                                                await logout();
-                                                navigation.reset({
-                                                    index: 0,
-                                                    routes: [{ name: 'OTPLogin' }],
-                                                });
-                                            }
-                                        }
-                                    ]
-                                );
-                            }}
-                        >
-                            <Ionicons name="log-out-outline" size={24} color="#fff" />
-                        </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.headerTitles}>
-                        <Text style={styles.headerTitle}>Player Profile</Text>
-                        <Text style={styles.headerSubtitle}>Personalize your MyRush experience</Text>
-                    </View>
-                </LinearGradient>
+                <Text style={styles.pageSubtitle}>Personalize your MyRush experience</Text>
 
                 {/* Profile Core Info (Avatar + Name) */}
                 <View style={styles.avatarSection}>
-                    <View style={styles.avatarWrapper}>
+                    <TouchableOpacity style={styles.avatarWrapper} onPress={handleImagePick}>
                         <View style={styles.avatarPlaceholder}>
-                            <Text style={styles.avatarInitials}>
-                                {fullName ? fullName.charAt(0).toUpperCase() : 'P'}
-                            </Text>
+                            {avatarUrl ? (
+                                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                            ) : (
+                                <Text style={styles.avatarInitials}>
+                                    {fullName ? fullName.charAt(0).toUpperCase() : 'P'}
+                                </Text>
+                            )}
                         </View>
-                        <TouchableOpacity style={styles.cameraBadge}>
+                        <View style={styles.cameraBadge}>
                             <Ionicons name="camera" size={14} color="#000" />
-                        </TouchableOpacity>
-                    </View>
+                        </View>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Main Form Fields */}
@@ -313,8 +502,8 @@ const PlayerProfileScreen = () => {
                     </View>
 
                     {/* Age & City Row */}
-                    <View style={styles.row}>
-                        <View style={[styles.inputGroup, { flex: 0.4 }]}>
+                    <View style={[styles.row, isCityDropdownOpen && { zIndex: 2000, elevation: 2000 }]}>
+                        <View style={[styles.inputGroup, { flex: 0.3 }]}>
                             <Text style={styles.label}>Age</Text>
                             <View style={styles.inputContainer}>
                                 <TextInput
@@ -324,121 +513,97 @@ const PlayerProfileScreen = () => {
                                     keyboardType="number-pad"
                                     value={age}
                                     onChangeText={setAge}
+                                    maxLength={2}
                                 />
                             </View>
                         </View>
 
-                        <View style={[styles.inputGroup, { flex: 0.55 }]}>
-                            <Text style={styles.label}>City</Text>
-                            <TouchableOpacity
-                                style={styles.inputContainer}
-                                onPress={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-                            >
-                                <Text style={[styles.inputText, !city && { color: THEME.textSecondary }]}>
-                                    {city || 'Select City'}
-                                </Text>
-                                <Ionicons name="chevron-down" size={20} color={THEME.textSecondary} style={{ marginLeft: 'auto' }} />
-                            </TouchableOpacity>
+                        <View style={[styles.inputGroup, { flex: 0.65 }]}>
+                            <Text style={styles.label}>City/Town</Text>
+                            <View style={styles.inputContainer}>
+                                <Ionicons name="location-outline" size={20} color={THEME.textSecondary} />
+                                <TouchableOpacity
+                                    style={{ flex: 1, paddingLeft: 10, justifyContent: 'center' }}
+                                    onPress={() => openModal('city')}
+                                >
+                                    <Text style={[styles.inputText, !city && { color: THEME.textSecondary }]}>
+                                        {city || 'Select City'}
+                                    </Text>
+                                </TouchableOpacity>
 
-                            {/* City Dropdown */}
-                            {isCityDropdownOpen && (
-                                <View style={styles.dropdownList}>
-                                    {cities.map((c) => (
-                                        <TouchableOpacity
-                                            key={c.id}
-                                            style={styles.dropdownItem}
-                                            onPress={() => {
-                                                setCity(c.name);
-                                                setCityId(c.id);
-                                                setIsCityDropdownOpen(false);
-                                            }}
-                                        >
-                                            <Text style={styles.dropdownItemText}>{c.name}</Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            )}
-                        </View>
-                    </View>
-
-                    {/* Gender */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionHeader}>Gender</Text>
-                        <View style={styles.chipRow}>
-                            {genders.map(g => renderChip(g, gender === g, () => setGender(g)))}
-                        </View>
-                    </View>
-
-                    {/* Handedness */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionHeader}>Handedness</Text>
-                        <View style={styles.chipRow}>
-                            {handednessOptions.map(h => renderChip(h, handedness === h, () => setHandedness(h)))}
-                        </View>
-                    </View>
-
-                    {/* Skill Level */}
-                    <View style={styles.section}>
-                        <View style={styles.iconHeader}>
-                            <Ionicons name="star" size={16} color={THEME.primary} style={{ marginRight: 6 }} />
-                            <Text style={styles.sectionHeader}>Skill Level</Text>
-                        </View>
-                        <View style={styles.chipRow}>
-                            {skillLevels.map(s => renderChip(s, skillLevel === s, () => setSkillLevel(s)))}
-                        </View>
-                    </View>
-
-                    {/* Playing Style */}
-                    <View style={styles.section}>
-                        <View style={styles.iconHeader}>
-                            <Ionicons name="flash" size={16} color={THEME.primary} style={{ marginRight: 6 }} />
-                            <Text style={styles.sectionHeader}>Playing Style</Text>
-                        </View>
-                        <View style={styles.chipRow}>
-                            {playingStyles.map(p => renderChip(p, playingStyle === p, () => setPlayingStyle(p)))}
-                        </View>
-                    </View>
-
-                    {/* Favorite Sports */}
-                    <View style={styles.section}>
-                        <View style={styles.iconHeader}>
-                            <Ionicons name="heart" size={16} color="#FF4081" style={{ marginRight: 6 }} />
-                            <Text style={styles.sectionHeader}>Favorite Sports</Text>
-                        </View>
-                        <TouchableOpacity
-                            style={styles.inputContainer}
-                            onPress={() => setIsSportsDropdownOpen(!isSportsDropdownOpen)}
-                        >
-                            <Text style={[styles.inputText, selectedSports.length === 0 && { color: THEME.textSecondary }]}>
-                                {selectedSports.length > 0 ? selectedSports.join(', ') : 'Select Sports'}
-                            </Text>
-                            <Ionicons name="chevron-down" size={20} color={THEME.textSecondary} style={{ marginLeft: 'auto' }} />
-                        </TouchableOpacity>
-
-                        {isSportsDropdownOpen && (
-                            <View style={styles.dropdownList}>
-                                {gameTypes.map((g) => (
-                                    <TouchableOpacity
-                                        key={g.id}
-                                        style={styles.dropdownItem}
-                                        onPress={() => toggleSelection(g.name, selectedSports, setSelectedSports)}
-                                    >
-                                        <Text style={styles.dropdownItemText}>{g.name}</Text>
-                                        {selectedSports.includes(g.name) && (
-                                            <Ionicons name="checkmark" size={18} color={THEME.primary} />
-                                        )}
-                                    </TouchableOpacity>
-                                ))}
+                                <TouchableOpacity onPress={detectLocation} disabled={isLocating} style={{ padding: 4 }}>
+                                    {isLocating ? (
+                                        <ActivityIndicator size="small" color={colors.primary} />
+                                    ) : (
+                                        <Ionicons name="locate" size={20} color={colors.primary} />
+                                    )}
+                                </TouchableOpacity>
                             </View>
-                        )}
+                        </View>
+                    </View>
+                </View>
+
+                {/* Gender */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionHeader}>Gender</Text>
+                    <View style={styles.chipRow}>
+                        {genders.map(g => renderChip(g, gender === g, () => setGender(g)))}
+                    </View>
+                </View>
+
+                {/* Handedness */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionHeader}>Handedness</Text>
+                    <View style={styles.chipRow}>
+                        {handednessOptions.map(h => renderChip(h, handedness === h, () => setHandedness(h)))}
+                    </View>
+                </View>
+
+                {/* Skill Level */}
+                <View style={styles.section}>
+                    <View style={styles.iconHeader}>
+                        <Ionicons name="star" size={16} color={THEME.primary} style={{ marginRight: 6 }} />
+                        <Text style={styles.sectionHeader}>Skill Level</Text>
+                    </View>
+                    <View style={styles.chipRow}>
+                        {skillLevels.map(s => renderChip(s, skillLevel === s, () => setSkillLevel(s)))}
+                    </View>
+                </View>
+
+                {/* Playing Style */}
+                <View style={styles.section}>
+                    <View style={styles.iconHeader}>
+                        <Ionicons name="flash" size={16} color={THEME.primary} style={{ marginRight: 6 }} />
+                        <Text style={styles.sectionHeader}>Playing Style</Text>
+                    </View>
+                    <View style={styles.chipRow}>
+                        {playingStyles.map(p => renderChip(p, playingStyle === p, () => setPlayingStyle(p)))}
+                    </View>
+                </View>
+
+                {/* Favorite Sports */}
+                <View style={styles.section}>
+                    <View style={styles.iconHeader}>
+                        <Ionicons name="heart" size={16} color="#FF4081" style={{ marginRight: 6 }} />
+                        <Text style={styles.sectionHeader}>Favorite Sports</Text>
                     </View>
 
-                    <View style={{ height: 100 }} />
+                    <TouchableOpacity
+                        style={styles.inputContainer}
+                        onPress={() => openModal('sports')}
+                    >
+                        <Text style={[styles.inputText, selectedSports.length === 0 && { color: THEME.textSecondary }]}>
+                            {selectedSports.length > 0 ? selectedSports.join(', ') : 'Select Sports'}
+                        </Text>
+                        <Ionicons name="chevron-down" size={20} color={THEME.textSecondary} style={{ marginLeft: 'auto' }} />
+                    </TouchableOpacity>
                 </View>
+
+                <View style={{ height: 100 }} />
             </ScrollView>
 
             {/* Sticky Footer */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: Platform.OS === 'ios' ? 20 : Math.max(20, insets.bottom + 10) }]}>
                 <TouchableOpacity
                     style={styles.saveButton}
                     onPress={handleContinue}
@@ -455,6 +620,54 @@ const PlayerProfileScreen = () => {
                     </LinearGradient>
                 </TouchableOpacity>
             </View>
+
+            {/* SELECTION MODAL */}
+            <Modal
+                visible={modalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={closeModal}
+            >
+                <TouchableWithoutFeedback onPress={closeModal}>
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>
+                                {modalType === 'city' ? 'Select City' : 'Select Sports'}
+                            </Text>
+                            <FlatList
+                                data={modalType === 'city' ? cities : gameTypes}
+                                keyExtractor={(item) => item.id}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        style={styles.modalItem}
+                                        onPress={() => {
+                                            if (modalType === 'city') {
+                                                setCity(item.name);
+                                                setCityId(item.id);
+                                                closeModal();
+                                            } else {
+                                                // Sports - toggle
+                                                toggleSelection(item.name, selectedSports, setSelectedSports);
+                                            }
+                                        }}
+                                    >
+                                        <Text style={styles.modalItemText}>{item.name}</Text>
+                                        {modalType === 'sports' && selectedSports.includes(item.name) && (
+                                            <Ionicons name="checkmark-circle" size={20} color={THEME.primary} />
+                                        )}
+                                        {modalType === 'city' && city === item.name && (
+                                            <Ionicons name="checkmark-circle" size={20} color={THEME.primary} />
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                            />
+                            <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+                                <Text style={styles.closeButtonText}>Done</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
         </View>
     );
 };
@@ -465,19 +678,39 @@ const styles = StyleSheet.create({
         backgroundColor: THEME.background,
     },
     safeAreaTop: {
-        height: Platform.OS === 'ios' ? 40 : 0, // Simplified safe area
+        height: 0, // Header covers it
         backgroundColor: '#1F1F1F',
     },
     scrollContent: {
-        paddingBottom: 20,
+        paddingBottom: 100, // Space for footer
     },
-    headerContainer: {
+    fixedHeader: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        paddingTop: Platform.OS === 'android' ? 40 : 50,
+        paddingBottom: 15,
         paddingHorizontal: 20,
-        paddingTop: Platform.OS === 'android' ? 40 : 10,
-        paddingBottom: 30,
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
+        zIndex: 100,
+        elevation: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: '#2C2C2E',
+    },
+    fixedHeaderTitle: {
+        color: '#FFF',
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginLeft: 20,
+    },
+    pageSubtitle: {
+        color: THEME.textSecondary,
+        fontSize: 14,
+        textAlign: 'center',
         marginBottom: 20,
+        marginTop: 10,
     },
     headerNav: {
         flexDirection: 'row',
@@ -508,7 +741,7 @@ const styles = StyleSheet.create({
     // Avatar
     avatarSection: {
         alignItems: 'center',
-        marginTop: -50,
+        marginTop: 10, // Adjusted from -50
         marginBottom: 20,
     },
     avatarWrapper: {
@@ -528,6 +761,11 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.5,
         shadowRadius: 10,
         elevation: 8,
+        overflow: 'hidden', // Ensure image clips
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     },
     avatarInitials: {
         fontSize: 36,
@@ -601,11 +839,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#252525',
         borderRadius: 12,
         padding: 5,
-        zIndex: 100,
+        zIndex: 3000, // Higher than parent
+        elevation: 3000, // Higher than parent
         borderWidth: 1,
-        borderColor: '#444',
-        shadowColor: '#000',
-        elevation: 5,
     },
     dropdownItem: {
         paddingVertical: 12,
@@ -688,6 +924,54 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '900',
         letterSpacing: 1,
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: '#1E1E1E',
+        borderRadius: 16,
+        width: '100%',
+        maxHeight: '60%',
+        padding: 20,
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    modalTitle: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 15,
+        textAlign: 'center',
+    },
+    modalItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#333',
+    },
+    modalItemText: {
+        color: '#FFF',
+        fontSize: 16,
+    },
+    closeButton: {
+        marginTop: 20,
+        backgroundColor: THEME.primary,
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        color: '#000',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });
 

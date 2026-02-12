@@ -3,13 +3,13 @@ import {
   Building2, Gamepad2, Coins, CalendarDays, Camera, Video,
   Trash2, Plus, Info, X, MapPin
 } from 'lucide-react';
-import { branchesApi, gameTypesApi, courtsApi, amenitiesApi } from '../../services/adminApi';
+import { branchesApi, gameTypesApi, courtsApi } from '../../services/adminApi';
 import SlotCalendar from './SlotCalendar';
 
 function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
   const [branches, setBranches] = useState([]);
   const [gameTypes, setGameTypes] = useState([]);
-  const [amenities, setAmenities] = useState([]);
+  /* Amenities logic removed */
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -26,21 +26,20 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
     priceConditions: [],
     unavailabilitySlots: [],
     termsAndConditions: '',
-    amenities: [],
+    // amenities: [], // Removed
     isActive: true
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [branchesData, gameTypesData, amenitiesData] = await Promise.all([
+        const [branchesData, gameTypesData] = await Promise.all([
           branchesApi.getAll(),
-          gameTypesApi.getAll(),
-          amenitiesApi.getAll()
+          gameTypesApi.getAll()
         ]);
         setBranches(branchesData);
         setGameTypes(gameTypesData);
-        setAmenities(amenitiesData);
+        // setAmenities(amenitiesData); // Removed
 
         if (initialData) {
           // Parse complex fields if they are strings
@@ -53,14 +52,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
           if (typeof unavailabilitySlots === 'string') {
             try { unavailabilitySlots = JSON.parse(unavailabilitySlots); } catch (e) { console.error('Error parsing unavailability slots', e); }
           }
-
-          let courtAmenities = initialData.amenities || [];
-          // Ensure we have array of IDs
-          if (courtAmenities.length > 0 && typeof courtAmenities[0] === 'object') {
-            courtAmenities = courtAmenities.map(a => a.id);
-          }
-
-
+          /* Amenities parsing removed */
           setFormData({
             name: initialData.name,
             branchId: initialData.branch_id,
@@ -73,7 +65,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
             priceConditions: priceConditions,
             unavailabilitySlots: unavailabilitySlots,
             termsAndConditions: initialData.terms_and_conditions || '',
-            amenities: courtAmenities,
+            // amenities: courtAmenities, // Removed
             isActive: initialData.is_active
           });
         }
@@ -167,7 +159,8 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
       submitData.append('price_conditions', JSON.stringify(priceConditions));
       submitData.append('unavailability_slots', JSON.stringify(formData.unavailabilitySlots));
       submitData.append('terms_and_conditions', formData.termsAndConditions);
-      submitData.append('amenities', JSON.stringify(formData.amenities));
+      submitData.append('terms_and_conditions', formData.termsAndConditions);
+      // submitData.append('amenities', JSON.stringify(formData.amenities)); // Removed as per requirement
 
       // Append new files
       formData.images.forEach(img => submitData.append('images', img.file));
@@ -214,7 +207,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
                 type="text"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300"
+                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300 text-slate-900"
                 placeholder="e.g. Court 1"
                 required
               />
@@ -258,9 +251,21 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
                   required
                 >
                   <option value="">Select Sport</option>
-                  {gameTypes.filter(gt => gt.is_active).map(type => (
-                    <option key={type.id} value={type.id}>{type.name}</option>
-                  ))}
+                  {gameTypes
+                    .filter(gt => gt.is_active)
+                    .filter(gt => {
+                      // Filter by branch if selected
+                      if (!formData.branchId) return true;
+                      const selectedBranch = branches.find(b => b.id === formData.branchId);
+                      // If branch has game_types defined, use them. Otherwise show all (fallback)
+                      if (selectedBranch?.game_types?.length > 0) {
+                        return selectedBranch.game_types.some(bGt => bGt.id === gt.id);
+                      }
+                      return true;
+                    })
+                    .map(type => (
+                      <option key={type.id} value={type.id}>{type.name}</option>
+                    ))}
                 </select>
               </div>
             </div>
@@ -345,29 +350,9 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
           </div>
         </div>
 
-        {/* Amenities */}
-        <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Amenities</label>
-          <div className="flex flex-wrap gap-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
-            {amenities.filter(a => a.is_active).map(amenity => {
-              const isSelected = formData.amenities.includes(amenity.id);
-              return (
-                <button
-                  key={amenity.id}
-                  type="button"
-                  onClick={() => setFormData(prev => ({
-                    ...prev,
-                    amenities: isSelected ? prev.amenities.filter(id => id !== amenity.id) : [...prev.amenities, amenity.id]
-                  }))}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${isSelected ? 'bg-green-600 text-white border-green-600 shadow-md shadow-green-200' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
-                >
-                  {amenity.name}
-                </button>
-              );
-            })}
-            {amenities.length === 0 && <span className="text-sm text-slate-400">No amenities defined.</span>}
-          </div>
-        </div>
+        {/* Amenities section removed as per requirement */}
+
+        <div className="h-px bg-slate-200 my-4" />
 
         <div className="h-px bg-slate-200 my-4" />
 

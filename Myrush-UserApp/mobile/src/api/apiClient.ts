@@ -19,6 +19,7 @@ const USER_KEY = '@myrush_user';
  */
 class ApiClient {
     private baseUrl: string;
+    private token: string | null = null;
 
     constructor(baseUrl: string) {
         this.baseUrl = baseUrl;
@@ -28,8 +29,13 @@ class ApiClient {
      * Get stored access token
      */
     async getToken(): Promise<string | null> {
+        if (this.token) return this.token;
         try {
-            return await AsyncStorage.getItem(TOKEN_KEY);
+            const storedToken = await AsyncStorage.getItem(TOKEN_KEY);
+            if (storedToken) {
+                this.token = storedToken;
+            }
+            return storedToken;
         } catch (error) {
             console.error('Error getting token:', error);
             return null;
@@ -40,6 +46,7 @@ class ApiClient {
      * Store access token
      */
     async setToken(token: string): Promise<void> {
+        this.token = token;
         try {
             await AsyncStorage.setItem(TOKEN_KEY, token);
         } catch (error) {
@@ -51,6 +58,7 @@ class ApiClient {
      * Remove access token
      */
     async removeToken(): Promise<void> {
+        this.token = null;
         try {
             await AsyncStorage.removeItem(TOKEN_KEY);
             await AsyncStorage.removeItem(USER_KEY);

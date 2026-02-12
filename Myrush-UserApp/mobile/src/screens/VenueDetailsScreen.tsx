@@ -56,6 +56,8 @@ const VenueDetailsScreen: React.FC = () => {
         ],
         about: 'Prime cricket facility in the heart of Bengaluru with well-maintained practice nets, floodlights, parking, and changing rooms. Perfect for evening sessions and weekend games.',
         terms_and_conditions: 'Default terms and conditions apply.',
+        rules: 'Standard rules apply.',
+        googleMapUrl: '',
     };
 
     // Map the API venue data to the screen's expected format
@@ -70,8 +72,10 @@ const VenueDetailsScreen: React.FC = () => {
             ? { uri: paramsVenue.photos[0] }
             : require('../../assets/dashboard-hero.png'),
         amenities: paramsVenue.amenities || [],
-        about: paramsVenue.description || `Premium ${paramsVenue.game_type} facility at ${paramsVenue.branch_name}. Book your slots now for the best playing experience.`,
-        terms_and_conditions: paramsVenue.terms_and_conditions || 'Standard booking terms apply. Cancellations must be made 24 hours in advance.',
+        about: paramsVenue.description || paramsVenue.ground_overview || `Premium ${paramsVenue.game_type} facility at ${paramsVenue.branch_name}. Book your slots now for the best playing experience.`,
+        terms_and_conditions: paramsVenue.terms_condition || paramsVenue.terms_and_conditions || 'Standard booking terms apply. Cancellations must be made 24 hours in advance.',
+        rules: paramsVenue.rule || '',
+        googleMapUrl: paramsVenue.google_map_url || '',
     } : defaultVenue;
 
     // Fetch ratings and reviews when component mounts
@@ -104,6 +108,11 @@ const VenueDetailsScreen: React.FC = () => {
     }, [venue.id]);
 
     const openMap = () => {
+        if (venue.googleMapUrl) {
+            Linking.openURL(venue.googleMapUrl).catch(err => console.error("Couldn't load page", err));
+            return;
+        }
+
         const label = encodeURIComponent(venue.name);
         // This is a basic map intent; in a real app you'd use lat/long if available
         const url = Platform.select({
@@ -222,6 +231,14 @@ const VenueDetailsScreen: React.FC = () => {
                         <Text style={styles.sectionTitle}>ABOUT VENUE</Text>
                         <Text style={styles.aboutText}>{venue.about}</Text>
                     </View>
+
+                    {/* Rules */}
+                    {venue.rules ? (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Rules</Text>
+                            <Text style={styles.termsText}>{venue.rules}</Text>
+                        </View>
+                    ) : null}
 
                     {/* Terms and Conditions */}
                     {venue.terms_and_conditions && (
@@ -357,7 +374,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(10px)', // Note: backdropFilter mostly works on web/some iOS views, mostly visual intent here
+        // backdropFilter: 'blur(10px)', // Not supported in React Native standard definitions
     },
     content: {
         paddingHorizontal: wp(5),

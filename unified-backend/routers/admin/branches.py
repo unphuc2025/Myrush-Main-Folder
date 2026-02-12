@@ -1,25 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import models, schemas
 from database import get_db
 from dependencies import get_admin_branch_filter, require_super_admin
 import uuid
 import os
-import shutil
 import json
 from pathlib import Path
-
-# Create uploads directory if it doesn't exist
-UPLOAD_DIR = Path("uploads/branches")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+from utils import s3_utils
 
 router = APIRouter(
     prefix="/branches",
     tags=["branches"]
 )
 
-from dependencies import get_admin_branch_filter, require_super_admin
+from dependencies import get_admin_branch_filter, require_super_admin, PermissionChecker
 
 @router.get("", response_model=List[schemas.Branch])
 @router.get("/", response_model=List[schemas.Branch])
@@ -27,10 +23,11 @@ def get_all_branches(
     city_id: str = None, 
     area_id: str = None, 
     db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker(["Manage Branch", "Reports and analytics"], "view")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Get all branches, optionally filtered by city_id or area_id and admin access"""
-    query = db.query(models.Branch)
+    query = db.query(models.Branch).options(joinedload(models.Branch.game_types))
     
     # 1. Apply Security Filter
     if branch_filter is not None:
@@ -42,7 +39,7 @@ def get_all_branches(
         query = query.filter(models.Branch.area_id == area_id)
     return query.all()
 
-@router.get("/{branch_id}", response_model=schemas.Branch)
+@router.get("/{branch_id}", response_model=schemas.Branch, dependencies=[Depends(PermissionChecker("Manage Branch", "view"))])
 def get_branch(
     branch_id: str, 
     db: Session = Depends(get_db),
@@ -58,8 +55,8 @@ def get_branch(
         raise HTTPException(status_code=404, detail="Branch not found")
     return branch
 
-@router.post("", response_model=schemas.Branch, dependencies=[Depends(require_super_admin)])
-@router.post("/", response_model=schemas.Branch, dependencies=[Depends(require_super_admin)])
+@router.post("", response_model=schemas.Branch, dependencies=[Depends(PermissionChecker("Manage Branch", "add"))])
+@router.post("/", response_model=schemas.Branch, dependencies=[Depends(PermissionChecker("Manage Branch", "add"))])
 async def create_branch(
     name: str = Form(...),
     city_id: str = Form(...),
@@ -68,6 +65,13 @@ async def create_branch(
     address_line1: Optional[str] = Form(None),
     address_line2: Optional[str] = Form(None),
     ground_overview: Optional[str] = Form(None),
+    terms_condition: Optional[str] = Form(None),
+    rule: Optional[str] = Form(None),
+    google_map_url: Optional[str] = Form(None),
+    price: Optional[float] = Form(None),
+    max_players: Optional[int] = Form(None),
+    phone_number: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
     ground_type: str = Form("single"),
     opening_hours: Optional[str] = Form(None),
     is_active: bool = Form(True),
@@ -81,14 +85,13 @@ async def create_branch(
     image_urls = []
     if images:
         for image in images:
-            file_extension = os.path.splitext(image.filename)[1]
-            unique_filename = f"{uuid.uuid4()}{file_extension}"
-            file_path = UPLOAD_DIR / unique_filename
-
-            with file_path.open("wb") as buffer:
-                shutil.copyfileobj(image.file, buffer)
-
-            image_urls.append(f"/uploads/branches/{unique_filename}")
+            if image.filename:
+                try:
+                    url = await s3_utils.upload_file_to_s3(image, folder="branches")
+                    image_urls.append(url)
+                except Exception as e:
+                    print(f"Error uploading image: {e}")
+                    pass
 
     # Parse opening hours if provided
     opening_hours_data = None
@@ -107,6 +110,13 @@ async def create_branch(
         address_line1=address_line1,
         address_line2=address_line2,
         ground_overview=ground_overview,
+        terms_condition=terms_condition,
+        rule=rule,
+        google_map_url=google_map_url,
+        price=price,
+        max_players=max_players,
+        phone_number=phone_number,
+        email=email,
         ground_type=ground_type,
         images=image_urls if image_urls else None,
         opening_hours=opening_hours_data,
@@ -148,6 +158,13 @@ async def update_branch(
     address_line1: Optional[str] = Form(None),
     address_line2: Optional[str] = Form(None),
     ground_overview: Optional[str] = Form(None),
+    terms_condition: Optional[str] = Form(None),
+    rule: Optional[str] = Form(None),
+    google_map_url: Optional[str] = Form(None),
+    price: Optional[float] = Form(None),
+    max_players: Optional[int] = Form(None),
+    phone_number: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
     ground_type: str = Form("single"),
     opening_hours: Optional[str] = Form(None),
     is_active: bool = Form(True),
@@ -166,26 +183,20 @@ async def update_branch(
     image_urls = existing_images if existing_images else []
 
     # Delete old images that are not in existing_images
+    # (Local deletion logic removed as we are now using S3. Future TODO: Implement S3 deletion)
     if db_branch.images:
-        for old_image_url in db_branch.images:
-            if old_image_url not in image_urls:
-                # Extract filename from URL and delete file
-                filename = old_image_url.split('/')[-1]
-                file_path = UPLOAD_DIR / filename
-                if file_path.exists():
-                    file_path.unlink()
+        pass
 
     # Add new uploaded images
     if images:
         for image in images:
-            file_extension = os.path.splitext(image.filename)[1]
-            unique_filename = f"{uuid.uuid4()}{file_extension}"
-            file_path = UPLOAD_DIR / unique_filename
-
-            with file_path.open("wb") as buffer:
-                shutil.copyfileobj(image.file, buffer)
-
-            image_urls.append(f"/uploads/branches/{unique_filename}")
+            if image.filename:
+                try:
+                    url = await s3_utils.upload_file_to_s3(image, folder="branches")
+                    image_urls.append(url)
+                except Exception as e:
+                    print(f"Error uploading image: {e}")
+                    pass
 
     # Parse opening hours if provided
     opening_hours_data = None
@@ -203,6 +214,13 @@ async def update_branch(
     db_branch.address_line1 = address_line1
     db_branch.address_line2 = address_line2
     db_branch.ground_overview = ground_overview
+    db_branch.terms_condition = terms_condition
+    db_branch.rule = rule
+    db_branch.google_map_url = google_map_url
+    db_branch.price = price
+    db_branch.max_players = max_players
+    db_branch.phone_number = phone_number
+    db_branch.email = email
     db_branch.ground_type = ground_type
     db_branch.images = image_urls if image_urls else None
     db_branch.opening_hours = opening_hours_data
@@ -261,7 +279,7 @@ def toggle_branch_status(branch_id: str, db: Session = Depends(get_db)):
     db.refresh(db_branch)
     return db_branch
 
-@router.delete("/{branch_id}", dependencies=[Depends(require_super_admin)])
+@router.delete("/{branch_id}", dependencies=[Depends(PermissionChecker("Manage Branch", "delete"))])
 def delete_branch(branch_id: str, db: Session = Depends(get_db)):
     """Delete a branch"""
     db_branch = db.query(models.Branch).filter(models.Branch.id == branch_id).first()

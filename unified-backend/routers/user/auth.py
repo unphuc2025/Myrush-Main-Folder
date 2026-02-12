@@ -207,16 +207,14 @@ def verify_otp(payload: schemas.VerifyOTPRequest):
                             db, schemas.ProfileCreate(**profile_create_data), user.id
                         )
             except Exception as db_err:
-                print(f"[VERIFY-OTP] Database error creating/updating user: {db_err}")
-                # In dev mode with DB down, create a dummy user response
-                if not user:
-                    print("[VERIFY-OTP] Creating dummy user in dev mode")
-                    user = type("User", (), {
-                        "id": str(uuid.uuid4()),
-                        "email": f"{payload.phone_number}@phone.myrush.app",
-                        "first_name": payload.full_name or "User",
-                        "last_name": "",
-                    })()
+                print(f"[VERIFY-OTP] CRITICAL Database error creating/updating user: {db_err}")
+                import traceback
+                traceback.print_exc()
+                # Do NOT swallow error. Fail loudly so client knows registration failed.
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Database error during registration: {str(db_err)}"
+                )
 
             # Ensure we always have a valid *string* subject for the JWT token.
             # Some users may have NULL email and a UUID object as id.

@@ -5,25 +5,22 @@ import models, schemas
 from database import get_db
 import uuid
 import os
-import shutil
 from pathlib import Path
+from utils import s3_utils
 
 router = APIRouter(
     prefix="/amenities",
     tags=["amenities"]
 )
+from dependencies import PermissionChecker
 
-# Create uploads directory if it doesn't exist
-UPLOAD_DIR = Path("uploads/amenities")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-@router.get("", response_model=List[schemas.Amenity])
-@router.get("/", response_model=List[schemas.Amenity])
+@router.get("", response_model=List[schemas.Amenity], dependencies=[Depends(PermissionChecker("Manage Amenities", "view"))])
+@router.get("/", response_model=List[schemas.Amenity], dependencies=[Depends(PermissionChecker("Manage Amenities", "view"))])
 def get_all_amenities(db: Session = Depends(get_db)):
     """Get all amenities"""
     return db.query(models.Amenity).all()
 
-@router.get("/{amenity_id}", response_model=schemas.Amenity)
+@router.get("/{amenity_id}", response_model=schemas.Amenity, dependencies=[Depends(PermissionChecker("Manage Amenities", "view"))])
 def get_amenity(amenity_id: str, db: Session = Depends(get_db)):
     """Get a specific amenity by ID"""
     amenity = db.query(models.Amenity).filter(models.Amenity.id == amenity_id).first()
@@ -31,8 +28,8 @@ def get_amenity(amenity_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Amenity not found")
     return amenity
 
-@router.post("", response_model=schemas.Amenity)
-@router.post("/", response_model=schemas.Amenity)
+@router.post("", response_model=schemas.Amenity, dependencies=[Depends(PermissionChecker("Manage Amenities", "add"))])
+@router.post("/", response_model=schemas.Amenity, dependencies=[Depends(PermissionChecker("Manage Amenities", "add"))])
 async def create_amenity(
     name: str = Form(...),
     description: Optional[str] = Form(None),
@@ -48,16 +45,11 @@ async def create_amenity(
     # Handle file upload
     icon_url = None
     if icon:
-        # Generate unique filename
-        file_extension = os.path.splitext(icon.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
-        file_path = UPLOAD_DIR / unique_filename
-
-        # Save file
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(icon.file, buffer)
-
-        icon_url = f"/uploads/amenities/{unique_filename}"
+        try:
+           icon_url = await s3_utils.upload_file_to_s3(icon, folder="amenities")
+        except Exception as e:
+            print(f"Error uploading icon: {e}")
+            pass
 
     db_amenity = models.Amenity(
         name=name,
@@ -70,7 +62,7 @@ async def create_amenity(
     db.refresh(db_amenity)
     return db_amenity
 
-@router.put("/{amenity_id}", response_model=schemas.Amenity)
+@router.put("/{amenity_id}", response_model=schemas.Amenity, dependencies=[Depends(PermissionChecker("Manage Amenities", "edit"))])
 async def update_amenity(
     amenity_id: str,
     name: str = Form(...),
@@ -86,22 +78,12 @@ async def update_amenity(
 
     # Handle file upload
     if icon:
-        # Delete old icon if exists
-        if db_amenity.icon_url:
-            old_file_path = Path(db_amenity.icon_url.lstrip('/'))
-            if old_file_path.exists():
-                old_file_path.unlink()
-
-        # Generate unique filename
-        file_extension = os.path.splitext(icon.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
-        file_path = UPLOAD_DIR / unique_filename
-
-        # Save file
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(icon.file, buffer)
-
-        db_amenity.icon_url = f"/uploads/amenities/{unique_filename}"
+        # We replace the icon. Ideally we should delete the old one from S3 but for now we just overwrite the URL in DB.
+        try:
+            db_amenity.icon_url = await s3_utils.upload_file_to_s3(icon, folder="amenities")
+        except Exception as e:
+             print(f"Error uploading icon: {e}")
+             pass
 
     db_amenity.name = name
     db_amenity.description = description
@@ -111,7 +93,7 @@ async def update_amenity(
     db.refresh(db_amenity)
     return db_amenity
 
-@router.patch("/{amenity_id}/toggle", response_model=schemas.Amenity)
+@router.patch("/{amenity_id}/toggle", response_model=schemas.Amenity, dependencies=[Depends(PermissionChecker("Manage Amenities", "edit"))])
 def toggle_amenity_status(amenity_id: str, db: Session = Depends(get_db)):
     """Toggle amenity active status"""
     db_amenity = db.query(models.Amenity).filter(models.Amenity.id == amenity_id).first()

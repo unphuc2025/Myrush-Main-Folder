@@ -3,14 +3,14 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import models, schemas
 from database import get_db
-from dependencies import require_super_admin
+from dependencies import require_super_admin, PermissionChecker
 
 router = APIRouter(
     prefix="/cms",
     tags=["CMS Pages"]
 )
 
-@router.get("/", response_model=schemas.CMSPageListResponse)
+@router.get("/", response_model=schemas.CMSPageListResponse, dependencies=[Depends(PermissionChecker("CMS Pages", "view"))])
 def get_cms_pages(
     skip: int = 0, 
     limit: int = 20, 
@@ -30,14 +30,14 @@ def get_cms_pages(
     
     return schemas.CMSPageListResponse(items=items, total=total, page=page, pages=pages)
 
-@router.get("/{slug}", response_model=schemas.CMSPageResponse)
+@router.get("/{slug}", response_model=schemas.CMSPageResponse, dependencies=[Depends(PermissionChecker("CMS Pages", "view"))])
 def get_cms_page(slug: str, db: Session = Depends(get_db)):
     page = db.query(models.CMSPage).filter(models.CMSPage.slug == slug).first()
     if not page:
         raise HTTPException(status_code=404, detail="Page not found")
     return page
 
-@router.post("/", response_model=schemas.CMSPageResponse, dependencies=[Depends(require_super_admin)])
+@router.post("/", response_model=schemas.CMSPageResponse, dependencies=[Depends(PermissionChecker("CMS Pages", "add"))])
 def create_cms_page(page: schemas.CMSPageCreate, db: Session = Depends(get_db)):
     # Check if slug exists
     if db.query(models.CMSPage).filter(models.CMSPage.slug == page.slug).first():

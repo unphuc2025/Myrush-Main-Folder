@@ -7,7 +7,8 @@ import {
     TouchableOpacity,
     Modal,
     TextInput,
-    StatusBar
+    StatusBar,
+    Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -28,7 +29,7 @@ const PlayScreen = () => {
     const navigation = useNavigation<Navigation>();
     const { user } = useAuthStore();
 
-    const [selectedTab, setSelectedTab] = useState('All');
+    const [selectedTab, setSelectedTab] = useState('Host Game');
     const [selectedSport, setSelectedSport] = useState('Pickleball');
     const [showCityModal, setShowCityModal] = useState(false);
 
@@ -65,7 +66,8 @@ const PlayScreen = () => {
     const displayCity = selectedCity || userProfile?.city || (user as any)?.city || 'Hyderabad';
     const displayState = cityStateMap[displayCity] || 'India';
 
-    const tabs = ['All', 'Tournaments', 'Host Game', 'Join Game'];
+    // const tabs = ['All', 'Tournaments', 'Host Game', 'Join Game'];
+    const tabs = ['Host Game']; // MVP: Only Host Game is functional
 
     // Bookings State for Hosting
     const [bookings, setBookings] = useState<any[]>([]);
@@ -273,7 +275,7 @@ const PlayScreen = () => {
                                     type: 'TOURNAMENT'
                                 }
                             })}
-                            style={{ mt: 12 }}
+                            style={{ marginTop: 12 }}
                         />
                     </View>
                 </View>
@@ -400,32 +402,36 @@ const PlayScreen = () => {
 
             {/* Header */}
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.headerLabel}>Playing in</Text>
-                    <TouchableOpacity
-                        style={styles.locationSelector}
-                        onPress={() => setShowCityModal(true)}
-                    >
-                        <Ionicons name="location-sharp" size={16} color={colors.primary} />
+                <TouchableOpacity
+                    style={styles.locationSelector}
+                    onPress={() => setShowCityModal(true)}
+                >
+                    <Ionicons name="location-sharp" size={moderateScale(16)} color="#fff" />
+                    <View style={{ marginLeft: 6 }}>
+                        <Text style={styles.headerLabel}>LOCATION</Text>
                         <Text style={styles.locationText}>{displayCity}</Text>
-                        <Ionicons name="chevron-down" size={12} color={colors.text.secondary} style={{ marginLeft: 4 }} />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.headerActions}>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Ionicons name="search" size={22} color="#FFF" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.profileButton}
-                        onPress={() => navigation.navigate('PlayerProfile')}
-                    >
+                    </View>
+                    <Ionicons name="chevron-down" size={moderateScale(12)} color={colors.text.secondary} style={{ marginLeft: 4, alignSelf: 'center' }} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.profileButton, user?.avatarUrl ? { padding: 0, overflow: 'hidden', borderWidth: 1, borderColor: '#333', backgroundColor: 'transparent' } : {}]}
+                    onPress={() => navigation.navigate('PlayerProfile')}
+                >
+                    {user?.avatarUrl ? (
+                        <Image
+                            source={{ uri: user.avatarUrl }}
+                            style={styles.profileImage}
+                            resizeMode="cover"
+                        />
+                    ) : (
                         <View style={styles.profileAvatar}>
                             <Text style={styles.profileInitials}>
                                 {user?.firstName?.[0] || 'U'}
                             </Text>
                         </View>
-                    </TouchableOpacity>
-                </View>
+                    )}
+                </TouchableOpacity>
             </View>
 
             {/* Tabs */}
@@ -524,8 +530,10 @@ const styles = StyleSheet.create({
         // borderBottomColor: '#1A1A1A',
     },
     headerLabel: {
-        color: '#888',
-        fontSize: fontScale(12),
+        color: '#9CA3AF',
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1,
         marginBottom: 2,
     },
     emptyContainer: {
@@ -543,9 +551,9 @@ const styles = StyleSheet.create({
     },
     locationText: {
         color: '#FFF',
-        fontSize: fontScale(16),
-        fontWeight: '700',
-        marginLeft: 4,
+        fontSize: fontScale(14),
+        fontWeight: '600',
+        lineHeight: 14,
     },
     headerActions: {
         flexDirection: 'row',
@@ -565,12 +573,16 @@ const styles = StyleSheet.create({
     profileButton: {
         width: 40,
         height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#1C1C1E', // Default
     },
     profileAvatar: {
-        width: 40,
-        height: 40,
+        width: '100%',
+        height: '100%',
         borderRadius: 20,
-        backgroundColor: colors.primary,
+        backgroundColor: colors.primary, // Fallback bg
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -578,6 +590,11 @@ const styles = StyleSheet.create({
         color: '#000',
         fontWeight: 'bold',
         fontSize: fontScale(16),
+    },
+    profileImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 20,
     },
     tabContainer: {
         paddingVertical: hp(1.5),

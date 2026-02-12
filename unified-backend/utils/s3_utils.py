@@ -74,12 +74,14 @@ async def upload_file_to_s3(file: UploadFile, folder: str = "uploads") -> str:
         file_content = await file.read()
         
         # Upload to S3
+        # Upload to S3
+        # Note: ACL='public-read' is removed because many buckets enforce "Bucket Owner Enforced"
+        # which disables ACLs. The bucket policy should handle public access if needed.
         s3_client.put_object(
             Bucket=S3_BUCKET_NAME,
             Key=s3_key,
             Body=file_content,
-            ContentType=file.content_type,
-            ACL='public-read' # Optional: if bucket is not public by default
+            ContentType=file.content_type
         )
         
         # Reset file cursor for further use if needed (standard practice)

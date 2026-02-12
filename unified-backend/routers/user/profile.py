@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 import schemas, crud, models, database
@@ -39,3 +39,21 @@ def get_profile(
     if db_profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     return db_profile
+
+@router.post("/upload-avatar")
+async def upload_avatar(
+    file: UploadFile,
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(database.get_db)
+):
+    from utils.s3_utils import upload_file_to_s3
+    
+    # Upload to S3
+    avatar_url = await upload_file_to_s3(file, folder="avatars")
+    
+    # Update User model
+    current_user.avatar_url = avatar_url
+    db.commit()
+    db.refresh(current_user)
+    
+    return {"avatar_url": avatar_url, "message": "Avatar updated successfully"}

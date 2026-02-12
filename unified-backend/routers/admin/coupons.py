@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from dependencies import PermissionChecker
 from sqlalchemy.orm import Session
 from typing import List
 import models, schemas
@@ -10,15 +11,15 @@ router = APIRouter(
     tags=["coupons"]
 )
 
-@router.get("", response_model=List[schemas.Coupon])
-@router.get("/", response_model=List[schemas.Coupon])
+@router.get("", response_model=List[schemas.Coupon], dependencies=[Depends(PermissionChecker("Manage Coupons", "view"))])
+@router.get("/", response_model=List[schemas.Coupon], dependencies=[Depends(PermissionChecker("Manage Coupons", "view"))])
 def get_coupons(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """Get all coupons"""
     coupons = db.query(models.Coupon).offset(skip).limit(limit).all()
     return coupons
 
-@router.post("", response_model=schemas.Coupon)
-@router.post("/", response_model=schemas.Coupon)
+@router.post("", response_model=schemas.Coupon, dependencies=[Depends(PermissionChecker("Manage Coupons", "add"))])
+@router.post("/", response_model=schemas.Coupon, dependencies=[Depends(PermissionChecker("Manage Coupons", "add"))])
 def create_coupon(coupon: schemas.CouponCreate, db: Session = Depends(get_db)):
     """Create a new coupon"""
     # Check if code exists
@@ -32,7 +33,7 @@ def create_coupon(coupon: schemas.CouponCreate, db: Session = Depends(get_db)):
     db.refresh(db_coupon)
     return db_coupon
 
-@router.put("/{coupon_id}", response_model=schemas.Coupon)
+@router.put("/{coupon_id}", response_model=schemas.Coupon, dependencies=[Depends(PermissionChecker("Manage Coupons", "edit"))])
 def update_coupon(coupon_id: str, coupon: schemas.CouponCreate, db: Session = Depends(get_db)):
     """Update a coupon"""
     db_coupon = db.query(models.Coupon).filter(models.Coupon.id == coupon_id).first()
@@ -52,7 +53,7 @@ def update_coupon(coupon_id: str, coupon: schemas.CouponCreate, db: Session = De
     db.refresh(db_coupon)
     return db_coupon
 
-@router.delete("/{coupon_id}")
+@router.delete("/{coupon_id}", dependencies=[Depends(PermissionChecker("Manage Coupons", "delete"))])
 def delete_coupon(coupon_id: str, db: Session = Depends(get_db)):
     """Delete a coupon"""
     db_coupon = db.query(models.Coupon).filter(models.Coupon.id == coupon_id).first()
@@ -63,7 +64,7 @@ def delete_coupon(coupon_id: str, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Coupon deleted successfully"}
 
-@router.patch("/{coupon_id}/toggle", response_model=schemas.Coupon)
+@router.patch("/{coupon_id}/toggle", response_model=schemas.Coupon, dependencies=[Depends(PermissionChecker("Manage Coupons", "edit"))])
 def toggle_coupon_status(coupon_id: str, db: Session = Depends(get_db)):
     """Toggle coupon active status"""
     db_coupon = db.query(models.Coupon).filter(models.Coupon.id == coupon_id).first()

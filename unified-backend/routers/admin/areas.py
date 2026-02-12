@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from dependencies import PermissionChecker
 from sqlalchemy.orm import Session
 from typing import List
 import models, schemas
@@ -10,8 +11,8 @@ router = APIRouter(
     tags=["areas"]
 )
 
-@router.get("", response_model=List[schemas.Area])
-@router.get("/", response_model=List[schemas.Area])
+@router.get("", response_model=List[schemas.Area], dependencies=[Depends(PermissionChecker("Area Management", "view"))])
+@router.get("/", response_model=List[schemas.Area], dependencies=[Depends(PermissionChecker("Area Management", "view"))])
 def get_all_areas(city_id: str = None, db: Session = Depends(get_db)):
     """Get all areas, optionally filtered by city_id"""
     query = db.query(models.Area)
@@ -19,7 +20,7 @@ def get_all_areas(city_id: str = None, db: Session = Depends(get_db)):
         query = query.filter(models.Area.city_id == city_id)
     return query.all()
 
-@router.get("/{area_id}", response_model=schemas.Area)
+@router.get("/{area_id}", response_model=schemas.Area, dependencies=[Depends(PermissionChecker("Area Management", "view"))])
 def get_area(area_id: str, db: Session = Depends(get_db)):
     """Get a specific area by ID"""
     area = db.query(models.Area).filter(models.Area.id == area_id).first()
@@ -27,8 +28,8 @@ def get_area(area_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Area not found")
     return area
 
-@router.post("", response_model=schemas.Area)
-@router.post("/", response_model=schemas.Area)
+@router.post("", response_model=schemas.Area, dependencies=[Depends(PermissionChecker("Area Management", "add"))])
+@router.post("/", response_model=schemas.Area, dependencies=[Depends(PermissionChecker("Area Management", "add"))])
 def create_area(area: schemas.AreaCreate, db: Session = Depends(get_db)):
     """Create a new area"""
     db_area = models.Area(**area.model_dump())
@@ -37,7 +38,7 @@ def create_area(area: schemas.AreaCreate, db: Session = Depends(get_db)):
     db.refresh(db_area)
     return db_area
 
-@router.put("/{area_id}", response_model=schemas.Area)
+@router.put("/{area_id}", response_model=schemas.Area, dependencies=[Depends(PermissionChecker("Area Management", "edit"))])
 def update_area(area_id: str, area: schemas.AreaCreate, db: Session = Depends(get_db)):
     """Update an area"""
     db_area = db.query(models.Area).filter(models.Area.id == area_id).first()
@@ -51,7 +52,7 @@ def update_area(area_id: str, area: schemas.AreaCreate, db: Session = Depends(ge
     db.refresh(db_area)
     return db_area
 
-@router.patch("/{area_id}/toggle", response_model=schemas.Area)
+@router.patch("/{area_id}/toggle", response_model=schemas.Area, dependencies=[Depends(PermissionChecker("Area Management", "edit"))])
 def toggle_area_status(area_id: str, db: Session = Depends(get_db)):
     """Toggle area active status"""
     db_area = db.query(models.Area).filter(models.Area.id == area_id).first()
@@ -63,7 +64,7 @@ def toggle_area_status(area_id: str, db: Session = Depends(get_db)):
     db.refresh(db_area)
     return db_area
 
-@router.delete("/{area_id}")
+@router.delete("/{area_id}", dependencies=[Depends(PermissionChecker("Area Management", "delete"))])
 def delete_area(area_id: str, db: Session = Depends(get_db)):
     """Delete an area"""
     db_area = db.query(models.Area).filter(models.Area.id == area_id).first()

@@ -15,10 +15,11 @@ router = APIRouter(
 )
 
 from utils.email_sender import send_admin_credentials_email
+from dependencies import PermissionChecker
 
 # ============= USERS =============
 
-@router.get("/users", response_model=schemas.UserListResponse)
+@router.get("/users", response_model=schemas.UserListResponse, dependencies=[Depends(PermissionChecker("User Management", "view"))])
 def get_all_users(
     skip: int = 0, 
     limit: int = 10, 
@@ -57,7 +58,7 @@ def get_all_users(
         "pages": (total + limit - 1) // limit if limit > 0 else 1
     }
 
-@router.get("/users/{user_id}")
+@router.get("/users/{user_id}", dependencies=[Depends(PermissionChecker("User Management", "view"))])
 def get_user(user_id: str, db: Session = Depends(get_db)):
     """Get a specific user by ID"""
     user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -65,7 +66,7 @@ def get_user(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@router.post("/users")
+@router.post("/users", dependencies=[Depends(PermissionChecker("User Management", "add"))])
 def create_user(user: dict, db: Session = Depends(get_db)):
     """Create a new user"""
     db_user = models.User(
@@ -76,7 +77,7 @@ def create_user(user: dict, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
-@router.put("/users/{user_id}")
+@router.put("/users/{user_id}", dependencies=[Depends(PermissionChecker("User Management", "edit"))])
 def update_user(user_id: str, user: dict, db: Session = Depends(get_db)):
     """Update a user"""
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -165,20 +166,20 @@ def verify_otp(phone_number: str, otp_code: str, db: Session = Depends(get_db)):
 
 # ============= ADMINS =============
 
-from dependencies import require_super_admin
+from dependencies import require_super_admin, get_current_admin
 
-@router.get("/admins", response_model=List[schemas.Admin], dependencies=[Depends(require_super_admin)])
+@router.get("/admins", response_model=List[schemas.Admin], dependencies=[Depends(PermissionChecker("Sub Admin Management", "view"))])
 def get_all_admins(db: Session = Depends(get_db)):
     """Get all admins"""
     return db.query(models.Admin).all()
 
-@router.post("/admins", response_model=schemas.Admin, dependencies=[Depends(require_super_admin)])
+@router.post("/admins", response_model=schemas.Admin, dependencies=[Depends(PermissionChecker("Sub Admin Management", "add"))])
 def create_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
     """Create a new admin (Super or Branch)"""
     # Check if mobile already exists
     existing_admin = db.query(models.Admin).filter(models.Admin.mobile == admin.mobile).first()
     if existing_admin:
-        raise HTTPException(status_code=400, detail="Mobile number already registered")
+        raise HTTPException(status_code=400, detail="Mobile number already registered. Please enter a new number.")
 
     # Check if email is provided and already exists
     if admin.email:
@@ -186,12 +187,24 @@ def create_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
         if existing_email:
             raise HTTPException(status_code=400, detail="Email already registered")
 
+    # Check if role_id is valid
+    if admin.role_id:
+        role = db.query(models.Role).filter(models.Role.id == admin.role_id).first()
+        if not role:
+             raise HTTPException(status_code=400, detail="Invalid role selected")
+
+    # If role_id is provided, force role to 'admin' to ensure permissions are checked
+    # The 'super_admin' role bypasses all checks, so we must not use it for role-based admins
+    final_role = admin.role
+    if admin.role_id:
+        final_role = 'admin'
+        
     db_admin = models.Admin(
         name=admin.name,
         mobile=admin.mobile,
         email=admin.email,
         password_hash=admin.password, # In production, hash this!
-        role=admin.role,
+        role=final_role,
         role_id=admin.role_id,
         # Legacy support: if single branch_id passed, use it, though data isolation uses M2M
         branch_id=admin.branch_id if admin.branch_id and admin.role != 'super_admin' else None, 
@@ -224,9 +237,28 @@ def create_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
 
     return db_admin
 
-@router.put("/admins/{admin_id}", response_model=schemas.Admin, dependencies=[Depends(require_super_admin)])
-def update_admin(admin_id: str, admin_update: schemas.AdminUpdate, db: Session = Depends(get_db)):
+@router.put("/admins/{admin_id}", response_model=schemas.Admin)
+def update_admin(
+    admin_id: str, 
+    admin_update: schemas.AdminUpdate, 
+    db: Session = Depends(get_db),
+    current_admin: models.Admin = Depends(get_current_admin)
+):
     """Update an admin"""
+    # Permission Logic: Allow Self OR "Sub Admin Management" Edit
+    is_self = str(current_admin.id) == admin_id
+    has_permission = False
+    
+    if current_admin.role == 'super_admin':
+        has_permission = True
+    elif current_admin.role_rel and current_admin.role_rel.permissions:
+         perms = current_admin.role_rel.permissions.get("Sub Admin Management")
+         if perms and perms.get("edit"):
+             has_permission = True
+    
+    if not is_self and not has_permission:
+        raise HTTPException(status_code=403, detail="You don't have access")
+
     db_admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
     if not db_admin:
         raise HTTPException(status_code=404, detail="Admin not found")
@@ -235,7 +267,7 @@ def update_admin(admin_id: str, admin_update: schemas.AdminUpdate, db: Session =
     if admin_update.mobile and admin_update.mobile != db_admin.mobile:
         existing = db.query(models.Admin).filter(models.Admin.mobile == admin_update.mobile).first()
         if existing:
-            raise HTTPException(status_code=400, detail="Mobile number already registered")
+            raise HTTPException(status_code=400, detail="Mobile number already registered. Please enter a new number.")
         db_admin.mobile = admin_update.mobile.strip()
 
     # Check email
@@ -247,44 +279,51 @@ def update_admin(admin_id: str, admin_update: schemas.AdminUpdate, db: Session =
 
     if admin_update.name:
         db_admin.name = admin_update.name
-    if admin_update.role:
-        db_admin.role = admin_update.role
-    if admin_update.role_id:
-        db_admin.role_id = admin_update.role_id
     
-    # Handle Branches Update
-    # For now, we only update branches IF branch_ids is explicitly passed (not None)
-    # If passed as [], it means clear all.
-    # We also sync single branch_id if passed.
+    # RESTRICT SENSITIVE FIELDS FOR NON-SUPER ADMINS
+    if current_admin.role == 'super_admin':
+        if admin_update.role:
+            db_admin.role = admin_update.role
+        if admin_update.role_id:
+            db_admin.role_id = admin_update.role_id
+            # Safety: If assigning specific role_id, ensure role is NOT super_admin
+            if admin_update.role_id:
+                db_admin.role = 'admin'
+        
+        # Handle Branches Update (Only allow super admin to change access)
+        should_update_branches = False
+        new_branches = set()
+        
+        if admin_update.branch_ids is not None:
+            should_update_branches = True
+            for bid in admin_update.branch_ids:
+                new_branches.add(bid)
+                
+        # Legacy branch_id updates
+        if admin_update.branch_id is not None:
+            db_admin.branch_id = admin_update.branch_id if admin_update.role == 'branch_admin' else None
+            if admin_update.role == 'branch_admin':
+                new_branches.add(admin_update.branch_id)
+                should_update_branches = True
+                
+        if should_update_branches:
+            # Clear existing
+            db.query(models.AdminBranchAccess).filter(models.AdminBranchAccess.admin_id == admin_id).delete()
+            # Add new
+            if admin_update.role != 'super_admin': 
+                for bid in new_branches:
+                    if bid:
+                        db.add(models.AdminBranchAccess(admin_id=admin_id, branch_id=bid))
     
-    should_update_branches = False
-    new_branches = set()
-    
-    if admin_update.branch_ids is not None:
-        should_update_branches = True
-        for bid in admin_update.branch_ids:
-            new_branches.add(bid)
-            
-    # Legacy branch_id updates
-    if admin_update.branch_id is not None:
-        db_admin.branch_id = admin_update.branch_id if admin_update.role == 'branch_admin' else None
-        # If setting a single branch, ensure it's in the list too?
-        # Let's say: if admin provides branch_ids, that is the source of truth.
-        # If passing single branch_id, usually effectively making it single.
-        if admin_update.role == 'branch_admin':
-             new_branches.add(admin_update.branch_id)
-             should_update_branches = True
-             
-    if should_update_branches:
-        # Clear existing
-        db.query(models.AdminBranchAccess).filter(models.AdminBranchAccess.admin_id == admin_id).delete()
-        # Add new
-        if admin_update.role != 'super_admin': # Only add branches if not super admin (strict isolation)
-            for bid in new_branches:
-                # verify valid UUID? Pydantic handles format.
-                if bid:
-                    db.add(models.AdminBranchAccess(admin_id=admin_id, branch_id=bid))
-    
+    elif admin_update.role or admin_update.role_id or admin_update.branch_ids or admin_update.branch_id:
+        # If user tries to update restricted fields, we could raise error or just ignore. 
+        # Raising error is safer to signal invalid attempt.
+        # However, frontend might send current values which are harmless.
+        # Let's just ignore them implies we trust frontend not to lie? No.
+        # Secure approach: silently ignore or verify they match current.
+        # Simpler: Just don't update them (as done by implicit else block skipping them).
+        pass
+
     if admin_update.password:
         db_admin.password_hash = admin_update.password
         db_admin.must_change_password = False # Password changed, clear flag
@@ -293,7 +332,7 @@ def update_admin(admin_id: str, admin_update: schemas.AdminUpdate, db: Session =
     db.refresh(db_admin)
     return db_admin
 
-@router.delete("/admins/{admin_id}", dependencies=[Depends(require_super_admin)])
+@router.delete("/admins/{admin_id}", dependencies=[Depends(PermissionChecker("Sub Admin Management", "delete"))])
 def delete_admin(admin_id: str, db: Session = Depends(get_db)):
     """Delete an admin"""
     db_admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
