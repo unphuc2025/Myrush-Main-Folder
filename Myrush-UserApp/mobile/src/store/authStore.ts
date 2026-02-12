@@ -10,6 +10,7 @@ export interface UserProfile {
   lastName?: string;
   fullName?: string;
   city?: string;
+  avatarUrl?: string | null;
 }
 
 interface LoginCredentials {
@@ -63,6 +64,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           firstName: user.first_name,
           lastName: user.last_name,
           city: user.city,
+          avatarUrl: user.avatar_url,
         },
         token: token,
         isAuthenticated: true,
@@ -86,6 +88,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           firstName: user.first_name,
           lastName: user.last_name,
           city: user.city,
+          avatarUrl: user.avatar_url,
         },
         token: await apiClient.getToken() || '',
         isAuthenticated: true,
@@ -223,6 +226,7 @@ export const useAuthStore = create<AuthState>((set) => ({
               firstName: user.first_name,
               lastName: user.last_name,
               city: user.city,
+              avatarUrl: user.avatar_url,
             },
             token: await apiClient.getToken() || '',
             isAuthenticated: true,

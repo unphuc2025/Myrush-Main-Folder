@@ -4,6 +4,7 @@ from typing import List
 import models
 import schemas
 from database import get_db
+from dependencies import PermissionChecker
 import uuid
 from datetime import datetime
 
@@ -12,7 +13,7 @@ router = APIRouter(
     tags=["reviews"]
 )
 
-@router.get("", response_model=List[schemas.Review])
+@router.get("", response_model=List[schemas.Review], dependencies=[Depends(PermissionChecker("Manage Review And Ratings", "view"))])
 def get_all_reviews(db: Session = Depends(get_db)):
     # Use joinedload to fetch related data in a single query
     from sqlalchemy.orm import joinedload
@@ -23,7 +24,7 @@ def get_all_reviews(db: Session = Depends(get_db)):
     return reviews
 
 
-@router.put("/{review_id}/status")
+@router.put("/{review_id}/status", dependencies=[Depends(PermissionChecker("Manage Review And Ratings", "edit"))])
 def update_review_status(review_id: str, is_active: bool, db: Session = Depends(get_db)):
     review = db.query(models.Review).filter(models.Review.id == review_id).first()
     if not review:

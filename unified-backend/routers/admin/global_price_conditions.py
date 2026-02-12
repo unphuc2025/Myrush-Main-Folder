@@ -5,6 +5,7 @@ from typing import List, Optional
 from decimal import Decimal
 import models, schemas
 from database import get_db
+from dependencies import PermissionChecker
 import json
 
 router = APIRouter(
@@ -12,8 +13,8 @@ router = APIRouter(
     tags=["global-price-conditions"]
 )
 
-@router.get("", response_model=List[dict])
-@router.get("/", response_model=List[dict])
+@router.get("", response_model=List[dict], dependencies=[Depends(PermissionChecker("Settings", "view"))])
+@router.get("/", response_model=List[dict], dependencies=[Depends(PermissionChecker("Settings", "view"))])
 def get_all_global_conditions(db: Session = Depends(get_db)):
     """Get all global price conditions"""
     conditions = db.query(models.GlobalPriceCondition).filter(
@@ -31,8 +32,8 @@ def get_all_global_conditions(db: Session = Depends(get_db)):
         "is_active": c.is_active
     } for c in conditions]
 
-@router.post("", response_model=dict)
-@router.post("/", response_model=dict)
+@router.post("", response_model=dict, dependencies=[Depends(PermissionChecker("Settings", "add"))])
+@router.post("/", response_model=dict, dependencies=[Depends(PermissionChecker("Settings", "add"))])
 async def create_global_condition(
     days: Optional[str] = Form(None),  # JSON array string for recurring
     dates: Optional[str] = Form(None),  # JSON array string for date-specific

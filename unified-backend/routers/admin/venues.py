@@ -15,8 +15,9 @@ router = APIRouter(
 )
 
 # Create uploads directory if it doesn't exist
-UPLOAD_DIR = Path("uploads/venues")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+# (Local upload logic removed in favor of S3)
+# UPLOAD_DIR = Path("uploads/venues")
+# UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 @router.get("")
 @router.get("/")

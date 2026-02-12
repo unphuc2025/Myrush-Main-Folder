@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import models, schemas
 from database import get_db
-from dependencies import get_admin_branch_filter
+from dependencies import get_admin_branch_filter, PermissionChecker
 import uuid
 from datetime import datetime, date
 from decimal import Decimal
@@ -17,6 +17,7 @@ router = APIRouter(
 def create_booking(
     booking: schemas.BookingCreate, 
     db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker("Manage Bookings", "add")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Create a new user booking with optional coupon"""
@@ -163,6 +164,7 @@ def get_all_bookings(
     status: Optional[str] = None,
     payment_status: Optional[str] = None,
     db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker(["Manage Bookings", "Reports and analytics", "Transactions And Earnings"], "view")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Get all user bookings from 'booking' table with optional filters and related court/user data"""
@@ -312,7 +314,7 @@ def get_all_bookings(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
-@router.get("/{booking_id}", response_model=schemas.AdminBooking)
+@router.get("/{booking_id}", response_model=schemas.AdminBooking, dependencies=[Depends(PermissionChecker("Manage Bookings", "view"))])
 def get_booking(booking_id: str, db: Session = Depends(get_db)):
     """Get a specific user booking by ID from 'booking' table with court/user data"""
     # Base query manual hydration
@@ -406,6 +408,7 @@ def update_booking(
     booking_id: str, 
     booking_update: schemas.BookingCreate, 
     db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker(["Manage Bookings", "Transactions And Earnings"], "edit")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Update an existing booking"""
@@ -498,7 +501,7 @@ def update_booking(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update booking: {str(e)}")
 
-@router.patch("/{booking_id}/status")
+@router.patch("/{booking_id}/status", dependencies=[Depends(PermissionChecker(["Manage Bookings", "Transactions And Earnings"], "edit"))])
 def update_booking_status(booking_id: str, request: dict, db: Session = Depends(get_db)):
     """Update user booking status in 'booking' table"""
     db_booking = db.query(models.Booking).filter(models.Booking.id == booking_id).first()
@@ -514,7 +517,7 @@ def update_booking_status(booking_id: str, request: dict, db: Session = Depends(
     db.refresh(db_booking)
     return {"message": f"Booking status updated to {status}"}
 
-@router.patch("/{booking_id}/payment-status")
+@router.patch("/{booking_id}/payment-status", dependencies=[Depends(PermissionChecker(["Manage Bookings", "Transactions And Earnings"], "edit"))])
 def update_payment_status(booking_id: str, payment_status: str, db: Session = Depends(get_db)):
     """Update user booking payment status in 'booking' table - for admin validation"""
     db_booking = db.query(models.Booking).filter(models.Booking.id == booking_id).first()
@@ -530,6 +533,7 @@ def update_payment_status(booking_id: str, payment_status: str, db: Session = De
 def delete_booking(
     booking_id: str, 
     db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker("Manage Bookings", "delete")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Delete a booking"""

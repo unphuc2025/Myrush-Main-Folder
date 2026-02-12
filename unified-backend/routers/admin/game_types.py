@@ -5,25 +5,22 @@ import models, schemas
 from database import get_db
 import uuid
 import os
-import shutil
 from pathlib import Path
+from utils import s3_utils
 
 router = APIRouter(
     prefix="/game-types",
     tags=["game-types"]
 )
+from dependencies import PermissionChecker
 
-# Create uploads directory if it doesn't exist
-UPLOAD_DIR = Path("uploads/game_types")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-@router.get("", response_model=List[schemas.GameType])
-@router.get("/", response_model=List[schemas.GameType])
+@router.get("", response_model=List[schemas.GameType], dependencies=[Depends(PermissionChecker("Manage Sports", "view"))])
+@router.get("/", response_model=List[schemas.GameType], dependencies=[Depends(PermissionChecker("Manage Sports", "view"))])
 def get_all_game_types(db: Session = Depends(get_db)):
     """Get all game types"""
     return db.query(models.GameType).all()
 
-@router.get("/{game_type_id}", response_model=schemas.GameType)
+@router.get("/{game_type_id}", response_model=schemas.GameType, dependencies=[Depends(PermissionChecker("Manage Sports", "view"))])
 def get_game_type(game_type_id: str, db: Session = Depends(get_db)):
     """Get a specific game type by ID"""
     game_type = db.query(models.GameType).filter(models.GameType.id == game_type_id).first()
@@ -31,8 +28,8 @@ def get_game_type(game_type_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Game type not found")
     return game_type
 
-@router.post("", response_model=schemas.GameType)
-@router.post("/", response_model=schemas.GameType)
+@router.post("", response_model=schemas.GameType, dependencies=[Depends(PermissionChecker("Manage Sports", "add"))])
+@router.post("/", response_model=schemas.GameType, dependencies=[Depends(PermissionChecker("Manage Sports", "add"))])
 async def create_game_type(
     name: str = Form(...),
     short_code: str = Form(...),
@@ -49,16 +46,11 @@ async def create_game_type(
     # Handle file upload
     icon_url = None
     if icon:
-        # Generate unique filename
-        file_extension = os.path.splitext(icon.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
-        file_path = UPLOAD_DIR / unique_filename
-
-        # Save file
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(icon.file, buffer)
-
-        icon_url = f"/uploads/game_types/{unique_filename}"
+        try:
+            icon_url = await s3_utils.upload_file_to_s3(icon, folder="game_types")
+        except Exception as e:
+            print(f"Error uploading icon: {e}")
+            pass
 
     db_game_type = models.GameType(
         name=name,
@@ -72,7 +64,7 @@ async def create_game_type(
     db.refresh(db_game_type)
     return db_game_type
 
-@router.put("/{game_type_id}", response_model=schemas.GameType)
+@router.put("/{game_type_id}", response_model=schemas.GameType, dependencies=[Depends(PermissionChecker("Manage Sports", "edit"))])
 async def update_game_type(
     game_type_id: str,
     name: str = Form(...),
@@ -89,22 +81,11 @@ async def update_game_type(
 
     # Handle file upload
     if icon:
-        # Delete old file if it exists
-        if db_game_type.icon_url:
-            old_file_path = Path(db_game_type.icon_url.lstrip('/'))
-            if old_file_path.exists():
-                old_file_path.unlink()
-
-        # Generate unique filename
-        file_extension = os.path.splitext(icon.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
-        file_path = UPLOAD_DIR / unique_filename
-
-        # Save file
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(icon.file, buffer)
-
-        db_game_type.icon_url = f"/uploads/game_types/{unique_filename}"
+        try:
+            db_game_type.icon_url = await s3_utils.upload_file_to_s3(icon, folder="game_types")
+        except Exception as e:
+            print(f"Error uploading icon: {e}")
+            pass
 
     # Update other fields
     db_game_type.name = name
@@ -116,7 +97,7 @@ async def update_game_type(
     db.refresh(db_game_type)
     return db_game_type
 
-@router.patch("/{game_type_id}/toggle", response_model=schemas.GameType)
+@router.patch("/{game_type_id}/toggle", response_model=schemas.GameType, dependencies=[Depends(PermissionChecker("Manage Sports", "edit"))])
 def toggle_game_type_status(game_type_id: str, db: Session = Depends(get_db)):
     """Toggle game type active status"""
     db_game_type = db.query(models.GameType).filter(models.GameType.id == game_type_id).first()

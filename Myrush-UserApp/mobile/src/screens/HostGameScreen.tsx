@@ -43,6 +43,11 @@ const HostGameScreen = () => {
             return;
         }
 
+        if (isNaN(Number(pricePerPerson)) || Number(pricePerPerson) < 0) {
+            Alert.alert('Invalid Price', 'Please enter a valid price.');
+            return;
+        }
+
         setIsPublishing(true);
         // Simulate API call
         setTimeout(() => {

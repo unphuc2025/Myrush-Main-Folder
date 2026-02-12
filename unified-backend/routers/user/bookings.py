@@ -36,7 +36,7 @@ def create_booking(
                     'razorpay_signature': booking.razorpay_signature
                 })
                 print("[BOOKINGS API] ✅ Payment Signature Verified")
-                booking.payment_status = "success" # Mark as paid
+                booking.payment_status = "paid" # Mark as paid
                 
                 # Optional: Fetch order from Razorpay to verify amount match?
                 # For now, signature verification confirms payment for THAT order ID.

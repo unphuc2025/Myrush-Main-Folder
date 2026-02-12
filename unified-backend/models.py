@@ -123,6 +123,13 @@ class Branch(Base):
     landmark = Column(String(255))
     search_location = Column(Text)
     ground_overview = Column(Text)
+    terms_condition = Column(Text)
+    rule = Column(Text)
+    google_map_url = Column(Text)
+    price = Column(DECIMAL(10, 2), nullable=True) # Optional base price if needed, though Court has price
+    max_players = Column(Integer)
+    phone_number = Column(String(50))
+    email = Column(String(255))
     ground_type = Column(String(50), default='single')
     images = Column(ARRAY(Text))
     videos = Column(ARRAY(Text))

@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient, API_BASE_URL } from './apiClient';
 
 export interface SaveProfilePayload {
   phoneNumber: string;
@@ -48,6 +48,7 @@ export interface ProfileData {
   skill_level?: string;
   sports: string[];
   playing_style: string;
+  avatar_url?: string; // Added avatar_url
   created_at: string;
   updated_at?: string;
 }
@@ -160,6 +161,51 @@ export const profileApi = {
       return {
         success: false,
         data: [],
+        error: error.message,
+      };
+    }
+  },
+
+  uploadAvatar: async (formData: FormData): Promise<SaveProfileResponse> => {
+    try {
+      const token = await apiClient.getToken();
+      // Use the singleton instance's base URL (cleaner than requiring)
+      const { API_BASE_URL } = require('./apiClient');
+      const baseUrl = API_BASE_URL.replace(/\/$/, '');
+      const url = `${baseUrl}/profile/upload-avatar`;
+
+      console.log(`[PROFILE API] Uploading avatar to ${url} using fetch`);
+
+      const headers: any = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      // CRITICAL: Do NOT set Content-Type for FormData. Fetch will set it with the boundary.
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: formData,
+      });
+
+      console.log('[PROFILE API] Response status:', response.status);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || 'Failed to upload avatar');
+      }
+
+      return {
+        success: true,
+        message: 'Avatar uploaded successfully',
+        data,
+      };
+    } catch (error: any) {
+      console.error('[PROFILE API] Upload failed:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to upload avatar',
         error: error.message,
       };
     }

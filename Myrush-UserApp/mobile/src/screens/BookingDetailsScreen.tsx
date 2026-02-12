@@ -269,79 +269,117 @@ const BookingDetailsScreen: React.FC = () => {
 
             const { id: order_id, key_id, amount, currency } = orderResult.data;
 
+
             // 2. Open Razorpay Checkout
             const options = {
                 description: `Booking for ${venue}`,
-                image: 'https://your-logo-url.png', // Optional
+                image: 'https://myrush.app/logo.png',
                 currency: currency,
                 key: key_id,
                 amount: amount,
                 name: 'MyRush',
                 order_id: order_id,
                 prefill: {
-                    email: user?.email || 'user@example.com',
-                    contact: user?.phoneNumber || '',
-                    name: user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'MyRush User'
+                    email: user?.email || 'guest@myrush.app',
+                    contact: (user as any)?.phone_number || (user as any)?.phoneNumber || '',
+                    name: user ? `${user.firstName} ${user.lastName}` : 'Guest User'
                 },
-                theme: { color: colors.primary }
+                theme: { color: colors.primary || '#CCFF00' }
             };
 
-            RazorpayCheckout.open(options).then(async (data: any) => {
-                // handle success
-                console.log('Razorpay Success:', data);
-
-                // 3. Create Booking with Payment Details
-                const result = await bookingsApi.createBooking({
-                    userId: user?.id || 'guest',
-                    courtId: route.params?.venueObject?.id || 'unknown_court',
-                    bookingDate: bookingDate,
-                    startTime: timeSlot || selectedSlots?.[0]?.time || "07:00",
-                    durationMinutes: duration,
-                    numberOfPlayers: numPlayers,
-                    pricePerHour: route.params?.slotPrice || 200,
-                    teamName: teamName,
-                    specialRequests: specialRequests,
-
-                    // Detailed data
-                    timeSlots: selectedSlots,
-                    originalAmount: finalTotal + (couponResult?.discount_amount || 0),
-                    discountAmount: couponResult?.discount_amount || 0,
-                    couponCode: couponResult?.valid ? couponCode : undefined,
-                    totalAmount: finalTotal,
-
-                    // Razorpay Details
-                    razorpay_payment_id: data.razorpay_payment_id,
-                    razorpay_order_id: data.razorpay_order_id,
-                    razorpay_signature: data.razorpay_signature,
-                    payment_status: 'success'
+            // Check if Razorpay native module is available
+            if (RazorpayCheckout) {
+                RazorpayCheckout.open(options).then(async (data: any) => {
+                    // handle success
+                    console.log('Razorpay Success:', data);
+                    await processSuccessfulBooking(data);
+                }).catch((error: any) => {
+                    // handle failure
+                    console.log('Razorpay Error:', error);
+                    Alert.alert('Payment Cancelled', error.description || 'Payment was cancelled or failed.');
+                    setIsBookingLoading(false);
                 });
-
-                if (result.success && result.data) {
-                    // Success! Navigate to Success Screen
-                    navigation.navigate('BookingSuccess', {
-                        venue: venue || "Central Arena",
-                        date: `${month} ${date}`,
-                        timeSlot: timeSlot || "7:00 AM",
-                        totalAmount: finalTotal,
-                        bookingId: result.data.id || result.data.booking_id || '#839201',
-                        selectedSlots,
-                        paymentId: data.razorpay_payment_id
-                    });
-                } else {
-                    Alert.alert('Booking Failed', result.error || 'Payment successful but booking creation failed. Please contact support.');
-                }
-            }).catch((error: any) => {
-                // handle failure
-                console.log('Razorpay Error:', error);
-                // Razorpay returns error object with code and description
-                Alert.alert('Payment Cancelled', error.description || 'Payment was cancelled or failed.');
-            }).finally(() => {
-                setIsBookingLoading(false);
-            });
+            } else {
+                // Expo Go / Dev Fallback
+                console.log('Razorpay Native Module not found (Expo Go). Simulating success.');
+                Alert.alert(
+                    'Dev Mode (Expo Go)',
+                    'Razorpay native module is not available in Expo Go. Simulating a successful payment for testing?',
+                    [
+                        { text: 'Cancel', onPress: () => setIsBookingLoading(false), style: 'cancel' },
+                        {
+                            text: 'Simulate Success',
+                            onPress: async () => {
+                                await processSuccessfulBooking({
+                                    razorpay_payment_id: 'pay_mock_' + Date.now(),
+                                    razorpay_order_id: 'order_mock_' + Date.now(),
+                                    razorpay_signature: 'sig_mock_' + Date.now()
+                                });
+                            }
+                        }
+                    ]
+                );
+            }
 
         } catch (error: any) {
             console.error('Booking Flow Error:', error);
             Alert.alert('Error', error.message || 'An unexpected error occurred.');
+            setIsBookingLoading(false);
+        }
+    };
+
+    const processSuccessfulBooking = async (response: any) => {
+        try {
+            // 3. Create Booking with Payment Details
+            const formattedMonth = (route.params?.monthIndex !== undefined ? route.params.monthIndex + 1 : 1).toString().padStart(2, '0');
+            const formattedDay = (date || 1).toString().padStart(2, '0');
+            const bookingDate = `${route.params?.year || 2024}-${formattedMonth}-${formattedDay}`;
+            const duration = (selectedSlots?.length || 1) * 60;
+
+            console.log('[BOOKING DETAILS] Processing Razorpay Response:', response);
+
+            const result = await bookingsApi.createBooking({
+                userId: user?.id || 'guest',
+                courtId: route.params?.venueObject?.id || 'unknown_court',
+                bookingDate: bookingDate,
+                startTime: timeSlot || selectedSlots?.[0]?.time || "07:00",
+                durationMinutes: duration,
+                numberOfPlayers: numPlayers,
+                pricePerHour: route.params?.slotPrice || 200,
+                teamName: teamName,
+                specialRequests: specialRequests,
+
+                // Detailed data
+                timeSlots: selectedSlots,
+                originalAmount: finalTotal + (couponResult?.discount_amount || 0),
+                discountAmount: couponResult?.discount_amount || 0,
+                couponCode: couponResult?.valid ? couponCode : undefined,
+                totalAmount: finalTotal,
+
+                // Razorpay Details - USE REAL DATA
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature
+            });
+
+            if (result.success && result.data) {
+                // Success! Navigate to Success Screen
+                navigation.navigate('BookingSuccess', {
+                    venue: venue || "Central Arena",
+                    date: `${month} ${date}`,
+                    timeSlot: timeSlot || "7:00 AM",
+                    totalAmount: finalTotal,
+                    bookingId: result.data.id || result.data.booking_id || '#839201',
+                    selectedSlots,
+                    paymentId: response.razorpay_payment_id
+                });
+            } else {
+                Alert.alert('Booking Failed', result.error || 'Payment successful but booking creation failed. Please contact support.');
+            }
+        } catch (error) {
+            console.error('Process Booking Error:', error);
+            Alert.alert('Error', 'Failed to process booking after payment.');
+        } finally {
             setIsBookingLoading(false);
         }
     };
