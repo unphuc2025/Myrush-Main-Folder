@@ -15,15 +15,10 @@ export const Chatbot: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
-            text: 'Hello! 👋 I am the MyRush AI Assistant. I can help you book a court, check availability, or answer your questions. \n\nTry saying "I want to play badminton in Hyderabad"!',
+            text: 'Hi! I\'m MyRush AI. I can help you find venues, check pricing, or answer any questions about sports facilities. How can I help you today?',
             sender: 'bot',
             timestamp: new Date(),
-            type: 'options',
-            options: [
-                { label: 'Book a Court', value: 'book_court', action: 'start_booking' },
-                { label: 'View My Bookings', value: 'view_bookings', action: 'view_bookings' },
-                // { label: 'Contact Support', value: 'support', action: 'contact_support' }
-            ]
+            type: 'text' // Changed from options to text for open conversation
         }
     ]);
     const [inputText, setInputText] = useState('');
@@ -41,7 +36,7 @@ export const Chatbot: React.FC = () => {
 
     const addBotMessage = (text: string, type: Message['type'] = 'text', options?: QuickReply[], data?: any) => {
         const newMessage: Message = {
-            id: Date.now().toString(),
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             text,
             sender: 'bot',
             timestamp: new Date(),
@@ -54,7 +49,7 @@ export const Chatbot: React.FC = () => {
 
     const addUserMessage = (text: string) => {
         const newMessage: Message = {
-            id: Date.now().toString(),
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             text,
             sender: 'user',
             timestamp: new Date()
@@ -281,7 +276,8 @@ ${venue.overview || ''}
             ]);
         }
 
-        // Handle suggestions
+        // Video Demo: Handle suggestions (Disabled for conversational mode)
+        /*
         if (aiResponse.suggestions && aiResponse.suggestions.length > 0) {
             const suggestionOptions = aiResponse.suggestions.map((suggestion: string) => {
                 // Map suggestion text to actions
@@ -304,6 +300,7 @@ ${venue.overview || ''}
 
             addBotMessage('', 'options', suggestionOptions);
         }
+        */
 
         // Handle traditional booking intent (backward compatibility)
         if (aiResponse.intent === 'book_court' && aiResponse.action?.type === 'book') {
