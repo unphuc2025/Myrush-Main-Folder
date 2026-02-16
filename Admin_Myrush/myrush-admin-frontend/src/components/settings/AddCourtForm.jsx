@@ -382,15 +382,26 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
                 <button type="button" onClick={() => removeUnavailabilitySlot(slot.id)} className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-full opacity-0 group-hover:opacity-100 transition-all">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                  <input type="date" value={slot.date} onChange={(e) => updateUnavailabilitySlot(slot.id, 'date', e.target.value)} className="w-full px-2 py-1.5 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none" />
-                  <input type="text" placeholder="Reason (e.g. Maintenance)" value={slot.reason} onChange={(e) => updateUnavailabilitySlot(slot.id, 'reason', e.target.value)} className="w-full px-2 py-1.5 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none" />
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-3 items-center">
+                  <div className="sm:col-span-4">
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">Date</label>
+                    <input type="date" value={slot.date} onChange={(e) => updateUnavailabilitySlot(slot.id, 'date', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+                  </div>
+                  <div className="sm:col-span-8">
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">Reason</label>
+                    <input type="text" placeholder="Reason (e.g. Maintenance)" value={slot.reason} onChange={(e) => updateUnavailabilitySlot(slot.id, 'reason', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-red-700">Time:</span>
-                  <input type="time" value={slot.from} onChange={(e) => updateUnavailabilitySlot(slot.id, 'from', e.target.value)} className="px-2 py-1 bg-white border border-red-200 rounded text-sm focus:border-red-500 outline-none" />
-                  <span className="text-xs text-red-400">-</span>
-                  <input type="time" value={slot.to} onChange={(e) => updateUnavailabilitySlot(slot.id, 'to', e.target.value)} className="px-2 py-1 bg-white border border-red-200 rounded text-sm focus:border-red-500 outline-none" />
+                <div className="flex items-end gap-3">
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">Start Time</label>
+                    <input type="time" value={slot.from} onChange={(e) => updateUnavailabilitySlot(slot.id, 'from', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+                  </div>
+                  <span className="text-slate-300 font-medium pb-2">-</span>
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">End Time</label>
+                    <input type="time" value={slot.to} onChange={(e) => updateUnavailabilitySlot(slot.id, 'to', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+                  </div>
                 </div>
               </div>
             ))}

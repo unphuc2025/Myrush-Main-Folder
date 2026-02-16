@@ -677,7 +677,7 @@ function VenuesSettings() {
             </div>
 
             {/* City & Area Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 items-start">
               <div>
                 <div className="flex justify-between items-center mb-2 ml-1">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">City</label>
