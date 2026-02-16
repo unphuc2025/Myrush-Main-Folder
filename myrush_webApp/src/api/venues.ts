@@ -13,6 +13,7 @@ export interface Venue {
     updated_at?: string;
     branch_name?: string;
     city_name?: string;
+    google_map_url?: string;
     amenities?: Array<{
         id: string;
         name: string;
@@ -21,6 +22,7 @@ export interface Venue {
         icon_url?: string;
     }>;
     terms_and_conditions?: string;
+    games_played?: number;
 }
 
 export interface VenuesFilter {
@@ -48,13 +50,13 @@ export const venuesApi = {
             }
 
             const queryString = new URLSearchParams(params).toString();
-            // Endpoint matches unified-backend logic (routes/user/courts.py)
-            const endpoint = `/courts/${queryString ? `?${queryString}` : ''}`;
+            // Endpoint matches unified-backend logic (routes/user/venues.py)
+            const endpoint = `/venues/${queryString ? `?${queryString}` : ''}`;
 
             const response = await apiClient.get<Venue[]>(endpoint);
             return {
                 success: true,
-                data: response.data,
+                data: response.data, // axios wraps response in .data, backend returns array directly
             };
         } catch (error: any) {
             console.error('[COURTS API] Exception:', error);
@@ -127,6 +129,42 @@ export const venuesApi = {
             };
         } catch (error: any) {
             console.error('[COURTS API] Error fetching slots:', error);
+            return {
+                success: false,
+                data: null,
+                error: error.message,
+            };
+        }
+    },
+
+    /**
+     * Get aggregated slots for a venue (branch)
+     */
+    getVenueSlots: async (venueId: string, date: string, gameType?: string) => {
+        try {
+            let endpoint = `/venues/${venueId}/slots?date=${date}`;
+            if (gameType) {
+                endpoint += `&game_type=${encodeURIComponent(gameType)}`;
+            }
+
+            const response = await apiClient.get<{
+                venue_id: string;
+                date: string;
+                slots: Array<{
+                    time: string;
+                    display_time: string;
+                    price: number;
+                    available: boolean;
+                    court_id: string;
+                }>;
+            }>(endpoint);
+
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('[VENUES API] Error fetching slots:', error);
             return {
                 success: false,
                 data: null,

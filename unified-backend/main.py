@@ -190,6 +190,9 @@ from routers.user import (
     payments
 )
 
+# Import chatbot router
+from routers import chatbot
+
 # Include user routers with /api/user prefix
 app.include_router(user_auth.router, prefix="/api/user", tags=["User Auth"])
 app.include_router(profile.router, prefix="/api/user", tags=["User Profile"])
@@ -201,6 +204,9 @@ app.include_router(user_reviews.router, prefix="/api/user", tags=["User Reviews"
 app.include_router(notifications.router, prefix="/api/user", tags=["User Notifications"])
 app.include_router(courts_ratings.router, prefix="/api/user", tags=["User Court Ratings"])
 app.include_router(payments.router, prefix="/api/user", tags=["Payments"])
+
+# Include chatbot knowledge API
+app.include_router(chatbot.router, tags=["Chatbot Knowledge"])
 
 # ============================================================================
 # PLAYO INTEGRATION ROUTER

@@ -211,9 +211,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   checkAuth: async (): Promise<void> => {
+    console.log('[AUTH] Starting checkAuth...');
     set({ isLoading: true });
     try {
-      const isAuth = await authApi.isAuthenticated();
+      const isAuth = await Promise.race([
+        authApi.isAuthenticated(),
+        new Promise<boolean>((resolve) => setTimeout(() => {
+          console.log('[AUTH] checkAuth timeout - assuming not authenticated');
+          resolve(false);
+        }, 3000)) // 3 second timeout
+      ]);
+
+      console.log('[AUTH] isAuthenticated result:', isAuth);
 
       if (isAuth) {
         try {
@@ -232,8 +241,10 @@ export const useAuthStore = create<AuthState>((set) => ({
             isAuthenticated: true,
             isLoading: false,
           });
+          console.log('[AUTH] checkAuth completed - user authenticated');
           return;
         } catch (error) {
+          console.log('[AUTH] Profile fetch failed - logging out');
           // Token might be expired, clear auth state
           await authApi.logout();
           set({
@@ -244,9 +255,11 @@ export const useAuthStore = create<AuthState>((set) => ({
           });
         }
       } else {
+        console.log('[AUTH] checkAuth completed - not authenticated');
         set({ isLoading: false, isAuthenticated: false });
       }
     } catch (error) {
+      console.error('[AUTH] checkAuth error:', error);
       set({ isLoading: false, isAuthenticated: false });
     }
   },

@@ -25,9 +25,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
-import RazorpayCheckout from 'react-native-razorpay';
 import { couponsApi, bookingsApi, paymentsApi } from '../api/venues';
 import { useAuthStore } from '../store/authStore';
+
+// Conditional import for Razorpay - Only works in development builds, not Expo Go
+let RazorpayCheckout: any = null;
+try {
+    RazorpayCheckout = require('react-native-razorpay').default;
+} catch (error) {
+    console.log('[Razorpay] Native module not available (Expo Go) - using fallback');
+}
+
 
 type BookingDetailsRouteProp = RouteProp<RootStackParamList, 'BookingDetails'>;
 type Navigation = NativeStackNavigationProp<RootStackParamList>;

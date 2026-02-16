@@ -11,19 +11,19 @@ export const Pickleball: React.FC = () => {
         {
             name: 'Rush Arena, Cooke Town',
             image: '/venues/cooke-town.webp', // Placeholder, using what I can or generic
-            description: 'Located in the heart of Cooke Town, our facility features 3 premium synthetic courts with pro-level lighting and amenities.',
+            description: "Located at the heart of East Bengaluru, our facility at Rush Arena Cooke Town is excited to introduce four state-of-the-art pickleball courts, launching in September '24. Designed with top-quality surfaces and professional lighting, our courts provide the perfect setting for both casual play and competitive matches. Whether you're a seasoned player or new to the sport, our dedicated pickleball area offers a premier experience for all enthusiasts. Join us from 6 AM to 11 PM and enjoy the thrill of the game in a welcoming and vibrant environment.",
             link: '/venues/cooke-town'
         },
         {
-            name: 'Rush Arena, Gachibowli',
+            name: 'Rush Arena, Divyasree Omega, Kondapur, Hyderabad',
             image: '/venues/gachibowli.webp', // Placeholder
-            description: 'Experience the best of Pickleball at our state-of-the-art facility in Gachibowli. 4 dedicated courts waiting for you.',
+            description: "Located in the bustling area of Kondapur, Rush Arena Divyasree Omega is proud to offer top-tier pickleball courts designed for enthusiasts of all levels. Our facility boasts high-quality surfaces and professional lighting, ensuring an exceptional playing experience whether you're here for a casual game or competitive play. With a welcoming atmosphere and modern amenities, Rush Arena Divyasree Omega is the perfect destination for pickleball enthusiasts in Hyderabad. Join us to experience the excitement and camaraderie of this fast-growing sport in a state-of-the-art environment.",
             link: '/venues/gachibowli'
         },
         {
-            name: 'Rush Arena, Whitefield',
+            name: 'Rush Arena Tambaram, Chennai',
             image: '/venues/whitefield.webp', // Placeholder
-            description: 'Premium courts in Whitefield with ample parking, changing rooms, and a cafe for your post-match relaxation.',
+            description: "Located in the lively neighborhood of Tambaram, Chennai, Rush Arena offers a premier pickleball experience. Our facility features state-of-the-art pickleball courts with top-quality surfaces and professional lighting, providing an ideal setting for players of all skill levels. Whether you're looking to enjoy a casual game or engage in competitive play, our courts are designed to deliver an exceptional experience. Rush Arena Tambaram is a welcoming and vibrant space, perfect for pickleball enthusiasts in Chennai. Join us and be part of the exciting pickleball community in the city.",
             link: '/venues/whitefield'
         }
     ];
@@ -92,33 +92,52 @@ export const Pickleball: React.FC = () => {
                         {locations.map((loc, idx) => (
                             <motion.div
                                 key={idx}
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: idx * 0.1 }}
-                                className="group relative overflow-hidden bg-white rounded-3xl shadow-premium hover:shadow-premium-hover transition-all duration-300 flex flex-col"
+                                className="group relative flex flex-col bg-white rounded-[2rem] shadow-premium hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100"
                             >
-                                <div className="h-64 overflow-hidden relative">
-                                    {/* Fallback image if local not found, or use Unsplash */}
+                                <div className="h-72 overflow-hidden relative">
+                                    <div className="absolute inset-0 bg-gray-200 animate-pulse" />
                                     <img
-                                        src="https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=1000"
+                                        src={loc.image}
+                                        onError={(e) => {
+                                            // Fallback if image fails to load
+                                            e.currentTarget.src = "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070"
+                                        }}
                                         alt={loc.name}
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
+
+                                    <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full">
+                                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold text-lg">
+                                            ↗
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="p-8 flex-1 flex flex-col">
-                                    <h3 className="text-xl font-black text-black uppercase mb-4 font-montserrat">{loc.name}</h3>
-                                    <p className="text-gray-600 mb-8 flex-1 leading-relaxed">
-                                        {loc.description}
-                                    </p>
-                                    <Button
-                                        variant="outline"
-                                        className="w-full border-black text-black hover:bg-black hover:text-white uppercase font-bold tracking-wider py-4"
-                                        onClick={() => navigate(loc.link)}
-                                    >
-                                        Book Now
-                                    </Button>
+
+                                <div className="p-8 flex flex-col flex-grow relative">
+                                    <div className="mb-6">
+                                        <h3 className="text-2xl font-black text-black uppercase font-montserrat leading-tight mb-4 group-hover:text-primary transition-colors duration-300">
+                                            {loc.name}
+                                        </h3>
+                                        <div className="w-12 h-1 bg-gray-100 rounded-full mb-6 group-hover:bg-primary group-hover:w-20 transition-all duration-300" />
+                                        <p className="text-gray-600 leading-relaxed text-sm md:text-base font-medium">
+                                            {loc.description}
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-auto pt-6 border-t border-gray-100">
+                                        <Button
+                                            variant="primary"
+                                            className="w-full h-14 bg-black text-white hover:bg-primary hover:text-black font-bold uppercase tracking-widest text-sm rounded-xl shadow-lg hover:shadow-primary/50 transition-all duration-300 transform group-hover:-translate-y-1"
+                                            onClick={() => navigate(loc.link)}
+                                        >
+                                            Book This Venue
+                                        </Button>
+                                    </div>
                                 </div>
                             </motion.div>
                         ))}
@@ -127,7 +146,7 @@ export const Pickleball: React.FC = () => {
             </section>
 
             {/* FAQ Section */}
-            <section className="py-12 md:py-16 bg-primary relative overflow-hidden">
+            <section className="py-12 md:py-16 bg-primary/5 relative overflow-hidden">
                 {/* Wavy Background Pattern - simplified with CSS/SVG or just color for now */}
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
 

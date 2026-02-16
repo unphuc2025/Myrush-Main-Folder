@@ -1,0 +1,12 @@
+allprojects {
+    // Redirect build output to a short path in %TEMP%
+    def tempRoot = new File("C:/Users/Z BOOK/AppData/Local/Temp/MyRushBuild")
+    def newBuildDir = new File(tempRoot, "${rootProject.name}/${project.name}")
+    buildDir = newBuildDir
+
+    // Proactively create directory required by autolinking logic
+    // We let the build task generate the file, assuming it failed before due to missing dir.
+    if (project.name == "MyRush" || project.name == "app") {
+        new File(newBuildDir, "generated/autolinking").mkdirs()
+    }
+}

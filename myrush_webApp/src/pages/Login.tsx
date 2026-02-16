@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../api/client';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
-import { motion } from 'framer-motion';
 
 export const Login: React.FC = () => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation(); // Added location hook
+    const location = useLocation();
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            const from = (location.state as any)?.from?.pathname || '/';
+            navigate(from, { replace: true });
+        }
+    }, [isAuthenticated, navigate, location]);
 
     const handleSendOTP = async () => {
         if (phoneNumber.length < 10) {
@@ -33,119 +41,68 @@ export const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-black relative overflow-hidden">
-            {/* Animated Background */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 1 }}
-                className="absolute inset-0"
-            >
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2035')] bg-cover bg-center opacity-20" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-blue-900/60 to-transparent" />
-            </motion.div>
+        <div className="fixed inset-0 z-[200] w-screen h-screen bg-black flex items-center justify-center p-4 overflow-hidden top-0 left-0 m-0">
+            <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/90 to-black z-10" />
+                <img
+                    src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2035"
+                    alt="Background"
+                    className="w-full h-full object-cover opacity-40"
+                />
+            </div>
 
-            {/* Floating Elements */}
-            <motion.div
-                animate={{
-                    y: [0, -20, 0],
-                    rotate: [0, 5, 0]
-                }}
-                transition={{
-                    duration: 6,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                }}
-                className="absolute top-20 right-20 w-32 h-32 bg-primary/20 rounded-full blur-xl"
-            />
-            <motion.div
-                animate={{
-                    y: [0, 20, 0],
-                    rotate: [0, -5, 0]
-                }}
-                transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: 1
-                }}
-                className="absolute bottom-32 left-16 w-24 h-24 bg-emerald-400/20 rounded-full blur-xl"
-            />
+            <div className="relative z-10 w-full max-w-md">
+                <Card variant="glass" className="border-white/10 shadow-2xl bg-black/40 backdrop-blur-xl">
+                    {/* Logo/Brand */}
+                    <div className="text-center mb-8">
+                        <div className="inline-block px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
+                            <span className="text-xl font-black text-primary tracking-widest">SPORTS</span>
+                        </div>
+                        <h1 className="text-3xl md:text-4xl font-black text-white mb-2 font-montserrat">
+                            Welcome Back
+                        </h1>
+                        <p className="text-white/60 text-sm leading-relaxed">
+                            From football to badminton and tennis, get live games, training, and bookings in one place.
+                        </p>
+                    </div>
 
-            <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-                <motion.div
-                    initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="w-full max-w-md"
-                >
-                    <Card variant="glass" className="border-white/20 shadow-2xl">
-                        {/* Logo/Brand */}
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                            className="text-center mb-8"
+                    {/* Input Section */}
+                    <div className="space-y-6">
+                        <Input
+                            type="tel"
+                            placeholder="Enter mobile number"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            maxLength={10}
+                            icon={<span className="text-lg">📞</span>}
+                            className="text-white placeholder-white/40 bg-white/5 border-white/10 focus:border-primary focus:ring-primary/10 transition-colors"
+                        />
+
+                        <Button
+                            onClick={handleSendOTP}
+                            disabled={isLoading}
+                            size="lg"
+                            className="w-full py-3 px-4 bg-primary text-black hover:bg-white hover:text-black border-0 font-bold uppercase tracking-wider"
+                            icon={isLoading ? undefined : <span className="text-lg">→</span>}
                         >
-                            <div className="inline-block px-6 py-3 rounded-full bg-primary/20 border border-primary/30 mb-4">
-                                <span className="text-2xl font-black text-primary tracking-widest">SPORTS</span>
-                            </div>
-                            <h1 className="text-3xl md:text-4xl font-black text-white mb-2 font-montserrat">
-                                Welcome Back
-                            </h1>
-                            <p className="text-white/70 text-sm leading-relaxed">
-                                From football to badminton and tennis, get live games, training, and bookings in one place.
-                            </p>
-                        </motion.div>
+                            {isLoading ? 'Sending OTP...' : 'Continue'}
+                        </Button>
+                    </div>
 
-                        {/* Input Section */}
-                        <motion.div
-                            initial={{ opacity: 0, x: -30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.4 }}
-                            className="space-y-6"
-                        >
-                            <Input
-                                type="tel"
-                                placeholder="Enter mobile number"
-                                value={phoneNumber}
-                                onChange={(e) => setPhoneNumber(e.target.value)}
-                                maxLength={10}
-                                icon={<span className="text-lg">📞</span>}
-                                className="text-white placeholder-white/50 bg-white/10 border-white/20 focus:border-primary focus:ring-primary/20"
-                            />
-
-                            <Button
-                                onClick={handleSendOTP}
-                                disabled={isLoading}
-                                size="lg"
-                                className="w-full py-2 px-3 bg-primary text-black hover:bg-white hover:text-black border-0 shadow-glow"
-                                icon={isLoading ? undefined : <span className="text-lg">→</span>}
-                            >
-                                {isLoading ? 'Sending OTP...' : 'Continue'}
-                            </Button>
-                        </motion.div>
-
-                        {/* Terms */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.6 }}
-                            className="mt-8 text-center"
-                        >
-                            <p className="text-xs text-white/50 leading-relaxed">
-                                By continuing, you agree to our{' '}
-                                <span className="text-primary hover:text-white transition-colors cursor-pointer font-semibold">
-                                    Terms of Service
-                                </span>{' '}
-                                &{' '}
-                                <span className="text-primary hover:text-white transition-colors cursor-pointer font-semibold">
-                                    Privacy Policy
-                                </span>
-                            </p>
-                        </motion.div>
-                    </Card>
-                </motion.div>
+                    {/* Terms */}
+                    <div className="mt-8 text-center">
+                        <p className="text-xs text-white/40 leading-relaxed">
+                            By continuing, you agree to our{' '}
+                            <span className="text-primary hover:text-white transition-colors cursor-pointer font-semibold underline underline-offset-2">
+                                Terms of Service
+                            </span>{' '}
+                            &{' '}
+                            <span className="text-primary hover:text-white transition-colors cursor-pointer font-semibold underline underline-offset-2">
+                                Privacy Policy
+                            </span>
+                        </p>
+                    </div>
+                </Card>
             </div>
         </div>
     );

@@ -286,8 +286,8 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
     ];
 
     const team = [
-        { name: 'Nikhit Fernandes', role: 'Director of Football', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/a0d027b7-c26e-4b2b-8b82-1ca19c15d34a/9.png' },
-        { name: 'Harish', role: 'Operations Manager & Coach', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/749a3bdc-8950-46a4-b517-b9749f837d46/Coach+Pics.png' },
+        { name: 'Nikhit Fernandes', role: 'Director of Football', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/749a3bdc-8950-46a4-b517-b9749f837d46/Coach+Pics.png' },
+        { name: 'Harish', role: 'Operations Manager & Coach', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/a0d027b7-c26e-4b2b-8b82-1ca19c15d34a/9.png' },
         { name: 'Dominic', role: 'Coach D Licence', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/4333df17-6d51-4d4d-90c4-0dc24bef7da4/1.png' },
         { name: 'Mark', role: 'Coach', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/5e29913b-2a1b-484e-b219-6cc543fd9307/6.png' },
         { name: 'Jeremy', role: 'Coach', image: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/aa5a2d2b-d1cf-4813-9465-c2601cc67196/2.png' },
@@ -540,7 +540,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                                 <h3 className="text-h6 text-black mb-3 uppercase tracking-tighter group-hover:text-primary transition-colors text-center w-full">
                                     {member.name}
                                 </h3>
-                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 group-hover:text-black transition-colors text-center w-full">
+                                <p className="text-sm font-normal tracking-wide text-gray-600 group-hover:text-primary transition-colors text-center w-full">
                                     {member.role}
                                 </p>
                             </motion.div>

@@ -16,6 +16,8 @@ html {
   -moz-text-size-adjust: 100%;
   text-size-adjust: 100%;
   scroll-behavior: smooth;
+  overscroll-behavior-y: none;
+  height: 100%;
 }
 
 body {
@@ -29,6 +31,8 @@ body {
   text-rendering: optimizeLegibility;
   padding-top: 5rem;
   /* Account for fixed header */
+  overscroll-behavior-y: none;
+  height: 100%;
 }
 
 /* Adjust padding for mobile header */

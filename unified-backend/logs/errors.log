@@ -2330,3 +2330,45 @@
     "request_body": null
   }
 }
+{
+  "timestamp": "2026-02-13T06:06:07.436882Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: IntegrityError: (psycopg2.errors.ForeignKeyViolation) update or delete on table \"admin_courts\" violates foreign key constraint \"fk_booking_court\" on table \"booking\"\nDETAIL:  Key (id)=(840c12cc-7a5e-4229-a01b-af74d848951c) is still referenced from table \"booking\".\n\n[SQL: DELETE FROM admin_game_types WHERE admin_game_types.id = %(id)s::UUID]\n[parameters: {'id': UUID('55b67f44-205a-4f9f-9490-a4ab1e717fed')}]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "IntegrityError",
+  "error_message": "(psycopg2.errors.ForeignKeyViolation) update or delete on table \"admin_courts\" violates foreign key constraint \"fk_booking_court\" on table \"booking\"\nDETAIL:  Key (id)=(840c12cc-7a5e-4229-a01b-af74d848951c) is still referenced from table \"booking\".\n\n[SQL: DELETE FROM admin_game_types WHERE admin_game_types.id = %(id)s::UUID]\n[parameters: {'id': UUID('55b67f44-205a-4f9f-9490-a4ab1e717fed')}]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+  "request_context": {
+    "method": "DELETE",
+    "url": "http://localhost:8000/api/admin/game-types/55b67f44-205a-4f9f-9490-a4ab1e717fed",
+    "path": "/api/admin/game-types/55b67f44-205a-4f9f-9490-a4ab1e717fed",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "connection": "keep-alive",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "authorization": "***MASKED***",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0",
+      "sec-ch-ua": "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"144\", \"Microsoft Edge\";v=\"144\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "accept": "*/*",
+      "origin": "http://localhost:5175",
+      "sec-fetch-site": "same-site",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5175/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "en-US,en;q=0.9"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "IntegrityError",
+    "request_body": null
+  }
+}
