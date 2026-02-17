@@ -10,7 +10,7 @@ import {
     Image,
     Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -31,6 +31,7 @@ const VenuesScreen = () => {
     const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchText, setSearchText] = useState('');
+    const insets = useSafeAreaInsets();
 
     // Filter states
     const [showFilterModal, setShowFilterModal] = useState(false);
@@ -420,7 +421,7 @@ const VenuesScreen = () => {
                     <View style={styles.modalOverlay} />
                 </TouchableWithoutFeedback>
 
-                <View style={styles.filterModal}>
+                <View style={[styles.filterModal, { paddingBottom: insets.bottom }]}>
                     <View style={styles.filterModalHeader}>
                         <Text style={styles.filterModalTitle}>Filters</Text>
                         <TouchableOpacity
@@ -1029,6 +1030,9 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
     },
+    filterModalSafeArea: {
+        backgroundColor: '#1C1C1E',
+    }
 });
 
 export default VenuesScreen;

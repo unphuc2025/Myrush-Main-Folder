@@ -8,7 +8,7 @@ import {
     Dimensions,
     ActivityIndicator,
     StatusBar,
-    SafeAreaView,
+    SafeAreaView, // Keep for layout wrapper if needed, but insets are better
     Image,
     Platform,
     Alert
@@ -16,6 +16,7 @@ import {
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
@@ -29,6 +30,7 @@ type Navigation = NativeStackNavigationProp<RootStackParamList>;
 const SlotSelectionScreen: React.FC = () => {
     const navigation = useNavigation<Navigation>();
     const route = useRoute<SlotSelectionRouteProp>();
+    const insets = useSafeAreaInsets();
 
     // Get current date
     const today = new Date();
@@ -53,7 +55,7 @@ const SlotSelectionScreen: React.FC = () => {
     const venueName = route.params?.venue?.court_name || route.params?.venue?.name || 'Play Arena HSR';
     const venueLocation = route.params?.venue?.location || 'Bengaluru';
     const venueId = route.params?.venue?.id || '';
-    const pitchName = 'Pitch 1 - Football'; // You could make this dynamic if API provides it
+    const pitchName = 'Pitch 1 - Football';
 
     const monthNames = [
         'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
@@ -71,6 +73,33 @@ const SlotSelectionScreen: React.FC = () => {
         checkDate.setHours(0, 0, 0, 0);
 
         return checkDate < today;
+    };
+
+    // Helper to check if a specific time slot is in the past (for Today)
+    const isTimeSlotPast = (timeStr: string) => {
+        const now = new Date();
+        const checkDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), selectedDate);
+
+        // Reset checkDate to start of day for accurate day comparison
+        const checkDateStart = new Date(checkDate);
+        checkDateStart.setHours(0, 0, 0, 0);
+
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        if (checkDateStart.getTime() !== todayStart.getTime()) {
+            return false; // Not today, so time is not past (unless past date, handled by isPastDate)
+        }
+
+        const [hours, minutes] = timeStr.split(':').map(Number);
+
+        // Create a date object for the slot time today
+        const slotTime = new Date();
+        slotTime.setHours(hours, minutes, 0, 0);
+
+        // Add a buffer? User said disable "completed" time. 
+        // Let's strict check: if slot start time < current time.
+        return slotTime < now;
     };
 
     // Generate calendar days
@@ -102,6 +131,8 @@ const SlotSelectionScreen: React.FC = () => {
     // Check availability logic
     useEffect(() => {
         if (venueId) {
+            // Clear selected slots when date changes (Issue #3 fix)
+            setSelectedSlots([]);
             fetchAvailableSlots();
         }
     }, [selectedDate, currentMonth]);
@@ -133,18 +164,18 @@ const SlotSelectionScreen: React.FC = () => {
     // Group available slots
     const morningSlots = availableSlots.filter(s => {
         const hour = parseInt(s.time.split(':')[0]);
-        return hour < 16; // Before 4 PM
+        return hour < 16;
     });
 
     const eveningSlots = availableSlots.filter(s => {
         const hour = parseInt(s.time.split(':')[0]);
-        return hour >= 16; // 4 PM onwards
+        return hour >= 16;
     });
 
 
     const handleConfirmBooking = () => {
         if (selectedSlots.length === 0) {
-            alert('Please select at least one time slot');
+            Alert.alert('Select Slot', 'Please select at least one time slot to proceed.');
             return;
         }
 
@@ -164,6 +195,12 @@ const SlotSelectionScreen: React.FC = () => {
     };
 
     const toggleSlotSelection = (slot: any) => {
+        // Double check past time constraint
+        if (isTimeSlotPast(slot.time)) {
+            Alert.alert('Slot Unavailable', 'This time slot has already passed.');
+            return;
+        }
+
         const isSelected = selectedSlots.some(s => s.display_time === slot.display_time);
         if (isSelected) {
             setSelectedSlots(prev => prev.filter(s => s.display_time !== slot.display_time));
@@ -178,12 +215,42 @@ const SlotSelectionScreen: React.FC = () => {
 
     const calendarData = generateCalendarDays();
 
+    // Helper to render slot
+    const renderSlot = (slot: any, index: number, prefix: string) => {
+        const isSelected = selectedSlots.some(s => s.display_time === slot.display_time);
+        const isPast = isTimeSlotPast(slot.time);
+
+        return (
+            <TouchableOpacity
+                key={`${prefix}-${index}`}
+                disabled={isPast}
+                style={[
+                    styles.slotChip,
+                    isSelected && styles.slotChipSelected,
+                    isPast && styles.slotChipDisabled // Style for disabled
+                ]}
+                onPress={() => toggleSlotSelection(slot)}
+            >
+                <Text style={[
+                    styles.slotTime,
+                    isSelected && styles.slotTimeSelected,
+                    isPast && styles.slotTimeDisabled
+                ]} numberOfLines={1} adjustsFontSizeToFit>{slot.display_time}</Text>
+                {
+                    isSelected && (
+                        <View style={styles.slotDot} />
+                    )
+                }
+            </TouchableOpacity >
+        );
+    };
+
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#000" />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 30) + hp(1) : insets.top + hp(1) }]}>
                 <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => navigation.goBack()}
@@ -198,7 +265,7 @@ const SlotSelectionScreen: React.FC = () => {
                 </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: hp(15) + insets.bottom }]}>
 
                 {/* Month Navigation */}
                 <View style={styles.monthHeader}>
@@ -210,7 +277,7 @@ const SlotSelectionScreen: React.FC = () => {
                             onPress={() => {
                                 const newDate = new Date(currentMonth);
                                 newDate.setMonth(newDate.getMonth() - 1);
-                                if (newDate >= new Date(new Date().setDate(1))) { // Limit to current month start
+                                if (newDate >= new Date(new Date().setDate(1))) {
                                     setCurrentMonth(newDate);
                                 }
                             }}
@@ -298,27 +365,7 @@ const SlotSelectionScreen: React.FC = () => {
                                     <Text style={styles.sectionTitle}>MORNING</Text>
                                 </View>
                                 <View style={styles.slotsGrid}>
-                                    {morningSlots.map((slot, index) => {
-                                        const isSelected = selectedSlots.some(s => s.display_time === slot.display_time);
-                                        return (
-                                            <TouchableOpacity
-                                                key={`m-${index}`}
-                                                style={[
-                                                    styles.slotChip,
-                                                    isSelected && styles.slotChipSelected
-                                                ]}
-                                                onPress={() => toggleSlotSelection(slot)}
-                                            >
-                                                <Text style={[
-                                                    styles.slotTime,
-                                                    isSelected && styles.slotTimeSelected
-                                                ]}>{slot.display_time}</Text>
-                                                {isSelected && (
-                                                    <View style={styles.slotDot} />
-                                                )}
-                                            </TouchableOpacity>
-                                        );
-                                    })}
+                                    {morningSlots.map((slot, index) => renderSlot(slot, index, 'm'))}
                                 </View>
                             </View>
                         )}
@@ -331,27 +378,7 @@ const SlotSelectionScreen: React.FC = () => {
                                     <Text style={styles.sectionTitle}>EVENING</Text>
                                 </View>
                                 <View style={styles.slotsGrid}>
-                                    {eveningSlots.map((slot, index) => {
-                                        const isSelected = selectedSlots.some(s => s.display_time === slot.display_time);
-                                        return (
-                                            <TouchableOpacity
-                                                key={`e-${index}`}
-                                                style={[
-                                                    styles.slotChip,
-                                                    isSelected && styles.slotChipSelected
-                                                ]}
-                                                onPress={() => toggleSlotSelection(slot)}
-                                            >
-                                                <Text style={[
-                                                    styles.slotTime,
-                                                    isSelected && styles.slotTimeSelected
-                                                ]}>{slot.display_time}</Text>
-                                                {isSelected && (
-                                                    <View style={styles.slotDot} />
-                                                )}
-                                            </TouchableOpacity>
-                                        );
-                                    })}
+                                    {eveningSlots.map((slot, index) => renderSlot(slot, index, 'e'))}
                                 </View>
                             </View>
                         )}
@@ -361,7 +388,7 @@ const SlotSelectionScreen: React.FC = () => {
             </ScrollView>
 
             {/* Footer */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: Math.max(hp(3), insets.bottom + 10) }]}>
                 <View style={styles.priceInfo}>
                     <Text style={styles.totalLabel}>TOTAL AMOUNT</Text>
                     <Text style={styles.totalAmount}>
@@ -376,7 +403,7 @@ const SlotSelectionScreen: React.FC = () => {
                     <Text style={styles.payButtonText}>PAY NOW</Text>
                 </TouchableOpacity>
             </View>
-        </SafeAreaView>
+        </View>
     );
 };
 
@@ -389,8 +416,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: wp(5),
-        paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 30) + hp(3) : hp(7),
         paddingBottom: hp(2),
+        backgroundColor: '#000'
     },
     backButton: {
         width: moderateScale(40),
@@ -413,7 +440,7 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     scrollContent: {
-        paddingBottom: hp(15),
+        // Padding bottom set inline
     },
     monthHeader: {
         flexDirection: 'row',
@@ -545,6 +572,11 @@ const styles = StyleSheet.create({
         borderColor: colors.primary,
         borderWidth: 2, // Thicker border
     },
+    slotChipDisabled: {
+        opacity: 0.3,
+        borderColor: '#222',
+        backgroundColor: '#111',
+    },
     slotTime: {
         fontSize: fontScale(12),
         color: '#ccc',
@@ -553,6 +585,10 @@ const styles = StyleSheet.create({
     slotTimeSelected: {
         color: colors.primary,
         fontWeight: '700',
+    },
+    slotTimeDisabled: {
+        color: '#555',
+        textDecorationLine: 'line-through',
     },
     slotDot: {
         position: 'absolute',
@@ -571,7 +607,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#1C1C1E',
         paddingHorizontal: wp(6),
         paddingTop: hp(2.5),
-        paddingBottom: hp(4),
+        // Padding bottom handled inline
         borderTopWidth: 1,
         borderTopColor: '#333',
         flexDirection: 'row',

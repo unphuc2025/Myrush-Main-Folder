@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
@@ -30,6 +31,7 @@ type Navigation = NativeStackNavigationProp<RootStackParamList>;
 const VenueDetailsScreen: React.FC = () => {
     const navigation = useNavigation<Navigation>();
     const route = useRoute<VenueDetailsRouteProp>();
+    const insets = useSafeAreaInsets();
     const [isFavorite, setIsFavorite] = useState(false);
     const [cartItems, setCartItems] = useState(0);
 
@@ -308,7 +310,7 @@ const VenueDetailsScreen: React.FC = () => {
                 style={styles.footerGradient}
                 pointerEvents="none"
             />
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: Math.max(hp(3), insets.bottom + 10) }]}>
                 <View style={styles.priceContainer}>
                     <Text style={styles.priceLabel}>TOTAL PRICE</Text>
                     <View style={styles.priceRow}>

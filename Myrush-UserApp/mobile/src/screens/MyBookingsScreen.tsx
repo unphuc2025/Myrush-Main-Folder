@@ -72,41 +72,59 @@ const MyBookingsScreen: React.FC = () => {
             const result = await bookingsApi.getUserBookings(user.id);
             if (result.success) {
                 const bookingsWithUpdatedStatus = (result.data || []).map(booking => {
+                    // Safety check for required fields, handle potential nulls
+                    if (!booking || !booking.status) return { ...booking, status: 'unknown' };
+
+                    const statusLower = booking.status.toLowerCase();
+
+                    // If already cancelled/rejected by admin, keep it
+                    if (statusLower === 'cancelled' || statusLower === 'rejected' || statusLower === 'declined') {
+                        return { ...booking, status: 'cancelled' };
+                    }
+
                     // Use end_time (which is end of LAST slot) for status check
+                    // Ensure valid date strings
+                    if (!booking.booking_date || !booking.end_time) return booking;
+
                     const bookingDateTime = new Date(`${booking.booking_date}T${booking.end_time}`);
                     const now = new Date();
 
                     let updatedStatus = booking.status;
-                    if (booking.status.toLowerCase() === 'cancelled') {
-                        updatedStatus = 'cancelled';
-                    } else if (bookingDateTime < now) {
+
+                    if (bookingDateTime < now && statusLower !== 'completed') {
                         updatedStatus = 'completed';
-                    } else {
-                        updatedStatus = 'upcoming';
+                    } else if (statusLower === 'confirmed' || statusLower === 'pending') {
+                        updatedStatus = 'upcoming'; // Group confirmed/pending under upcoming for logic first
                     }
 
                     return { ...booking, status: updatedStatus };
                 });
 
-                let filteredBookings = bookingsWithUpdatedStatus;
+                let filteredBookings = bookingsWithUpdatedStatus.filter(b => b.status !== 'unknown');
                 const now = new Date();
 
                 switch (activeTab) {
                     case 'upcoming':
                         filteredBookings = bookingsWithUpdatedStatus.filter(booking => {
+                            const status = booking.status.toLowerCase();
+                            // Upcoming if distinct from others and in future? 
+                            // Actually, just check if it's NOT cancelled/completed
+                            return status !== 'cancelled' && status !== 'completed' && status !== 'rejected';
+                        });
+                        // Double check future time just in case, logic above should have handled it
+                        filteredBookings = filteredBookings.filter(booking => {
                             const bookingDateTime = new Date(`${booking.booking_date}T${booking.end_time}`);
                             return bookingDateTime > now;
                         });
                         break;
                     case 'completed':
-                        filteredBookings = bookingsWithUpdatedStatus.filter(booking => {
-                            const bookingDateTime = new Date(`${booking.booking_date}T${booking.end_time}`);
-                            return bookingDateTime < now;
-                        });
+                        filteredBookings = bookingsWithUpdatedStatus.filter(booking =>
+                            booking.status.toLowerCase() === 'completed'
+                        );
                         break;
                     case 'cancelled':
                         filteredBookings = bookingsWithUpdatedStatus.filter(booking =>
-                            booking.status.toLowerCase() === 'cancelled'
+                            booking.status.toLowerCase() === 'cancelled' || booking.status.toLowerCase() === 'rejected'
                         );
                         break;
                     default:

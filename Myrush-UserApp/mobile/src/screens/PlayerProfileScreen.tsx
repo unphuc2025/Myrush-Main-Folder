@@ -132,22 +132,39 @@ const PlayerProfileScreen = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [citiesRes, gameTypesRes, profileRes] = await Promise.all([
-                    profileApi.getCities(),
-                    profileApi.getGameTypes(),
-                    profileApi.getProfile(user?.phoneNumber || ''),
-                ]);
+                // Check if new user (has tempOTP)
+                const tempOTP = (useAuthStore.getState() as any).tempOTP;
 
-                if (citiesRes.success) setCities(citiesRes.data);
-                if (gameTypesRes.success) setGameTypes(gameTypesRes.data);
+                // Prepare promises array
+                const distinctPromises = [
+                    profileApi.getCities().catch(err => ({ success: false, data: [], error: err })),
+                    profileApi.getGameTypes().catch(err => ({ success: false, data: [], error: err }))
+                ];
 
-                // Populate profile data if it exists
-                if (profileRes.success && profileRes.data) {
+                // Only fetch profile if NOT a new user
+                if (!tempOTP) {
+                    distinctPromises.push(
+                        profileApi.getProfile(user?.phoneNumber || '').catch(err => ({ success: false, data: null, error: err }))
+                    );
+                }
+
+                const results = await Promise.all(distinctPromises);
+
+                const citiesRes = results[0];
+                const gameTypesRes = results[1];
+                const profileRes = !tempOTP ? results[2] : { success: false, data: null };
+
+                if (citiesRes?.success) setCities(citiesRes.data || []);
+                if (gameTypesRes?.success) setGameTypes(gameTypesRes.data || []);
+
+                // Populate profile data if it exists (Existing User)
+                if (profileRes?.success && profileRes?.data) {
                     const data = profileRes.data;
                     setPhoneNumber(data.phone_number || user?.phoneNumber || '');
                     setFullName(data.full_name || '');
                     setAge(data.age ? data.age.toString() : '');
                     setCity(data.city || '');
+                    setCityId(data.city_id || null);
                     setGender(data.gender || '');
                     setHandedness(data.handedness || 'Right-handed');
                     setSkillLevel(data.skill_level || '');
@@ -155,12 +172,13 @@ const PlayerProfileScreen = () => {
                     setPlayingStyle(data.playing_style || 'All-court');
                     setAvatarUrl(data.avatar_url || user?.avatarUrl || null);
                 } else {
-                    // If no profile data, set phone number from user store
+                    // New User or Profile Fetch Failed -> Pre-fill defaults
                     setPhoneNumber(user?.phoneNumber || '');
                     setAvatarUrl(user?.avatarUrl || null);
                 }
             } catch (error) {
                 console.error('Error fetching profile data:', error);
+                setPhoneNumber(user?.phoneNumber || '');
             }
         };
 

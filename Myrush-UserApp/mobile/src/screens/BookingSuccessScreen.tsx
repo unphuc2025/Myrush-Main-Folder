@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Image, Share, Platform } from 'react-native';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
@@ -14,6 +15,7 @@ type Navigation = NativeStackNavigationProp<RootStackParamList>;
 const BookingSuccessScreen: React.FC = () => {
     const navigation = useNavigation<Navigation>();
     const route = useRoute<BookingSuccessRouteProp>();
+    const insets = useSafeAreaInsets();
 
     // Mock Data (or from params)
     const {
@@ -33,20 +35,39 @@ const BookingSuccessScreen: React.FC = () => {
                 routes: [{
                     name: 'MainTabs',
                     state: {
-                        routes: [{ name: 'Book' }],
+                        routes: [{ name: 'BookTab' }], // Fixed route name from 'Book' to 'BookTab'
                     },
                 }],
             })
         );
     };
 
+    const handleInviteFriends = async () => {
+        try {
+            const result = await Share.share({
+                message: `Hey! I just booked a slot at ${venue} for ${date} at ${timeSlot}. Join me for a game on MyRush!`,
+            });
+            if (result.action === Share.sharedAction) {
+                if (result.activityType) {
+                    // shared with activity type of result.activityType
+                } else {
+                    // shared
+                }
+            } else if (result.action === Share.dismissedAction) {
+                // dismissed
+            }
+        } catch (error: any) {
+            console.log(error.message);
+        }
+    };
+
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#000" />
 
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={handleViewBookings}>
+            {/* Header - Fixed Overlap */}
+            <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 30) + hp(2) : insets.top + hp(2) }]}>
+                <TouchableOpacity onPress={handleViewBookings} style={styles.closeButton}>
                     <Ionicons name="close" size={24} color="#fff" />
                 </TouchableOpacity>
             </View>
@@ -88,7 +109,7 @@ const BookingSuccessScreen: React.FC = () => {
                     <View style={styles.divider} />
 
                     <View style={styles.detailRow}>
-                        <Text style={styles.totalLabel}>Total</Text>
+                        <Text style={styles.totalLabel}>Total Paid</Text>
                         <Text style={styles.totalValue}>₹{totalAmount}</Text>
                     </View>
                 </View>
@@ -100,16 +121,13 @@ const BookingSuccessScreen: React.FC = () => {
 
                 <View style={styles.inviteContainer}>
                     <Text style={styles.inviteLabel}>Game on better with friends</Text>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={handleInviteFriends}>
                         <Text style={styles.inviteLink}>INVITE FRIENDS</Text>
                     </TouchableOpacity>
                 </View>
 
             </View>
-
-            {/* Floating AI Button (Mocked to match design if needed, but AppNavigator has one globally usually, checking if overlap) */}
-            {/* AppNavigator has global Fab, so we might check z-index or if it shows here. Assuming it does. */}
-        </SafeAreaView>
+        </View>
     );
 };
 
@@ -120,8 +138,11 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingHorizontal: wp(5),
-        paddingTop: hp(2),
         paddingBottom: hp(2),
+    },
+    closeButton: {
+        alignSelf: 'flex-start',
+        padding: 8,
     },
     content: {
         flex: 1,

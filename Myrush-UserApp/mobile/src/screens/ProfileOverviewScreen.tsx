@@ -9,6 +9,7 @@ import {
     Platform,
     Image,
     StatusBar,
+    Alert,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -178,17 +179,25 @@ const ProfileOverviewScreen = () => {
                     {renderMenuItem('calendar-outline', 'My Bookings', () => navigation.navigate('BookTab'))}
                     {/* {renderMenuItem('ribbon-outline', 'Memberships', () => navigation.navigate('Membership'))} */}
                     {/* {renderMenuItem('trophy-outline', 'Tournaments', () => { })} */}
-                    {/* {renderMenuItem('card-outline', 'Payment Methods', () => { })} */}
+                    {renderMenuItem('card-outline', 'Payment Methods', () => navigation.navigate('Payments'))}
 
                     <Text style={[styles.sectionHeader, { marginTop: hp(3) }]}>Support</Text>
-                    {/* {renderMenuItem('help-circle-outline', 'Help & Support', () => { })} */}
-                    {renderMenuItem('shield-checkmark-outline', 'Privacy Policy', () => { })}
+                    {renderMenuItem('help-circle-outline', 'Help & Support', () => navigation.navigate('Support'))}
+                    {renderMenuItem('shield-checkmark-outline', 'Privacy Policy', () => alert('Coming Soon'))}
 
                     <TouchableOpacity
                         style={styles.logoutButton}
                         onPress={() => {
-                            useAuthStore.getState().logout();
-                            // Navigation logic is handled by AppNavigator listening to auth state
+                            Alert.alert('Logout', 'Are you sure you want to logout?', [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                    text: 'Logout',
+                                    style: 'destructive',
+                                    onPress: () => {
+                                        useAuthStore.getState().logout();
+                                    }
+                                }
+                            ]);
                         }}
                     >
                         <Text style={styles.logoutText}>Log Out</Text>

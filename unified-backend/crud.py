@@ -195,7 +195,7 @@ def validate_booking_rules(db: Session, user_id: str, court_id: str, booking_dat
         print(f"[VALIDATION] User overlap detected! Existing: {user_overlap.booking_display_id}")
         raise HTTPException(status_code=400, detail="You already have a booking overlapping with this time.")
 
-def validate_court_configuration(db: Session, court_id: str, booking_date: datetime.date, requested_slots: list, expected_total_amount: float):
+def validate_court_configuration(db: Session, court_id: str, booking_date: datetime.date, requested_slots: list, expected_total_amount: float, number_of_players: int = 1):
     """
     Validate that the requested slots:
     1. Exist within the court's operating hours (Business Hours)
@@ -346,11 +346,22 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: datet
         calculated_total += expected_price
 
     # 6. Validate Total Amount
-    # If booking.original_amount is sent, it should match sum of slots
+    # If booking.original_amount is sent, it should match sum of slots * players + platform fee
     # Total Amount = Original - Discount. We validate original here.
-    # Note: `expected_total_amount` passed to this func should be the `original_amount`
-    if abs(calculated_total - float(expected_total_amount)) > 5.0:
-         raise HTTPException(status_code=400, detail="Total booking amount mismatch. Please try again.")
+    
+    # Apply Player Multiplier
+    calculated_subtotal = calculated_total * number_of_players
+    
+    # Apply Platform Fee (Fixed 20 for now)
+    PLATFORM_FEE = 20.0
+    calculated_final_total = calculated_subtotal + PLATFORM_FEE
+
+    # Log for debug
+    print(f"[VALIDATION] Price Check: Server Calc={calculated_final_total} (Slots={calculated_total} * P={number_of_players} + Fee={PLATFORM_FEE}) vs Expected={expected_total_amount}")
+
+    if abs(calculated_final_total - float(expected_total_amount)) > 5.0:
+         print(f"[VALIDATION FAIL] Mismatch! Server: {calculated_final_total}, Client: {expected_total_amount}")
+         raise HTTPException(status_code=400, detail=f"Total booking amount mismatch. Server calculated: {calculated_final_total}, You sent: {expected_total_amount}")
 
     print("[VALIDATION] Configuration & Price Check passed.")
 
@@ -522,7 +533,8 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             court_id=str(c_uuid),
             booking_date=booking.booking_date,
             requested_slots=time_slots,
-            expected_total_amount=original_amount
+            expected_total_amount=original_amount,
+            number_of_players=booking.number_of_players or 2
         )
         
         user_exists = db.query(models.User).filter(models.User.id == user_id).first()

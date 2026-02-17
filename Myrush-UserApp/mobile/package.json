@@ -35,6 +35,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@expo/metro-config": "^54.0.14",
     "@react-native-community/cli": "^20.1.1",
     "@react-native/metro-config": "^0.84.0",
     "@types/react": "~19.1.0",

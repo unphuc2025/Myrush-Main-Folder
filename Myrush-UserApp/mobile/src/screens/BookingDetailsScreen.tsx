@@ -144,6 +144,9 @@ const BookingDetailsScreen: React.FC = () => {
     const [isBookingLoading, setIsBookingLoading] = useState(false);
     const { user } = useAuthStore();
 
+    // Payment Method State
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'upi' | 'card' | null>('upi');
+
     // Coupon State
     const [couponCode, setCouponCode] = useState('');
     const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
@@ -207,10 +210,10 @@ const BookingDetailsScreen: React.FC = () => {
             if (result.success && result.data) {
                 setCouponResult(result.data);
                 if (!result.data.valid) {
-                    // Optional: Toast or specific error state, avoiding alert spam on typing/auto-recalc
-                    // For manual Apply:
+                    Alert.alert('Invalid Coupon', result.data.message || 'This coupon code is not valid.');
                 }
             } else {
+                Alert.alert('Invalid Coupon', 'This coupon code is not valid.');
                 setCouponResult({ valid: false, message: 'Invalid Coupon' });
             }
         } catch (error) {
@@ -247,6 +250,11 @@ const BookingDetailsScreen: React.FC = () => {
 
     const handleConfirmBooking = async () => {
         if (isBookingLoading) return;
+
+        if (!selectedPaymentMethod) {
+            Alert.alert('Select Payment', 'Please select a payment method to continue.');
+            return;
+        }
 
         setIsBookingLoading(true);
         try {
@@ -376,7 +384,7 @@ const BookingDetailsScreen: React.FC = () => {
                     venue: venue || "Central Arena",
                     date: `${month} ${date}`,
                     timeSlot: timeSlot || "7:00 AM",
-                    totalAmount: finalTotal,
+                    totalAmount: result.data.total_amount || finalTotal, // Use backend amount preferably
                     bookingId: result.data.id || result.data.booking_id || '#839201',
                     selectedSlots,
                     paymentId: response.razorpay_payment_id
@@ -540,36 +548,63 @@ const BookingDetailsScreen: React.FC = () => {
                     {/* 4. PAYMENT METHOD */}
                     <Text style={styles.sectionHeader}>PAYMENT METHOD</Text>
 
-                    {/* RushPay Card */}
-                    <LinearGradient
-                        colors={['#1C1C1E', '#2C2C2E']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.paymentCard}
-                    >
-                        <View style={styles.cardHeader}>
-                            <Text style={styles.cardBrand}>RUSHPAY</Text>
-                            <MaterialCommunityIcons name="contactless-payment" size={20} color="#ccc" />
-                        </View>
-                        <Text style={styles.cardNum}>•••• •••• •••• 4288</Text>
-                        <View style={styles.cardFooter}>
-                            <Text style={styles.cardHolder}>AJAY P</Text>
-                            <Text style={styles.cardExpiry}>12/28</Text>
-                        </View>
-                    </LinearGradient>
+                    {/* Payment Options */}
+                    <View style={styles.paymentOptionsContainer}>
+                        <TouchableOpacity
+                            style={[
+                                styles.optionCard,
+                                selectedPaymentMethod === 'upi' && styles.optionCardSelected
+                            ]}
+                            onPress={() => setSelectedPaymentMethod('upi')}
+                        >
+                            <View style={styles.optionRow}>
+                                <MaterialCommunityIcons
+                                    name="bank"
+                                    size={24}
+                                    color={selectedPaymentMethod === 'upi' ? colors.primary : '#fff'}
+                                />
+                                <View style={{ marginLeft: 12 }}>
+                                    <Text style={[
+                                        styles.optionText,
+                                        selectedPaymentMethod === 'upi' && { color: colors.primary, fontWeight: '700' }
+                                    ]}>
+                                        UPI / GPay / PhonePe
+                                    </Text>
+                                    <Text style={styles.optionSubText}>Pay via any UPI app</Text>
+                                </View>
+                            </View>
+                            {selectedPaymentMethod === 'upi' && (
+                                <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                            )}
+                        </TouchableOpacity>
 
-                    {/* Other Options */}
-                    <View style={styles.optionCard}>
-                        <View style={styles.optionRow}>
-                            <MaterialCommunityIcons name="bank" size={20} color="#fff" />
-                            <Text style={styles.optionText}>UPI / GPay</Text>
-                        </View>
-                    </View>
-                    <View style={styles.optionCard}>
-                        <View style={styles.optionRow}>
-                            <Ionicons name="card-outline" size={20} color="#fff" />
-                            <Text style={styles.optionText}>Credit / Debit Card</Text>
-                        </View>
+                        <TouchableOpacity
+                            style={[
+                                styles.optionCard,
+                                selectedPaymentMethod === 'card' && styles.optionCardSelected
+                            ]}
+                            onPress={() => setSelectedPaymentMethod('card')}
+                        >
+                            <View style={styles.optionRow}>
+                                <Ionicons
+                                    name="card-outline"
+                                    size={24}
+                                    color={selectedPaymentMethod === 'card' ? colors.primary : '#fff'}
+                                />
+                                <View style={{ marginLeft: 12 }}>
+                                    <Text style={[
+                                        styles.optionText,
+                                        selectedPaymentMethod === 'card' && { color: colors.primary, fontWeight: '700' }
+                                    ]}>
+                                        Credit / Debit Card
+                                    </Text>
+                                    <Text style={styles.optionSubText}>Visa, Mastercard, RuPay & more</Text>
+                                </View>
+                            </View>
+                            {selectedPaymentMethod === 'card' && (
+                                <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                            )}
+                        </TouchableOpacity>
                     </View>
 
                 </ScrollView>
@@ -841,6 +876,38 @@ const styles = StyleSheet.create({
         color: colors.primary, // Green
     },
     // Payment Area
+    paymentOptionsContainer: {
+        gap: hp(1.5),
+        marginBottom: hp(3),
+    },
+    optionCard: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(12),
+        padding: moderateScale(16),
+        borderWidth: 1,
+        borderColor: '#333',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    optionCardSelected: {
+        borderColor: colors.primary,
+        backgroundColor: 'rgba(204, 255, 0, 0.05)',
+    },
+    optionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    optionText: {
+        fontSize: fontScale(14),
+        color: '#fff',
+        fontWeight: '500',
+    },
+    optionSubText: {
+        fontSize: fontScale(11),
+        color: '#888',
+        marginTop: 2,
+    },
     paymentCard: {
         borderRadius: moderateScale(16),
         padding: moderateScale(20),
@@ -880,24 +947,7 @@ const styles = StyleSheet.create({
         fontSize: fontScale(10),
         color: '#999',
     },
-    optionCard: {
-        backgroundColor: '#1C1C1E',
-        borderRadius: moderateScale(12),
-        padding: moderateScale(16),
-        marginBottom: hp(1),
-        borderWidth: 1,
-        borderColor: '#333',
-    },
-    optionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: wp(3),
-    },
-    optionText: {
-        color: '#fff',
-        fontSize: fontScale(14),
-        fontWeight: '500',
-    },
+
     // Footer
     footer: {
         position: 'absolute',
