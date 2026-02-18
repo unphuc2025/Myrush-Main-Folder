@@ -408,6 +408,12 @@ export const bookingsApi = {
         discountAmount?: number;
         couponCode?: string;
         totalAmount?: number; // Final amount to be paid
+
+        // Razorpay Payment Details
+        razorpay_payment_id?: string;
+        razorpay_order_id?: string;
+        razorpay_signature?: string;
+        payment_status?: string;
     }) => {
         try {
             const payload = {
@@ -428,9 +434,15 @@ export const bookingsApi = {
                 coupon_code: bookingData.couponCode,
                 // total_amount is calculated on backend usually but we can pass expectations if needed, 
                 // but schema expects original/discount to derive standard total.
+
+                // Razorpay Fields
+                razorpay_payment_id: bookingData.razorpay_payment_id,
+                razorpay_order_id: bookingData.razorpay_order_id,
+                razorpay_signature: bookingData.razorpay_signature,
+                payment_status: bookingData.payment_status,
             };
 
-            const data = await apiClient.post('/bookings/', payload);
+            const data = await apiClient.post<any>('/bookings/', payload);
 
             console.log('[BOOKINGS API] Booking created successfully:', data);
             return {
@@ -475,4 +487,47 @@ export const bookingsApi = {
             };
         }
     },
+};
+
+// Payments API
+export const paymentsApi = {
+    /**
+     * Create a Razorpay order
+     */
+    createOrder: async (bookingData: {
+        courtId: string;
+        bookingDate: string;
+        startTime: string;
+        durationMinutes: number;
+        timeSlots: any[];
+        numberOfPlayers: number;
+        couponCode?: string;
+    }) => {
+        try {
+            console.log('[PAYMENTS API] Creating order for:', bookingData);
+            const payload = {
+                court_id: bookingData.courtId,
+                booking_date: bookingData.bookingDate,
+                start_time: bookingData.startTime,
+                duration_minutes: bookingData.durationMinutes,
+                time_slots: bookingData.timeSlots,
+                number_of_players: bookingData.numberOfPlayers,
+                coupon_code: bookingData.couponCode,
+            };
+
+            const data = await apiClient.post<any>('/payments/create-order', payload);
+            console.log('[PAYMENTS API] Order created:', data);
+            return {
+                success: true,
+                data: data,
+            };
+        } catch (error: any) {
+            console.error('[PAYMENTS API] Exception creating order:', error);
+            return {
+                success: false,
+                data: null,
+                error: error.message,
+            };
+        }
+    }
 };

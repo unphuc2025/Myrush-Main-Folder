@@ -15,9 +15,49 @@ export interface CreateBookingPayload {
     discountAmount?: number;
     couponCode?: string;
     totalAmount?: number;
+    // Razorpay Fields
+    razorpay_payment_id?: string;
+    razorpay_order_id?: string;
+    razorpay_signature?: string;
 }
 
 export const bookingsApi = {
+    /**
+     * Create a specific payment order for Razorpay
+     */
+    createPaymentOrder: async (data: {
+        courtId: string;
+        bookingDate: string;
+        startTime: string;
+        durationMinutes: number;
+        timeSlots: any[];
+        numberOfPlayers: number;
+        couponCode?: string;
+    }) => {
+        try {
+            const payload = {
+                court_id: data.courtId,
+                booking_date: data.bookingDate,
+                start_time: data.startTime,
+                duration_minutes: data.durationMinutes,
+                time_slots: data.timeSlots,
+                number_of_players: data.numberOfPlayers,
+                coupon_code: data.couponCode
+            };
+            const response = await apiClient.post('/payments/create-order', payload);
+            return {
+                success: true,
+                data: response.data
+            };
+        } catch (error: any) {
+            console.error('[BOOKINGS API] Exception creating payment order:', error);
+            return {
+                success: false,
+                data: null,
+                error: error.message || 'Failed to initiate payment'
+            };
+        }
+    },
     /**
      * Create a new booking
      */
@@ -37,6 +77,11 @@ export const bookingsApi = {
                 original_amount: bookingData.originalAmount,
                 discount_amount: bookingData.discountAmount,
                 coupon_code: bookingData.couponCode,
+                total_amount: bookingData.totalAmount,
+                // Razorpay Fields
+                razorpay_payment_id: bookingData.razorpay_payment_id,
+                razorpay_order_id: bookingData.razorpay_order_id,
+                razorpay_signature: bookingData.razorpay_signature
             };
 
             const response = await apiClient.post('/bookings/', payload);

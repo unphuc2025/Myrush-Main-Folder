@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { featureFlags } from '../config/featureFlags';
+import { Button } from './ui/Button';
 
 interface TopNavProps {
     userName?: string;
@@ -24,7 +26,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-            <div className="w-full px-6 h-full flex items-center justify-between">
+            <div className="w-full px-6 h-full flex items-center justify-between relative">
                 {showBackButton ? (
                     <button
                         className="flex items-center gap-2 text-black hover:text-primary transition-colors font-medium"
@@ -42,16 +44,17 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                 )}
 
                 {/* Desktop Menu */}
-                <div className="hidden md:flex items-center gap-8">
+                <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
                     {[
                         { label: homeLabel, path: '/' },
                         { label: 'Book Court', path: '/venues' },
-                        { label: 'Pickleball', path: '/pickleball' },
-                        { label: 'Games', path: '/open-play' },
+
+                        // Feature Flagged Items
+                        featureFlags.enableGames && { label: 'Games', path: '/open-play' },
                         { label: 'Academy', path: '/academy' },
-                        { label: 'Community', path: '/community' },
-                        { label: 'Store', path: '/store' }
-                    ].map((item) => (
+                        featureFlags.enableCommunity && { label: 'Community', path: '/community' },
+                        featureFlags.enableStore && { label: 'Store', path: '/store' }
+                    ].filter((item): item is { label: string; path: string } => Boolean(item)).map((item) => (
                         <button
                             key={item.path}
                             className={`relative text-sm font-medium transition-colors ${isActive(item.path) || (item.path === '/' && location.pathname === '/dashboard')
@@ -76,13 +79,16 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                         // Profile icon for authenticated users
                         <div className="flex items-center gap-4">
                             {/* Loyalty Points Badge */}
-                            <button
-                                onClick={() => navigate('/loyalty')}
-                                className="hidden md:flex items-center gap-2 bg-yellow-400/10 hover:bg-yellow-400/20 px-3 py-1.5 rounded-full border border-yellow-400/30 transition-all group"
-                            >
-                                <span className="text-yellow-600 text-sm font-black">👑 2450</span>
-                                <span className="text-[10px] uppercase font-bold text-gray-500 group-hover:text-black">Pts</span>
-                            </button>
+                            {/* Loyalty Points Badge - Feature Flagged */}
+                            {featureFlags.enableLoyalty && (
+                                <button
+                                    onClick={() => navigate('/loyalty')}
+                                    className="hidden md:flex items-center gap-2 bg-yellow-400/10 hover:bg-yellow-400/20 px-3 py-1.5 rounded-full border border-yellow-400/30 transition-all group"
+                                >
+                                    <span className="text-yellow-600 text-sm font-black">👑 2450</span>
+                                    <span className="text-[10px] uppercase font-bold text-gray-500 group-hover:text-black">Pts</span>
+                                </button>
+                            )}
                             {userName && (
                                 <span className="hidden md:block text-sm font-semibold text-black">
                                     Hello, <span className="text-primary">{userName}</span>
@@ -107,7 +113,14 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                         </div>
                     ) : (
                         // Login/Signup button for unauthenticated users
-                        null
+                        <Button
+                            variant="primary"
+                            size="md"
+                            onClick={() => navigate('/login')}
+                            className="shadow-md hover:shadow-lg"
+                        >
+                            Login
+                        </Button>
                     )}
                 </div>
             </div>

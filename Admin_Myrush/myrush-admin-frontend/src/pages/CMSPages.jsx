@@ -166,7 +166,7 @@ const CMSPages = () => {
                                     type="text"
                                     value={formData.title}
                                     onChange={handleTitleChange}
-                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
                                     placeholder="e.g. Privacy Policy"
                                 />
                             </div>
@@ -178,14 +178,14 @@ const CMSPages = () => {
                                     type="text"
                                     value={formData.slug}
                                     onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50 font-mono text-sm"
+                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50 font-mono text-sm text-slate-900"
                                     placeholder="e.g. privacy-policy"
                                 />
                             </div>
                         </div>
                         <div className="flex-1 overflow-hidden flex flex-col p-6">
                             <textarea
-                                className="w-full h-full p-4 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none font-mono text-sm"
+                                className="w-full h-full p-4 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none font-mono text-sm text-slate-900"
                                 value={formData.content}
                                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                                 placeholder="Enter page content here (HTML supported)..."
@@ -216,7 +216,7 @@ const CMSPages = () => {
                             placeholder="Search Pages..."
                             value={searchTerm}
                             onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm text-slate-900"
                         />
                     </div>
                     <button

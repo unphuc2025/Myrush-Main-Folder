@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+
 import { venuesApi } from '../api/venues';
 import type { Venue } from '../api/venues';
 import { courtsApi } from '../api/courts';
 import type { CourtRatings } from '../api/courts';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaMapMarkerAlt, FaStar, FaCheck, FaUsers, FaClock, FaArrowRight } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaStar, FaCheck, FaClock } from 'react-icons/fa';
 
 // --- Types ---
 interface Slot {
@@ -15,67 +15,11 @@ interface Slot {
     display_time: string;
     price: number;
     available: boolean;
+    court_name?: string;
 }
 
 // --- Sub-Components ---
-
-const VenueHero: React.FC<{
-    venue: Venue;
-    rating: number;
-    reviewCount: number;
-    onBack: () => void;
-}> = ({ venue, rating, reviewCount, onBack }) => (
-    <motion.section
-        className="relative h-80 md:h-[500px] flex items-center justify-center overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-    >
-        <div className="absolute inset-0 z-0">
-            <img
-                src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076'}
-                alt={venue.court_name}
-                className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent" />
-        </div>
-
-        <div className="relative z-20 text-center px-6 max-w-4xl mx-auto mt-20">
-            <motion.h1
-                className="text-4xl md:text-7xl font-black font-montserrat tracking-tighter text-white mb-6 uppercase leading-none drop-shadow-xl"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-            >
-                {venue.court_name}
-            </motion.h1>
-
-            <motion.div
-                className="flex items-center justify-center gap-6 mb-8"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-            >
-                <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                    <FaStar className="text-yellow-400 text-sm" />
-                    <span className="text-white font-bold text-sm">{rating.toFixed(1)}</span>
-                    <span className="text-gray-300 text-sm">({reviewCount} reviews)</span>
-                </div>
-                <div className="flex items-center gap-2 text-white/80 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                    <FaMapMarkerAlt className="text-sm text-primary" />
-                    <span className="font-medium text-sm">{venue.location}</span>
-                </div>
-            </motion.div>
-        </div>
-
-        <button
-            onClick={onBack}
-            className="absolute top-24 left-4 md:left-8 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white hover:text-black transition-all z-30 border border-white/20"
-        >
-            <FaArrowRight className="rotate-180 text-lg" />
-        </button>
-    </motion.section>
-);
+// Hero component removed as it is now integrated into the main layout
 
 // --- Main Page Component ---
 export const VenueDetailsPage: React.FC = () => {
@@ -94,22 +38,14 @@ export const VenueDetailsPage: React.FC = () => {
     const [selectedSlots, setSelectedSlots] = useState<Slot[]>([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
 
+    // Game Type Selection State
+    const [selectedSport, setSelectedSport] = useState<string>('');
+
     // Booking Summary State
     const [numPlayers, setNumPlayers] = useState(2);
     const [teamName, setTeamName] = useState('');
 
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const daysOfWeek = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-    // Helper functions for calendar
-    const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const getFirstDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    const isPast = (d: number, date: Date) => {
-        const today = new Date();
-        const check = new Date(date.getFullYear(), date.getMonth(), d);
-        today.setHours(0, 0, 0, 0);
-        return check < today;
-    };
 
     useEffect(() => {
         if (id) loadVenueData(id);
@@ -117,7 +53,7 @@ export const VenueDetailsPage: React.FC = () => {
 
     useEffect(() => {
         if (id) fetchSlots(id);
-    }, [id, selectedDate, currentDate]);
+    }, [id, selectedDate, currentDate, selectedSport]);
 
     const loadVenueData = async (venueId: string) => {
         setLoadingVenue(true);
@@ -126,7 +62,14 @@ export const VenueDetailsPage: React.FC = () => {
                 venuesApi.getVenueById(venueId),
                 courtsApi.getCourtRatings(venueId),
             ]);
-            if (venueRes.success && venueRes.data) setVenue(venueRes.data);
+            if (venueRes.success && venueRes.data) {
+                setVenue(venueRes.data);
+                // Set default sport if available
+                if (venueRes.data.game_type) {
+                    const types = venueRes.data.game_type.split(',').map(s => s.trim()).filter(Boolean);
+                    if (types.length > 0) setSelectedSport(types[0]);
+                }
+            }
             if (ratingsRes.success) setRatings(ratingsRes.data);
         } catch (error) { console.error(error); }
         finally { setLoadingVenue(false); }
@@ -138,7 +81,7 @@ export const VenueDetailsPage: React.FC = () => {
             const year = currentDate.getFullYear();
             const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
             const day = selectedDate.toString().padStart(2, '0');
-            const res = await venuesApi.getAvailableSlots(venueId, `${year}-${month}-${day}`);
+            const res = await venuesApi.getVenueSlots(venueId, `${year}-${month}-${day}`, selectedSport);
             setAvailableSlots(res.success && res.data ? res.data.slots : []);
         } catch (error) { setAvailableSlots([]); }
         finally { setLoadingSlots(false); }
@@ -164,16 +107,13 @@ export const VenueDetailsPage: React.FC = () => {
                 venueId: id,
                 date: `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.toString().padStart(2, '0')}`,
                 selectedSlots: selectedSlots,
-                totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0)
+                totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0) * numPlayers,
+                numPlayers: numPlayers // Pass selected number of players
             }
         });
     };
 
-    const handleMonthChange = (dir: number) => {
-        const newD = new Date(currentDate);
-        newD.setMonth(newD.getMonth() + dir);
-        setCurrentDate(newD);
-    };
+
 
     if (loadingVenue) return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -193,194 +133,293 @@ export const VenueDetailsPage: React.FC = () => {
     );
 
     const basePrice = selectedSlots.reduce((acc, s) => acc + s.price, 0);
-    const totalPrice = basePrice + (selectedSlots.length > 0 ? 50 : 0);
+    const totalPrice = basePrice * numPlayers;
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter relative pb-20">
+        <div className="min-h-screen bg-gray-50 font-inter text-gray-900 pb-20">
             <TopNav />
 
-            {/* Hero Section */}
-            <VenueHero
-                venue={venue}
-                rating={ratings?.average_rating || 0}
-                reviewCount={ratings?.total_reviews || 0}
-                onBack={() => navigate(-1)}
-            />
+            <div className="max-w-[90%] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-6">
+                {/* Back Button */}
+                <button
+                    onClick={() => navigate('/venues')}
+                    className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors mb-6 group"
+                >
+                    <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span className="text-sm font-medium" style={{ fontFamily: '"Inter", sans-serif' }}>Back to Venues</span>
+                </button>
 
-            {/* Main Content - Side by Side Layout */}
-            <section className="py-12 relative">
-                <div className="max-w-7xl mx-auto px-6 md:px-12">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-                        {/* Left Side - Venue Details */}
-                        <div className="lg:sticky lg:top-8 lg:self-start">
-                            <div className="space-y-6">
-                                {/* Venue Overview - Combined Stats and About */}
-                                <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-                                    <h2 className="text-2xl font-black text-gray-900 mb-6 uppercase tracking-tight">
-                                        About <span className="text-primary italic">Venue</span>
-                                    </h2>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-32">
 
-                                    {/* Quick Stats - Horizontal Layout */}
-                                    <div className="flex flex-wrap gap-4 mb-8 p-4 bg-gray-50 border border-gray-100 rounded-2xl">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-2xl">🏆</span>
-                                            <div>
-                                                <div className="text-lg font-black text-gray-900">1,200+</div>
-                                                <div className="text-xs text-gray-500 uppercase tracking-wider">Games Played</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-2xl">🌤️</span>
-                                            <div>
-                                                <div className="text-lg font-black text-gray-900">Outdoor</div>
-                                                <div className="text-xs text-gray-500 uppercase tracking-wider">Venue Type</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-2xl">⚽</span>
-                                            <div>
-                                                <div className="text-lg font-black text-gray-900">{venue.game_type || 'Football'}</div>
-                                                <div className="text-xs text-gray-500 uppercase tracking-wider">Sport</div>
-                                            </div>
-                                        </div>
+                    {/* LEFT COLUMN - Venue Info */}
+                    <div className="lg:col-span-3 space-y-8">
+
+                        {/* Title Section (Moved Above Grid) */}
+                        <div className="mb-6">
+                            <h1 className="text-3xl lg:text-5xl font-black font-montserrat text-gray-900 mb-2 uppercase tracking-tight leading-none">
+                                {venue.court_name}
+                            </h1>
+                            <p className="text-gray-500 flex items-center gap-2 text-sm font-medium">
+                                <FaMapMarkerAlt className="text-primary" />
+                                {venue.location}
+                            </p>
+                        </div>
+
+                        {/* Image Gallery Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-[400px] shadow-lg group relative">
+                            {/* Main Large Image */}
+                            <div className={`md:col-span-2 md:row-span-2 relative h-full cursor-pointer`} onClick={() => {/* Open Lightbox logic could go here */ }}>
+                                <img
+                                    src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076'}
+                                    alt={venue.court_name}
+                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                                />
+                                <div className="absolute top-4 left-4 flex gap-2">
+                                    <div className="bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-md">
+                                        Top Rated
                                     </div>
-
-                                    {/* Description */}
-                                    <p className="text-gray-600 text-lg leading-relaxed mb-8">
-                                        {venue.description || 'Experience top-tier facilities designed for both competitive matches and casual play. Well-maintained surfaces and professional equipment available.'}
-                                    </p>
-
-                                    {/* Amenities */}
-                                    <div className="space-y-4">
-                                        <h4 className="text-xl font-bold text-gray-900 uppercase tracking-wider">Amenities</h4>
-                                        <div className="grid grid-cols-1 gap-3">
-                                            {(venue.amenities && venue.amenities.length > 0 ? venue.amenities : [
-                                                'Parking', 'Lockers', 'Showers', 'Restrooms', 'First Aid', 'Wi-Fi'
-                                            ]).slice(0, 6).map((item: any, i) => (
-                                                <motion.div
-                                                    key={i}
-                                                    className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl border border-gray-100"
-                                                    initial={{ opacity: 0, x: -20 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: i * 0.05 }}
-                                                >
-                                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                                        <FaCheck className="text-primary text-xs" />
-                                                    </div>
-                                                    <span className="font-medium text-gray-700">{typeof item === 'string' ? item : item.name}</span>
-                                                </motion.div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Location & Terms - Combined Section */}
-                                <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        {/* Location */}
-                                        <div>
-                                            <h3 className="text-xl font-black text-gray-900 mb-4 uppercase tracking-tight">
-                                                <FaMapMarkerAlt className="inline mr-2" /> Location
-                                            </h3>
-                                            <div className="aspect-video bg-gray-50 border border-gray-100 rounded-2xl mb-4 flex items-center justify-center">
-                                                <div className="text-center">
-                                                    <FaMapMarkerAlt className="text-3xl text-gray-400 mx-auto mb-1" />
-                                                    <p className="text-xs text-gray-500">Interactive Map</p>
-                                                </div>
-                                            </div>
-                                            <p className="text-gray-600 text-sm leading-relaxed">
-                                                {venue.location} - Easily accessible with ample parking and public transport options nearby.
-                                            </p>
-                                        </div>
-
-                                        {/* Terms & Conditions */}
-                                        <div>
-                                            <h3 className="text-xl font-black text-gray-900 mb-4 uppercase tracking-tight">Terms</h3>
-                                            <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
-                                                <div className="space-y-2 text-gray-500 text-xs leading-relaxed">
-                                                    {venue.terms_and_conditions ? (
-                                                        <div className="whitespace-pre-wrap line-clamp-6">{venue.terms_and_conditions}</div>
-                                                    ) : (
-                                                        <div>
-                                                            <p>• Advance booking recommended</p>
-                                                            <p>• Valid ID proof required</p>
-                                                            <p>• Cancellation policy: 24 hours notice</p>
-                                                            <p>• No refunds for no-shows</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <div className="bg-black/60 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 border border-white/10">
+                                        <FaStar className="text-yellow-400" />
+                                        <span>{ratings?.average_rating?.toFixed(1) || '0.0'} ({ratings?.total_reviews || 0})</span>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Secondary Images */}
+                            <div className="hidden md:block md:col-span-1 md:row-span-1 relative h-full cursor-pointer">
+                                <img
+                                    src={venue.photos?.[1] || 'https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2076'}
+                                    alt="Venue view 2"
+                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                                />
+                            </div>
+                            <div className="hidden md:block md:col-span-1 md:row-span-1 relative h-full cursor-pointer">
+                                <img
+                                    src={venue.photos?.[2] || 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2076'}
+                                    alt="Venue view 3"
+                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                                />
+                            </div>
+
+                            {/* Third/Fourth with overlay */}
+                            <div className="hidden md:flex md:col-span-2 md:row-span-1 gap-4">
+                                <div className="w-1/2 relative h-full cursor-pointer overflow-hidden">
+                                    <img
+                                        src={venue.photos?.[3] || 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=2076'}
+                                        alt="Venue view 4"
+                                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 rounded-bl-none" // grid-gap handles rounded checks effectively
+                                    />
+                                </div>
+                                <div className="w-1/2 relative h-full cursor-pointer overflow-hidden">
+                                    <img
+                                        src={venue.photos?.[4] || 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=2076'}
+                                        alt="Venue view 5"
+                                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                                    />
+                                    {/* Show "See All" if more photos exist */}
+                                    {venue.photos && venue.photos.length > 5 && (
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center group/more hover:bg-black/70 transition-colors">
+                                            <span className="text-white font-bold uppercase tracking-widest border border-white/30 px-4 py-2 rounded-full hover:bg-white hover:text-black transition-all">
+                                                +{venue.photos.length - 5} Photos
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Mobile Title Overlay (Only visible on small screens where grid acts as single hero) */}
+
                         </div>
 
-                        {/* Right Side - Booking Widget */}
-                        <div className="lg:sticky lg:top-8 h-fit">
-                            <motion.div
-                                className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.3 }}
-                            >
-                                <div className="text-center mb-8">
-                                    <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight mb-2">
-                                        Book Your <span className="text-primary italic">Slot</span>
-                                    </h2>
-                                    <p className="text-gray-500">Select date, time and confirm your booking</p>
-                                </div>
 
-                                {/* Calendar */}
-                                <div className="mb-8">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h3 className="text-xl font-bold text-gray-900 uppercase tracking-wider">Select Date</h3>
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                onClick={() => handleMonthChange(-1)}
-                                                disabled={currentDate <= new Date()}
-                                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 flex items-center justify-center transition-colors text-sm text-gray-700 shadow-sm"
-                                            >
-                                                ‹
-                                            </button>
-                                            <span className="text-sm font-bold min-w-[140px] text-center text-gray-900">
-                                                {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                                            </span>
-                                            <button
-                                                onClick={() => handleMonthChange(1)}
-                                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors text-sm text-gray-700 shadow-sm"
-                                            >
-                                                ›
-                                            </button>
+
+                        {/* Stats Cards */}
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center flex flex-col items-center justify-center hover:shadow-md transition-shadow">
+                                <span className="text-3xl mb-2">🏆</span>
+                                <div className="text-xl font-black text-gray-900">1,200+</div>
+                                <div className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-widest mt-1">Games Played</div>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center flex flex-col items-center justify-center hover:shadow-md transition-shadow">
+                                <span className="text-3xl mb-2">☀️</span>
+                                <div className="text-xl font-black text-gray-900">Outdoor</div>
+                                <div className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-widest mt-1">Venue Type</div>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center flex flex-col items-center justify-center hover:shadow-md transition-shadow">
+                                <span className="text-3xl mb-2">⚽</span>
+                                <div className="text-xl font-black text-gray-900">{venue.game_type || 'Sports'}</div>
+                                <div className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-widest mt-1">Sport</div>
+                            </div>
+                        </div>
+
+                        {/* About Venue */}
+                        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-6 uppercase font-montserrat">
+                                About Venue
+                            </h2>
+                            <p className="text-sm text-gray-600 leading-relaxed mb-8">
+                                {venue.description || "Experience world-class sporting action at this premier venue. Our premium facilities are designed for competitive matches and casual play alike, featuring high-quality surfaces and professional lighting for late-night sessions."}
+                            </p>
+
+                            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Amenities</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {(venue.amenities && venue.amenities.length > 0 ? venue.amenities : [
+                                    'Free Parking', 'Secure Lockers', 'Modern Showers', 'High-Speed Wi-Fi'
+                                ]).map((item, i) => (
+                                    <div key={i} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                        <div className="w-8 h-8 rounded-lg bg-green-100 text-primary flex items-center justify-center text-sm">
+                                            <FaCheck />
+                                        </div>
+                                        <span className="font-medium text-gray-700 text-sm">{typeof item === 'string' ? item : item.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Location & Terms */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Location */}
+                            <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 h-full">
+                                <h2 className="text-xl font-bold text-gray-900 mb-6 uppercase font-montserrat">Location</h2>
+                                {venue.google_map_url ? (
+                                    <a
+                                        href={venue.google_map_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block aspect-video bg-gray-100 rounded-2xl mb-4 relative overflow-hidden group cursor-pointer border border-gray-200"
+                                    >
+                                        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 group-hover:bg-gray-100 transition-colors">
+                                            <div className="text-center">
+                                                <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-2 text-primary text-xl">
+                                                    <FaMapMarkerAlt />
+                                                </div>
+                                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Open in Maps</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                ) : (
+                                    <div className="aspect-video bg-gray-100 rounded-2xl mb-4 relative overflow-hidden group cursor-pointer border border-gray-200">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 group-hover:bg-gray-100 transition-colors">
+                                            <div className="text-center">
+                                                <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-2 text-primary text-xl">
+                                                    <FaMapMarkerAlt />
+                                                </div>
+                                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Open in Maps</span>
+                                            </div>
                                         </div>
                                     </div>
+                                )}
+                                <p className="text-sm text-gray-600 leading-relaxed">
+                                    {venue.location}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-2">Easily accessible with ample parking.</p>
+                            </div>
 
-                                    <div className="grid grid-cols-7 gap-1 mb-3">
-                                        {daysOfWeek.map(d => (
-                                            <div key={d} className="text-center text-gray-400 font-bold text-xs uppercase tracking-wider py-1">
-                                                {d}
-                                            </div>
-                                        ))}
+                            {/* Terms */}
+                            <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 h-full">
+                                <h2 className="text-xl font-bold text-gray-900 mb-6 uppercase font-montserrat">Terms</h2>
+                                <ul className="space-y-4">
+                                    <li className="flex gap-3 text-sm text-gray-600 items-start">
+                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 shrink-0"></span>
+                                        Advance booking recommended
+                                    </li>
+                                    <li className="flex gap-3 text-sm text-gray-600 items-start">
+                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 shrink-0"></span>
+                                        Valid ID proof required at entry
+                                    </li>
+                                    <li className="flex gap-3 text-sm text-gray-600 items-start">
+                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 shrink-0"></span>
+                                        Cancellation: 24 hours notice
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* RIGHT COLUMN - Sticky Booking Widget */}
+                    <div className="lg:col-span-2">
+                        <div className="sticky top-24">
+                            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-400"></div>
+
+                                <div className="text-center mb-8 pt-2">
+                                    <h2 className="text-2xl font-bold text-gray-900 uppercase font-montserrat leading-none mb-1">
+                                        Book Your Slot
+                                    </h2>
+                                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest" style={{ fontFamily: '"Inter", sans-serif' }}>Select date, time & confirm</p>
+                                </div>
+
+                                {/* Game Type Selector */}
+                                {venue?.game_type && (
+                                    <div className="mb-6">
+                                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest block mb-3" style={{ fontFamily: '"Inter", sans-serif' }}>Select Sport</span>
+                                        <div className="flex flex-wrap gap-2">
+                                            {venue.game_type.split(',').map((sport, idx) => {
+                                                const s = sport.trim();
+                                                if (!s) return null;
+                                                const isSelected = selectedSport === s;
+                                                return (
+                                                    <button
+                                                        key={`${s}-${idx}`}
+                                                        onClick={() => setSelectedSport(s)}
+                                                        className={`px-4 py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all border ${isSelected
+                                                            ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 scale-105'
+                                                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                                            }`}
+                                                    >
+                                                        {s}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-7 gap-1">
-                                        {Array.from({ length: getFirstDay(currentDate) }).map((_, i) => <div key={`e-${i}`} />)}
-                                        {Array.from({ length: getDaysInMonth(currentDate) }).map((_, i) => {
-                                            const d = i + 1;
-                                            const disabled = isPast(d, currentDate);
-                                            const selected = selectedDate === d;
+                                )}
+
+                                {/* Date Selector (Horizontal) */}
+                                <div className="mb-8">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Select Date</span>
+                                        <span className="text-xs font-semibold text-gray-900 uppercase tracking-wide">
+                                            {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex overflow-x-auto pb-4 gap-3 no-scrollbar -mx-2 px-2 scroll-smooth">
+                                        {Array.from({ length: 30 }).map((_, i) => {
+                                            const date = new Date();
+                                            date.setDate(date.getDate() + i);
+
+                                            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }); // Mon
+                                            const dayNumber = date.getDate(); // 12
+
+                                            // Check if this date is selected
+                                            // We compare day, month, and year to be precise
+                                            const isSelected =
+                                                selectedDate === dayNumber &&
+                                                currentDate.getMonth() === date.getMonth() &&
+                                                currentDate.getFullYear() === date.getFullYear();
+
                                             return (
                                                 <button
-                                                    key={d}
-                                                    className={`aspect-square rounded-lg font-bold text-xs transition-all ${selected
-                                                        ? 'bg-black text-white shadow-md'
-                                                        : disabled
-                                                            ? 'text-gray-300 cursor-not-allowed'
-                                                            : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                                                    key={i}
+                                                    onClick={() => {
+                                                        setSelectedDate(dayNumber);
+                                                        setCurrentDate(date);
+                                                    }}
+                                                    className={`flex flex-col items-center justify-center min-w-[60px] h-[70px] rounded-xl border-2 transition-all duration-200 flex-shrink-0 ${isSelected
+                                                        ? 'bg-primary border-primary text-white shadow-lg shadow-primary/40 scale-105 transform'
+                                                        : 'bg-white border-gray-200 text-gray-600 hover:border-primary/30 hover:bg-primary/5'
                                                         }`}
-                                                    onClick={() => !disabled && setSelectedDate(d)}
-                                                    disabled={disabled}
                                                 >
-                                                    {d}
+                                                    <span className={`text-[10px] font-medium uppercase mb-1 ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                                                        {dayName}
+                                                    </span>
+                                                    <span className={`text-xl font-semibold ${isSelected ? 'text-white' : 'text-gray-800'}`}>
+                                                        {dayNumber}
+                                                    </span>
                                                 </button>
                                             );
                                         })}
@@ -388,34 +427,38 @@ export const VenueDetailsPage: React.FC = () => {
                                 </div>
 
                                 {/* Slots */}
-                                <div className="mb-8">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-xl font-bold text-gray-900 uppercase tracking-wider">Available Slots</h3>
-                                        {loadingSlots && <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>}
-                                    </div>
-
-                                    {availableSlots.length === 0 && !loadingSlots ? (
-                                        <div className="text-center py-8 text-gray-400">
-                                            <FaClock className="text-2xl mx-auto mb-2 opacity-50" />
-                                            <p className="text-sm">No slots available for this date</p>
+                                <div className="mb-8 p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                    <span className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Available Slots</span>
+                                    {loadingSlots ? (
+                                        <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
+                                    ) : availableSlots.length === 0 ? (
+                                        <div className="text-center py-6 text-gray-400 text-xs font-medium">
+                                            <FaClock className="mx-auto mb-2 text-lg opacity-30" />
+                                            No slots available
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
+                                        <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
                                             {availableSlots.map(slot => {
                                                 const isSel = selectedSlots.some(s => s.display_time === slot.display_time);
                                                 return (
                                                     <button
                                                         key={slot.display_time}
-                                                        className={`p-4 rounded-lg font-bold text-sm transition-all text-center ${isSel
-                                                            ? 'bg-primary/10 border-2 border-primary text-primary shadow-sm'
-                                                            : 'bg-gray-50 border-2 border-transparent hover:border-gray-200 text-gray-700'
+                                                        className={`relative flex items-center justify-center p-4 rounded-md border-2 transition-all duration-200 min-h-[70px] ${isSel
+                                                            ? 'bg-primary border-primary text-white shadow-md shadow-primary/30'
+                                                            : 'bg-white border-gray-300 hover:border-primary/50 hover:bg-gray-50 hover:shadow-sm'
                                                             }`}
                                                         onClick={() => handleSlotClick(slot)}
                                                     >
-                                                        <div className="text-base font-semibold">{slot.display_time}</div>
-                                                        <div className={`text-xs font-medium mt-1 ${isSel ? 'text-primary/70' : 'text-gray-400'}`}>
-                                                            ₹{slot.price}
-                                                        </div>
+                                                        {isSel && (
+                                                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                                                                <svg className="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                            </div>
+                                                        )}
+                                                        <span className={`text-sm font-medium ${isSel ? 'text-white' : 'text-gray-900'}`} style={{ fontFamily: '"Inter", sans-serif' }}>
+                                                            {slot.display_time}
+                                                        </span>
                                                     </button>
                                                 );
                                             })}
@@ -423,79 +466,114 @@ export const VenueDetailsPage: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* Booking Form */}
-                                <div className="space-y-6 mb-8">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">
-                                                <FaUsers className="inline mr-1" /> Players
-                                            </label>
-                                            <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-2 border border-gray-100">
-                                                <button
-                                                    onClick={() => setNumPlayers(Math.max(1, numPlayers - 1))}
-                                                    className="w-8 h-8 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center font-bold transition-colors shadow-sm text-gray-600"
-                                                >
-                                                    −
-                                                </button>
-                                                <span className="text-lg font-black flex-1 text-center text-gray-900">{numPlayers}</span>
-                                                <button
-                                                    onClick={() => setNumPlayers(numPlayers + 1)}
-                                                    className="w-8 h-8 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center font-bold transition-colors shadow-sm text-gray-600"
-                                                >
-                                                    +
-                                                </button>
+                                {/* Inputs */}
+                                <div className="grid grid-cols-2 gap-4 mb-8">
+                                    <div>
+                                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Players</label>
+                                        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 h-10">
+                                            <button onClick={() => setNumPlayers(Math.max(1, numPlayers - 1))} className="text-gray-400 hover:text-primary transition-colors text-lg font-semibold">-</button>
+                                            <span className="text-sm font-bold text-gray-900">{numPlayers}</span>
+                                            <button onClick={() => setNumPlayers(numPlayers + 1)} className="text-gray-400 hover:text-primary transition-colors text-lg font-semibold">+</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Team Name</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Optional"
+                                            className="w-full h-10 bg-white border border-gray-200 rounded-lg px-3 text-xs font-medium text-gray-900 outline-none focus:border-primary/50 placeholder:text-gray-300"
+                                            value={teamName}
+                                            onChange={(e) => setTeamName(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Booking Summary */}
+                                <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-5 mb-6">
+                                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Booking Summary</h3>
+
+                                    {/* Selected Details */}
+                                    <div className="space-y-3 mb-4">
+                                        {/* Sport */}
+                                        {selectedSport && (
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm text-gray-500">Sport</span>
+                                                <span className="text-sm font-semibold text-gray-900">{selectedSport}</span>
                                             </div>
+                                        )}
+
+                                        {/* Date */}
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-500">Date</span>
+                                            <span className="text-sm font-semibold text-gray-900">
+                                                {currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </span>
                                         </div>
 
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">
-                                                Team Name
-                                            </label>
-                                            <input
-                                                type="text"
-                                                placeholder="Optional"
-                                                className="w-full bg-gray-50 border border-gray-100 rounded-lg h-12 px-3 text-gray-900 placeholder-gray-400 outline-none focus:border-primary/50 transition-colors"
-                                                value={teamName}
-                                                onChange={(e) => setTeamName(e.target.value)}
-                                            />
+                                        {/* Venue/Court */}
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-500">Court</span>
+                                            <span className="text-sm font-semibold text-gray-900">
+                                                {selectedSlots.length > 0 ? selectedSlots[0].court_name || 'Arena' : 'Not selected'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Divider */}
+                                    <div className="border-t border-gray-300/50 my-3"></div>
+
+                                    {/* Selected Time Slots */}
+                                    {selectedSlots.length > 0 && (
+                                        <div className="mb-4">
+                                            <span className="text-sm text-gray-500 block mb-2">Time Slots</span>
+                                            <div className="space-y-1.5">
+                                                {selectedSlots.map((slot, idx) => (
+                                                    <div key={idx} className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                                                        <span className="text-sm font-medium text-gray-700" style={{ fontFamily: '"Inter", sans-serif' }}>{slot.display_time}</span>
+                                                        <span className="text-sm font-semibold text-gray-900">₹{slot.price}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Divider */}
+                                    <div className="border-t border-gray-300/50 my-3"></div>
+
+                                    {/* Price Breakdown */}
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm text-gray-500">
+                                            <span>Subtotal ({selectedSlots.length} slots)</span>
+                                            <span>₹{selectedSlots.reduce((sum, s) => sum + s.price, 0)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm text-gray-500">
+                                            <span>Booking Fee</span>
+                                            <span>₹0</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pt-2">
+                                            <span className="text-sm font-bold text-gray-900 uppercase">Total</span>
+                                            <span className="text-lg font-bold text-primary">₹{totalPrice}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Price Summary */}
-                                <div className="border-t border-gray-200 pt-6 space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <div className="text-sm text-gray-600">Subtotal</div>
-                                            <div className="text-xs text-gray-500">
-                                                {selectedSlots.length} slot{selectedSlots.length !== 1 ? 's' : ''} × ₹{availableSlots[0]?.price || 0}
-                                            </div>
-                                        </div>
-                                        <div className="text-lg font-black text-gray-900">₹{selectedSlots.length > 0 ? selectedSlots.length * (availableSlots[0]?.price || 0) : 0}</div>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <div className="text-sm text-gray-600">Booking Fee</div>
-                                        <div className="text-sm font-bold text-gray-900">₹{selectedSlots.length > 0 ? 50 : 0}</div>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xl font-black border-t border-gray-100 pt-4">
-                                        <div className="text-gray-900">Total</div>
-                                        <div className="text-primary">₹{totalPrice}</div>
-                                    </div>
+                                <Button
+                                    variant="primary"
+                                    className="w-full py-4 text-xs font-bold uppercase tracking-widest rounded-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all active:scale-[0.98]"
+                                    onClick={handleBooking}
+                                    disabled={selectedSlots.length === 0}
+                                >
+                                    Confirm Booking
+                                </Button>
 
-                                    <Button
-                                        variant="primary"
-                                        className="w-full h-12 text-base font-black mt-6 shadow-lg shadow-primary/20"
-                                        onClick={handleBooking}
-                                        disabled={selectedSlots.length === 0}
-                                    >
-                                        Confirm Booking
-                                    </Button>
-                                </div>
-                            </motion.div>
+                            </div>
+
+
                         </div>
                     </div>
+
                 </div>
-            </section>
+            </div>
         </div>
     );
 };

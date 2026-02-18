@@ -123,6 +123,13 @@ class BranchBase(BaseModel):
     landmark: Optional[str] = None
     search_location: Optional[str] = None
     ground_overview: Optional[str] = None
+    terms_condition: Optional[str] = None
+    rule: Optional[str] = None
+    google_map_url: Optional[str] = None
+    price: Optional[Decimal] = None
+    max_players: Optional[int] = None
+    phone_number: Optional[str] = None
+    email: Optional[str] = None
     ground_type: Optional[str] = None
     images: Optional[List[str]] = []
     videos: Optional[List[str]] = []
@@ -136,6 +143,7 @@ class Branch(BranchBase):
     id: str
     city: Optional[City] = None
     area: Optional[Area] = None
+    game_types: Optional[List[GameType]] = []
 
     @field_validator('id', 'city_id', 'area_id', mode='before')
     @classmethod
@@ -571,6 +579,11 @@ class BookingCreate(BaseModel):
     coupon_code: Optional[str] = None
     status: Optional[str] = None
     payment_status: Optional[str] = None
+    
+    # Razorpay Fields
+    razorpay_order_id: Optional[str] = None
+    razorpay_payment_id: Optional[str] = None
+    razorpay_signature: Optional[str] = None
 
 class BookingResponse(BaseModel):
     """Response model for bookings"""
@@ -1075,6 +1088,19 @@ class PlayoBookingCreateResponse(BaseModel):
     bookingIds: List[PlayoBookingIdMapping]
     requestStatus: int  # 1 = success, 0 = failure
     message: Optional[str] = None
+
+
+# ============================================================================
+# ACADEMY SCHEMAS
+# ============================================================================
+
+class AcademyRegistration(BaseModel):
+    athlete_name: str
+    age_group: str
+    contact_email: EmailStr
+    phone_number: str
+    preferred_sport: Optional[str] = None
+    experience_level: Optional[str] = None
 
 # Resolve forward references
 User.update_forward_refs()

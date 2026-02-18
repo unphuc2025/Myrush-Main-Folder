@@ -162,12 +162,22 @@ const JoinGameScreen = () => {
                     <Text style={styles.totalAmount}>{gameData?.price || '₹119'}</Text>
                 </View>
                 <View style={{ flex: 1, paddingLeft: 20 }}>
-                    <Button
-                        title="Confirm & Join"
-                        onPress={handleConfirmJoin}
-                        loading={isJoining}
-                        fullWidth
-                    />
+                    {(() => {
+                        const current = gameData?.currentPlayers ?? 2;
+                        const max = gameData?.maxPlayers ?? 4;
+                        const isFull = current >= max;
+
+                        return (
+                            <Button
+                                title={isFull ? "Game Full" : "Confirm & Join"}
+                                onPress={handleConfirmJoin}
+                                loading={isJoining}
+                                fullWidth
+                                disabled={isFull}
+                                style={isFull ? { backgroundColor: '#333' } : undefined}
+                            />
+                        );
+                    })()}
                 </View>
             </View>
 

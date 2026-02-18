@@ -25,8 +25,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
-import { couponsApi, bookingsApi } from '../api/venues';
+import { couponsApi, bookingsApi, paymentsApi } from '../api/venues';
 import { useAuthStore } from '../store/authStore';
+
+// Conditional import for Razorpay - Only works in development builds, not Expo Go
+let RazorpayCheckout: any = null;
+try {
+    RazorpayCheckout = require('react-native-razorpay').default;
+} catch (error) {
+    console.log('[Razorpay] Native module not available (Expo Go) - using fallback');
+}
+
 
 type BookingDetailsRouteProp = RouteProp<RootStackParamList, 'BookingDetails'>;
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
@@ -135,6 +144,9 @@ const BookingDetailsScreen: React.FC = () => {
     const [isBookingLoading, setIsBookingLoading] = useState(false);
     const { user } = useAuthStore();
 
+    // Payment Method State
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'upi' | 'card' | null>('upi');
+
     // Coupon State
     const [couponCode, setCouponCode] = useState('');
     const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
@@ -198,10 +210,10 @@ const BookingDetailsScreen: React.FC = () => {
             if (result.success && result.data) {
                 setCouponResult(result.data);
                 if (!result.data.valid) {
-                    // Optional: Toast or specific error state, avoiding alert spam on typing/auto-recalc
-                    // For manual Apply:
+                    Alert.alert('Invalid Coupon', result.data.message || 'This coupon code is not valid.');
                 }
             } else {
+                Alert.alert('Invalid Coupon', 'This coupon code is not valid.');
                 setCouponResult({ valid: false, message: 'Invalid Coupon' });
             }
         } catch (error) {
@@ -239,6 +251,11 @@ const BookingDetailsScreen: React.FC = () => {
     const handleConfirmBooking = async () => {
         if (isBookingLoading) return;
 
+        if (!selectedPaymentMethod) {
+            Alert.alert('Select Payment', 'Please select a payment method to continue.');
+            return;
+        }
+
         setIsBookingLoading(true);
         try {
             // Construct Date String (YYYY-MM-DD)
@@ -248,6 +265,94 @@ const BookingDetailsScreen: React.FC = () => {
 
             // Duration (assuming 60 mins per slot for now if not provided)
             const duration = (selectedSlots?.length || 1) * 60;
+
+            // 1. Create Order on Backend
+            const orderResult = await paymentsApi.createOrder({
+                courtId: route.params?.venueObject?.id || 'unknown_court',
+                bookingDate: bookingDate,
+                startTime: timeSlot || selectedSlots?.[0]?.time || "07:00",
+                durationMinutes: duration,
+                timeSlots: selectedSlots || [],
+                numberOfPlayers: numPlayers,
+                couponCode: couponResult?.valid ? couponCode : undefined
+            });
+
+            if (!orderResult.success || !orderResult.data) {
+                Alert.alert('Order Failed', orderResult.error || 'Could not initiate payment.');
+                setIsBookingLoading(false);
+                return;
+            }
+
+            const { id: order_id, key_id, amount, currency } = orderResult.data;
+
+
+            // 2. Open Razorpay Checkout
+            const options = {
+                description: `Booking for ${venue}`,
+                image: 'https://myrush.app/logo.png',
+                currency: currency,
+                key: key_id,
+                amount: amount,
+                name: 'MyRush',
+                order_id: order_id,
+                prefill: {
+                    email: user?.email || 'guest@myrush.app',
+                    contact: (user as any)?.phone_number || (user as any)?.phoneNumber || '',
+                    name: user ? `${user.firstName} ${user.lastName}` : 'Guest User'
+                },
+                theme: { color: colors.primary || '#CCFF00' }
+            };
+
+            // Check if Razorpay native module is available
+            if (RazorpayCheckout) {
+                RazorpayCheckout.open(options).then(async (data: any) => {
+                    // handle success
+                    console.log('Razorpay Success:', data);
+                    await processSuccessfulBooking(data);
+                }).catch((error: any) => {
+                    // handle failure
+                    console.log('Razorpay Error:', error);
+                    Alert.alert('Payment Cancelled', error.description || 'Payment was cancelled or failed.');
+                    setIsBookingLoading(false);
+                });
+            } else {
+                // Expo Go / Dev Fallback
+                console.log('Razorpay Native Module not found (Expo Go). Simulating success.');
+                Alert.alert(
+                    'Dev Mode (Expo Go)',
+                    'Razorpay native module is not available in Expo Go. Simulating a successful payment for testing?',
+                    [
+                        { text: 'Cancel', onPress: () => setIsBookingLoading(false), style: 'cancel' },
+                        {
+                            text: 'Simulate Success',
+                            onPress: async () => {
+                                await processSuccessfulBooking({
+                                    razorpay_payment_id: 'pay_mock_' + Date.now(),
+                                    razorpay_order_id: 'order_mock_' + Date.now(),
+                                    razorpay_signature: 'sig_mock_' + Date.now()
+                                });
+                            }
+                        }
+                    ]
+                );
+            }
+
+        } catch (error: any) {
+            console.error('Booking Flow Error:', error);
+            Alert.alert('Error', error.message || 'An unexpected error occurred.');
+            setIsBookingLoading(false);
+        }
+    };
+
+    const processSuccessfulBooking = async (response: any) => {
+        try {
+            // 3. Create Booking with Payment Details
+            const formattedMonth = (route.params?.monthIndex !== undefined ? route.params.monthIndex + 1 : 1).toString().padStart(2, '0');
+            const formattedDay = (date || 1).toString().padStart(2, '0');
+            const bookingDate = `${route.params?.year || 2024}-${formattedMonth}-${formattedDay}`;
+            const duration = (selectedSlots?.length || 1) * 60;
+
+            console.log('[BOOKING DETAILS] Processing Razorpay Response:', response);
 
             const result = await bookingsApi.createBooking({
                 userId: user?.id || 'guest',
@@ -265,7 +370,12 @@ const BookingDetailsScreen: React.FC = () => {
                 originalAmount: finalTotal + (couponResult?.discount_amount || 0),
                 discountAmount: couponResult?.discount_amount || 0,
                 couponCode: couponResult?.valid ? couponCode : undefined,
-                totalAmount: finalTotal
+                totalAmount: finalTotal,
+
+                // Razorpay Details - USE REAL DATA
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature
             });
 
             if (result.success && result.data) {
@@ -274,16 +384,17 @@ const BookingDetailsScreen: React.FC = () => {
                     venue: venue || "Central Arena",
                     date: `${month} ${date}`,
                     timeSlot: timeSlot || "7:00 AM",
-                    totalAmount: finalTotal,
+                    totalAmount: result.data.total_amount || finalTotal, // Use backend amount preferably
                     bookingId: result.data.id || result.data.booking_id || '#839201',
-                    selectedSlots
+                    selectedSlots,
+                    paymentId: response.razorpay_payment_id
                 });
             } else {
-                Alert.alert('Booking Failed', result.error || 'Could not complete your booking. Please try again.');
+                Alert.alert('Booking Failed', result.error || 'Payment successful but booking creation failed. Please contact support.');
             }
-
-        } catch (error: any) {
-            Alert.alert('Error', error.message || 'An unexpected error occurred.');
+        } catch (error) {
+            console.error('Process Booking Error:', error);
+            Alert.alert('Error', 'Failed to process booking after payment.');
         } finally {
             setIsBookingLoading(false);
         }
@@ -437,36 +548,63 @@ const BookingDetailsScreen: React.FC = () => {
                     {/* 4. PAYMENT METHOD */}
                     <Text style={styles.sectionHeader}>PAYMENT METHOD</Text>
 
-                    {/* RushPay Card */}
-                    <LinearGradient
-                        colors={['#1C1C1E', '#2C2C2E']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.paymentCard}
-                    >
-                        <View style={styles.cardHeader}>
-                            <Text style={styles.cardBrand}>RUSHPAY</Text>
-                            <MaterialCommunityIcons name="contactless-payment" size={20} color="#ccc" />
-                        </View>
-                        <Text style={styles.cardNum}>•••• •••• •••• 4288</Text>
-                        <View style={styles.cardFooter}>
-                            <Text style={styles.cardHolder}>AJAY P</Text>
-                            <Text style={styles.cardExpiry}>12/28</Text>
-                        </View>
-                    </LinearGradient>
+                    {/* Payment Options */}
+                    <View style={styles.paymentOptionsContainer}>
+                        <TouchableOpacity
+                            style={[
+                                styles.optionCard,
+                                selectedPaymentMethod === 'upi' && styles.optionCardSelected
+                            ]}
+                            onPress={() => setSelectedPaymentMethod('upi')}
+                        >
+                            <View style={styles.optionRow}>
+                                <MaterialCommunityIcons
+                                    name="bank"
+                                    size={24}
+                                    color={selectedPaymentMethod === 'upi' ? colors.primary : '#fff'}
+                                />
+                                <View style={{ marginLeft: 12 }}>
+                                    <Text style={[
+                                        styles.optionText,
+                                        selectedPaymentMethod === 'upi' && { color: colors.primary, fontWeight: '700' }
+                                    ]}>
+                                        UPI / GPay / PhonePe
+                                    </Text>
+                                    <Text style={styles.optionSubText}>Pay via any UPI app</Text>
+                                </View>
+                            </View>
+                            {selectedPaymentMethod === 'upi' && (
+                                <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                            )}
+                        </TouchableOpacity>
 
-                    {/* Other Options */}
-                    <View style={styles.optionCard}>
-                        <View style={styles.optionRow}>
-                            <MaterialCommunityIcons name="bank" size={20} color="#fff" />
-                            <Text style={styles.optionText}>UPI / GPay</Text>
-                        </View>
-                    </View>
-                    <View style={styles.optionCard}>
-                        <View style={styles.optionRow}>
-                            <Ionicons name="card-outline" size={20} color="#fff" />
-                            <Text style={styles.optionText}>Credit / Debit Card</Text>
-                        </View>
+                        <TouchableOpacity
+                            style={[
+                                styles.optionCard,
+                                selectedPaymentMethod === 'card' && styles.optionCardSelected
+                            ]}
+                            onPress={() => setSelectedPaymentMethod('card')}
+                        >
+                            <View style={styles.optionRow}>
+                                <Ionicons
+                                    name="card-outline"
+                                    size={24}
+                                    color={selectedPaymentMethod === 'card' ? colors.primary : '#fff'}
+                                />
+                                <View style={{ marginLeft: 12 }}>
+                                    <Text style={[
+                                        styles.optionText,
+                                        selectedPaymentMethod === 'card' && { color: colors.primary, fontWeight: '700' }
+                                    ]}>
+                                        Credit / Debit Card
+                                    </Text>
+                                    <Text style={styles.optionSubText}>Visa, Mastercard, RuPay & more</Text>
+                                </View>
+                            </View>
+                            {selectedPaymentMethod === 'card' && (
+                                <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                            )}
+                        </TouchableOpacity>
                     </View>
 
                 </ScrollView>
@@ -738,6 +876,38 @@ const styles = StyleSheet.create({
         color: colors.primary, // Green
     },
     // Payment Area
+    paymentOptionsContainer: {
+        gap: hp(1.5),
+        marginBottom: hp(3),
+    },
+    optionCard: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(12),
+        padding: moderateScale(16),
+        borderWidth: 1,
+        borderColor: '#333',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    optionCardSelected: {
+        borderColor: colors.primary,
+        backgroundColor: 'rgba(204, 255, 0, 0.05)',
+    },
+    optionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    optionText: {
+        fontSize: fontScale(14),
+        color: '#fff',
+        fontWeight: '500',
+    },
+    optionSubText: {
+        fontSize: fontScale(11),
+        color: '#888',
+        marginTop: 2,
+    },
     paymentCard: {
         borderRadius: moderateScale(16),
         padding: moderateScale(20),
@@ -777,24 +947,7 @@ const styles = StyleSheet.create({
         fontSize: fontScale(10),
         color: '#999',
     },
-    optionCard: {
-        backgroundColor: '#1C1C1E',
-        borderRadius: moderateScale(12),
-        padding: moderateScale(16),
-        marginBottom: hp(1),
-        borderWidth: 1,
-        borderColor: '#333',
-    },
-    optionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: wp(3),
-    },
-    optionText: {
-        color: '#fff',
-        fontSize: fontScale(14),
-        fontWeight: '500',
-    },
+
     // Footer
     footer: {
         position: 'absolute',

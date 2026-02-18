@@ -37,6 +37,13 @@ function VenuesSettings() {
     addressLine1: '',
     addressLine2: '',
     groundOverview: '',
+    termsCondition: '',
+    rule: '',
+    googleMapUrl: '',
+    price: '',
+    maxPlayers: '',
+    phoneNumber: '',
+    email: '',
     groundType: 'single',
     selectedGames: [],
     selectedAmenities: [],
@@ -168,6 +175,13 @@ function VenuesSettings() {
       addressLine1: '',
       addressLine2: '',
       groundOverview: '',
+      termsCondition: '',
+      rule: '',
+      googleMapUrl: '',
+      price: '',
+      maxPlayers: '',
+      phoneNumber: '',
+      email: '',
       groundType: 'single',
       selectedGames: [],
       selectedAmenities: [],
@@ -220,6 +234,13 @@ function VenuesSettings() {
       addressLine1: venue.address_line1 || '',
       addressLine2: venue.address_line2 || '',
       groundOverview: venue.ground_overview || '',
+      termsCondition: venue.terms_condition || '',
+      rule: venue.rule || '',
+      googleMapUrl: venue.google_map_url || '',
+      price: venue.price || '',
+      maxPlayers: venue.max_players || '',
+      phoneNumber: venue.phone_number || '',
+      email: venue.email || '',
       groundType: venue.ground_type || 'single',
       selectedGames: venue.game_types?.map(gt => gt.id) || [],
       selectedAmenities: venue.amenities?.map(am => am.id) || [],
@@ -358,13 +379,20 @@ function VenuesSettings() {
       submitData.append('address_line1', formData.addressLine1);
       submitData.append('address_line2', formData.addressLine2);
       submitData.append('ground_overview', formData.groundOverview);
+      submitData.append('terms_condition', formData.termsCondition);
+      submitData.append('rule', formData.rule);
+      submitData.append('google_map_url', formData.googleMapUrl);
+      // Price removed as per request
+      submitData.append('max_players', formData.maxPlayers);
+      submitData.append('phone_number', formData.phoneNumber);
+      submitData.append('email', formData.email);
       submitData.append('ground_type', formData.groundType);
       submitData.append('opening_hours', JSON.stringify(formData.openingHours));
       submitData.append('is_active', formData.isActive);
 
       // Append arrays
-      formData.selectedGames.forEach(id => submitData.append('game_types[]', id));
-      formData.selectedAmenities.forEach(id => submitData.append('amenities[]', id));
+      formData.selectedGames.forEach(id => submitData.append('game_types', id));
+      formData.selectedAmenities.forEach(id => submitData.append('amenities', id));
 
       // Append images
       formData.images.forEach(file => submitData.append('images', file));
@@ -403,7 +431,7 @@ function VenuesSettings() {
           <select
             value={selectedCityId}
             onChange={(e) => setSelectedCityId(e.target.value)}
-            className="pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm appearance-none cursor-pointer min-w-[150px]"
+            className="pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm appearance-none cursor-pointer min-w-[150px] text-slate-900"
           >
             <option value="">All Cities</option>
             {cities.filter(c => c.is_active).map(city => (
@@ -649,7 +677,7 @@ function VenuesSettings() {
             </div>
 
             {/* City & Area Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 items-start">
               <div>
                 <div className="flex justify-between items-center mb-2 ml-1">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">City</label>
@@ -738,6 +766,88 @@ function VenuesSettings() {
               </div>
             </div>
 
+            {/* Google Map URL */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Google Map URL</label>
+              <input
+                type="text"
+                value={formData.googleMapUrl}
+                onChange={(e) => setFormData({ ...formData, googleMapUrl: e.target.value })}
+                placeholder="https://maps.google.com/..."
+                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300"
+              />
+            </div>
+
+            {/* Ground Overview */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Ground Overview</label>
+              <textarea
+                value={formData.groundOverview}
+                onChange={(e) => setFormData({ ...formData, groundOverview: e.target.value })}
+                rows={3}
+                placeholder="Brief description about the ground..."
+                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300"
+              />
+            </div>
+
+            {/* Terms & Conditions */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Terms & Conditions</label>
+              <textarea
+                value={formData.termsCondition}
+                onChange={(e) => setFormData({ ...formData, termsCondition: e.target.value })}
+                rows={3}
+                placeholder="Enter terms and conditions..."
+                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
+              />
+            </div>
+
+            {/* Rules / Cancellation Policy */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Rules / Cancellation Policy</label>
+              <textarea
+                value={formData.rule}
+                onChange={(e) => setFormData({ ...formData, rule: e.target.value })}
+                rows={3}
+                placeholder="Enter rules or cancellation policy..."
+                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
+              />
+            </div>
+
+            {/* Contact Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Max Players per Slot</label>
+                <input
+                  type="number"
+                  value={formData.maxPlayers}
+                  onChange={(e) => setFormData({ ...formData, maxPlayers: e.target.value })}
+                  placeholder="e.g. 14"
+                  className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Phone Number</label>
+                <input
+                  type="tel"
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  placeholder="Contact Number"
+                  className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Contact Email"
+                  className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
+                />
+              </div>
+            </div>
+
             {/* Address Lines */}
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Address</label>
@@ -749,7 +859,7 @@ function VenuesSettings() {
                     placeholder="Address Line 1"
                     value={formData.addressLine1}
                     onChange={e => setFormData({ ...formData, addressLine1: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300"
+                    className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
                     required
                   />
                 </div>
@@ -758,7 +868,7 @@ function VenuesSettings() {
                   placeholder="Address Line 2 (Optional)"
                   value={formData.addressLine2}
                   onChange={e => setFormData({ ...formData, addressLine2: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300"
+                  className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
                 />
               </div>
             </div>

@@ -24,10 +24,12 @@ import { BookingSummary } from './pages/BookingSummary';
 import { MyBookings } from './pages/MyBookings';
 import { Profile } from './pages/Profile';
 import { EditProfile } from './pages/EditProfile';
+import { TermsCondition } from './pages/TermsCondition';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import { Footer } from './components/Footer';
-import { WhatsAppButton } from './components/WhatsAppButton';
+// import { WhatsAppButton } from './components/WhatsAppButton'; // Kept for reference
+import { Chatbot } from './components/Chatbot';
 import './App.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -41,8 +43,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const AppContent = () => {
-  const location = useLocation();
-  const isProfilePage = location.pathname.startsWith('/profile');
+  const shouldHideFooter = location.pathname.startsWith('/profile') || location.pathname === '/login' || location.pathname === '/verify-otp';
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden">
@@ -67,7 +68,7 @@ const AppContent = () => {
 
           <Route path="/dashboard" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/venues" element={<Venues />} /> {/* Changed from ProtectedRoute<Venues /> to Venues */}
-          <Route path="/venues/:id" element={<ProtectedRoute><VenueDetailsPage /></ProtectedRoute>} />
+          <Route path="/venues/:id" element={<VenueDetailsPage />} />
           <Route path="/booking/slots" element={<ProtectedRoute><SlotSelection /></ProtectedRoute>} />
           <Route path="/booking/summary" element={<ProtectedRoute><BookingSummary /></ProtectedRoute>} />
           <Route path="/community" element={<Community />} />
@@ -77,10 +78,12 @@ const AppContent = () => {
           <Route path="/loyalty" element={<ProtectedRoute><Loyalty /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+          <Route path="/terms" element={<TermsCondition />} />
         </Routes>
       </div>
-      {!isProfilePage && <Footer />}
-      <WhatsAppButton />
+      {!shouldHideFooter && <Footer />}
+      {/* <WhatsAppButton /> */}
+      <Chatbot />
     </div>
   );
 };

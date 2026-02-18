@@ -310,37 +310,37 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
 const SlotCard = ({ slot, onClick, onDelete, isDate }) => (
   <div
     onClick={onClick}
-    className={`group relative p-3 rounded-xl border transition-all cursor-pointer hover:-translate-y-0.5 ${isDate ? 'bg-blue-50/50 border-blue-100 hover:border-blue-300 hover:shadow-md hover:shadow-blue-50' : 'bg-slate-50 border-slate-200 hover:border-green-400 hover:shadow-md hover:shadow-green-50'}`}
+    className={`group relative p-3 rounded-xl border transition-all cursor-pointer hover:-translate-y-0.5 flex flex-col h-full ${isDate ? 'bg-blue-50 border-blue-200 hover:border-blue-400 hover:shadow-md hover:shadow-blue-100' : 'bg-white border-slate-200 hover:border-green-400 hover:shadow-md hover:shadow-green-50'}`}
   >
+    <button
+      onClick={(e) => { e.stopPropagation(); onDelete(); }}
+      className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-600 hover:bg-white rounded-full transition-colors z-10"
+    >
+      <X className="h-3.5 w-3.5" />
+    </button>
     <div className="flex justify-between items-start mb-2">
-      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-100">
+      <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-md border ${isDate ? 'bg-white text-blue-700 border-blue-100' : 'bg-slate-50 text-slate-600 border-slate-100'}`}>
         <Clock className="h-3 w-3" />
         {slot.slotFrom} - {slot.slotTo}
       </div>
-      <button
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        className="p-1 text-slate-300 hover:text-red-500 hover:bg-white rounded transition-colors"
-      >
-        <X className="h-3.5 w-3.5" />
-      </button>
     </div>
 
     {isDate && slot.dates && (
-      <div className="flex flex-wrap gap-1 mb-2">
+      <div className="flex flex-wrap gap-1 mb-3 flex-1">
         {slot.dates.slice(0, 3).map(d => (
-          <span key={d} className="text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 rounded">{new Date(d).getDate()}</span>
+          <span key={d} className="text-[10px] font-bold text-blue-800 bg-white border border-blue-100 px-1.5 py-0.5 rounded shadow-sm">{new Date(d).getDate()}</span>
         ))}
-        {slot.dates.length > 3 && <span className="text-[10px] text-blue-400">+{slot.dates.length - 3}</span>}
+        {slot.dates.length > 3 && <span className="text-[10px] font-bold text-blue-600 self-center">+{slot.dates.length - 3}</span>}
       </div>
     )}
 
-    <div className="flex items-end justify-between">
+    <div className={`flex items-end justify-between ${!isDate ? 'mt-auto' : ''}`}>
       <div>
-        <p className="text-[10px] font-bold text-slate-400 uppercase">Price</p>
-        <p className={`font-bold text-lg ${isDate ? 'text-blue-600' : 'text-green-600'}`}>₹{slot.price}</p>
+        <p className={`text-[10px] font-bold uppercase mb-0.5 ${isDate ? 'text-blue-500' : 'text-slate-400'}`}>Price</p>
+        <p className={`font-bold text-lg ${isDate ? 'text-blue-700' : 'text-slate-900'}`}>₹{slot.price}</p>
       </div>
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1 rounded border border-slate-100 shadow-sm">
-        <Edit2 className="h-3 w-3 text-slate-400" />
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1.5 rounded-lg border border-slate-100 shadow-sm text-slate-500">
+        <Edit2 className="h-3.5 w-3.5" />
       </div>
     </div>
   </div>

@@ -1,10 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { motion } from 'framer-motion';
 
 export const OTPVerification: React.FC = () => {
     const [otp, setOtp] = useState(['', '', '', '', '']);
@@ -14,7 +13,14 @@ export const OTPVerification: React.FC = () => {
 
     const location = useLocation();
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, isAuthenticated } = useAuth();
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            const from = (location.state as any)?.from?.pathname || '/';
+            navigate(from, { replace: true });
+        }
+    }, [isAuthenticated, navigate, location]);
 
     const phone = location.state?.phoneNumber || location.state?.phone;
 
@@ -59,8 +65,9 @@ export const OTPVerification: React.FC = () => {
                 login(response.data.access_token);
                 login(response.data.access_token);
                 // Redirect to original destination or home
-                const from = location.state?.from?.pathname || '/';
-                navigate(from, { replace: true });
+                const from = (location.state as any)?.from?.pathname || '/';
+                const fromState = (location.state as any)?.from?.state;
+                navigate(from, { replace: true, state: fromState });
             } else if (response.data.needs_profile) {
                 navigate('/setup-profile', { state: { phone } });
             } else {
@@ -89,156 +96,103 @@ export const OTPVerification: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-black relative overflow-hidden">
-            {/* Animated Background */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 1 }}
-                className="absolute inset-0"
-            >
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2035')] bg-cover bg-center opacity-20" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-blue-900/60 to-transparent" />
-            </motion.div>
+        <div className="fixed inset-0 z-[200] w-screen h-screen bg-black flex items-center justify-center p-4 overflow-hidden top-0 left-0 m-0">
+            <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/90 to-black z-10" />
+                <img
+                    src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2035"
+                    alt="Background"
+                    className="w-full h-full object-cover opacity-40"
+                />
+            </div>
 
-            {/* Floating Elements */}
-            <motion.div
-                animate={{
-                    scale: [1, 1.2, 1],
-                    opacity: [0.3, 0.6, 0.3]
-                }}
-                transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                }}
-                className="absolute top-16 left-16 w-40 h-40 bg-primary/10 rounded-full blur-2xl"
-            />
+            <div className="relative z-10 w-full max-w-md">
+                <Card variant="glass" className="border-white/10 shadow-2xl bg-black/40 backdrop-blur-xl">
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <div className="inline-block px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
+                            <span className="text-xl font-black text-primary tracking-widest">VERIFY</span>
+                        </div>
+                        <h1 className="text-3xl md:text-4xl font-black text-white mb-2 font-montserrat">
+                            Enter Code
+                        </h1>
+                        <p className="text-white/60 text-sm">
+                            We've sent a 5-digit code to {phone}
+                        </p>
+                    </div>
 
-            <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-                <motion.div
-                    initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="w-full max-w-md"
-                >
-                    <Card variant="glass" className="border-white/20 shadow-2xl">
-                        {/* Header */}
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                            className="text-center mb-8"
+                    {/* OTP Input */}
+                    <div className="flex justify-center gap-3 mb-6">
+                        {otp.map((digit, index) => (
+                            <input
+                                key={index}
+                                ref={(ref) => { otpInputs.current[index] = ref; }}
+                                type="text"
+                                maxLength={1}
+                                value={digit}
+                                onChange={(e) => handleOtpChange(e.target.value, index)}
+                                onKeyDown={(e) => handleKeyPress(e, index)}
+                                className="w-12 h-12 md:w-14 md:h-14 text-center text-2xl font-bold bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
+                            />
+                        ))}
+                    </div>
+
+                    {/* Error Message */}
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
+                            <p className="text-red-400 text-sm text-center font-semibold">{error}</p>
+                        </div>
+                    )}
+
+                    {/* Dev Hint */}
+                    <div className="text-center mb-6">
+                        <p className="text-xs text-white/30">Try: <span className="text-primary/70 font-bold">12345</span></p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="space-y-4">
+                        <Button
+                            onClick={() => verifyOTP(otp.join(''))}
+                            disabled={loading || otp.join('').length !== 5}
+                            size="lg"
+                            className="w-full py-3 px-4 bg-primary text-black hover:bg-primary-hover border-0 font-bold uppercase tracking-wider"
                         >
-                            <div className="inline-block px-6 py-3 rounded-full bg-primary/20 border border-primary/30 mb-4">
-                                <span className="text-2xl font-black text-primary tracking-widest">VERIFY</span>
-                            </div>
-                            <h1 className="text-3xl md:text-4xl font-black text-white mb-2 font-montserrat">
-                                Enter Code
-                            </h1>
-                            <p className="text-white/70 text-sm">
-                                We've sent a 5-digit code to +91 {phone.replace('+91', '')}
-                            </p>
-                        </motion.div>
+                            {loading ? 'Verifying...' : 'Verify Code'}
+                        </Button>
 
-                        {/* OTP Input */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4 }}
-                            className="flex justify-center gap-3 mb-6"
-                        >
-                            {otp.map((digit, index) => (
-                                <motion.input
-                                    key={index}
-                                    ref={(ref) => { otpInputs.current[index] = ref; }}
-                                    type="text"
-                                    maxLength={1}
-                                    value={digit}
-                                    onChange={(e) => handleOtpChange(e.target.value, index)}
-                                    onKeyDown={(e) => handleKeyPress(e, index)}
-                                    className="w-14 h-14 text-center text-2xl font-bold bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all"
-                                    whileFocus={{ scale: 1.1 }}
-                                />
-                            ))}
-                        </motion.div>
-
-                        {/* Error Message */}
-                        {error && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 mb-4"
+                        <div className="flex justify-between items-center text-sm pt-2">
+                            <button
+                                onClick={handleResendOTP}
+                                className="text-primary hover:text-white transition-colors font-semibold text-xs uppercase tracking-wide"
                             >
-                                <p className="text-red-300 text-sm text-center font-semibold">{error}</p>
-                            </motion.div>
-                        )}
-
-                        {/* Dev Hint */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.5 }}
-                            className="text-center mb-6"
-                        >
-                            <p className="text-xs text-white/50">Try: <span className="text-primary font-bold">12345</span></p>
-                        </motion.div>
-
-                        {/* Actions */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.6 }}
-                            className="space-y-4"
-                        >
-                            <Button
-                                onClick={() => verifyOTP(otp.join(''))}
-                                disabled={loading || otp.join('').length !== 5}
-                                size="lg"
-                                className="w-full py-2 px-3 bg-primary text-black hover:bg-white hover:text-black border-0 shadow-glow"
+                                Resend Code
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setOtp(['', '', '', '', '']);
+                                    navigate('/login');
+                                }}
+                                className="text-white/40 hover:text-white transition-colors text-xs uppercase tracking-wide"
                             >
-                                {loading ? 'Verifying...' : 'Verify Code'}
-                            </Button>
+                                Change Number
+                            </button>
+                        </div>
+                    </div>
 
-                            <div className="flex justify-between items-center text-sm">
-                                <button
-                                    onClick={handleResendOTP}
-                                    className="text-primary hover:text-white transition-colors font-semibold"
-                                >
-                                    Resend Code
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setOtp(['', '', '', '', '']);
-                                        navigate('/login');
-                                    }}
-                                    className="text-white/50 hover:text-white transition-colors"
-                                >
-                                    Change Number
-                                </button>
-                            </div>
-                        </motion.div>
-
-                        {/* Terms */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.8 }}
-                            className="mt-8 text-center"
-                        >
-                            <p className="text-xs text-white/50 leading-relaxed">
-                                By continuing, you agree to our{' '}
-                                <span className="text-primary hover:text-white transition-colors cursor-pointer font-semibold">
-                                    Terms of Service
-                                </span>{' '}
-                                &{' '}
-                                <span className="text-primary hover:text-white transition-colors cursor-pointer font-semibold">
-                                    Privacy Policy
-                                </span>
-                            </p>
-                        </motion.div>
-                    </Card>
-                </motion.div>
+                    {/* Terms */}
+                    <div className="mt-8 text-center">
+                        <p className="text-xs text-white/30 leading-relaxed">
+                            By continuing, you agree to our{' '}
+                            <span className="text-primary hover:text-white transition-colors cursor-pointer font-semibold underline underline-offset-2">
+                                Terms of Service
+                            </span>{' '}
+                            &{' '}
+                            <span className="text-primary hover:text-white transition-colors cursor-pointer font-semibold underline underline-offset-2">
+                                Privacy Policy
+                            </span>
+                        </p>
+                    </div>
+                </Card>
             </div>
         </div>
     );

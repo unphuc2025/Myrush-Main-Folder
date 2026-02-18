@@ -38,7 +38,8 @@ def get_courts(
                 ab.address_line1 as location,
                 ab.search_location as description,
                 acity.name as city_name,
-                agt.name as game_type
+                agt.name as game_type,
+                (SELECT COUNT(*) FROM booking b WHERE b.court_id = ac.id AND b.status = 'confirmed') as games_played
             FROM admin_courts ac
             JOIN admin_branches ab ON ac.branch_id = ab.id
             JOIN admin_cities acity ON ab.city_id = acity.id
@@ -100,6 +101,8 @@ def get_courts(
                 "created_at": court_dict['created_at'].isoformat() if court_dict.get('created_at') else None,
                 "updated_at": court_dict['updated_at'].isoformat() if court_dict.get('updated_at') else None,
                 "branch_name": court_dict.get('branch_name', ''),
+                "city_name": court_dict.get('city_name', ''),
+                "games_played": court_dict.get('games_played', 0)
             })
         
         return result

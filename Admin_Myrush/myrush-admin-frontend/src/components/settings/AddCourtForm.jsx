@@ -3,13 +3,13 @@ import {
   Building2, Gamepad2, Coins, CalendarDays, Camera, Video,
   Trash2, Plus, Info, X, MapPin
 } from 'lucide-react';
-import { branchesApi, gameTypesApi, courtsApi, amenitiesApi } from '../../services/adminApi';
+import { branchesApi, gameTypesApi, courtsApi } from '../../services/adminApi';
 import SlotCalendar from './SlotCalendar';
 
 function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
   const [branches, setBranches] = useState([]);
   const [gameTypes, setGameTypes] = useState([]);
-  const [amenities, setAmenities] = useState([]);
+  /* Amenities logic removed */
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -26,21 +26,20 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
     priceConditions: [],
     unavailabilitySlots: [],
     termsAndConditions: '',
-    amenities: [],
+    // amenities: [], // Removed
     isActive: true
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [branchesData, gameTypesData, amenitiesData] = await Promise.all([
+        const [branchesData, gameTypesData] = await Promise.all([
           branchesApi.getAll(),
-          gameTypesApi.getAll(),
-          amenitiesApi.getAll()
+          gameTypesApi.getAll()
         ]);
         setBranches(branchesData);
         setGameTypes(gameTypesData);
-        setAmenities(amenitiesData);
+        // setAmenities(amenitiesData); // Removed
 
         if (initialData) {
           // Parse complex fields if they are strings
@@ -53,14 +52,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
           if (typeof unavailabilitySlots === 'string') {
             try { unavailabilitySlots = JSON.parse(unavailabilitySlots); } catch (e) { console.error('Error parsing unavailability slots', e); }
           }
-
-          let courtAmenities = initialData.amenities || [];
-          // Ensure we have array of IDs
-          if (courtAmenities.length > 0 && typeof courtAmenities[0] === 'object') {
-            courtAmenities = courtAmenities.map(a => a.id);
-          }
-
-
+          /* Amenities parsing removed */
           setFormData({
             name: initialData.name,
             branchId: initialData.branch_id,
@@ -73,7 +65,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
             priceConditions: priceConditions,
             unavailabilitySlots: unavailabilitySlots,
             termsAndConditions: initialData.terms_and_conditions || '',
-            amenities: courtAmenities,
+            // amenities: courtAmenities, // Removed
             isActive: initialData.is_active
           });
         }
@@ -167,7 +159,8 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
       submitData.append('price_conditions', JSON.stringify(priceConditions));
       submitData.append('unavailability_slots', JSON.stringify(formData.unavailabilitySlots));
       submitData.append('terms_and_conditions', formData.termsAndConditions);
-      submitData.append('amenities', JSON.stringify(formData.amenities));
+      submitData.append('terms_and_conditions', formData.termsAndConditions);
+      // submitData.append('amenities', JSON.stringify(formData.amenities)); // Removed as per requirement
 
       // Append new files
       formData.images.forEach(img => submitData.append('images', img.file));
@@ -214,7 +207,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
                 type="text"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300"
+                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300 text-slate-900"
                 placeholder="e.g. Court 1"
                 required
               />
@@ -258,9 +251,21 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
                   required
                 >
                   <option value="">Select Sport</option>
-                  {gameTypes.filter(gt => gt.is_active).map(type => (
-                    <option key={type.id} value={type.id}>{type.name}</option>
-                  ))}
+                  {gameTypes
+                    .filter(gt => gt.is_active)
+                    .filter(gt => {
+                      // Filter by branch if selected
+                      if (!formData.branchId) return true;
+                      const selectedBranch = branches.find(b => b.id === formData.branchId);
+                      // If branch has game_types defined, use them. Otherwise show all (fallback)
+                      if (selectedBranch?.game_types?.length > 0) {
+                        return selectedBranch.game_types.some(bGt => bGt.id === gt.id);
+                      }
+                      return true;
+                    })
+                    .map(type => (
+                      <option key={type.id} value={type.id}>{type.name}</option>
+                    ))}
                 </select>
               </div>
             </div>
@@ -345,29 +350,9 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
           </div>
         </div>
 
-        {/* Amenities */}
-        <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Amenities</label>
-          <div className="flex flex-wrap gap-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
-            {amenities.filter(a => a.is_active).map(amenity => {
-              const isSelected = formData.amenities.includes(amenity.id);
-              return (
-                <button
-                  key={amenity.id}
-                  type="button"
-                  onClick={() => setFormData(prev => ({
-                    ...prev,
-                    amenities: isSelected ? prev.amenities.filter(id => id !== amenity.id) : [...prev.amenities, amenity.id]
-                  }))}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${isSelected ? 'bg-green-600 text-white border-green-600 shadow-md shadow-green-200' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
-                >
-                  {amenity.name}
-                </button>
-              );
-            })}
-            {amenities.length === 0 && <span className="text-sm text-slate-400">No amenities defined.</span>}
-          </div>
-        </div>
+        {/* Amenities section removed as per requirement */}
+
+        <div className="h-px bg-slate-200 my-4" />
 
         <div className="h-px bg-slate-200 my-4" />
 
@@ -397,15 +382,26 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
                 <button type="button" onClick={() => removeUnavailabilitySlot(slot.id)} className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-full opacity-0 group-hover:opacity-100 transition-all">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                  <input type="date" value={slot.date} onChange={(e) => updateUnavailabilitySlot(slot.id, 'date', e.target.value)} className="w-full px-2 py-1.5 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none" />
-                  <input type="text" placeholder="Reason (e.g. Maintenance)" value={slot.reason} onChange={(e) => updateUnavailabilitySlot(slot.id, 'reason', e.target.value)} className="w-full px-2 py-1.5 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none" />
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-3 items-center">
+                  <div className="sm:col-span-4">
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">Date</label>
+                    <input type="date" value={slot.date} onChange={(e) => updateUnavailabilitySlot(slot.id, 'date', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+                  </div>
+                  <div className="sm:col-span-8">
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">Reason</label>
+                    <input type="text" placeholder="Reason (e.g. Maintenance)" value={slot.reason} onChange={(e) => updateUnavailabilitySlot(slot.id, 'reason', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-red-700">Time:</span>
-                  <input type="time" value={slot.from} onChange={(e) => updateUnavailabilitySlot(slot.id, 'from', e.target.value)} className="px-2 py-1 bg-white border border-red-200 rounded text-sm focus:border-red-500 outline-none" />
-                  <span className="text-xs text-red-400">-</span>
-                  <input type="time" value={slot.to} onChange={(e) => updateUnavailabilitySlot(slot.id, 'to', e.target.value)} className="px-2 py-1 bg-white border border-red-200 rounded text-sm focus:border-red-500 outline-none" />
+                <div className="flex items-end gap-3">
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">Start Time</label>
+                    <input type="time" value={slot.from} onChange={(e) => updateUnavailabilitySlot(slot.id, 'from', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+                  </div>
+                  <span className="text-slate-300 font-medium pb-2">-</span>
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">End Time</label>
+                    <input type="time" value={slot.to} onChange={(e) => updateUnavailabilitySlot(slot.id, 'to', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+                  </div>
                 </div>
               </div>
             ))}

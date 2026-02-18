@@ -547,38 +547,42 @@ export const Profile: React.FC = () => {
                             </>
                         ) : (
                             <>
-                                {/* Bookings Header */}
-                                <div className="flex justify-between items-center mb-8">
-                                    <div>
-                                        <h1 className="text-3xl font-black text-gray-900 mb-2">My Bookings</h1>
-                                        <p className="text-gray-600">View and manage your court bookings</p>
-                                    </div>
-                                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                        <Button
-                                            onClick={() => navigate('/venues')}
-                                            className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 border-2 border-primary"
-                                        >
-                                            <span>🏟️</span>
-                                            Book New Court
-                                        </Button>
-                                    </motion.div>
-                                </div>
+                                {currentView === 'bookings' && (
+                                    <>
+                                        {/* Bookings Header */}
+                                        <div className="flex justify-between items-center mb-8">
+                                            <div>
+                                                <h1 className="text-3xl font-black text-gray-900 mb-2">My Bookings</h1>
+                                                <p className="text-gray-600">View and manage your court bookings</p>
+                                            </div>
+                                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                                <Button
+                                                    onClick={() => navigate('/venues')}
+                                                    className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 border-2 border-primary"
+                                                >
+                                                    <span>🏟️</span>
+                                                    Book New Court
+                                                </Button>
+                                            </motion.div>
+                                        </div>
 
-                                {/* Booking Tabs */}
-                                <div className="flex gap-2 mb-6 border-b border-gray-200">
-                                    {['all', 'upcoming', 'completed', 'cancelled'].map(tab => (
-                                        <button
-                                            key={tab}
-                                            className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${activeTab === tab
-                                                ? 'border-primary text-primary bg-primary/5'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700'
-                                                }`}
-                                            onClick={() => setActiveTab(tab as any)}
-                                        >
-                                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                                        </button>
-                                    ))}
-                                </div>
+                                        {/* Booking Tabs */}
+                                        <div className="flex gap-2 mb-6 border-b border-gray-200">
+                                            {['all', 'upcoming', 'completed', 'cancelled'].map(tab => (
+                                                <button
+                                                    key={tab}
+                                                    className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${activeTab === tab
+                                                        ? 'border-primary text-primary bg-primary/5'
+                                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                                        }`}
+                                                    onClick={() => setActiveTab(tab as any)}
+                                                >
+                                                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
 
                                 {/* Bookings Content */}
                                 {bookingsLoading ? (

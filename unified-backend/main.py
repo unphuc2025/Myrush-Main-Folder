@@ -71,6 +71,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["x-rtb-fingerprint-id"], # Fix for Razorpay/Third-party warning
 )
 
 # Add error handling middleware (must be added before other middleware)
@@ -100,9 +101,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# Mount uploads static directory
+# Mount uploads directory for static file serving
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-
 
 
 # Root endpoint
@@ -186,8 +186,16 @@ from routers.user import (
     coupons as user_coupons,
     reviews as user_reviews,
     notifications,
-    courts_ratings
+    notifications,
+    courts_ratings,
+    notifications,
+    courts_ratings,
+    payments,
+    academy
 )
+
+# Import chatbot router
+from routers import chatbot
 
 # Include user routers with /api/user prefix
 app.include_router(user_auth.router, prefix="/api/user", tags=["User Auth"])
@@ -199,6 +207,11 @@ app.include_router(user_coupons.router, prefix="/api/user", tags=["User Coupons"
 app.include_router(user_reviews.router, prefix="/api/user", tags=["User Reviews"])
 app.include_router(notifications.router, prefix="/api/user", tags=["User Notifications"])
 app.include_router(courts_ratings.router, prefix="/api/user", tags=["User Court Ratings"])
+app.include_router(payments.router, prefix="/api/user", tags=["Payments"])
+app.include_router(academy.router, prefix="/api/user/academy", tags=["User Academy"])
+
+# Include chatbot knowledge API
+app.include_router(chatbot.router, tags=["Chatbot Knowledge"])
 
 # ============================================================================
 # PLAYO INTEGRATION ROUTER
@@ -224,3 +237,5 @@ print("Admin API: http://localhost:8000/api/admin")
 print("User API: http://localhost:8000/api/user")
 print("API Docs: http://localhost:8000/docs")
 print("="*60 + "\n")
+# Trigger reload
+

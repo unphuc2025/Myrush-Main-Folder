@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
-from typing import Annotated, Optional, List
+from typing import Annotated, Optional, List, Union
 import os
 from dotenv import load_dotenv
 import models
@@ -176,6 +176,46 @@ def get_admin_branch_filter(
          return []
 
     return list(branch_ids)
+
+class PermissionChecker:
+    def __init__(self, module: Union[str, List[str]], action: str):
+        self.modules = [module] if isinstance(module, str) else module
+        self.action = action
+
+    def __call__(self, admin: models.Admin = Depends(get_current_admin)):
+        # Super admin bypass
+        if admin.role == 'super_admin':
+            return admin
+
+        # Check permissions
+        if not admin.role_rel:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin has no assigned role"
+            )
+
+        permissions = admin.role_rel.permissions
+        if not permissions:
+             raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Role has no permissions defined"
+            )
+
+        # Check ANY of the allowed modules
+        has_access = False
+        for module in self.modules:
+            module_perms = permissions.get(module)
+            if module_perms and module_perms.get(self.action):
+                has_access = True
+                break
+        
+        if not has_access:
+             raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have access"
+            )
+
+        return admin
 
 # ============================================================================
 # OPTIONAL AUTHENTICATION (for public endpoints)

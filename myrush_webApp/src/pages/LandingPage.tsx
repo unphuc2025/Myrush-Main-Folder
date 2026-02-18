@@ -42,7 +42,7 @@ export const LandingPage: React.FC = () => {
             description: 'World-class facilities across 9 centers. Premium turfs, lighting, and amenities.',
             icon: '🏟️',
             image: 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=2070',
-            link: '/venues',
+            link: '/arena',
             colSpan: 'md:col-span-2'
         },
         {
@@ -58,15 +58,16 @@ export const LandingPage: React.FC = () => {
             description: 'Compete in high-stakes leagues and tournaments.',
             icon: '🏆',
             image: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=2086',
-            link: '/dashboard',
-            colSpan: 'md:col-span-1'
+            link: '#',
+            colSpan: 'md:col-span-1',
+            comingSoon: true
         },
         {
             title: 'Corporate',
             description: 'Team building and sports events for businesses.',
             icon: '🤝',
             image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070',
-            link: '/dashboard',
+            link: '/corporate',
             colSpan: 'md:col-span-2'
         }
     ];
@@ -118,12 +119,13 @@ export const LandingPage: React.FC = () => {
                             variant="primary"
                             size="lg"
                             onClick={() => navigate('/venues')}
-                            className="bg-primary text-black hover:bg-white hover:text-black text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                            className="bg-primary text-black hover:bg-primary-hover text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
                         >
                             Book a Court
                         </Button>
                         <Button
-                            className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-black text-lg px-12 py-5 min-w-[240px] uppercase tracking-wider font-montserrat font-black rounded-full transition-all duration-300 flex items-center justify-center gap-3 group"
+                            className="bg-transparent border-2 border-white text-white hover:bg-primary hover:border-primary hover:text-black text-lg px-12 py-5 min-w-[240px] uppercase tracking-wider font-montserrat font-black rounded-full transition-all duration-300 flex items-center justify-center gap-3 group"
+                            onClick={() => navigate('/arena')}
                         >
                             Explore Venues <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
                         </Button>
@@ -154,7 +156,7 @@ export const LandingPage: React.FC = () => {
                             Everything <span className="text-primary">Sport.</span>
                         </h2>
                         <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                            From casual games to professional training, we have got you covered.
+                            Welcome to Rush Arena, a premier chain of sports arenas with 9 centers, offering world-class facilities. Located in Bengaluru, Hyderabad and Chennai.
                         </p>
                     </div>
 
@@ -169,7 +171,12 @@ export const LandingPage: React.FC = () => {
                                 initial="hidden"
                                 whileInView="visible"
                                 viewport={{ once: true, margin: "-50px" }}
-                                onClick={() => navigate(service.link)}
+                                onClick={() => {
+                                    // @ts-ignore
+                                    if (!service.comingSoon) {
+                                        navigate(service.link);
+                                    }
+                                }}
                             >
                                 <div className="absolute inset-0">
                                     <img
@@ -185,9 +192,16 @@ export const LandingPage: React.FC = () => {
                                         <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-2xl text-white border border-white/20">
                                             {service.icon}
                                         </div>
-                                        <div className="w-10 h-10 rounded-full bg-primary text-black flex items-center justify-center opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg font-bold text-lg">
-                                            ↗
-                                        </div>
+                                        {/* @ts-ignore */}
+                                        {service.comingSoon ? (
+                                            <span className="px-3 py-1 rounded-full bg-primary text-black text-xs font-bold uppercase tracking-wider shadow-lg">
+                                                Coming Soon
+                                            </span>
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-primary text-black flex items-center justify-center opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg font-bold text-lg">
+                                                ↗
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">

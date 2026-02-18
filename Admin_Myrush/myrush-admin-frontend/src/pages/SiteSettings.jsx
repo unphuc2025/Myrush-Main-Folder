@@ -150,7 +150,7 @@ const SiteSettings = () => {
                                         required
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
                                         placeholder="company@example.com"
                                     />
                                 </div>
@@ -168,7 +168,7 @@ const SiteSettings = () => {
                                         required
                                         value={formData.contact_number}
                                         onChange={(e) => setFormData({ ...formData, contact_number: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
                                         placeholder="+1 234 567 8900"
                                     />
                                 </div>
@@ -187,7 +187,7 @@ const SiteSettings = () => {
                                     rows="3"
                                     value={formData.address}
                                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
+                                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none text-slate-900"
                                     placeholder="Enter full business address"
                                 />
                             </div>
@@ -205,7 +205,7 @@ const SiteSettings = () => {
                                     required
                                     value={formData.copyright_text}
                                     onChange={(e) => setFormData({ ...formData, copyright_text: e.target.value })}
-                                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
                                     placeholder="&copy; {{YEAR}} RUSH Pitch Booking. All Rights Reserved"
                                 />
                             </div>

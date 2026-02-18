@@ -4,7 +4,7 @@ from typing import List, Optional
 from decimal import Decimal
 import models, schemas
 from database import get_db
-from dependencies import get_admin_branch_filter
+from dependencies import get_admin_branch_filter, PermissionChecker
 import uuid
 import os
 import shutil
@@ -13,10 +13,11 @@ from pathlib import Path
 from utils import s3_utils
 
 # Create uploads directory if it doesn't exist
-UPLOAD_DIR_IMAGES = Path("uploads/courts/images")
-UPLOAD_DIR_VIDEOS = Path("uploads/courts/videos")
-UPLOAD_DIR_IMAGES.mkdir(parents=True, exist_ok=True)
-UPLOAD_DIR_VIDEOS.mkdir(parents=True, exist_ok=True)
+# (Local upload logic removed in favor of S3)
+# UPLOAD_DIR_IMAGES = Path("uploads/courts/images")
+# UPLOAD_DIR_VIDEOS = Path("uploads/courts/videos")
+# UPLOAD_DIR_IMAGES.mkdir(parents=True, exist_ok=True)
+# UPLOAD_DIR_VIDEOS.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter(
     prefix="/courts",
@@ -31,6 +32,7 @@ def get_all_courts(
     branch_id: str = None, 
     game_type_id: str = None, 
     db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker("Manage Courts", "view")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Get all courts, filtered by branch access rights"""
@@ -58,7 +60,7 @@ def get_all_courts(
         
     return query.all()
 
-@router.get("/{court_id}", response_model=schemas.Court)
+@router.get("/{court_id}", response_model=schemas.Court, dependencies=[Depends(PermissionChecker("Manage Courts", "view"))])
 def get_court(court_id: str, db: Session = Depends(get_db)):
     """Get a specific court by ID"""
     court = db.query(models.Court).filter(models.Court.id == court_id).first()
@@ -81,6 +83,7 @@ async def create_court(
     images: Optional[List[UploadFile]] = File(None),
     videos: Optional[List[UploadFile]] = File(None),
     db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker("Manage Courts", "add")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Create a new court with file uploads"""
@@ -207,6 +210,7 @@ async def update_court(
     existing_images: Optional[List[str]] = Form(None),
     existing_videos: Optional[List[str]] = Form(None),
     db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker("Manage Courts", "edit")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Update a court with file uploads"""
@@ -297,7 +301,7 @@ async def update_court(
     db.refresh(db_court)
     return db_court
 
-@router.patch("/{court_id}/toggle", response_model=schemas.Court)
+@router.patch("/{court_id}/toggle", response_model=schemas.Court, dependencies=[Depends(PermissionChecker("Manage Courts", "edit"))])
 def toggle_court_status(
     court_id: str, 
     db: Session = Depends(get_db),
@@ -318,7 +322,7 @@ def toggle_court_status(
     db.refresh(db_court)
     return db_court
 
-@router.delete("/{court_id}")
+@router.delete("/{court_id}", dependencies=[Depends(PermissionChecker("Manage Courts", "delete"))])
 def delete_court(
     court_id: str, 
     db: Session = Depends(get_db),
@@ -349,6 +353,7 @@ async def bulk_update_slots(
     branch_id: Optional[str] = Form(None),
     game_type_id: Optional[str] = Form(None),
     db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker("Manage Courts", "edit")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Bulk update slots for all courts (or filtered by branch/game_type) for a specific date"""

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from dependencies import PermissionChecker
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import models, schemas
@@ -10,7 +11,7 @@ router = APIRouter(
     tags=["policies"]
 )
 
-@router.get("", response_model=List[schemas.AdminPolicy])
+@router.get("", response_model=List[schemas.AdminPolicy], dependencies=[Depends(PermissionChecker("Settings", "view"))])
 def get_policies(type: Optional[str] = None, db: Session = Depends(get_db)):
     """Get all policies, optionally filtered by type"""
     query = db.query(models.AdminPolicy)
@@ -18,7 +19,7 @@ def get_policies(type: Optional[str] = None, db: Session = Depends(get_db)):
         query = query.filter(models.AdminPolicy.type == type)
     return query.all()
 
-@router.get("/{policy_id}", response_model=schemas.AdminPolicy)
+@router.get("/{policy_id}", response_model=schemas.AdminPolicy, dependencies=[Depends(PermissionChecker("Settings", "view"))])
 def get_policy(policy_id: str, db: Session = Depends(get_db)):
     """Get a specific policy by ID"""
     policy = db.query(models.AdminPolicy).filter(models.AdminPolicy.id == policy_id).first()
@@ -26,7 +27,7 @@ def get_policy(policy_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Policy not found")
     return policy
 
-@router.post("", response_model=schemas.AdminPolicy, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=schemas.AdminPolicy, status_code=status.HTTP_201_CREATED, dependencies=[Depends(PermissionChecker("Settings", "add"))])
 def create_policy(policy: schemas.AdminPolicyCreate, db: Session = Depends(get_db)):
     """Create a new policy"""
     new_policy = models.AdminPolicy(
@@ -41,7 +42,7 @@ def create_policy(policy: schemas.AdminPolicyCreate, db: Session = Depends(get_d
     db.refresh(new_policy)
     return new_policy
 
-@router.put("/{policy_id}", response_model=schemas.AdminPolicy)
+@router.put("/{policy_id}", response_model=schemas.AdminPolicy, dependencies=[Depends(PermissionChecker("Settings", "edit"))])
 def update_policy(policy_id: str, policy_update: schemas.AdminPolicyUpdate, db: Session = Depends(get_db)):
     """Update a policy"""
     db_policy = db.query(models.AdminPolicy).filter(models.AdminPolicy.id == policy_id).first()
@@ -61,7 +62,7 @@ def update_policy(policy_id: str, policy_update: schemas.AdminPolicyUpdate, db: 
     db.refresh(db_policy)
     return db_policy
 
-@router.delete("/{policy_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{policy_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(PermissionChecker("Settings", "delete"))])
 def delete_policy(policy_id: str, db: Session = Depends(get_db)):
     """Delete a policy"""
     db_policy = db.query(models.AdminPolicy).filter(models.AdminPolicy.id == policy_id).first()

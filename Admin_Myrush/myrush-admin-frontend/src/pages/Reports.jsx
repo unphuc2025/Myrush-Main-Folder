@@ -309,19 +309,19 @@ const Reports = () => {
                                 }
                             </select>
                         </div>
-                        <div className="flex items-center gap-2 flex-1 md:flex-none w-full md:w-auto">
+                        <div className="flex items-center gap-2 flex-1 md:flex-none w-full md:w-auto min-w-[300px]">
                             <input
                                 type="date"
                                 value={dateRange.start}
                                 onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                                className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-sm outline-none w-full md:w-auto"
+                                className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-sm outline-none w-full md:w-auto focus:border-green-500 transition-colors"
                             />
-                            <span className="text-slate-400">-</span>
+                            <span className="text-slate-400 font-medium">-</span>
                             <input
                                 type="date"
                                 value={dateRange.end}
                                 onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                                className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-sm outline-none w-full md:w-auto"
+                                className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-sm outline-none w-full md:w-auto focus:border-green-500 transition-colors"
                             />
                         </div>
                     </div>

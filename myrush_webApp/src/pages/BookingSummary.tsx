@@ -11,6 +11,8 @@ interface Slot {
     time: string;
     display_time: string;
     price: number;
+    court_id?: string;
+    court_name?: string;
 }
 
 interface LocationState {
@@ -18,6 +20,7 @@ interface LocationState {
     date: string;
     selectedSlots: Slot[];
     totalPrice: number;
+    numPlayers?: number; // Receive optional numPlayers
     venueImage?: string;
 }
 
@@ -27,7 +30,7 @@ export const BookingSummary: React.FC = () => {
     const state = location.state as LocationState;
 
     const [venue, setVenue] = useState<any>(null);
-    const [numPlayers, setNumPlayers] = useState(2);
+    const [numPlayers, setNumPlayers] = useState(state.numPlayers || 2); // Initialize from state or default 2
     const [teamName, setTeamName] = useState('');
     const [couponCode, setCouponCode] = useState('');
     const [discount, setDiscount] = useState(0);
@@ -51,9 +54,9 @@ export const BookingSummary: React.FC = () => {
     if (!state || !venue) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div></div>;
 
     // Calculations
-    const slotsCost = state.selectedSlots.length * (state.selectedSlots[0]?.price || 0);
+    const slotsCost = state.selectedSlots.length * (state.selectedSlots[0]?.price || 0) * numPlayers;
     const platformFee = 20;
-    const tax = Math.round(slotsCost * 0.18);
+    const tax = 0; // Backend does not charge tax yet
     const totalAmount = slotsCost + platformFee + tax - discount;
 
     const handleApplyCoupon = () => {
@@ -65,38 +68,114 @@ export const BookingSummary: React.FC = () => {
         }
     };
 
+    const loadRazorpay = () => {
+        return new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
+
     const handleConfirm = async () => {
         setSubmitting(true);
         try {
+            const isLoaded = await loadRazorpay();
+            if (!isLoaded) {
+                alert('Razorpay SDK failed to load. Are you online?');
+                setSubmitting(false);
+                return;
+            }
+
             const sortedSlots = [...state.selectedSlots].sort((a, b) => a.time.localeCompare(b.time));
             const startTime = sortedSlots[0].time;
             const durationMinutes = sortedSlots.length * 60;
 
-            const payload = {
-                courtId: state.venueId,
+            // 1. Create Payment Order
+            const orderRes = await bookingsApi.createPaymentOrder({
+                courtId: state.selectedSlots[0]?.court_id || state.venueId, // Prioritize specific court ID
                 bookingDate: state.date,
                 startTime: startTime,
                 durationMinutes: durationMinutes,
-                numberOfPlayers: numPlayers,
-                pricePerHour: sortedSlots[0].price,
-                teamName: teamName,
                 timeSlots: state.selectedSlots,
-                totalAmount: totalAmount
+                numberOfPlayers: numPlayers,
+                couponCode: couponCode // Pass current coupon code state
+            });
+
+            if (!orderRes.success || !orderRes.data) {
+                alert('Failed to initiate payment: ' + (orderRes.data?.detail || 'Unknown error'));
+                setSubmitting(false);
+                return;
+            }
+
+            const { id: order_id, amount, currency, key_id } = orderRes.data;
+
+            // 2. Open Razorpay Checkout
+            const options = {
+                key: key_id,
+                amount: amount,
+                currency: currency,
+                name: "MyRush",
+                description: `Booking for ${venue.court_name}`,
+                image: `${window.location.origin}/Rush-logo.webp`, // Use local valid logo
+                order_id: order_id,
+                handler: async function (response: any) {
+                    // 3. Verify & Create Booking
+                    try {
+                        const payload = {
+                            courtId: state.selectedSlots[0]?.court_id || state.venueId,
+                            bookingDate: state.date,
+                            startTime: startTime,
+                            durationMinutes: durationMinutes,
+                            numberOfPlayers: numPlayers,
+                            pricePerHour: sortedSlots[0].price,
+                            teamName: teamName,
+                            timeSlots: state.selectedSlots,
+                            totalAmount: totalAmount,
+                            originalAmount: slotsCost + platformFee, // Pass original amount (Base + Fee) for backend validation
+                            // Razorpay Details
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature
+                        };
+
+                        const res = await bookingsApi.createBooking(payload);
+
+                        if (res.success) {
+                            alert('Booking Confirmed!');
+                            navigate('/bookings');
+                        } else {
+                            alert('Payment successful but booking creation failed. Please contact support. ' + (res.data?.detail || ''));
+                        }
+                    } catch (err: any) {
+                        alert('Error confirming booking: ' + err.message);
+                    }
+                },
+                prefill: {
+                    name: "MyRush User", // Ideally dynamic user details
+                    email: "user@example.com",
+                    contact: "9999999999"
+                },
+                notes: {
+                    address: "MyRush Corporate Office"
+                },
+                theme: {
+                    color: "#3399cc"
+                }
             };
 
-            const res = await bookingsApi.createBooking(payload);
+            const paymentObject = new (window as any).Razorpay(options);
+            paymentObject.open();
 
-            if (res.success) {
-                alert('Booking Confirmed!');
-                navigate('/bookings');
-            } else {
-                alert('Booking failed: ' + (res.data?.detail || 'Unknown error'));
-            }
         } catch (error) {
             console.error(error);
-            alert('An error occurred');
+            alert('An error occurred during transaction');
         } finally {
-            setSubmitting(false);
+            setSubmitting(false); // Note: Razorpay modal stays open, but we reset button state. 
+            // Might want to keep it loading until handler returns, but Razorpay is async. 
+            // Actually, keep submitting true creates better UX if we handle failures in handler.
+            // But for now, reset on modal open/error.
         }
     };
 
@@ -172,7 +251,7 @@ export const BookingSummary: React.FC = () => {
                                         type="text"
                                         value={teamName}
                                         onChange={(e) => setTeamName(e.target.value)}
-                                        className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 font-medium focus:border-black transition-colors"
+                                        className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 font-medium focus:border-black transition-colors text-gray-900"
                                         placeholder="e.g. Thunder Strikers"
                                     />
                                 </div>
@@ -189,14 +268,14 @@ export const BookingSummary: React.FC = () => {
 
                                 <div className="space-y-4 mb-6">
                                     <div className="flex justify-between text-sm text-gray-600 font-medium">
-                                        <span>Slot Price ({state.selectedSlots.length} slots)</span>
+                                        <span>Slot Price ({state.selectedSlots.length} slots x {numPlayers} players)</span>
                                         <span>₹{slotsCost}</span>
                                     </div>
                                     <div className="flex justify-between text-sm text-gray-600 font-medium">
                                         <span>Convenience Fee</span>
                                         <span>₹{platformFee}</span>
                                     </div>
-                                    <div className="flex justify-between text-sm text-gray-600 font-medium">
+                                    <div className="flex justify-between text-sm text-gray-600 font-medium hidden">
                                         <span>Taxes (18% GST)</span>
                                         <span>₹{tax}</span>
                                     </div>
@@ -223,7 +302,7 @@ export const BookingSummary: React.FC = () => {
                                                 type="text"
                                                 value={couponCode}
                                                 onChange={(e) => setCouponCode(e.target.value)}
-                                                className="w-full h-11 pl-10 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold uppercase placeholder:normal-case focus:border-primary/50"
+                                                className="w-full h-11 pl-10 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold uppercase placeholder:normal-case focus:border-primary/50 text-gray-900"
                                                 placeholder="Enter code"
                                             />
                                         </div>

@@ -190,7 +190,7 @@ function BookingsManager() {
                             placeholder="Search projects, venues..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm"
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm text-slate-900"
                         />
                     </div>
 
@@ -290,7 +290,7 @@ function BookingsManager() {
                                         </th>
                                         <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">ADVANCE</th>
                                         <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">REMAINING</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">TYPE</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">PAYMENT</th>
                                         <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">STATUS</th>
                                         <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right pr-6">ACTION</th>
                                     </tr>
@@ -341,22 +341,29 @@ function BookingsManager() {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className="text-xs font-bold text-slate-600">
-                                                        ₹{['paid', 'completed', 'succeeded', 'confirmed'].includes(booking.payment_status?.toLowerCase())
+                                                        ₹{['paid', 'completed', 'succeeded', 'confirmed', 'success'].includes(booking.payment_status?.toLowerCase())
                                                             ? booking.total_amount
                                                             : (booking.advance_amount || 0)}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className="text-xs font-bold text-red-600">
-                                                        ₹{['paid', 'completed', 'succeeded', 'confirmed'].includes(booking.payment_status?.toLowerCase())
+                                                        ₹{['paid', 'completed', 'succeeded', 'confirmed', 'success'].includes(booking.payment_status?.toLowerCase())
                                                             ? 0
                                                             : (booking.total_amount - (booking.advance_amount || 0))}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 uppercase">
-                                                        Online
-                                                    </span>
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${getPaymentColor(booking.payment_status?.toLowerCase() || 'pending')}`}>
+                                                            {booking.payment_status || 'Pending'}
+                                                        </span>
+                                                        {booking.payment_id && (
+                                                            <span className="text-[9px] text-slate-400 font-mono" title={booking.payment_id}>
+                                                                #{booking.payment_id.slice(-6)}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
                                                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${getStatusColor(booking.status)}`}>
@@ -473,7 +480,7 @@ function BookingsManager() {
                                             <div className="text-right">
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase">Due</p>
                                                 <p className="text-sm font-bold text-red-600">
-                                                    ₹{['paid', 'completed', 'succeeded', 'confirmed'].includes(booking.payment_status?.toLowerCase())
+                                                    ₹{['paid', 'completed', 'succeeded', 'confirmed', 'success'].includes(booking.payment_status?.toLowerCase())
                                                         ? 0
                                                         : (booking.total_amount - (booking.advance_amount || 0))}
                                                 </p>

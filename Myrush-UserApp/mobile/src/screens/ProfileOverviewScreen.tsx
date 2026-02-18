@@ -9,6 +9,7 @@ import {
     Platform,
     Image,
     StatusBar,
+    Alert,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -91,7 +92,14 @@ const ProfileOverviewScreen = () => {
                 >
                     <View style={styles.avatarContainer}>
                         <View style={styles.avatar}>
-                            <Ionicons name="person" size={moderateScale(35)} color="#FFF" />
+                            {(profileData?.avatar_url || user?.avatarUrl) ? (
+                                <Image
+                                    source={{ uri: profileData?.avatar_url || user?.avatarUrl || '' }}
+                                    style={{ width: '100%', height: '100%', borderRadius: 100 }}
+                                />
+                            ) : (
+                                <Ionicons name="person" size={moderateScale(35)} color="#FFF" />
+                            )}
                         </View>
                         <View style={styles.verifiedBadge}>
                             <Ionicons name="checkmark" size={moderateScale(10)} color="#fff" />
@@ -108,7 +116,8 @@ const ProfileOverviewScreen = () => {
                 </LinearGradient>
 
                 {/* Loyalty Program Section */}
-                <TouchableOpacity
+                {/* Loyalty Program Section - Hidden for MVP */}
+                {/* <TouchableOpacity
                     style={styles.loyaltyCard}
                     onPress={() => navigation.navigate('RedemptionStore')}
                 >
@@ -138,7 +147,7 @@ const ProfileOverviewScreen = () => {
                             <Text style={styles.progressText}>750 points to Platinum</Text>
                         </View>
                     </LinearGradient>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 {/* Stats Grid */}
                 <View style={styles.statsGrid}>
@@ -164,17 +173,33 @@ const ProfileOverviewScreen = () => {
                 <View style={styles.menuContainer}>
                     <Text style={styles.sectionHeader}>Account</Text>
 
-                    {renderMenuItem('people-outline', 'Community', () => navigation.navigate('Community' as any))}
+                    {/* <Text style={[styles.sectionHeader, { fontSize: 12, color: '#666', marginTop: 0, marginBottom: 10 }]}>(Coming Soon)</Text> */}
+
+                    {/* {renderMenuItem('people-outline', 'Community', () => navigation.navigate('Community' as any))} */}
                     {renderMenuItem('calendar-outline', 'My Bookings', () => navigation.navigate('BookTab'))}
-                    {renderMenuItem('ribbon-outline', 'Memberships', () => navigation.navigate('Membership'))}
-                    {renderMenuItem('trophy-outline', 'Tournaments', () => { })}
-                    {renderMenuItem('card-outline', 'Payment Methods', () => { })}
+                    {/* {renderMenuItem('ribbon-outline', 'Memberships', () => navigation.navigate('Membership'))} */}
+                    {/* {renderMenuItem('trophy-outline', 'Tournaments', () => { })} */}
+                    {renderMenuItem('card-outline', 'Payment Methods', () => navigation.navigate('Payments'))}
 
                     <Text style={[styles.sectionHeader, { marginTop: hp(3) }]}>Support</Text>
-                    {renderMenuItem('help-circle-outline', 'Help & Support', () => { })}
-                    {renderMenuItem('shield-checkmark-outline', 'Privacy Policy', () => { })}
+                    {renderMenuItem('help-circle-outline', 'Help & Support', () => navigation.navigate('Support'))}
+                    {renderMenuItem('shield-checkmark-outline', 'Privacy Policy', () => alert('Coming Soon'))}
 
-                    <TouchableOpacity style={styles.logoutButton}>
+                    <TouchableOpacity
+                        style={styles.logoutButton}
+                        onPress={() => {
+                            Alert.alert('Logout', 'Are you sure you want to logout?', [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                    text: 'Logout',
+                                    style: 'destructive',
+                                    onPress: () => {
+                                        useAuthStore.getState().logout();
+                                    }
+                                }
+                            ]);
+                        }}
+                    >
                         <Text style={styles.logoutText}>Log Out</Text>
                     </TouchableOpacity>
                 </View>

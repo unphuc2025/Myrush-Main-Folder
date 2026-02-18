@@ -9,14 +9,15 @@ router = APIRouter(
     prefix="/roles",
     tags=["roles"]
 )
+from dependencies import PermissionChecker
 
-@router.get("", response_model=List[schemas.RoleResponse])
-@router.get("/", response_model=List[schemas.RoleResponse])
+@router.get("", response_model=List[schemas.RoleResponse], dependencies=[Depends(PermissionChecker("Role Management", "view"))])
+@router.get("/", response_model=List[schemas.RoleResponse], dependencies=[Depends(PermissionChecker("Role Management", "view"))])
 def get_all_roles(db: Session = Depends(get_db)):
     """Get all roles"""
     return db.query(models.Role).all()
 
-@router.get("/{role_id}", response_model=schemas.RoleResponse)
+@router.get("/{role_id}", response_model=schemas.RoleResponse, dependencies=[Depends(PermissionChecker("Role Management", "view"))])
 def get_role(role_id: str, db: Session = Depends(get_db)):
     """Get a specific role by ID"""
     role = db.query(models.Role).filter(models.Role.id == role_id).first()
@@ -24,8 +25,8 @@ def get_role(role_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Role not found")
     return role
 
-@router.post("", response_model=schemas.RoleResponse)
-@router.post("/", response_model=schemas.RoleResponse)
+@router.post("", response_model=schemas.RoleResponse, dependencies=[Depends(PermissionChecker("Role Management", "add"))])
+@router.post("/", response_model=schemas.RoleResponse, dependencies=[Depends(PermissionChecker("Role Management", "add"))])
 def create_role(role: schemas.RoleCreate, db: Session = Depends(get_db)):
     """Create a new role"""
     try:
@@ -42,7 +43,7 @@ def create_role(role: schemas.RoleCreate, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=400, detail="Role with this name already exists")
 
-@router.put("/{role_id}", response_model=schemas.RoleResponse)
+@router.put("/{role_id}", response_model=schemas.RoleResponse, dependencies=[Depends(PermissionChecker("Role Management", "edit"))])
 def update_role(role_id: str, role_update: schemas.RoleUpdate, db: Session = Depends(get_db)):
     """Update a role"""
     db_role = db.query(models.Role).filter(models.Role.id == role_id).first()
@@ -67,16 +68,16 @@ def update_role(role_id: str, role_update: schemas.RoleUpdate, db: Session = Dep
     db.refresh(db_role)
     return db_role
 
-@router.delete("/{role_id}")
+@router.delete("/{role_id}", dependencies=[Depends(PermissionChecker("Role Management", "delete"))])
 def delete_role(role_id: str, db: Session = Depends(get_db)):
     """Delete a role"""
     db_role = db.query(models.Role).filter(models.Role.id == role_id).first()
     if not db_role:
         raise HTTPException(status_code=404, detail="Role not found")
     
-    # Optional: Check if any admin is assigned to this role before deleting
-    # if len(db_role.admins) > 0:
-    #     raise HTTPException(status_code=400, detail="Cannot delete role assigned to users")
+    # Check if any admin is assigned to this role before deleting
+    if db_role.admins: 
+        raise HTTPException(status_code=400, detail="Cannot delete role assigned to users")
         
     db.delete(db_role)
     db.commit()

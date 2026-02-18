@@ -388,7 +388,7 @@ const BookingPolicies = () => {
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             placeholder={formData.type === 'cancellation' ? 'e.g., Standard Cancellation' : 'e.g., General Terms'}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 text-slate-900"
                         />
                     </div>
 
