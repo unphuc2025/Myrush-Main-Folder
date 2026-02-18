@@ -119,12 +119,12 @@ export const LandingPage: React.FC = () => {
                             variant="primary"
                             size="lg"
                             onClick={() => navigate('/venues')}
-                            className="bg-primary text-black hover:bg-white hover:text-black text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                            className="bg-primary text-black hover:bg-primary-hover text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
                         >
                             Book a Court
                         </Button>
                         <Button
-                            className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-black text-lg px-12 py-5 min-w-[240px] uppercase tracking-wider font-montserrat font-black rounded-full transition-all duration-300 flex items-center justify-center gap-3 group"
+                            className="bg-transparent border-2 border-white text-white hover:bg-primary hover:border-primary hover:text-black text-lg px-12 py-5 min-w-[240px] uppercase tracking-wider font-montserrat font-black rounded-full transition-all duration-300 flex items-center justify-center gap-3 group"
                             onClick={() => navigate('/arena')}
                         >
                             Explore Venues <FaArrowRight className="group-hover:translate-x-1 transition-transform" />

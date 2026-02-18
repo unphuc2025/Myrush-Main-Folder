@@ -155,7 +155,7 @@ export const OTPVerification: React.FC = () => {
                             onClick={() => verifyOTP(otp.join(''))}
                             disabled={loading || otp.join('').length !== 5}
                             size="lg"
-                            className="w-full py-3 px-4 bg-primary text-black hover:bg-white hover:text-black border-0 font-bold uppercase tracking-wider"
+                            className="w-full py-3 px-4 bg-primary text-black hover:bg-primary-hover border-0 font-bold uppercase tracking-wider"
                         >
                             {loading ? 'Verifying...' : 'Verify Code'}
                         </Button>

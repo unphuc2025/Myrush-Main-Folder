@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { apiClient } from '../api/client'; // Import API client
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
@@ -32,6 +33,41 @@ export const Academy: React.FC = () => {
 
 // --- LOGGED IN: ENROLLMENT VIEW (NEW USER) ---
 const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll }) => {
+    // State for form fields
+    const [sport, setSport] = useState('Football');
+    const [experience, setExperience] = useState('Beginner');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { user } = useAuth(); // Get user details if available
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        try {
+            // Using the new academy registration endpoint
+            const response = await apiClient.post('/academy/register', {
+                athlete_name: user?.full_name || "Guest User",
+                age_group: "Adult",
+                contact_email: user?.email || "no-email@example.com",
+                phone_number: user?.phone_number || "0000000000",
+                preferred_sport: sport,
+                experience_level: experience
+            });
+
+            if (response.data.success) {
+                alert('Application Submitted Successfully!');
+                onEnroll();
+            } else {
+                alert('Failed to submit application. Please try again.');
+            }
+        } catch (error) {
+            console.error('Academy submission error:', error);
+            alert('An error occurred. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <div className="min-h-screen font-inter relative overflow-hidden">
             {/* Global Atmosphere */}
@@ -54,10 +90,14 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
                     </p>
 
                     <div className="glass-card p-10 rounded-[2.5rem] shadow-xl max-w-xl mx-auto text-left">
-                        <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); onEnroll(); }}>
+                        <form className="space-y-6" onSubmit={handleSubmit}>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-2">Preferred Sport</label>
-                                <select className="w-full h-14 bg-gray-50/50 rounded-xl px-4 font-bold border border-gray-100 focus:border-primary focus:ring-0 transition-all outline-none">
+                                <select
+                                    value={sport}
+                                    onChange={(e) => setSport(e.target.value)}
+                                    className="w-full h-14 bg-gray-50/50 rounded-xl px-4 font-bold border border-gray-100 focus:border-primary focus:ring-0 transition-all outline-none"
+                                >
                                     <option>Football</option>
                                     <option>Badminton</option>
                                     <option>Cricket</option>
@@ -65,14 +105,26 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-2">Experience Level</label>
-                                <select className="w-full h-14 bg-gray-50/50 rounded-xl px-4 font-bold border border-gray-100 focus:border-primary focus:ring-0 transition-all outline-none">
+                                <select
+                                    value={experience}
+                                    onChange={(e) => setExperience(e.target.value)}
+                                    className="w-full h-14 bg-gray-50/50 rounded-xl px-4 font-bold border border-gray-100 focus:border-primary focus:ring-0 transition-all outline-none"
+                                >
                                     <option>Beginner</option>
                                     <option>Intermediate</option>
                                     <option>Advanced</option>
                                 </select>
                             </div>
-                            <Button className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-glow hover:scale-[1.02] transition-transform" variant="primary">
-                                Submit Application
+                            <Button
+                                className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-glow hover:scale-[1.02] transition-transform flex items-center justify-center"
+                                variant="primary"
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                    'Submit Application'
+                                )}
                             </Button>
                         </form>
                     </div>
@@ -347,7 +399,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-white hover:text-black text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                            className="bg-primary text-black hover:bg-primary-hover text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
                             onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Book A Free Trial Class
@@ -715,11 +767,29 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                             viewport={{ once: true }}
                             className="bg-white/[0.03] backdrop-blur-3xl p-12 rounded-[3rem] border border-white/10 shadow-glow-strong w-full"
                         >
-                            <form className="space-y-10" onSubmit={(e) => { e.preventDefault(); alert('Request Received!'); }}>
+                            <form className="space-y-10" onSubmit={async (e) => {
+                                e.preventDefault();
+                                const form = e.target as HTMLFormElement;
+                                const data = {
+                                    athlete_name: (form.elements[0] as HTMLInputElement).value,
+                                    age_group: (form.elements[1] as HTMLSelectElement).value,
+                                    contact_email: (form.elements[2] as HTMLInputElement).value,
+                                    phone_number: (form.elements[3] as HTMLInputElement).value,
+                                    preferred_sport: 'Any', // Default for this landing form
+                                };
+
+                                try {
+                                    const response = await apiClient.post('/academy/register', data);
+                                    if (response.data.success) alert('Registration Successful! We will contact you shortly.');
+                                    else alert('Registration failed. Please try again.');
+                                } catch (err) {
+                                    alert('Error submitting registration.');
+                                }
+                            }}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] ml-8">Athlete Name</label>
-                                        <input type="text" className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-6 text-white outline-none focus:border-primary/50 transition-colors" placeholder="Full Name" />
+                                        <input type="text" required className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-6 text-white outline-none focus:border-primary/50 transition-colors" placeholder="Full Name" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] ml-8">Age Group</label>
@@ -733,11 +803,11 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] ml-8">Contact Email</label>
-                                    <input type="email" className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-6 text-white outline-none focus:border-primary/50 transition-colors" placeholder="your@email.com" />
+                                    <input type="email" required className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-6 text-white outline-none focus:border-primary/50 transition-colors" placeholder="your@email.com" />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] ml-8">Phone Number</label>
-                                    <input type="tel" className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-6 text-white outline-none focus:border-primary/50 transition-colors" placeholder="+91 00000 00000" />
+                                    <input type="tel" required className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-6 text-white outline-none focus:border-primary/50 transition-colors" placeholder="+91 00000 00000" />
                                 </div>
                                 <div className="flex justify-center">
                                     <Button variant="primary" className="max-w-sm h-16 shadow-glow-strong">

@@ -77,7 +77,7 @@ export const PublicNav: React.FC = () => {
                         <Button
                             variant="primary"
                             onClick={() => navigate('/venues')}
-                            className="font-bold bg-primary text-black hover:bg-white hover:text-black uppercase tracking-wider text-sm px-6 py-2 shadow-glow hover:shadow-glow-strong rounded-full transition-all"
+                            className="font-bold bg-primary text-black hover:bg-primary-hover uppercase tracking-wider text-sm px-6 py-2 shadow-glow hover:shadow-glow-strong rounded-full transition-all"
                         >
                             Book Now
                         </Button>

@@ -107,7 +107,8 @@ export const VenueDetailsPage: React.FC = () => {
                 venueId: id,
                 date: `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.toString().padStart(2, '0')}`,
                 selectedSlots: selectedSlots,
-                totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0)
+                totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0) * numPlayers,
+                numPlayers: numPlayers // Pass selected number of players
             }
         });
     };
@@ -132,7 +133,7 @@ export const VenueDetailsPage: React.FC = () => {
     );
 
     const basePrice = selectedSlots.reduce((acc, s) => acc + s.price, 0);
-    const totalPrice = basePrice;
+    const totalPrice = basePrice * numPlayers;
 
     return (
         <div className="min-h-screen bg-gray-50 font-inter text-gray-900 pb-20">

@@ -1089,5 +1089,18 @@ class PlayoBookingCreateResponse(BaseModel):
     requestStatus: int  # 1 = success, 0 = failure
     message: Optional[str] = None
 
+
+# ============================================================================
+# ACADEMY SCHEMAS
+# ============================================================================
+
+class AcademyRegistration(BaseModel):
+    athlete_name: str
+    age_group: str
+    contact_email: EmailStr
+    phone_number: str
+    preferred_sport: Optional[str] = None
+    experience_level: Optional[str] = None
+
 # Resolve forward references
 User.update_forward_refs()

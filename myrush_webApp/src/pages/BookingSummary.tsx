@@ -11,6 +11,8 @@ interface Slot {
     time: string;
     display_time: string;
     price: number;
+    court_id?: string;
+    court_name?: string;
 }
 
 interface LocationState {
@@ -18,6 +20,7 @@ interface LocationState {
     date: string;
     selectedSlots: Slot[];
     totalPrice: number;
+    numPlayers?: number; // Receive optional numPlayers
     venueImage?: string;
 }
 
@@ -27,7 +30,7 @@ export const BookingSummary: React.FC = () => {
     const state = location.state as LocationState;
 
     const [venue, setVenue] = useState<any>(null);
-    const [numPlayers, setNumPlayers] = useState(2);
+    const [numPlayers, setNumPlayers] = useState(state.numPlayers || 2); // Initialize from state or default 2
     const [teamName, setTeamName] = useState('');
     const [couponCode, setCouponCode] = useState('');
     const [discount, setDiscount] = useState(0);
@@ -51,9 +54,9 @@ export const BookingSummary: React.FC = () => {
     if (!state || !venue) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div></div>;
 
     // Calculations
-    const slotsCost = state.selectedSlots.length * (state.selectedSlots[0]?.price || 0);
+    const slotsCost = state.selectedSlots.length * (state.selectedSlots[0]?.price || 0) * numPlayers;
     const platformFee = 20;
-    const tax = Math.round(slotsCost * 0.18);
+    const tax = 0; // Backend does not charge tax yet
     const totalAmount = slotsCost + platformFee + tax - discount;
 
     const handleApplyCoupon = () => {
@@ -91,7 +94,7 @@ export const BookingSummary: React.FC = () => {
 
             // 1. Create Payment Order
             const orderRes = await bookingsApi.createPaymentOrder({
-                courtId: state.venueId,
+                courtId: state.selectedSlots[0]?.court_id || state.venueId, // Prioritize specific court ID
                 bookingDate: state.date,
                 startTime: startTime,
                 durationMinutes: durationMinutes,
@@ -115,13 +118,13 @@ export const BookingSummary: React.FC = () => {
                 currency: currency,
                 name: "MyRush",
                 description: `Booking for ${venue.court_name}`,
-                image: "https://your-logo-url.com/logo.png", // Replace with valid logo
+                image: `${window.location.origin}/Rush-logo.webp`, // Use local valid logo
                 order_id: order_id,
                 handler: async function (response: any) {
                     // 3. Verify & Create Booking
                     try {
                         const payload = {
-                            courtId: state.venueId,
+                            courtId: state.selectedSlots[0]?.court_id || state.venueId,
                             bookingDate: state.date,
                             startTime: startTime,
                             durationMinutes: durationMinutes,
@@ -129,7 +132,8 @@ export const BookingSummary: React.FC = () => {
                             pricePerHour: sortedSlots[0].price,
                             teamName: teamName,
                             timeSlots: state.selectedSlots,
-                            totalAmount: totalAmount, // This is client-side calc, backend uses its own
+                            totalAmount: totalAmount,
+                            originalAmount: slotsCost + platformFee, // Pass original amount (Base + Fee) for backend validation
                             // Razorpay Details
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_order_id: response.razorpay_order_id,
@@ -264,14 +268,14 @@ export const BookingSummary: React.FC = () => {
 
                                 <div className="space-y-4 mb-6">
                                     <div className="flex justify-between text-sm text-gray-600 font-medium">
-                                        <span>Slot Price ({state.selectedSlots.length} slots)</span>
+                                        <span>Slot Price ({state.selectedSlots.length} slots x {numPlayers} players)</span>
                                         <span>₹{slotsCost}</span>
                                     </div>
                                     <div className="flex justify-between text-sm text-gray-600 font-medium">
                                         <span>Convenience Fee</span>
                                         <span>₹{platformFee}</span>
                                     </div>
-                                    <div className="flex justify-between text-sm text-gray-600 font-medium">
+                                    <div className="flex justify-between text-sm text-gray-600 font-medium hidden">
                                         <span>Taxes (18% GST)</span>
                                         <span>₹{tax}</span>
                                     </div>

@@ -400,7 +400,7 @@ export const Arcade: React.FC = () => {
                                 <h2 className="text-4xl font-black font-montserrat uppercase mb-4">Net Reflexes</h2>
                                 <p className="text-gray-400 mb-8 max-w-md mx-auto">When the screen turns <span className="text-red-500 font-bold">RED</span>, wait.<br />When it turns <span className="text-green-500 font-bold">GREEN</span>, click!</p>
                                 <Button
-                                    className="bg-primary hover:bg-white text-black font-black text-xl px-12 py-6 rounded-full uppercase tracking-widest shadow-[0_0_30px_rgba(255,255,0,0.3)] transition-all transform hover:scale-105"
+                                    className="bg-primary hover:bg-primary-hover text-black font-black text-xl px-12 py-6 rounded-full uppercase tracking-widest shadow-[0_0_30px_rgba(255,255,0,0.3)] transition-all transform hover:scale-105"
                                     onClick={(e) => { e.stopPropagation(); startReactionGame(); }}
                                 >
                                     Start

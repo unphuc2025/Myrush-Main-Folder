@@ -77,6 +77,7 @@ export const bookingsApi = {
                 original_amount: bookingData.originalAmount,
                 discount_amount: bookingData.discountAmount,
                 coupon_code: bookingData.couponCode,
+                total_amount: bookingData.totalAmount,
                 // Razorpay Fields
                 razorpay_payment_id: bookingData.razorpay_payment_id,
                 razorpay_order_id: bookingData.razorpay_order_id,

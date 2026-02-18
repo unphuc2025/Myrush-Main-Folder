@@ -82,7 +82,7 @@ export const Login: React.FC = () => {
                             onClick={handleSendOTP}
                             disabled={isLoading}
                             size="lg"
-                            className="w-full py-3 px-4 bg-primary text-black hover:bg-white hover:text-black border-0 font-bold uppercase tracking-wider"
+                            className="w-full py-3 px-4 bg-primary text-black hover:bg-primary-hover border-0 font-bold uppercase tracking-wider"
                             icon={isLoading ? undefined : <span className="text-lg">→</span>}
                         >
                             {isLoading ? 'Sending OTP...' : 'Continue'}

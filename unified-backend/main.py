@@ -71,6 +71,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["x-rtb-fingerprint-id"], # Fix for Razorpay/Third-party warning
 )
 
 # Add error handling middleware (must be added before other middleware)
@@ -187,7 +188,10 @@ from routers.user import (
     notifications,
     notifications,
     courts_ratings,
-    payments
+    notifications,
+    courts_ratings,
+    payments,
+    academy
 )
 
 # Import chatbot router
@@ -204,6 +208,7 @@ app.include_router(user_reviews.router, prefix="/api/user", tags=["User Reviews"
 app.include_router(notifications.router, prefix="/api/user", tags=["User Notifications"])
 app.include_router(courts_ratings.router, prefix="/api/user", tags=["User Court Ratings"])
 app.include_router(payments.router, prefix="/api/user", tags=["Payments"])
+app.include_router(academy.router, prefix="/api/user/academy", tags=["User Academy"])
 
 # Include chatbot knowledge API
 app.include_router(chatbot.router, tags=["Chatbot Knowledge"])
