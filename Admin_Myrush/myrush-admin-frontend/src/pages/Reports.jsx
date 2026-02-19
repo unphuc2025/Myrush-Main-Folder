@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import { bookingsApi, branchesApi, citiesApi } from '../services/adminApi';
 import { Download, Calendar, Filter, FileText, IndianRupee, TrendingUp, Users, Clock, PieChart as PieChartIcon } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -129,16 +129,28 @@ const Reports = () => {
     const getPeakHours = () => {
         const hours = {};
         filteredData.forEach(b => {
-            // Assuming time_slots is array of objects { start: "10:00", end: "11:00" }
-            if (b.time_slots && b.time_slots.length > 0) {
+            if (b.time_slots && Array.isArray(b.time_slots)) {
                 b.time_slots.forEach(slot => {
-                    const hour = slot.start?.split(':')[0] || 'Unknown';
-                    const label = `${hour}:00`;
-                    hours[label] = (hours[label] || 0) + 1;
+                    let start = '';
+                    if (typeof slot === 'string') {
+                        start = slot.split('-')[0];
+                    } else if (typeof slot === 'object' && slot.start) {
+                        start = slot.start;
+                    }
+
+                    if (start) {
+                        const hour = start.split(':')[0];
+                        // Convert "9" to "09" if needed, just assuming HH format is mostly correct
+                        const label = `${hour.padStart(2, '0')}:00`;
+                        hours[label] = (hours[label] || 0) + 1;
+                    }
                 });
             }
         });
-        // Sort by hour
+
+        // Ensure we have data even if empty to avoid breaking charts
+        if (Object.keys(hours).length === 0) return [];
+
         return Object.keys(hours).sort().map(hour => ({ hour, bookings: hours[hour] }));
     };
 
@@ -151,7 +163,14 @@ const Reports = () => {
     const getTopBranch = () => {
         const branchCounts = {};
         paidBookings.forEach(b => {
-            const name = b.court?.branch?.name || 'Unknown';
+            // Try to resolve branch name: populated court.branch, or lookup by court.branch_id
+            let name = b.court?.branch?.name;
+            if (!name && b.court?.branch_id) {
+                const br = branches.find(br => br.id === b.court.branch_id);
+                if (br) name = br.name;
+            }
+            if (!name) name = 'Unknown';
+
             branchCounts[name] = (branchCounts[name] || 0) + parseFloat(b.total_amount || 0);
         });
         const sorted = Object.entries(branchCounts).sort((a, b) => b[1] - a[1]);
@@ -162,90 +181,101 @@ const Reports = () => {
     // --- EXPORT FUNCTIONS ---
 
     const exportToPDF = () => {
-        const doc = new jsPDF();
+        try {
+            const doc = new jsPDF();
 
-        doc.setFontSize(20);
-        doc.setTextColor(16, 185, 129); // Green
-        doc.text('Analytics Report', 14, 22);
+            doc.setFontSize(20);
+            doc.setTextColor(16, 185, 129); // Green
+            doc.text('Analytics Report', 14, 22);
 
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 28);
-        doc.text(`Period: ${dateRange.start} to ${dateRange.end}`, 14, 33);
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 28);
+            doc.text(`Period: ${dateRange.start} to ${dateRange.end}`, 14, 33);
 
-        // Summary Statistics in PDF
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text('Summary', 14, 45);
+            // Summary Statistics in PDF
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.text('Summary', 14, 45);
 
-        const summaryData = [
-            ['Total Revenue', `Rs. ${totalRevenue.toLocaleString()}`],
-            ['Total Bookings', totalBookingsCount],
-            ['Avg. Booking Value', `Rs. ${averageOrderValue.toFixed(0)}`],
-            ['Top Performing Branch', getTopBranch()]
-        ];
+            const summaryData = [
+                ['Total Revenue', `Rs. ${totalRevenue.toLocaleString()}`],
+                ['Total Bookings', totalBookingsCount],
+                ['Avg. Booking Value', `Rs. ${averageOrderValue.toFixed(0)}`],
+                ['Top Performing Branch', getTopBranch()]
+            ];
 
-        doc.autoTable({
-            startY: 50,
-            head: [['Metric', 'Value']],
-            body: summaryData,
-            theme: 'grid',
-            headStyles: { fillColor: [16, 185, 129] }
-        });
+            // Use direct autoTable import
+            autoTable(doc, {
+                startY: 50,
+                head: [['Metric', 'Value']],
+                body: summaryData,
+                theme: 'grid',
+                headStyles: { fillColor: [16, 185, 129] }
+            });
 
-        // Detailed Table
-        doc.text('Detailed Bookings', 14, doc.lastAutoTable.finalY + 15);
+            // Detailed Table
+            doc.text('Detailed Bookings', 14, doc.lastAutoTable.finalY + 15);
 
-        const tableColumn = ["Date", "Branch", "Game", "Customer", "Amount", "Status"];
-        const tableRows = filteredData.map(b => [
-            b.booking_date,
-            b.court?.branch?.name || '-',
-            b.game_type?.name || '-',
-            b.customer_name,
-            `Rs. ${b.total_amount}`,
-            b.status
-        ]);
+            const tableColumn = ["Date", "Branch", "Game", "Customer", "Amount", "Status"];
+            const tableRows = filteredData.map(b => [
+                b.booking_date,
+                b.court?.branch?.name || '-',
+                b.game_type?.name || '-',
+                b.customer_name,
+                `Rs. ${b.total_amount}`,
+                b.status
+            ]);
 
-        doc.autoTable({
-            startY: doc.lastAutoTable.finalY + 20,
-            head: [tableColumn],
-            body: tableRows,
-            theme: 'striped'
-        });
+            autoTable(doc, {
+                startY: doc.lastAutoTable.finalY + 20,
+                head: [tableColumn],
+                body: tableRows,
+                theme: 'striped'
+            });
 
-        doc.save(`analytics_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+            doc.save(`analytics_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+        } catch (err) {
+            console.error("Export PDF failed:", err);
+            alert("Failed to export PDF: " + err.message);
+        }
     };
 
     const exportToExcel = () => {
-        const dataToExport = filteredData.map(booking => ({
-            Reference: booking.booking_reference,
-            Date: booking.booking_date,
-            Branch: booking.court?.branch?.city?.name + ' - ' + booking.court?.branch?.name,
-            GameType: booking.game_type?.name,
-            Customer: booking.customer_name,
-            Phone: booking.customer_phone,
-            Slots: booking.time_slots?.map(s => `${s.start}-${s.end}`).join(', '),
-            Amount: parseFloat(booking.total_amount || 0),
-            Status: booking.status,
-            Payment: booking.payment_status
-        }));
+        try {
+            const dataToExport = filteredData.map(booking => ({
+                Reference: booking.booking_reference,
+                Date: booking.booking_date,
+                Branch: (booking.court?.branch?.city?.name || '') + ' - ' + (booking.court?.branch?.name || ''),
+                GameType: booking.game_type?.name || '',
+                Customer: booking.customer_name,
+                Phone: booking.customer_phone,
+                Slots: booking.time_slots?.map(s => typeof s === 'string' ? s : `${s.start}-${s.end}`).join(', ') || '',
+                Amount: parseFloat(booking.total_amount || 0),
+                Status: booking.status,
+                Payment: booking.payment_status
+            }));
 
-        // Add Summary Sheet
-        const summaryData = [
-            { Metric: 'Total Revenue', Value: totalRevenue },
-            { Metric: 'Total Bookings', Value: totalBookingsCount },
-            { Metric: 'Average Order Value', Value: averageOrderValue },
-            { Metric: 'Top Branch', Value: getTopBranch() }
-        ];
+            // Add Summary Sheet
+            const summaryData = [
+                { Metric: 'Total Revenue', Value: totalRevenue },
+                { Metric: 'Total Bookings', Value: totalBookingsCount },
+                { Metric: 'Average Order Value', Value: averageOrderValue },
+                { Metric: 'Top Branch', Value: getTopBranch() }
+            ];
 
-        const wb = XLSX.utils.book_new();
-        const wsData = XLSX.utils.json_to_sheet(dataToExport);
-        const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+            const wb = XLSX.utils.book_new();
+            const wsData = XLSX.utils.json_to_sheet(dataToExport);
+            const wsSummary = XLSX.utils.json_to_sheet(summaryData);
 
-        XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
-        XLSX.utils.book_append_sheet(wb, wsData, "Bookings Data");
+            XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+            XLSX.utils.book_append_sheet(wb, wsData, "Bookings Data");
 
-        XLSX.writeFile(wb, `analytics_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            XLSX.writeFile(wb, `analytics_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        } catch (err) {
+            console.error("Export Excel failed:", err);
+            alert("Failed to export Excel: " + err.message);
+        }
     };
 
     return (
@@ -309,19 +339,19 @@ const Reports = () => {
                                 }
                             </select>
                         </div>
-                        <div className="flex items-center gap-2 flex-1 md:flex-none w-full md:w-auto min-w-[300px]">
+                        <div className="flex items-center gap-2 flex-1 md:flex-none w-full md:w-auto">
                             <input
                                 type="date"
                                 value={dateRange.start}
                                 onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                                className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-sm outline-none w-full md:w-auto focus:border-green-500 transition-colors"
+                                className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-sm outline-none w-full md:w-auto focus:border-green-500 transition-colors bg-white min-w-0" // Removed min-w-[300px], added min-w-0 for flex
                             />
                             <span className="text-slate-400 font-medium">-</span>
                             <input
                                 type="date"
                                 value={dateRange.end}
                                 onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                                className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-sm outline-none w-full md:w-auto focus:border-green-500 transition-colors"
+                                className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-sm outline-none w-full md:w-auto focus:border-green-500 transition-colors bg-white min-w-0"
                             />
                         </div>
                     </div>
@@ -391,13 +421,13 @@ const Reports = () => {
                 {/* Game Type Distribution */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-w-0">
                     <h3 className="text-lg font-bold text-slate-800 mb-6">Popular Sports</h3>
-                    <div className="h-[300px] w-full overflow-hidden">
+                    <div className="h-[350px] w-full overflow-hidden flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={getGameTypeDistribution()}
                                     cx="50%"
-                                    cy="50%"
+                                    cy="40%"
                                     innerRadius={60}
                                     outerRadius={80}
                                     paddingAngle={5}
@@ -408,7 +438,20 @@ const Reports = () => {
                                     ))}
                                 </Pie>
                                 <Tooltip contentStyle={{ borderRadius: '8px' }} />
-                                <Legend verticalAlign="bottom" height={36} />
+                                <Legend
+                                    verticalAlign="bottom"
+                                    height={100}
+                                    layout="horizontal"
+                                    iconType="circle"
+                                    wrapperStyle={{
+                                        paddingTop: '20px',
+                                        fontSize: '12px',
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        justifyContent: 'center',
+                                        width: '100%'
+                                    }}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>

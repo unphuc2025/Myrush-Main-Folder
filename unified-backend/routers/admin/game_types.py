@@ -47,10 +47,17 @@ async def create_game_type(
     icon_url = None
     if icon:
         try:
+            print(f"DEBUG: Attempting to upload icon for game type: {name}")
             icon_url = await s3_utils.upload_file_to_s3(icon, folder="game_types")
+            print(f"DEBUG: Icon upload success. URL: {icon_url}")
         except Exception as e:
             print(f"Error uploading icon: {e}")
+            # Do not fallback to None silently if possible, but keep existing behavior for now
             pass
+            
+    # Force verify URL structure
+    if icon_url and "uploads" in icon_url and "api/media" not in icon_url:
+        print(f"CRITICAL WARNING: URL contains 'uploads' but should be proxy! {icon_url}")
 
     db_game_type = models.GameType(
         name=name,
@@ -71,6 +78,7 @@ async def update_game_type(
     short_code: str = Form(...),
     description: Optional[str] = Form(None),
     is_active: bool = Form(True),
+    is_icon_removed: bool = Form(False),
     icon: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
@@ -86,6 +94,10 @@ async def update_game_type(
         except Exception as e:
             print(f"Error uploading icon: {e}")
             pass
+    elif is_icon_removed:
+        print(f"Removing icon for game type {game_type_id}")
+        db_game_type.icon_url = None
+
 
     # Update other fields
     db_game_type.name = name

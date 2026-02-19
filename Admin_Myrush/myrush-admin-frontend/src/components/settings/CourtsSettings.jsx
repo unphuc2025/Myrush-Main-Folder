@@ -5,6 +5,59 @@ import AddCourtForm from './AddCourtForm';
 import Drawer from './Drawer';
 import { citiesApi, branchesApi, gameTypesApi, courtsApi, globalPriceConditionsApi, IMAGE_BASE_URL } from '../../services/adminApi';
 
+const formatTimeAMPM = (timeStr) => {
+  if (!timeStr) return '';
+  const [hours, minutes] = timeStr.split(':');
+  let h = parseInt(hours, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  h = h ? h : 12;
+  return `${h}:${minutes} ${ampm}`;
+};
+
+const TimePicker = ({ value, onChange, className }) => {
+  const [hours, minutes] = (value || '09:00').split(':');
+  let h = parseInt(hours, 10);
+  const m = minutes;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+
+  const updateTime = (newH, newM, newAmpm) => {
+    let finalH = parseInt(newH, 10);
+    if (newAmpm === 'PM' && finalH !== 12) finalH += 12;
+    if (newAmpm === 'AM' && finalH === 12) finalH = 0;
+    onChange(`${finalH.toString().padStart(2, '0')}:${newM}`);
+  };
+
+  return (
+    <div className={`flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-0.5 focus-within:ring-2 focus-within:ring-green-500/20 focus-within:border-green-500 transition-all ${className}`}>
+      <select
+        value={h}
+        onChange={e => updateTime(e.target.value, m, ampm)}
+        className="flex-1 appearance-none bg-transparent py-1.5 text-center text-sm font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded"
+      >
+        {Array.from({ length: 12 }, (_, i) => i + 1).map(num => <option key={num} value={num}>{num}</option>)}
+      </select>
+      <span className="text-slate-300 font-bold">:</span>
+      <select
+        value={m}
+        onChange={e => updateTime(h, e.target.value, ampm)}
+        className="flex-1 appearance-none bg-transparent py-1.5 text-center text-sm font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded"
+      >
+        {['00', '15', '30', '45'].map(min => <option key={min} value={min}>{min}</option>)}
+      </select>
+      <select
+        value={ampm}
+        onChange={e => updateTime(h, m, e.target.value)}
+        className="w-12 appearance-none bg-slate-50 border-l border-slate-100 py-1.5 text-center text-xs font-bold text-slate-500 outline-none cursor-pointer hover:text-green-600 rounded-r"
+      >
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+};
+
 function CourtsSettings() {
   const [courts, setCourts] = useState([]);
   const [cities, setCities] = useState([]);
@@ -273,7 +326,7 @@ function CourtsSettings() {
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                             {court.images && court.images.length > 0 ? (
-                              <img src={court.images[0]} alt={court.name} className="h-full w-full object-cover" />
+                              <img src={court.images[0].startsWith('http') ? court.images[0] : `${IMAGE_BASE_URL}${court.images[0]}`} alt={court.name} className="h-full w-full object-cover" />
                             ) : (
                               <div className="h-full w-full flex items-center justify-center bg-slate-50">
                                 <Trophy className="h-5 w-5 text-slate-300" />
@@ -349,7 +402,7 @@ function CourtsSettings() {
                     <div className="flex items-center gap-3">
                       <div className="h-12 w-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                         {court.images && court.images.length > 0 ? (
-                          <img src={court.images[0]} alt={court.name} className="h-full w-full object-cover" />
+                          <img src={court.images[0].startsWith('http') ? court.images[0] : `${IMAGE_BASE_URL}${court.images[0]}`} alt={court.name} className="h-full w-full object-cover" />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center bg-slate-50">
                             <Trophy className="h-5 w-5 text-slate-300" />
@@ -463,12 +516,12 @@ function CourtViewModal({ court, onClose }) {
             )}
             {court.images?.map((img, idx) => (
               <div key={`img-${idx}`} className="h-64 aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm flex-shrink-0 snap-center">
-                <img src={`${IMAGE_BASE_URL}${img}`} alt={`Court ${idx}`} className="w-full h-full object-cover" onError={(e) => { e.target.closest('div').style.display = 'none'; }} />
+                <img src={img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`} alt={`Court ${idx}`} className="w-full h-full object-cover" onError={(e) => { e.target.closest('div').style.display = 'none'; }} />
               </div>
             ))}
             {court.videos?.map((vid, idx) => (
               <div key={`vid-${idx}`} className="h-64 aspect-video rounded-xl overflow-hidden border border-slate-200 bg-black flex-shrink-0 snap-center">
-                <video src={`${IMAGE_BASE_URL}${vid}`} className="w-full h-full object-cover" controls onError={(e) => { e.target.closest('div').style.display = 'none'; }} />
+                <video src={vid.startsWith('http') ? vid : `${IMAGE_BASE_URL}${vid}`} className="w-full h-full object-cover" controls onError={(e) => { e.target.closest('div').style.display = 'none'; }} />
               </div>
             ))}
           </div>
@@ -643,7 +696,7 @@ function GlobalPriceConditionsSection({ conditions, onRefresh, onEdit, editingCo
               <div className="flex justify-between items-end border-t border-slate-50 pt-2">
                 <div>
                   <p className="text-xs text-slate-400">Time Slot</p>
-                  <p className="text-sm font-semibold text-slate-700">{condition.slot_from} - {condition.slot_to}</p>
+                  <p className="text-sm font-semibold text-slate-700">{formatTimeAMPM(condition.slot_from)} - {formatTimeAMPM(condition.slot_to)}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-slate-400">Price</p>
@@ -719,11 +772,11 @@ function GlobalPriceConditionsSection({ conditions, onRefresh, onEdit, editingCo
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">From</label>
-                  <input type="time" value={newCondition.slotFrom} onChange={(e) => setNewCondition({ ...newCondition, slotFrom: e.target.value })} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:border-green-500 outline-none" />
+                  <TimePicker value={newCondition.slotFrom} onChange={(e) => setNewCondition({ ...newCondition, slotFrom: e })} className="w-full" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">To</label>
-                  <input type="time" value={newCondition.slotTo} onChange={(e) => setNewCondition({ ...newCondition, slotTo: e.target.value })} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:border-green-500 outline-none" />
+                  <TimePicker value={newCondition.slotTo} onChange={(e) => setNewCondition({ ...newCondition, slotTo: e })} className="w-full" />
                 </div>
               </div>
 

@@ -126,6 +126,7 @@ class Branch(Base):
     terms_condition = Column(Text)
     rule = Column(Text)
     google_map_url = Column(Text)
+    location_url = Column(Text)
     price = Column(DECIMAL(10, 2), nullable=True) # Optional base price if needed, though Court has price
     max_players = Column(Integer)
     phone_number = Column(String(50))

@@ -235,7 +235,7 @@ def apply_global_condition_to_all_courts(condition, db: Session):
     courts = db.query(models.Court).filter(models.Court.is_active == True).all()
     updated_count = 0
     
-    print(f"DEBUG: Applying global condition {condition.id} to all courts...")
+    print(f"DEBUG: Applying global condition {condition.id} to all courts (Count: {len(courts)})...")
     for court in courts:
         # Get existing price conditions
         price_conditions = court.price_conditions or []
@@ -249,6 +249,9 @@ def apply_global_condition_to_all_courts(condition, db: Session):
         condition_exists = False
         target_id = f"global-{condition.id}"
         
+        # Debugging individual court
+        # print(f"DEBUG: Checking court {court.name} (ID: {court.id}) - Existing conditions: {len(price_conditions)}")
+
         for pc in price_conditions:
             # First try to match by ID
             if pc.get('id') == target_id:
@@ -261,6 +264,7 @@ def apply_global_condition_to_all_courts(condition, db: Session):
                 pc['price'] = str(condition.price)
                 pc['type'] = condition.condition_type or 'recurring'
                 condition_exists = True
+                # print(f"DEBUG: Updated existing condition {target_id} in court {court.name}")
                 break
                 
             # Fallback: Match by type and time slot (for backward compatibility or manual entries)
@@ -275,6 +279,7 @@ def apply_global_condition_to_all_courts(condition, db: Session):
                         pc['id'] = target_id
                         pc['price'] = str(condition.price)
                         condition_exists = True
+                        print(f"DEBUG: Linked matched condition {target_id} in court {court.name}")
                         break
                 else:
                     # Recurring: match by days and time
@@ -285,10 +290,12 @@ def apply_global_condition_to_all_courts(condition, db: Session):
                         pc['id'] = target_id
                         pc['price'] = str(condition.price)
                         condition_exists = True
+                        print(f"DEBUG: Linked matched condition {target_id} in court {court.name}")
                         break
         
         # Add if doesn't exist
         if not condition_exists:
+            print(f"DEBUG: Adding new condition {target_id} to court {court.name}")
             if condition.condition_type == 'date':
                 new_condition = {
                     'id': target_id,
@@ -314,7 +321,13 @@ def apply_global_condition_to_all_courts(condition, db: Session):
         flag_modified(court, "price_conditions")
         updated_count += 1
     
-    db.commit()
+    try:
+        db.commit()
+        print(f"DEBUG: Successfully committed updates to {updated_count} courts")
+    except Exception as e:
+        print(f"ERROR: Failed to commit updates to courts: {str(e)}")
+        db.rollback()
+        
     return updated_count
 
 def remove_global_condition_from_all_courts(condition_id: str, db: Session):

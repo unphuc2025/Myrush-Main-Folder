@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional
 from decimal import Decimal
 import models, schemas
@@ -429,6 +430,7 @@ async def bulk_update_slots(
 
             # Update court
             court.price_conditions = price_conditions
+            flag_modified(court, "price_conditions") # Ensure retention
             updated_count += 1
 
         db.commit()
@@ -442,4 +444,5 @@ async def bulk_update_slots(
         }
     except Exception as e:
         db.rollback()
+        print(f"Error in bulk_update_slots: {e}")
         raise HTTPException(status_code=400, detail=f"Error updating slots: {str(e)}")

@@ -8,6 +8,7 @@ import os
 import shutil
 from pathlib import Path
 from utils import s3_utils
+from dependencies import PermissionChecker
 
 router = APIRouter(
     prefix="/venues",
@@ -19,8 +20,8 @@ router = APIRouter(
 # UPLOAD_DIR = Path("uploads/venues")
 # UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-@router.get("")
-@router.get("/")
+@router.get("", response_model=List[schemas.AdminVenue], dependencies=[Depends(PermissionChecker("Manage Branch", "view"))])
+@router.get("/", response_model=List[schemas.AdminVenue], dependencies=[Depends(PermissionChecker("Manage Branch", "view"))])
 def get_all_venues(game_type: str = None, db: Session = Depends(get_db)):
     """Get all venues, optionally filtered by game_type"""
     query = db.query(models.AdminVenue)
@@ -28,7 +29,7 @@ def get_all_venues(game_type: str = None, db: Session = Depends(get_db)):
         query = query.filter(models.AdminVenue.game_type == game_type)
     return query.all()
 
-@router.get("/{venue_id}")
+@router.get("/{venue_id}", response_model=schemas.AdminVenue, dependencies=[Depends(PermissionChecker("Manage Branch", "view"))])
 def get_venue(venue_id: str, db: Session = Depends(get_db)):
     """Get a specific venue by ID"""
     venue = db.query(models.AdminVenue).filter(models.AdminVenue.id == venue_id).first()
@@ -36,8 +37,8 @@ def get_venue(venue_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Venue not found")
     return venue
 
-@router.post("")
-@router.post("/")
+@router.post("", response_model=schemas.AdminVenue, dependencies=[Depends(PermissionChecker("Manage Branch", "add"))])
+@router.post("/", response_model=schemas.AdminVenue, dependencies=[Depends(PermissionChecker("Manage Branch", "add"))])
 async def create_venue(
     game_type: str = Form(...),
     court_name: Optional[str] = Form(None),
@@ -88,7 +89,7 @@ async def create_venue(
     db.refresh(db_venue)
     return db_venue
 
-@router.put("/{venue_id}")
+@router.put("/{venue_id}", response_model=schemas.AdminVenue, dependencies=[Depends(PermissionChecker("Manage Branch", "edit"))])
 async def update_venue(
     venue_id: str,
     game_type: str = Form(...),
@@ -149,7 +150,7 @@ async def update_venue(
     db.refresh(db_venue)
     return db_venue
 
-@router.delete("/{venue_id}")
+@router.delete("/{venue_id}", dependencies=[Depends(PermissionChecker("Manage Branch", "delete"))])
 def delete_venue(venue_id: str, db: Session = Depends(get_db)):
     """Delete a venue"""
     db_venue = db.query(models.AdminVenue).filter(models.AdminVenue.id == venue_id).first()

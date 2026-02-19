@@ -89,10 +89,12 @@ async def upload_file_to_s3(file: UploadFile, folder: str = "uploads") -> str:
         
         # Construct URL
         # Construct URL based on region
-        if AWS_REGION == 'us-east-1':
-             url = f"https://{S3_BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
-        else:
-             url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
+        # Construct Proxy URL instead of direct S3 URL
+        # This solves issues with private buckets and CORS
+        url = f"/api/media/{s3_key}"
+             
+        # Log the URL for debugging
+        logger.info(f"File uploaded successfully. Proxy URL: {url}")
              
         return url
 

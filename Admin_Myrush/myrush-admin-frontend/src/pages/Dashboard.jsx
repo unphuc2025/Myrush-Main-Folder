@@ -60,6 +60,9 @@ function Dashboard() {
         usersApi.getAll()
       ]);
 
+      console.log('Dashboard Debug - Bookings:', bookings);
+      console.log('Dashboard Debug - Users:', users);
+
       processDashboardData(bookings, venues, users);
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
@@ -70,12 +73,15 @@ function Dashboard() {
 
   const processDashboardData = (bookings, venues, users) => {
     // 1. Key Metrics
-    const totalRevenue = bookings.reduce((sum, booking) => {
-      // Assuming price is a string or number, parse it safely
-      const price = parseFloat(booking.price) || 0;
-      // Only count revenue for valid bookings (e.g., not cancelled) if needed, 
-      // strictly summing all for now or filter by status if 'cancelled' exists
-      return booking.status !== 'cancelled' ? sum + price : sum;
+    const totalRevenue = (Array.isArray(bookings) ? bookings : bookings.items || []).reduce((sum, booking) => {
+      // Use total_amount from API, handling potential string/decimal formats
+      const amountStr = String(booking.total_amount || booking.price || '0').replace(/[^0-9.]/g, '');
+      const amount = parseFloat(amountStr) || 0;
+
+      // Only count revenue for confirmed bookings for accuracy
+      // Check for 'confirmed' or 'completed', case-insensitive just in case
+      const status = (booking.status || '').toLowerCase();
+      return status === 'confirmed' || status === 'completed' ? sum + amount : sum;
     }, 0);
 
     const activeVenues = venues.filter(v => v.is_active).length;
@@ -84,7 +90,7 @@ function Dashboard() {
       totalRevenue,
       totalBookings: bookings.length,
       activeVenues,
-      totalUsers: users.length
+      totalUsers: Array.isArray(users) ? users.length : (users.total || (users.items ? users.items.length : 0))
     });
 
     // 2. Revenue Chart Data (Last 7 Days)
@@ -94,11 +100,13 @@ function Dashboard() {
       return d.toISOString().split('T')[0]; // YYYY-MM-DD
     });
 
-    const revenueMap = bookings.reduce((acc, booking) => {
+    const revenueMap = (Array.isArray(bookings) ? bookings : bookings.items || []).reduce((acc, booking) => {
       const date = booking.booking_date; // Assuming booking_date is YYYY-MM-DD
       if (!acc[date]) acc[date] = 0;
-      if (booking.status !== 'cancelled') {
-        acc[date] += parseFloat(booking.price) || 0;
+      const status = (booking.status || '').toLowerCase();
+      if (status !== 'cancelled') {
+        const amountStr = String(booking.total_amount || booking.price || '0').replace(/[^0-9.]/g, '');
+        acc[date] += parseFloat(amountStr) || 0;
       }
       return acc;
     }, {});
@@ -110,7 +118,8 @@ function Dashboard() {
     setRevenueData(chartData);
 
     // 3. Status Distribution (Pie Chart)
-    const statusCounts = bookings.reduce((acc, booking) => {
+    const bookingsList = Array.isArray(bookings) ? bookings : bookings.items || [];
+    const statusCounts = bookingsList.reduce((acc, booking) => {
       const status = booking.status || 'unknown';
       acc[status] = (acc[status] || 0) + 1;
       return acc;
@@ -124,7 +133,7 @@ function Dashboard() {
 
     // 4. Recent Bookings
     // Sort by ID desc (proxy for recency) or date if available
-    const sortedBookings = [...bookings].sort((a, b) => b.id - a.id).slice(0, 5);
+    const sortedBookings = [...bookingsList].sort((a, b) => b.id - a.id).slice(0, 5);
     setRecentBookings(sortedBookings);
   };
 
@@ -156,7 +165,7 @@ function Dashboard() {
       ) : (
         <div className="space-y-8">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {/* Revenue Card */}
             <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-4 md:p-6 text-white shadow-lg shadow-green-200">
               <div className="flex justify-between items-start">
@@ -339,7 +348,7 @@ function Dashboard() {
                         {new Date(booking.booking_date).toLocaleDateString()}
                       </td>
                       <td className="py-3 px-4 text-sm font-bold text-slate-900">
-                        {formatCurrency(booking.price)}
+                        {formatCurrency(parseFloat(String(booking.total_amount || booking.price || '0').replace(/[^0-9.]/g, '')) || 0)}
                       </td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
@@ -383,7 +392,7 @@ function Dashboard() {
                     </div>
                     <div>
                       <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Amount</p>
-                      <p className="text-sm font-bold text-green-600">{formatCurrency(booking.price)}</p>
+                      <p className="text-sm font-bold text-green-600">{formatCurrency(parseFloat(String(booking.total_amount || booking.price || '0').replace(/[^0-9.]/g, '')) || 0)}</p>
                     </div>
                   </div>
                 </div>

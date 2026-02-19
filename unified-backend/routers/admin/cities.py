@@ -11,8 +11,8 @@ router = APIRouter(
     tags=["cities"]
 )
 
-@router.get("", response_model=List[schemas.City], dependencies=[Depends(PermissionChecker(["City Management", "Reports and analytics"], "view"))])
-@router.get("/", response_model=List[schemas.City], dependencies=[Depends(PermissionChecker(["City Management", "Reports and analytics"], "view"))])
+@router.get("", response_model=List[schemas.City], dependencies=[Depends(PermissionChecker(["City Management", "Reports and analytics", "Transactions And Earnings", "Manage Bookings"], "view"))])
+@router.get("/", response_model=List[schemas.City], dependencies=[Depends(PermissionChecker(["City Management", "Reports and analytics", "Transactions And Earnings", "Manage Bookings"], "view"))])
 def get_all_cities(db: Session = Depends(get_db)):
     """Get all cities"""
     cities = db.query(models.City).all()

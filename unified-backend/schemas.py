@@ -126,6 +126,7 @@ class BranchBase(BaseModel):
     terms_condition: Optional[str] = None
     rule: Optional[str] = None
     google_map_url: Optional[str] = None
+    location_url: Optional[str] = None
     price: Optional[Decimal] = None
     max_players: Optional[int] = None
     phone_number: Optional[str] = None
@@ -144,6 +145,7 @@ class Branch(BranchBase):
     city: Optional[City] = None
     area: Optional[Area] = None
     game_types: Optional[List[GameType]] = []
+    amenities: Optional[List[Amenity]] = []
 
     @field_validator('id', 'city_id', 'area_id', mode='before')
     @classmethod
@@ -378,6 +380,47 @@ class GlobalPriceCondition(GlobalPriceConditionBase):
     def convert_uuid_to_str(cls, v):
         if isinstance(v, UUID):
             return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class AdminVenueBase(BaseModel):
+    game_type: str
+    court_name: Optional[str] = None
+    location: str
+    prices: str
+    description: str
+    photos: Optional[List[str]] = []
+    videos: Optional[List[str]] = []
+
+class AdminVenueCreate(AdminVenueBase):
+    pass
+
+class AdminVenue(AdminVenueBase):
+    id: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    @field_validator('photos', mode='before')
+    @classmethod
+    def make_photos_absolute(cls, v):
+        if v and isinstance(v, list):
+            return [f"{API_BASE_URL}{url}" if url and url.startswith('/') else url for url in v]
+        return v
+
+    @field_validator('videos', mode='before')
+    @classmethod
+    def make_videos_absolute(cls, v):
+        if v and isinstance(v, list):
+            return [f"{API_BASE_URL}{url}" if url and url.startswith('/') else url for url in v]
         return v
 
     class Config:
@@ -968,6 +1011,7 @@ class PlayoSlot(BaseModel):
     endTime: str
     available: bool
     price: Optional[Decimal] = None
+    ticketsAvailable: Optional[int] = None
 
 class PlayoCourt(BaseModel):
     """Court availability response for Playo"""
@@ -1039,7 +1083,7 @@ class PlayoBookingCancelItem(BaseModel):
     playoOrderId: str
     externalBookingId: str
     price: Decimal
-    refundAtPlayo: bool
+    refundAtPlayo: Decimal
 
 class PlayoBookingCancelRequest(BaseModel):
     """Request to cancel confirmed bookings"""

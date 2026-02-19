@@ -81,7 +81,8 @@ def get_court_availability_slots(
             'startTime': start.strftime('%H:%M:%S'),
             'endTime': end.strftime('%H:%M:%S'),
             'available': is_available,
-            'price': float(court.price_per_hour) if is_available else None
+            'price': float(court.price_per_hour) if is_available else None,
+            'ticketsAvailable': 1 if is_available else 0  # Default to 1 for standard courts
         })
     
     return slots
@@ -132,70 +133,6 @@ def get_or_create_playo_user(
         db.flush()
         
     return user
-
-def get_court_availability_slots(
-    db: Session,
-    court_id: UUID,
-    booking_date: date
-) -> List[dict]:
-    """Get available time slots for a court on a specific date"""
-    
-    # Get court details
-    court = db.query(models.Court).filter(models.Court.id == court_id).first()
-    if not court:
-        return []
-    
-    # Get existing bookings for this court on this date
-    bookings = db.query(models.Booking).filter(
-        models.Booking.court_id == court_id,
-        models.Booking.booking_date == booking_date,
-        models.Booking.status.in_(['confirmed', 'pending'])
-    ).all()
-    
-    # Get pending Playo orders
-    pending_orders = db.query(models.PlayoOrder).filter(
-        models.PlayoOrder.court_id == court_id,
-        models.PlayoOrder.booking_date == booking_date,
-        models.PlayoOrder.status == 'pending',
-        models.PlayoOrder.expires_at > datetime.utcnow()
-    ).all()
-    
-    # Generate hourly slots (6 AM to 11 PM)
-    slots = []
-    for hour in range(6, 23):
-        start = dt_time(hour, 0)
-        end = dt_time(hour + 1, 0)
-        
-        # Check if slot is available
-        is_available = True
-        
-        # Check against bookings
-        for booking in bookings:
-            if booking.time_slots:
-                for slot in booking.time_slots:
-                    try:
-                        slot_start = datetime.strptime(slot['start'], '%H:%M:%S').time()
-                        slot_end = datetime.strptime(slot['end'], '%H:%M:%S').time()
-                        if not (end <= slot_start or start >= slot_end):
-                            is_available = False
-                            break
-                    except:
-                        pass
-        
-        # Check against pending orders
-        for order in pending_orders:
-            if not (end <= order.start_time or start >= order.end_time):
-                is_available = False
-                break
-        
-        slots.append({
-            'startTime': start.strftime('%H:%M:%S'),
-            'endTime': end.strftime('%H:%M:%S'),
-            'available': is_available,
-            'price': float(court.price_per_hour) if is_available else None
-        })
-    
-    return slots
 # ============================================================================
 
 @router.get("/availability", response_model=schemas.PlayoAvailabilityResponse)
@@ -584,7 +521,7 @@ async def cancel_booking(
             
             if booking:
                 booking.status = 'cancelled'
-                # Note: Refund handling would be done by Playo if refundAtPlayo is True
+                logging.info(f"Booking {item.externalBookingId} cancelled via Playo. Refund amount: {item.refundAtPlayo}")
         
         db.commit()
         

@@ -2372,3 +2372,129 @@
     "request_body": null
   }
 }
+{
+  "timestamp": "2026-02-19T08:34:12.780712Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column admin_branches.location_url does not exist\nLINE 1: ....google_map_url AS admin_branches_google_map_url, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at, admin_game_types_1.id AS admin_game_types_1_id, admin_game_types_1.name AS admin_game_types_1_name, admin_game_types_1.short_code AS admin_game_types_1_short_code, admin_game_types_1.description AS admin_game_types_1_description, admin_game_types_1.icon AS admin_game_types_1_icon, admin_game_types_1.icon_url AS admin_game_types_1_icon_url, admin_game_types_1.is_active AS admin_game_types_1_is_active, admin_game_types_1.created_at AS admin_game_types_1_created_at, admin_game_types_1.updated_at AS admin_game_types_1_updated_at \nFROM admin_branches LEFT OUTER JOIN (admin_branch_game_types AS admin_branch_game_types_1 JOIN admin_game_types AS admin_game_types_1 ON admin_game_types_1.id = admin_branch_game_types_1.game_type_id) ON admin_branches.id = admin_branch_game_types_1.branch_id]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column admin_branches.location_url does not exist\nLINE 1: ....google_map_url AS admin_branches_google_map_url, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at, admin_game_types_1.id AS admin_game_types_1_id, admin_game_types_1.name AS admin_game_types_1_name, admin_game_types_1.short_code AS admin_game_types_1_short_code, admin_game_types_1.description AS admin_game_types_1_description, admin_game_types_1.icon AS admin_game_types_1_icon, admin_game_types_1.icon_url AS admin_game_types_1_icon_url, admin_game_types_1.is_active AS admin_game_types_1_is_active, admin_game_types_1.created_at AS admin_game_types_1_created_at, admin_game_types_1.updated_at AS admin_game_types_1_updated_at \nFROM admin_branches LEFT OUTER JOIN (admin_branch_game_types AS admin_branch_game_types_1 JOIN admin_game_types AS admin_game_types_1 ON admin_game_types_1.id = admin_branch_game_types_1.game_type_id) ON admin_branches.id = admin_branch_game_types_1.branch_id]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/admin/branches",
+    "path": "/api/admin/branches",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "connection": "keep-alive",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "authorization": "***MASKED***",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"144\", \"Google Chrome\";v=\"144\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "accept": "*/*",
+      "origin": "http://localhost:5174",
+      "sec-fetch-site": "same-site",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5174/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "en-US,en;q=0.9"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-19T08:39:28.670652Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column admin_branches.location_url does not exist\nLINE 1: ....google_map_url AS admin_branches_google_map_url, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at, admin_game_types_1.id AS admin_game_types_1_id, admin_game_types_1.name AS admin_game_types_1_name, admin_game_types_1.short_code AS admin_game_types_1_short_code, admin_game_types_1.description AS admin_game_types_1_description, admin_game_types_1.icon AS admin_game_types_1_icon, admin_game_types_1.icon_url AS admin_game_types_1_icon_url, admin_game_types_1.is_active AS admin_game_types_1_is_active, admin_game_types_1.created_at AS admin_game_types_1_created_at, admin_game_types_1.updated_at AS admin_game_types_1_updated_at \nFROM admin_branches LEFT OUTER JOIN (admin_branch_game_types AS admin_branch_game_types_1 JOIN admin_game_types AS admin_game_types_1 ON admin_game_types_1.id = admin_branch_game_types_1.game_type_id) ON admin_branches.id = admin_branch_game_types_1.branch_id]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column admin_branches.location_url does not exist\nLINE 1: ....google_map_url AS admin_branches_google_map_url, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at, admin_game_types_1.id AS admin_game_types_1_id, admin_game_types_1.name AS admin_game_types_1_name, admin_game_types_1.short_code AS admin_game_types_1_short_code, admin_game_types_1.description AS admin_game_types_1_description, admin_game_types_1.icon AS admin_game_types_1_icon, admin_game_types_1.icon_url AS admin_game_types_1_icon_url, admin_game_types_1.is_active AS admin_game_types_1_is_active, admin_game_types_1.created_at AS admin_game_types_1_created_at, admin_game_types_1.updated_at AS admin_game_types_1_updated_at \nFROM admin_branches LEFT OUTER JOIN (admin_branch_game_types AS admin_branch_game_types_1 JOIN admin_game_types AS admin_game_types_1 ON admin_game_types_1.id = admin_branch_game_types_1.game_type_id) ON admin_branches.id = admin_branch_game_types_1.branch_id]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/admin/branches",
+    "path": "/api/admin/branches",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "connection": "keep-alive",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "authorization": "***MASKED***",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"144\", \"Google Chrome\";v=\"144\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "accept": "*/*",
+      "origin": "http://localhost:5174",
+      "sec-fetch-site": "same-site",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5174/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "en-US,en;q=0.9"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-19T08:39:29.371778Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column admin_branches.location_url does not exist\nLINE 1: ....google_map_url AS admin_branches_google_map_url, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at, admin_game_types_1.id AS admin_game_types_1_id, admin_game_types_1.name AS admin_game_types_1_name, admin_game_types_1.short_code AS admin_game_types_1_short_code, admin_game_types_1.description AS admin_game_types_1_description, admin_game_types_1.icon AS admin_game_types_1_icon, admin_game_types_1.icon_url AS admin_game_types_1_icon_url, admin_game_types_1.is_active AS admin_game_types_1_is_active, admin_game_types_1.created_at AS admin_game_types_1_created_at, admin_game_types_1.updated_at AS admin_game_types_1_updated_at \nFROM admin_branches LEFT OUTER JOIN (admin_branch_game_types AS admin_branch_game_types_1 JOIN admin_game_types AS admin_game_types_1 ON admin_game_types_1.id = admin_branch_game_types_1.game_type_id) ON admin_branches.id = admin_branch_game_types_1.branch_id]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column admin_branches.location_url does not exist\nLINE 1: ....google_map_url AS admin_branches_google_map_url, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at, admin_game_types_1.id AS admin_game_types_1_id, admin_game_types_1.name AS admin_game_types_1_name, admin_game_types_1.short_code AS admin_game_types_1_short_code, admin_game_types_1.description AS admin_game_types_1_description, admin_game_types_1.icon AS admin_game_types_1_icon, admin_game_types_1.icon_url AS admin_game_types_1_icon_url, admin_game_types_1.is_active AS admin_game_types_1_is_active, admin_game_types_1.created_at AS admin_game_types_1_created_at, admin_game_types_1.updated_at AS admin_game_types_1_updated_at \nFROM admin_branches LEFT OUTER JOIN (admin_branch_game_types AS admin_branch_game_types_1 JOIN admin_game_types AS admin_game_types_1 ON admin_game_types_1.id = admin_branch_game_types_1.game_type_id) ON admin_branches.id = admin_branch_game_types_1.branch_id]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/admin/branches",
+    "path": "/api/admin/branches",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "connection": "keep-alive",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "authorization": "***MASKED***",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"144\", \"Google Chrome\";v=\"144\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "accept": "*/*",
+      "origin": "http://localhost:5174",
+      "sec-fetch-site": "same-site",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5174/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "en-US,en;q=0.9"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}

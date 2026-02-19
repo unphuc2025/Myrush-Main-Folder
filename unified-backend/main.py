@@ -222,6 +222,16 @@ from routers import playo
 app.include_router(playo.router, prefix="/api", tags=["Playo Integration"])
 
 # ============================================================================
+# WHATSAPP INTEGRATION ROUTER
+# ============================================================================
+
+from routers import whatsapp
+from routers import media
+
+app.include_router(whatsapp.router, tags=["WhatsApp Webhook"])
+app.include_router(media.router, prefix="/api", tags=["Media Proxy"])
+
+# ============================================================================
 # EXAMPLE ERROR ROUTER (for demonstration)
 # ============================================================================
 

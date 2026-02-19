@@ -46,7 +46,9 @@ async def create_amenity(
     icon_url = None
     if icon:
         try:
-           icon_url = await s3_utils.upload_file_to_s3(icon, folder="amenities")
+             print(f"DEBUG: Uploading icon for amenity: {name}")
+             icon_url = await s3_utils.upload_file_to_s3(icon, folder="amenities")
+             print(f"DEBUG: Icon uploaded successfully: {icon_url}")
         except Exception as e:
             print(f"Error uploading icon: {e}")
             pass
@@ -68,6 +70,7 @@ async def update_amenity(
     name: str = Form(...),
     description: Optional[str] = Form(None),
     is_active: bool = Form(True),
+    is_icon_removed: bool = Form(False),
     icon: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
@@ -84,6 +87,9 @@ async def update_amenity(
         except Exception as e:
              print(f"Error uploading icon: {e}")
              pass
+    elif is_icon_removed:
+        print(f"Removing icon for amenity {amenity_id}")
+        db_amenity.icon_url = None
 
     db_amenity.name = name
     db_amenity.description = description
@@ -105,7 +111,7 @@ def toggle_amenity_status(amenity_id: str, db: Session = Depends(get_db)):
     db.refresh(db_amenity)
     return db_amenity
 
-@router.delete("/{amenity_id}")
+@router.delete("/{amenity_id}", dependencies=[Depends(PermissionChecker("Manage Amenities", "delete"))])
 def delete_amenity(amenity_id: str, db: Session = Depends(get_db)):
     """Delete an amenity"""
     db_amenity = db.query(models.Amenity).filter(models.Amenity.id == amenity_id).first()

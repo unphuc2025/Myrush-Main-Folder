@@ -10,6 +10,7 @@ router = APIRouter(
     tags=["CMS Pages"]
 )
 
+@router.get("", response_model=schemas.CMSPageListResponse, dependencies=[Depends(PermissionChecker("CMS Pages", "view"))])
 @router.get("/", response_model=schemas.CMSPageListResponse, dependencies=[Depends(PermissionChecker("CMS Pages", "view"))])
 def get_cms_pages(
     skip: int = 0, 
@@ -54,7 +55,7 @@ def create_cms_page(page: schemas.CMSPageCreate, db: Session = Depends(get_db)):
     db.refresh(db_page)
     return db_page
 
-@router.put("/{page_id}", response_model=schemas.CMSPageResponse, dependencies=[Depends(require_super_admin)])
+@router.put("/{page_id}", response_model=schemas.CMSPageResponse, dependencies=[Depends(PermissionChecker("CMS Pages", "edit"))])
 def update_cms_page(page_id: str, page_update: schemas.CMSPageUpdate, db: Session = Depends(get_db)):
     db_page = db.query(models.CMSPage).filter(models.CMSPage.id == page_id).first()
     if not db_page:
@@ -77,7 +78,7 @@ def update_cms_page(page_id: str, page_update: schemas.CMSPageUpdate, db: Sessio
     db.refresh(db_page)
     return db_page
 
-@router.delete("/{page_id}", dependencies=[Depends(require_super_admin)])
+@router.delete("/{page_id}", dependencies=[Depends(PermissionChecker("CMS Pages", "delete"))])
 def delete_cms_page(page_id: str, db: Session = Depends(get_db)):
     db_page = db.query(models.CMSPage).filter(models.CMSPage.id == page_id).first()
     if not db_page:

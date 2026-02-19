@@ -217,12 +217,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Branch */}
             <div>
-              <div className="flex justify-between items-center mb-2 ml-1">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Branch</label>
-                <a href="/venues" target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-green-600 hover:text-green-700 uppercase tracking-wide flex items-center gap-1">
-                  <Plus className="h-3 w-3" /> New
-                </a>
-              </div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Branch</label>
               <div className="relative group">
                 <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
                 <select
@@ -236,6 +231,11 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
+                <div className="mt-2 text-right">
+                  <a href="/venues" target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-green-600 hover:text-green-700 uppercase tracking-wide flex items-center gap-1 justify-end ml-auto">
+                    <Plus className="h-3 w-3" /> New Branch
+                  </a>
+                </div>
               </div>
             </div>
 

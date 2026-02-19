@@ -86,23 +86,23 @@ function Reviews() {
             <div className="rounded-2xl bg-white shadow-sm border border-slate-100 overflow-hidden">
                 {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-600">
+                    <table className="w-full text-left text-sm text-slate-600 table-fixed">
                         <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                             <tr>
-                                <th className="px-6 py-4 font-semibold">User</th>
-                                <th className="px-6 py-4 font-semibold">Review For</th>
-                                <th className="px-6 py-4 font-semibold">Rating</th>
-                                <th className="px-6 py-4 font-semibold w-1/3">Comment</th>
-                                <th className="px-6 py-4 font-semibold">Date</th>
-                                <th className="px-6 py-4 font-semibold">Status</th>
-                                <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                                <th className="px-4 py-3 font-semibold w-[18%]">User</th>
+                                <th className="px-4 py-3 font-semibold w-[14%]">Review For</th>
+                                <th className="px-4 py-3 font-semibold w-[12%]">Rating</th>
+                                <th className="px-4 py-3 font-semibold w-[28%]">Comment</th>
+                                <th className="px-4 py-3 font-semibold w-[10%]">Date</th>
+                                <th className="px-4 py-3 font-semibold w-[10%]">Status</th>
+                                <th className="px-4 py-3 font-semibold w-[8%] text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {reviews.length > 0 ? (
                                 reviews.map((review) => (
                                     <tr key={review.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             {/* Assuming backend expands user, otherwise show ID */}
                                             {review.user ? (
                                                 <div>
@@ -117,7 +117,7 @@ function Reviews() {
                                                 <div className="font-mono text-xs text-slate-400">{review.user_id.substring(0, 8)}...</div>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             {/* Assuming backend expands court/branch */}
                                             <div className="font-medium text-slate-900">
                                                 {review.court ? review.court.name : 'Court'}
@@ -126,16 +126,16 @@ function Reviews() {
                                                 {review.court?.branch?.name || ''}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             {renderStars(review.rating)}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <p className="line-clamp-2 text-slate-600 italic">"{review.review_text}"</p>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-500">
+                                        <td className="px-4 py-3 text-slate-500">
                                             {new Date(review.created_at).toLocaleDateString()}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${review.is_active
                                                 ? 'bg-emerald-100 text-emerald-800'
                                                 : 'bg-red-100 text-red-800'
@@ -143,7 +143,7 @@ function Reviews() {
                                                 {review.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-4 py-3 text-right">
                                             <button
                                                 onClick={() => toggleStatus(review)}
                                                 className={`inline-flex items-center justify-center rounded-lg p-2 transition-colors ${review.is_active

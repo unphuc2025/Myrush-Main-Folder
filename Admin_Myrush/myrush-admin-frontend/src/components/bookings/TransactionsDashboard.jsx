@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { IndianRupee, Clock, Calendar, CheckCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { bookingsApi, branchesApi } from '../../services/adminApi';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 function TransactionsDashboard() {
     const [bookings, setBookings] = useState([]);
@@ -31,7 +32,7 @@ function TransactionsDashboard() {
     };
 
     const calculateStats = () => {
-        const paidBookings = bookings.filter(b => b.payment_status === 'paid');
+        const paidBookings = bookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed');
         const pendingPayments = bookings.filter(b => b.payment_status === 'pending');
         const completedBookings = bookings.filter(b => b.status === 'completed');
 
@@ -61,7 +62,7 @@ function TransactionsDashboard() {
             if (!monthlyStats[bookingMonth]) {
                 monthlyStats[bookingMonth] = { revenue: 0, bookings: 0 };
             }
-            if (booking.payment_status === 'paid') {
+            if (booking.payment_status === 'paid' || booking.payment_status === 'completed') {
                 monthlyStats[bookingMonth].revenue += parseFloat(booking.total_amount);
                 monthlyStats[bookingMonth].bookings += 1;
             }
@@ -70,7 +71,12 @@ function TransactionsDashboard() {
     };
 
     const monthlyData = getMonthlyData();
-    const sortedMonths = Object.keys(monthlyData).sort().slice(-6); // Last 6 months
+    const sortedMonths = Object.keys(monthlyData).sort().slice(-6);
+    const chartData = sortedMonths.map(month => ({
+        month: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short' }),
+        revenue: monthlyData[month].revenue,
+        bookings: monthlyData[month].bookings
+    }));
 
     if (loading) return <div className="p-12 text-center text-slate-500">Loading dashboard...</div>;
 
@@ -132,39 +138,55 @@ function TransactionsDashboard() {
 
                 {/* Revenue Overview Chart */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <h3 className="text-lg font-bold text-slate-900 mb-6">Revenue Trends</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-4">Revenue Trends</h3>
 
-                    <div className="flex items-end gap-3 h-64 mt-4">
-                        {sortedMonths.length > 0 ? sortedMonths.map(month => {
-                            const data = monthlyData[month];
-                            const maxRevenue = Math.max(...Object.values(monthlyData).map(d => d.revenue));
-                            const heightPercentage = maxRevenue > 0 ? (data.revenue / maxRevenue) * 100 : 0;
-
-                            return (
-                                <div key={month} className="flex-1 flex flex-col items-center gap-2 group">
-                                    <div className="relative w-full flex justify-center items-end h-full bg-slate-50 rounded-lg overflow-hidden">
-                                        <div
-                                            className="w-4/5 bg-slate-900 rounded-t-sm transition-all duration-500 group-hover:bg-green-600"
-                                            style={{ height: `${heightPercentage}%` }}
-                                        />
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-xs font-bold text-slate-400">
-                                            {new Date(month + '-01').toLocaleDateString('en-US', { month: 'short' })}
-                                        </p>
-                                    </div>
-                                    {/* Tooltip */}
-                                    <div className="opacity-0 group-hover:opacity-100 absolute -mt-16 bg-slate-800 text-white text-xs py-1 px-2 rounded pointer-events-none transition-opacity">
-                                        ₹{data.revenue.toLocaleString()}
-                                    </div>
-                                </div>
-                            );
-                        }) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                No sufficient data for chart
-                            </div>
-                        )}
-                    </div>
+                    {chartData.length > 0 ? (
+                        <div style={{ width: '100%', height: 260 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis
+                                        dataKey="month"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 12, fontWeight: 600, fill: '#94a3b8' }}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 11, fill: '#94a3b8' }}
+                                        tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                                    />
+                                    <Tooltip
+                                        formatter={(value) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                                        contentStyle={{
+                                            backgroundColor: '#1e293b',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            color: '#fff',
+                                            fontSize: '12px',
+                                            fontWeight: 600,
+                                            padding: '8px 12px'
+                                        }}
+                                        itemStyle={{ color: '#fff' }}
+                                        labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: 2 }}
+                                        cursor={{ fill: 'rgba(0, 0, 0, 0.04)' }}
+                                    />
+                                    <Bar
+                                        dataKey="revenue"
+                                        fill="#0f172a"
+                                        radius={[6, 6, 0, 0]}
+                                        maxBarSize={40}
+                                        activeBar={{ fill: '#16a34a' }}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    ) : (
+                        <div className="h-64 flex items-center justify-center text-slate-400">
+                            No sufficient data for chart
+                        </div>
+                    )}
                 </div>
 
                 {/* Recent Transactions */}
