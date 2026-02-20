@@ -151,6 +151,12 @@ from routers.admin import (
     playo_tokens
 )
 
+# Import media proxy router (serves private S3 files via server-side AWS credentials)
+from routers import media as media_router
+
+
+# Include media proxy router (no prefix - handles /api/media/{file_path})
+app.include_router(media_router.router)
 
 # Include admin routers with /api/admin prefix
 app.include_router(admin_auth.router, prefix="/api/admin", tags=["Admin Auth"])

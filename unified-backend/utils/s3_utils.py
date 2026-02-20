@@ -87,8 +87,10 @@ async def upload_file_to_s3(file: UploadFile, folder: str = "uploads") -> str:
         # Reset file cursor for further use if needed (standard practice)
         await file.seek(0)
         
-        # Construct direct public S3 URL
-        url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
+        # Use proxy URL so the backend streams the image using server-side AWS credentials.
+        # This is required because the S3 bucket does not allow public access.
+        # API_BASE_URL must be set correctly in .env on the server (e.g. http://65.0.195.149:8000)
+        url = f"/api/media/{s3_key}"
              
         # Log the URL for debugging
         logger.info(f"File uploaded successfully. Proxy URL: {url}")
