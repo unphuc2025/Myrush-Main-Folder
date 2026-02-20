@@ -21,6 +21,20 @@ def get_game_types(db: Session = Depends(database.get_db)):
         print(f"Error fetching game types: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/cities")
+def get_cities(db: Session = Depends(database.get_db)):
+    """Fetch all active cities for dropdowns"""
+    try:
+        from sqlalchemy import text
+        # Query distinct city names from admin_cities where is_active is true
+        query = text("SELECT name FROM admin_cities WHERE is_active = true ORDER BY name ASC")
+        result = db.execute(query).fetchall()
+        cities = [row[0] for row in result]
+        return cities
+    except Exception as e:
+        print(f"Error fetching cities: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/branches")
 def get_branches(city: Optional[str] = None, db: Session = Depends(database.get_db)):
     try:
@@ -409,277 +423,207 @@ def get_venue_slots(
     try:
         from datetime import datetime
         from date_utils import parse_date_safe
-        from sqlalchemy import text, func
+        from sqlalchemy import text
         
         # 1. Parse Date
         booking_date = parse_date_safe(date, "%Y-%m-%d", "date")
-        day_of_week_full = booking_date.strftime("%A") # Monday
-        day_of_week_short = day_of_week_full.lower()[:3] # mon
+        day_of_week_full = booking_date.strftime("%A") 
+        day_of_week_short = day_of_week_full[:3].lower()
         
-        # 2. Get Branch Details (Opening Hours)
-        branch_query = """
-            SELECT id, opening_hours 
-            FROM admin_branches 
-            WHERE id = :venue_id AND is_active = true
-        """
+        # 2. Identify Venue/Branch
+        branch_query = "SELECT id, name, opening_hours FROM admin_branches WHERE id = :venue_id"
         branch_res = db.execute(text(branch_query), {"venue_id": venue_id}).first()
         
-        if not branch_res:
-            # Fallback: Check if it's a Court ID (since frontend currently uses Court IDs for venue details)
-            # If so, resolve to the parent Branch ID
-            print(f"[VENUES API] Branch not found for ID {venue_id}. Checking if it's a Court ID...")
-            court_check_query = "SELECT branch_id FROM admin_courts WHERE id = :court_id"
-            court_check_res = db.execute(text(court_check_query), {"court_id": venue_id}).first()
-            
-            if court_check_res:
-                real_branch_id = str(court_check_res.branch_id)
-                print(f"[VENUES API] Resolved Court ID {venue_id} to Branch ID {real_branch_id}")
-                
-                # Retry fetching branch with the resolved ID
-                branch_res = db.execute(text(branch_query), {"venue_id": real_branch_id}).first()
-                if branch_res:
-                    venue_id = real_branch_id # Update variable for subsequent queries
-                else:
-                    raise HTTPException(status_code=404, detail="Parent Branch not found/active")
-            else:
-                raise HTTPException(status_code=404, detail="Venue (Branch) not found")
-            
-        branch = dict(branch_res._mapping)
-        opening_hours = branch.get('opening_hours') or {}
+        is_specific_court = False
+        target_court_id = None
         
-        # Determine valid operating hours for the day
-        venue_start_hour = 6 # Default
-        venue_end_hour = 23 # Default
+        if not branch_res:
+            # Check if it's a court ID
+            court_check = db.execute(text("SELECT id, branch_id FROM admin_courts WHERE id = :venue_id"), {"venue_id": venue_id}).first()
+            if court_check:
+                is_specific_court = True
+                target_court_id = str(court_check.id)
+                branch_res = db.execute(text(branch_query), {"venue_id": str(court_check.branch_id)}).first()
+        
+        if not branch_res:
+            raise HTTPException(status_code=404, detail="Venue or Branch not found")
+
+        branch = dict(branch_res._mapping)
+        branch_id = str(branch['id'])
+        opening_hours = branch.get('opening_hours') or {}
+
+        # 3. Determine Operating Hours (Robustly)
+        branch_is_active = True
+        venue_start_hour = 8
+        venue_end_hour = 22
         
         if isinstance(opening_hours, dict):
-            # Check for specific day config
-            # Convert "open"/"close" keys from admin_branches JSON to "start"/"end" format if needed
-            # The structure is {"monday": {"open": "09:00", "close": "22:00", "isActive": true}}
-            
-            day_config = opening_hours.get(day_of_week_short) or opening_hours.get(day_of_week_full.lower()) or opening_hours.get('default')
+            # Try multiple key variants
+            possible_keys = [
+                day_of_week_full.lower(), # friday
+                day_of_week_full,        # Friday
+                day_of_week_short,       # fri
+                day_of_week_short.title(),# Fri
+                'default'
+            ]
+            day_config = None
+            for k in possible_keys:
+                if k in opening_hours:
+                    day_config = opening_hours[k]
+                    break
             
             if day_config and isinstance(day_config, dict):
-                # Try getting "open"/"close" first, then fallback to "start"/"end"
-                start_str = day_config.get('open') or day_config.get('start') or '06:00'
-                end_str = day_config.get('close') or day_config.get('end') or '23:00'
-                
-                # Check if day is active?
+                start_str = day_config.get('open') or day_config.get('start') or '08:00'
+                end_str = day_config.get('close') or day_config.get('end') or '22:00'
                 if day_config.get('isActive') is False:
-                     print(f"[VENUES API] Venue is closed on {day_of_week_full}")
-                     return {
-                        "venue_id": venue_id,
-                        "date": date,
-                        "slots": []
-                    }
-
+                    branch_is_active = False
                 try:
                     venue_start_hour = int(start_str.split(':')[0])
                     venue_end_hour = int(end_str.split(':')[0])
                 except: pass
-        
-        print(f"[VENUES API] Venue Hours for {day_of_week_short}: {venue_start_hour}:00 - {venue_end_hour}:00")
 
-        # 3. Get Relevant Courts
-        # Filter by game_type if provided
+        # 4. Get Relevant Courts
         court_query = """
-            SELECT 
-                ac.id, 
-                ac.name,
-                ac.price_per_hour, 
-                ac.price_conditions, 
-                ac.unavailability_slots,
-                agt.name as game_type
+            SELECT ac.id, ac.name, ac.price_per_hour, ac.price_conditions, ac.unavailability_slots, agt.name as game_type
             FROM admin_courts ac
             JOIN admin_game_types agt ON ac.game_type_id = agt.id
-            WHERE ac.branch_id = :venue_id AND ac.is_active = true
+            WHERE ac.branch_id = :branch_id AND ac.is_active = true
         """
-        params = {"venue_id": venue_id}
-        
-        if game_type:
+        params = {"branch_id": branch_id}
+        if is_specific_court:
+            court_query += " AND ac.id = :court_id"
+            params['court_id'] = target_court_id
+        elif game_type:
             court_query += " AND agt.name ILIKE :game_type"
             params['game_type'] = f"%{game_type}%"
             
         court_res = db.execute(text(court_query), params).fetchall()
         
-        if not court_res:
-            print(f"[VENUES API] No courts found for venue {venue_id} with game_type {game_type}")
-            return {
-                "venue_id": venue_id,
-                "date": date,
-                "slots": []
-            }
+        # 5. Fetch Global Conditions
+        global_conditions = db.query(models.GlobalPriceCondition).filter(models.GlobalPriceCondition.is_active == True).all()
 
-        # 4. Generate Slots for EACH court
-        # We will aggregate availabilities. 
-        # Strategy: A slot (e.g. 10:00-11:00) is available if ANY court is available.
-        # Price: We'll take the minimum price of available courts for that slot.
-        
-        consolidated_slots = {} # Key: "HH:MM", Value: Slot Object
+        # 6. Aggregate
+        consolidated_slots = {} # "HH:00" -> SlotInfo
         
         for court_row in court_res:
             court = dict(court_row._mapping)
-            court_id = str(court['id'])
-            base_price = float(court['price_per_hour'])
-            price_conditions = court.get('price_conditions') or []
-            unavailability = court.get('unavailability_slots') or []
+            c_id = str(court['id'])
+            b_price = float(court['price_per_hour'])
+            p_cond = court.get('price_conditions') or []
+            un_slots = court.get('unavailability_slots') or []
             
-            print(f"[VENUES API] Processing Court {court_id} ({court['game_type']})")
-            print(f"[DEBUG] Court Name from DB: '{court.get('name', 'NOT_FOUND')}'")
+            court_slots = {} # hour(int) -> {price, id}
             
-            # --- Logic from courts.py (Refactored for Overrides) ---
-            
-            court_slots_config = []
-            
-            # Step 1: Generate BASE SLOTS for all valid operating hours
-            # Use 'default' ID and base_price
-            for h in range(venue_start_hour, venue_end_hour):
-                court_slots_config.append({
-                    'start': h, 
-                    'end': h+1, 
-                    'price': base_price, 
-                    'id': 'default'
-                })
-
-            # Step 2: Apply Price Condition OVERRIDES
-            if isinstance(price_conditions, list):
-                day_configs = []
-                date_configs = []
-                
-                for pc in price_conditions:
-                    if isinstance(pc, dict):
-                        # Date match
-                        if 'dates' in pc and isinstance(pc.get('dates'), list) and date in pc['dates']:
-                             date_configs.append(pc)
-                        # Day match
-                        elif 'days' in pc and isinstance(pc.get('days'), list) and (day_of_week_short in [d.lower()[:3] for d in pc['days']] or day_of_week_full in pc['days']):
-                             day_configs.append(pc)
-                        # Global match (recurrence type) - if matches all days or type='recurring' with no days?
-                        elif pc.get('days') == [] and pc.get('dates') is None: # Global override
-                             day_configs.append(pc)
-                
-                # Prioritize date > day
-                active_configs = date_configs if date_configs else day_configs
-                
-                if active_configs:
-                    for cfg in active_configs:
-                        try:
-                            s = int(cfg.get('slotFrom', '08:00').split(':')[0])
-                            e = int(cfg.get('slotTo', '22:00').split(':')[0])
-                            p = float(cfg.get('price', base_price))
-                            cfg_id = cfg.get('id')
-                            
-                            # Update existing slots in range [s, e)
-                            # Or add if new? (Usually strictly within operating hours)
-                            
-                            for i, slot in enumerate(court_slots_config):
-                                if slot['start'] >= s and slot['end'] <= e:
-                                    # This base slot is covered by the override condition
-                                    court_slots_config[i]['price'] = p
-                                    court_slots_config[i]['id'] = cfg_id
-                                    # print(f"Overriding slot {slot['start']}-{slot['end']} with price {p}")
-                        except Exception as e:
-                            print(f"[VENUES API] Error applying price config: {e}")
-
-            # Generate actual slot objects for this court
-            generated_slots = []
-            for cfg in court_slots_config:
-                start_h = cfg['start']
-                end_h = cfg['end']
-                
-                # STRICT OPENING HOURS CHECK
-                # Only include if slot falls within Venue Opening Hours
-                if start_h < venue_start_hour or end_h > venue_end_hour:
-                    continue
-
-                # Format times
-                start_time = f"{start_h:02d}:00"
-                end_time = f"{end_h:02d}:00"
-                
-                # Display Time
-                sh_disp = start_h if start_h <= 12 else start_h - 12
-                if sh_disp == 0: sh_disp = 12
-                ampm_s = "AM" if start_h < 12 else "PM"
-                
-                eh_disp = end_h if end_h <= 12 else end_h - 12
-                if eh_disp == 0: eh_disp = 12
-                ampm_e = "AM" if end_h < 12 else "PM"
-                
-                display_time = f"{sh_disp:02d}:00 {ampm_s} - {eh_disp:02d}:00 {ampm_e}"
-                
-                generated_slots.append({
-                    "time": start_time,
-                    "end_time": end_time,
-                    "display_time": display_time,
-                    "price": cfg['price'],
-                    "court_id": court_id,
-                    "court_name": court.get('name', ''),  # Add court name
-                    "available": True
-                })
-
-            # Filter Unavailability (Admin set)
-            # ... (Logic to check unavailability_slots for date/day matches) ...
-            # Simplified: check distinct times in unavailability list
-            disabled_times = set()
-            for un in unavailability:
-                if isinstance(un, dict):
-                    # Check if applies to today
-                    applies = False
-                    if 'dates' in un and date in un.get('dates', []): applies = True
-                    if 'days' in un and (day_of_week_short in [d.lower()[:3] for d in un.get('days', [])]): applies = True
+            # A. Base Range
+            if branch_is_active:
+                for h in range(venue_start_hour, venue_end_hour):
+                    court_slots[h] = {'price': b_price, 'id': 'default'}
                     
-                    if applies:
-                         for t in un.get('times', []): disabled_times.add(t)
-
-            # Filter Booked Slots
-            booked_res = db.execute(text("""
-                SELECT time_slots FROM booking 
-                WHERE court_id = :cid AND booking_date = :bdate AND status != 'cancelled'
-            """), {"cid": court_id, "bdate": booking_date}).fetchall()
+            # B. Collect Overrides (with specific list separation for priority)
+            g_recurring, l_recurring, g_date, l_date = [], [], [], []
             
-            booked_times = set()
+            for gc in global_conditions:
+                match = False
+                if gc.condition_type == 'date' and gc.dates and date in gc.dates: match = True
+                elif gc.condition_type == 'recurring' and gc.days and (day_of_week_short in [d.lower()[:3] for d in gc.days] or day_of_week_full.lower() in [d.lower() for d in gc.days]): match = True
+                if match:
+                    item = {'slotFrom': gc.slot_from, 'slotTo': gc.slot_to, 'price': float(gc.price), 'id': f"global-{gc.id}"}
+                    if gc.condition_type == 'date': g_date.append(item)
+                    else: g_recurring.append(item)
+            
+            if isinstance(p_cond, list):
+                for pc in p_cond:
+                    if not isinstance(pc, dict): continue
+                    match = False
+                    is_date = False
+                    if 'dates' in pc and date in (pc.get('dates') or []):
+                        match = True
+                        is_date = True
+                    elif 'days' in pc and (day_of_week_short in [d.lower()[:3] for d in (pc.get('days') or [])] or day_of_week_full.lower() in [d.lower() for d in (pc.get('days') or [])]):
+                        match = True
+                    
+                    if match:
+                        item = {'slotFrom': pc.get('slotFrom'), 'slotTo': pc.get('slotTo'), 'price': float(pc.get('price', b_price)), 'id': pc.get('id', 'override')}
+                        if is_date: l_date.append(item)
+                        else: l_recurring.append(item)
+            
+            # Apply in order of priority (Global Recurring -> Local Recurring -> Global Date -> Local Date)
+            for items in [g_recurring, l_recurring, g_date, l_date]:
+                for cfg in items:
+                    try:
+                        s_h = int(cfg['slotFrom'].split(':')[0])
+                        e_h = int(cfg['slotTo'].split(':')[0])
+                        for h in range(s_h, e_h):
+                            court_slots[h] = {'price': cfg['price'], 'id': cfg['id']}
+                    except: pass
+            
+            # C. Unavailable & Booked
+            disabled_hours = set()
+            for un in un_slots:
+                if isinstance(un, dict):
+                    match = False
+                    if date in (un.get('dates') or []): match = True
+                    if day_of_week_short in [d.lower()[:3] for d in (un.get('days') or [])]: match = True
+                    if match:
+                        for t in (un.get('times') or []):
+                            try: disabled_hours.add(int(t.split(':')[0]))
+                            except: pass
+                            
+            booked_res = db.execute(text("SELECT time_slots FROM booking WHERE court_id = :cid AND booking_date = :bdate AND status != 'cancelled'"), {"cid": c_id, "bdate": booking_date}).fetchall()
+            booked_hours = set()
             for row in booked_res:
-                slots_data = row[0]
-                if isinstance(slots_data, list):
-                    for s in slots_data:
-                        if isinstance(s, dict) and 'start_time' in s:
-                            booked_times.add(s['start_time'])
+                if row[0] and isinstance(row[0], list):
+                    for s in row[0]:
+                        try: booked_hours.add(int(s['start_time'].split(':')[0]))
+                        except: pass
             
-            # Mark unavailable
-            for slot in generated_slots:
-                if slot['time'] in disabled_times or slot['time'] in booked_times:
-                    slot['available'] = False
-            
-            # Merge into Consolidated list
-            # If slot exists and is available, keep cheaper price?
-            # If slot exists and is NOT available, but THIS court is available, make it available.
-            
-            for slot in generated_slots:
-                key = slot['time']
-                
-                # Filter past slots (if today)
-                if booking_date == datetime.now().date():
-                     now = datetime.now()
-                     sh = int(key.split(':')[0])
-                     if sh < now.hour or (sh == now.hour and now.minute > 0): # Strict past check
-                         continue
+            # D. Merge to Consolidated
+            now = datetime.now()
+            is_today = (booking_date == now.date())
 
-                if not slot['available']:
-                    continue # This court is booked/closed, don't help availability
+            for h, cfg in court_slots.items():
+                # Past check
+                if is_today and h <= now.hour and (h < now.hour or now.minute > 0):
+                    continue
                 
-                if key not in consolidated_slots:
-                    consolidated_slots[key] = slot
-                    print(f"[DEBUG] Added slot {key} from court: {slot.get('court_name', 'UNKNOWN')}")
+                time_key = f"{h:02d}:00"
+                is_available = not (h in disabled_hours or h in booked_hours)
+                
+                # Rule for consolidated view:
+                # 1. If slot exists, and current attempt is available while existing is not -> update.
+                # 2. If both available, pick cheaper.
+                # 3. If both unavailable, doesn't matter much but we keep one.
+                
+                update = False
+                if time_key not in consolidated_slots:
+                    update = True
                 else:
-                    # Update if cheaper
-                    if slot['price'] < consolidated_slots[key]['price']:
-                        consolidated_slots[key] = slot
-                        print(f"[DEBUG] Updated slot {key} to court: {slot.get('court_name', 'UNKNOWN')} (cheaper price)")
-                        
-        # Convert dict to list and sort
-        final_slots = list(consolidated_slots.values())
-        final_slots.sort(key=lambda x: x['time'])
-        
-        print(f"[VENUES API] Returned {len(final_slots)} aggregated slots for {venue_id} on {date}")
+                    existing = consolidated_slots[time_key]
+                    if is_available and not existing['available']:
+                        update = True
+                    elif is_available and existing['available']:
+                        if cfg['price'] < existing['price']:
+                            update = True
+                            
+                if update:
+                    sh_disp = h if h <= 12 else h - 12
+                    if sh_disp == 0: sh_disp = 12
+                    ampm_s = "AM" if h < 12 else "PM"
+                    eh_disp = (h+1) if (h+1) <= 12 else (h+1) - 12
+                    if eh_disp == 0: eh_disp = 12
+                    ampm_e = "AM" if (h+1) < 12 else "PM"
+                    
+                    consolidated_slots[time_key] = {
+                        "time": time_key,
+                        "display_time": f"{sh_disp:02d}:00 {ampm_s} - {eh_disp:02d}:00 {ampm_e}",
+                        "price": cfg['price'],
+                        "court_id": c_id,
+                        "court_name": court.get('name', ''),
+                        "available": is_available,
+                        "slot_id": cfg['id']
+                    }
+
+        final_slots = sorted(consolidated_slots.values(), key=lambda x: x['time'])
         
         return {
             "venue_id": venue_id,
@@ -687,10 +631,9 @@ def get_venue_slots(
             "slots": final_slots
         }
 
-    except HTTPException as he:
-        raise he
+    except HTTPException as he: raise he
     except Exception as e:
-        print(f"Error in get_venue_slots: {e}")
+        print(f"[VENUES API] Error: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

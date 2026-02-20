@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import Optional
-import database
+import models, database
 from date_utils import parse_date_safe
 
 router = APIRouter(
@@ -177,265 +177,148 @@ def get_available_slots(
     Returns slots based on admin configuration minus booked slots.
     """
     try:
-        from datetime import datetime, time, timedelta
-        import json
-
-        # Parse the date safely
-        booking_date = parse_date_safe(date, "%Y-%m-%d", "date")
+        from datetime import datetime
+        from date_utils import parse_date_safe
         
-        # Get court details with timing data from price_conditions and unavailability_slots
+        # 1. Parse Date
+        booking_date = parse_date_safe(date, "%Y-%m-%d", "date")
+        day_of_week_full = booking_date.strftime("%A") 
+        day_of_week_short = day_of_week_full[:3].lower()
+        
+        # 2. Get Court & Branch Details
         court_query = """
-            SELECT
-                ac.id,
-                ac.price_per_hour,
-                ac.price_conditions,
-                ac.unavailability_slots,
-                ab.id as branch_id
+            SELECT ac.id, ac.price_per_hour, ac.price_conditions, ac.unavailability_slots, ab.opening_hours
             FROM admin_courts ac
             JOIN admin_branches ab ON ac.branch_id = ab.id
             WHERE ac.id = :court_id AND ac.is_active = true
         """
-
-        result = db.execute(text(court_query), {"court_id": court_id})
-        court = result.fetchone()
-
-        if not court:
+        court_res = db.execute(text(court_query), {"court_id": court_id}).first()
+        
+        if not court_res:
             raise HTTPException(status_code=404, detail="Court not found")
 
-        court_dict = dict(court._mapping)
-        price_per_hour = float(court_dict['price_per_hour'])
-        timing_config = court_dict.get('price_conditions') or []  # Slot configurations with pricing
-        unavailability_data = court_dict.get('unavailability_slots') or []  # Slots to disable
+        court = dict(court_res._mapping)
+        b_price = float(court['price_per_hour'])
+        p_cond = court.get('price_conditions') or []
+        un_slots = court.get('unavailability_slots') or []
+        opening_hours = court.get('opening_hours') or {}
 
-
-
-        # Get current day of week (lowercase 3-letter format)
-        day_of_week = booking_date.strftime("%A").lower()[:3]  # mon, tue, wed, etc.
-        date_str = date  # YYYY-MM-DD format for date-specific matching
-
-        # Process all timing configurations that match the current day OR specific date
-        matching_configs = []
-        date_specific_configs = []
-        day_specific_configs = []
-
-        # Check if court has price_conditions data
-        if isinstance(timing_config, list) and len(timing_config) > 0:
-            print(f"[COURTS API] ✅ Court has {len(timing_config)} price_conditions for {court_id}")
-
-            # Find ALL timing configs that match the current day OR specific date
-            for i, timing in enumerate(timing_config):
-                if isinstance(timing, dict):
-                    # Priority 1: Check for specific date matches (highest priority)
-                    if 'dates' in timing and isinstance(timing.get('dates'), list):
-                        dates_list = timing.get('dates', [])
-                        if date_str in dates_list:
-                            slot_from = timing.get('slotFrom', '08:00')
-                            slot_to = timing.get('slotTo', '22:00')
-                            price_config = timing.get('price', str(price_per_hour))
-
-                            print(f"[COURTS API] ✓ DATE-SPECIFIC Config {i+1}: {date_str}, {slot_from}-{slot_to}, ₹{price_config}")
-
-                            try:
-                                start_hour = int(slot_from.split(':')[0])
-                                end_hour = int(slot_to.split(':')[0])
-                                config_price = float(price_config)
-
-                                date_specific_configs.append({
-                                    'start_hour': start_hour,
-                                    'end_hour': end_hour,
-                                    'price': config_price,
-                                    'id': timing.get('id'),
-                                    'type': 'date-specific'
-                                })
-                            except (ValueError, IndexError) as e:
-                                print(f"[COURTS API] ❌ Error parsing date-specific config {i+1}: {e}")
-                    
-                    # Priority 2: Check for day-of-week matches (lower priority)
-                    elif 'days' in timing:
-                        days_list = timing.get('days', [])
-                        day_matches = [day.lower()[:3] for day in days_list] if isinstance(days_list, list) else []
-
-                        if day_of_week in day_matches:
-                            slot_from = timing.get('slotFrom', '08:00')
-                            slot_to = timing.get('slotTo', '22:00')
-                            price_config = timing.get('price', str(price_per_hour))
-
-                            print(f"[COURTS API] ✓ DAY-SPECIFIC Config {i+1}: {slot_from}-{slot_to}, ₹{price_config}")
-
-                            try:
-                                start_hour = int(slot_from.split(':')[0])
-                                end_hour = int(slot_to.split(':')[0])
-                                config_price = float(price_config)
-
-                                day_specific_configs.append({
-                                    'start_hour': start_hour,
-                                    'end_hour': end_hour,
-                                    'price': config_price,
-                                    'id': timing.get('id'),
-                                    'type': 'day-specific'
-                                })
-                            except (ValueError, IndexError) as e:
-                                print(f"[COURTS API] ❌ Error parsing day-specific config {i+1}: {e}")
+        # 3. Determine Operating Hours
+        branch_is_active = True
+        venue_start_hour = 8
+        venue_end_hour = 22
+        
+        if isinstance(opening_hours, dict):
+            possible_keys = [day_of_week_full.lower(), day_of_week_full, day_of_week_short, day_of_week_short.title(), 'default']
+            day_config = None
+            for k in possible_keys:
+                if k in opening_hours:
+                    day_config = opening_hours[k]
+                    break
             
-            # Use date-specific configs if available, otherwise fall back to day-specific
-            if date_specific_configs:
-                matching_configs = date_specific_configs
-                print(f"[COURTS API] Using {len(date_specific_configs)} DATE-SPECIFIC configurations")
-            elif day_specific_configs:
-                matching_configs = day_specific_configs
-                print(f"[COURTS API] Using {len(day_specific_configs)} DAY-SPECIFIC configurations")
-        
-        # FALLBACK: Generate default slots if no configurations found
-        if not matching_configs:
-            print(f"[COURTS API] ⚠️ Court {court_id} has NO matching price_conditions - generating default slots")
-            for hour in range(8, 22):  # 8 AM to 10 PM
-                matching_configs.append({
-                    'start_hour': hour,
-                    'end_hour': hour + 1,  # Each slot is 1 hour
-                    'price': price_per_hour,
-                    'id': f'default-{hour}',
-                    'type': 'default'
-                })
-
-        # Generate time slots from all matching configurations
-        # CHANGED: Each configuration now creates a SINGLE slot instead of hourly slots
-        all_slots = []
-
-        for config in matching_configs:
-            start_hour = config['start_hour']
-            end_hour = config['end_hour']
-            
-            print(f"[COURTS API] Creating single slot: {start_hour:02d}:00-{end_hour:02d}:00, ₹{config['price']}")
-            
-            # Format start time
-            start_time_str = f"{start_hour:02d}:00"
-            start_period = "AM" if start_hour < 12 else "PM"
-            start_display_hour = start_hour
-            if start_display_hour > 12:
-                start_display_hour -= 12
-            if start_display_hour == 0:
-                start_display_hour = 12
-
-            # Format end time
-            end_time_str = f"{end_hour:02d}:00"
-            end_period = "AM" if end_hour < 12 else "PM"
-            end_display_hour = end_hour
-            if end_display_hour > 12:
-                end_display_hour -= 12
-            if end_display_hour == 0:
-                end_display_hour = 12
-
-            # Create a SINGLE slot for the entire time range
-            slot = {
-                "time": start_time_str,
-                "end_time": end_time_str,
-                "display_time": f"{start_display_hour:02d}:00 {start_period} - {end_display_hour:02d}:00 {end_period}",
-                "price": config['price'],
-                "available": True,
-                "slot_id": config.get('id', f"{start_time_str}-{end_time_str}")
-            }
-            all_slots.append(slot)
-
-        print(f"[COURTS API] Total slots generated: {len(all_slots)}")
-        
-        # Filter out unavailable slots from admin configuration (unavailability_slots column)
-        day_of_week = booking_date.strftime("%A")  # Monday, Tuesday, etc.
-
-        for unavail in unavailability_data:
-            # Check if unavailability applies to this date
-            if isinstance(unavail, dict):
-                # Check days of week - disable slots on specific days
-                if 'days' in unavail and isinstance(unavail['days'], list):
-                    days_config = [day.lower().capitalize() for day in unavail['days']]  # Convert to title case
-                    if day_of_week in days_config:
-                        unavail_times = unavail.get('times', [])
-                        if isinstance(unavail_times, list):
-                            for slot in all_slots:
-                                if slot['time'] in unavail_times:
-                                    slot['available'] = False
-                                    print(f"[COURTS API] Disabled slot {slot['time']} due to day unavailability")
-
-                # Check specific dates - disable slots on specific dates
-                if 'dates' in unavail and isinstance(unavail['dates'], list):
-                    if date in unavail['dates']:
-                        unavail_times = unavail.get('times', [])
-                        if isinstance(unavail_times, list):
-                            for slot in all_slots:
-                                if slot['time'] in unavail_times:
-                                    slot['available'] = False
-                                    print(f"[COURTS API] Disabled slot {slot['time']} due to date unavailability")
-
-        print(f"[COURTS API] Applied unavailability filters from {len(unavailability_data)} configurations")
-        
-        # Filter out already booked slots
-        booked_query = """
-            SELECT time_slots
-            FROM booking
-            WHERE court_id = :court_id
-              AND booking_date = :booking_date
-              AND status != 'cancelled'
-        """
-        
-        booked_result = db.execute(
-            text(booked_query),
-            {"court_id": court_id, "booking_date": booking_date}
-        )
-        
-        # Flatten all time slots from all bookings into a single set of booked start times
-        booked_slots = set()
-        for row in booked_result:
-            # row[0] is the time_slots JSON array
-            slots_data = row[0]
-            if slots_data and isinstance(slots_data, list):
-                for slot_item in slots_data:
-                    if isinstance(slot_item, dict) and 'start_time' in slot_item:
-                        booked_slots.add(slot_item['start_time'])
-        
-        for slot in all_slots:
-            if slot['time'] in booked_slots:
-                slot['available'] = False
-        
-        # Filter out past slots if the selected date is today
-        if booking_date == datetime.now().date():
-            current_time = datetime.now().time()
-            current_hour = current_time.hour
-            current_minute = current_time.minute
-            
-            # Filter slots: only show future slots
-            filtered_slots = []
-            for slot in all_slots:
+            if day_config and isinstance(day_config, dict):
+                start_str = day_config.get('open') or day_config.get('start') or '08:00'
+                end_str = day_config.get('close') or day_config.get('end') or '22:00'
+                if day_config.get('isActive') is False:
+                    branch_is_active = False
                 try:
-                    slot_hour = int(slot['time'].split(':')[0])
-                    slot_minute = int(slot['time'].split(':')[1]) if ':' in slot['time'] else 0
-                    
-                    # Keep slot if it's in the future (hour is greater, or same hour but future minute)
-                    if slot_hour > current_hour or (slot_hour == current_hour and slot_minute > current_minute):
-                        filtered_slots.append(slot)
-                    else:
-                        print(f"[COURTS API] Filtered past slot: {slot['time']} (current: {current_hour}:{current_minute})")
-                except (ValueError, IndexError) as e:
-                    print(f"[COURTS API] Error parsing slot time {slot.get('time')}: {e}")
-                    # Include slot if we can't parse it
-                    filtered_slots.append(slot)
+                    venue_start_hour = int(start_str.split(':')[0])
+                    venue_end_hour = int(end_str.split(':')[0])
+                except: pass
+
+        # 4. Generate & Override Slots
+        court_slots = {} # hour(int) -> {price, id}
+        if branch_is_active:
+            for h in range(venue_start_hour, venue_end_hour):
+                court_slots[h] = {'price': b_price, 'id': 'default'}
+
+        # Fetch Global Conditions
+        global_conditions = db.query(models.GlobalPriceCondition).filter(models.GlobalPriceCondition.is_active == True).all()
+
+        g_recurring, l_recurring, g_date, l_date = [], [], [], []
+        for gc in global_conditions:
+            match = False
+            if gc.condition_type == 'date' and gc.dates and date in gc.dates: match = True
+            elif gc.condition_type == 'recurring' and gc.days and (day_of_week_short in [d.lower()[:3] for d in gc.days] or day_of_week_full.lower() in [d.lower() for d in gc.days]): match = True
+            if match:
+                item = {'slotFrom': gc.slot_from, 'slotTo': gc.slot_to, 'price': float(gc.price), 'id': f"global-{gc.id}"}
+                if gc.condition_type == 'date': g_date.append(item)
+                else: g_recurring.append(item)
+        
+        if isinstance(p_cond, list):
+            for pc in p_cond:
+                if not isinstance(pc, dict): continue
+                match = False
+                is_date = False
+                if 'dates' in pc and date in (pc.get('dates') or []): match = True; is_date = True
+                elif 'days' in pc and (day_of_week_short in [d.lower()[:3] for d in (pc.get('days') or [])] or day_of_week_full.lower() in [d.lower() for d in (pc.get('days') or [])]): match = True
+                if match:
+                    item = {'slotFrom': pc.get('slotFrom'), 'slotTo': pc.get('slotTo'), 'price': float(pc.get('price', b_price)), 'id': pc.get('id', 'override')}
+                    if is_date: l_date.append(item)
+                    else: l_recurring.append(item)
+
+        for items in [g_recurring, l_recurring, g_date, l_date]:
+            for cfg in items:
+                try:
+                    s_h = int(cfg['slotFrom'].split(':')[0])
+                    e_h = int(cfg['slotTo'].split(':')[0])
+                    for h in range(s_h, e_h):
+                        court_slots[h] = {'price': cfg['price'], 'id': cfg['id']}
+                except: pass
+
+        # 5. Check Availability (Unavailability & Bookings)
+        disabled_hours = set()
+        for un in un_slots:
+            if isinstance(un, dict):
+                match = False
+                if date in (un.get('dates') or []): match = True
+                if day_of_week_short in [d.lower()[:3] for d in (un.get('days') or [])]: match = True
+                if match:
+                    for t in (un.get('times') or []):
+                        try: disabled_hours.add(int(t.split(':')[0]))
+                        except: pass
+        
+        booked_res = db.execute(text("SELECT time_slots FROM booking WHERE court_id = :cid AND booking_date = :bdate AND status != 'cancelled'"), {"cid": court_id, "bdate": booking_date}).fetchall()
+        booked_hours = set()
+        for row in booked_res:
+            if row[0] and isinstance(row[0], list):
+                for s in row[0]:
+                    try: booked_hours.add(int(s['start_time'].split(':')[0]))
+                    except: pass
+
+        # 6. Format Output
+        all_slots = []
+        now = datetime.now()
+        is_today = (booking_date == now.date())
+
+        for h in sorted(court_slots.keys()):
+            if is_today and h <= now.hour and (h < now.hour or now.minute > 0):
+                continue
+
+            time_key = f"{h:02d}:00"
+            available = not (h in disabled_hours or h in booked_hours)
             
-            all_slots = filtered_slots
-            print(f"[COURTS API] After filtering past slots: {len(all_slots)} remaining")
-        
-        # Return only available slots
-        available_slots = [s for s in all_slots if s['available']]
-        
-        print(f"[COURTS API] Found {len(available_slots)} available slots for court {court_id} on {date}")
-        
-        return {
-            "court_id": court_id,
-            "date": date,
-            "slots": available_slots
-        }
-        
-    except HTTPException:
-        raise
+            sh_disp = h if h <= 12 else h - 12
+            if sh_disp == 0: sh_disp = 12
+            ampm_s = "AM" if h < 12 else "PM"
+            eh_disp = (h+1) if (h+1) <= 12 else (h+1) - 12
+            if eh_disp == 0: eh_disp = 12
+            ampm_e = "AM" if (h+1) < 12 else "PM"
+
+            all_slots.append({
+                "time": time_key,
+                "display_time": f"{sh_disp:02d}:00 {ampm_s} - {eh_disp:02d}:00 {ampm_e}",
+                "price": court_slots[h]['price'],
+                "available": available,
+                "slot_id": court_slots[h]['id']
+            })
+
+        print(f"[COURTS API] Returning {len(all_slots)} slots for court {court_id} on {date}")
+        return {"court_id": court_id, "date": date, "slots": all_slots}
+
+    except HTTPException as he: raise he
     except Exception as e:
-        print(f"[COURTS API] Error getting available slots: {e}")
+        print(f"[COURTS API] Error: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

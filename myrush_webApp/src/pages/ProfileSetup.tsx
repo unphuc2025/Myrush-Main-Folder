@@ -1,13 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { profileApi } from '../api/profile';
 import type { City, GameType } from '../api/profile';
 import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Card } from '../components/ui/Card';
-import { motion } from 'framer-motion';
 
 export const ProfileSetup: React.FC = () => {
     const navigate = useNavigate();
@@ -30,12 +26,10 @@ export const ProfileSetup: React.FC = () => {
     const [isLoadingData, setIsLoadingData] = useState(true);
 
     const phone = location.state?.phone;
-    const pendingToken = location.state?.token; // token passed from OTPVerification for new users
+    const pendingToken = location.state?.token;
 
     useEffect(() => {
-        if (phone) {
-            setPhoneNumber(phone);
-        }
+        if (phone) setPhoneNumber(phone);
     }, [phone]);
 
     useEffect(() => {
@@ -46,41 +40,32 @@ export const ProfileSetup: React.FC = () => {
                     profileApi.getCities(),
                     profileApi.getGameTypes(),
                 ]);
+                if (citiesRes.success) setCities(citiesRes.data);
+                if (gameTypesRes.success) setGameTypes(gameTypesRes.data);
 
-                if (citiesRes.success) {
-                    setCities(citiesRes.data);
-                }
-                if (gameTypesRes.success) {
-                    setGameTypes(gameTypesRes.data);
-                }
-
-                // Only try to fetch existing profile if there's already a token (existing user editing profile)
                 if (!location.state?.token) {
                     try {
                         const profileRes = await profileApi.getProfile();
                         if (profileRes.success && profileRes.data) {
-                            const profile = profileRes.data;
-                            setFullName(profile.full_name || '');
-                            setAge(profile.age ? profile.age.toString() : '');
-                            setCity(profile.city || '');
-                            setSelectedCityId(profile.city_id || null);
-                            setGender(profile.gender || '');
-                            setHandedness(profile.handedness || 'Right-handed');
-                            setSkillLevel(profile.skill_level || '');
-                            setSelectedSports(profile.sports || []);
-                            setPlayingStyle(profile.playing_style || 'All-court');
+                            const p = profileRes.data;
+                            setFullName(p.full_name || '');
+                            setAge(p.age ? p.age.toString() : '');
+                            setCity(p.city || '');
+                            setSelectedCityId(p.city_id || null);
+                            setGender(p.gender || '');
+                            setHandedness(p.handedness || 'Right-handed');
+                            setSkillLevel(p.skill_level || '');
+                            setSelectedSports(p.sports || []);
+                            setPlayingStyle(p.playing_style || 'All-court');
                         }
-                    } catch {
-                        // No profile yet — that's fine for new users
-                    }
+                    } catch { /* new user */ }
                 }
-            } catch (error) {
-                console.error('Error fetching profile data:', error);
+            } catch (err) {
+                console.error('Error fetching profile data:', err);
             } finally {
                 setIsLoadingData(false);
             }
         };
-
         fetchData();
     }, []);
 
@@ -94,36 +79,24 @@ export const ProfileSetup: React.FC = () => {
     const skillLevels = ['Beginner', 'Intermediate', 'Advanced', 'Pro'];
     const playingStyles = ['Dinker', 'Banger', 'All-court', 'Net Player', 'Baseline'];
 
-    const toggleSelection = (item: string, currentSelection: string[], setSelection: (val: string[]) => void) => {
-        if (currentSelection.includes(item)) {
-            setSelection(currentSelection.filter(i => i !== item));
-        } else {
-            setSelection([...currentSelection, item]);
-        }
+    const toggle = (item: string, list: string[], setList: (v: string[]) => void) => {
+        setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
     };
-
-
 
     const handleContinue = async () => {
         if (!fullName.trim() || !age.trim() || !city.trim()) {
             alert('Please enter your full name, age, and city.');
             return;
         }
-
         if (isSaving) return;
         setIsSaving(true);
-
         try {
-            // If there's a pending token (new user), authenticate first so the API call works
             if (pendingToken) {
                 login(pendingToken);
-                // Small delay to let the token propagate to apiClient interceptors
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
-
             const ageNumber = parseInt(age, 10);
-
-            const payload = {
+            await apiClient.post('/profile/', {
                 phone_number: phone,
                 full_name: fullName.trim(),
                 age: Number.isNaN(ageNumber) ? undefined : ageNumber,
@@ -133,11 +106,7 @@ export const ProfileSetup: React.FC = () => {
                 skill_level: skillLevel || undefined,
                 sports: selectedSports,
                 playing_style: playingStyle,
-            };
-
-            await apiClient.post('/profile/', payload);
-
-            // Profile saved successfully, navigate to dashboard
+            });
             navigate('/dashboard');
         } catch (error: any) {
             alert(error?.response?.data?.detail || 'Something went wrong while saving your profile.');
@@ -148,290 +117,193 @@ export const ProfileSetup: React.FC = () => {
 
     if (isLoadingData) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading...</p>
+                    <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm font-medium">Loading...</p>
                 </div>
             </div>
         );
     }
 
+    const Pill = ({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) => (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 border ${active
+                ? 'bg-black text-white border-black'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-black'
+                }`}
+        >
+            {label}
+        </button>
+    );
+
+    const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{children}</p>
+    );
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-10">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.3),rgba(255,255,255,0.1))]"></div>
-            </div>
 
-            {/* Floating Elements */}
-            <motion.div
-                animate={{
-                    scale: [1, 1.1, 1],
-                    rotate: [0, 180, 360]
-                }}
-                transition={{
-                    duration: 20,
-                    repeat: Infinity,
-                    ease: "linear"
-                }}
-                className="absolute top-20 right-20 w-64 h-64 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
-            />
-            <motion.div
-                animate={{
-                    scale: [1.1, 1, 1.1],
-                    y: [0, -20, 0]
-                }}
-                transition={{
-                    duration: 15,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                }}
-                className="absolute bottom-32 left-16 w-48 h-48 bg-gradient-to-r from-emerald-400/15 to-cyan-400/15 rounded-full blur-2xl"
-            />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-xl mx-auto">
 
-            <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8">
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="w-full max-w-4xl"
-                >
-                    {/* Header */}
-                    <motion.div
-                        initial={{ y: -20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.2 }}
-                        className="text-center mb-8"
-                    >
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-                            className="inline-block p-4 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 mb-4"
-                        >
-                            <span className="text-4xl">⚡</span>
-                        </motion.div>
-                        <h1 className="text-4xl md:text-5xl font-black text-white mb-2 bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
-                            Complete Your Profile
-                        </h1>
-                        <p className="text-white/70 text-lg">Tell us about yourself to get personalized recommendations</p>
-                    </motion.div>
+                {/* Header */}
+                <div className="text-center mb-8">
+                    <div className="inline-block px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-3">
+                        <span className="text-xs font-black text-primary tracking-widest">MYRUSH SPORTS</span>
+                    </div>
+                    <h1 className="text-3xl font-black text-gray-900 font-montserrat uppercase tracking-tight mb-2">
+                        Complete Your<span className="text-primary">.</span><br />Profile
+                    </h1>
+                    <p className="text-gray-500 text-sm max-w-xs mx-auto">Tell us about yourself to get personalized recommendations.</p>
+                </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Left Column - Basic Info */}
-                        <motion.div
-                            initial={{ opacity: 0, x: -30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.6 }}
-                        >
-                            <Card variant="glass" className="border-white/20 shadow-2xl p-8 h-full">
-                                <div className="flex items-center mb-6">
-                                    <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center mr-3">
-                                        <span className="text-xl">👤</span>
-                                    </div>
-                                    <h2 className="text-2xl font-bold text-white">Basic Information</h2>
-                                </div>
+                {/* Card */}
+                <div className="bg-white rounded-3xl shadow-lg shadow-gray-200/50 border border-gray-100 p-8 mb-6">
 
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-white/80 mb-2">Phone Number</label>
-                                        <Input
-                                            type="tel"
-                                            value={phoneNumber}
-                                            readOnly
-                                            className="text-white placeholder-white/50 bg-white/10 border-white/20 focus:border-primary focus:ring-primary/20 h-12"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-white/80 mb-2">Full Name</label>
-                                        <Input
-                                            type="text"
-                                            placeholder="Enter your full name"
-                                            value={fullName}
-                                            onChange={(e) => setFullName(e.target.value)}
-                                            className="text-white placeholder-white/50 bg-white/10 border-white/20 focus:border-primary focus:ring-primary/20 h-12"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-white/80 mb-2">Age</label>
-                                            <Input
-                                                type="number"
-                                                placeholder="Age"
-                                                value={age}
-                                                onChange={(e) => setAge(e.target.value)}
-                                                className="text-white placeholder-white/50 bg-white/10 border-white/20 focus:border-primary focus:ring-primary/20 h-12"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-white/80 mb-2">City</label>
-                                            <select
-                                                value={selectedCityId || ''}
-                                                onChange={(e) => {
-                                                    const cityId = e.target.value;
-                                                    const selectedCity = cities.find(c => c.id === cityId);
-                                                    setSelectedCityId(cityId);
-                                                    setCity(selectedCity ? selectedCity.name : '');
-                                                }}
-                                                className="w-full h-12 px-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all appearance-none"
-                                            >
-                                                <option value="" disabled className="text-gray-800 bg-white">
-                                                    Select City
-                                                </option>
-                                                {cities.map(cityOption => (
-                                                    <option key={cityOption.id} value={cityOption.id} className="text-gray-800 bg-white">
-                                                        {cityOption.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Card>
-                        </motion.div>
-
-                        {/* Right Column - Preferences */}
-                        <motion.div
-                            initial={{ opacity: 0, x: 30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.8 }}
-                        >
-                            <Card variant="glass" className="border-white/20 shadow-2xl p-8 h-full">
-                                <div className="flex items-center mb-6">
-                                    <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center mr-3">
-                                        <span className="text-xl">🎯</span>
-                                    </div>
-                                    <h2 className="text-2xl font-bold text-white">Player Preferences</h2>
-                                </div>
-
-                                <div className="space-y-8">
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-white mb-4">Gender</h3>
-                                        <div className="flex flex-wrap gap-3">
-                                            {genders.map(g => (
-                                                <button
-                                                    key={g}
-                                                    onClick={() => setGender(g)}
-                                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${gender === g
-                                                        ? 'bg-primary text-black shadow-lg transform scale-105'
-                                                        : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
-                                                        }`}
-                                                >
-                                                    {g}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-white mb-4">Handedness</h3>
-                                        <div className="flex flex-wrap gap-3">
-                                            {handednessOptions.map(h => (
-                                                <button
-                                                    key={h}
-                                                    onClick={() => setHandedness(h)}
-                                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${handedness === h
-                                                        ? 'bg-primary text-black shadow-lg transform scale-105'
-                                                        : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
-                                                        }`}
-                                                >
-                                                    {h}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-white mb-4">Skill Level</h3>
-                                        <div className="flex flex-wrap gap-3">
-                                            {skillLevels.map(s => (
-                                                <button
-                                                    key={s}
-                                                    onClick={() => setSkillLevel(s)}
-                                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${skillLevel === s
-                                                        ? 'bg-primary text-black shadow-lg transform scale-105'
-                                                        : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
-                                                        }`}
-                                                >
-                                                    {s}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-white mb-4">Favorite Sports</h3>
-                                        <div className="flex flex-wrap gap-3">
-                                            {gameTypes.map(sport => (
-                                                <button
-                                                    key={sport.name}
-                                                    onClick={() => toggleSelection(sport.name, selectedSports, setSelectedSports)}
-                                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${selectedSports.includes(sport.name)
-                                                        ? 'bg-primary text-black shadow-lg transform scale-105'
-                                                        : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
-                                                        }`}
-                                                >
-                                                    {sport.name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-white mb-4">Playing Style</h3>
-                                        <div className="flex flex-wrap gap-3">
-                                            {playingStyles.map(p => (
-                                                <button
-                                                    key={p}
-                                                    onClick={() => setPlayingStyle(p)}
-                                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${playingStyle === p
-                                                        ? 'bg-primary text-black shadow-lg transform scale-105'
-                                                        : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
-                                                        }`}
-                                                >
-                                                    {p}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </Card>
-                        </motion.div>
+                    {/* Phone */}
+                    <div className="mb-6">
+                        <SectionLabel>Phone Number</SectionLabel>
+                        <div className="flex items-center gap-3 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl transition-colors hover:border-gray-300">
+                            <span className="text-base">📞</span>
+                            <span className="text-gray-700 text-sm font-semibold tracking-wide">{phoneNumber}</span>
+                        </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 1 }}
-                        className="mt-8 flex flex-col sm:flex-row gap-4 justify-center"
-                    >
-                        <button
-                            onClick={() => navigate(-1)}
-                            className="px-8 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all duration-300"
-                        >
-                            Back
-                        </button>
-                        <Button
-                            onClick={handleContinue}
-                            disabled={isSaving}
-                            size="lg"
-                            className="px-12 py-4 bg-gradient-to-r from-primary to-blue-500 text-black hover:from-white hover:to-gray-100 border-0 shadow-glow font-bold text-lg"
-                        >
-                            {isSaving ? (
-                                <div className="flex items-center">
-                                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-3" />
-                                    Saving...
+                    {/* Full Name */}
+                    <div className="mb-6">
+                        <SectionLabel>Full Name</SectionLabel>
+                        <input
+                            type="text"
+                            placeholder="Enter your full name"
+                            value={fullName}
+                            onChange={e => setFullName(e.target.value)}
+                            className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all shadow-sm"
+                        />
+                    </div>
+
+                    {/* Age + City */}
+                    <div className="grid grid-cols-2 gap-5 mb-6">
+                        <div>
+                            <SectionLabel>Age</SectionLabel>
+                            <input
+                                type="number"
+                                placeholder="Your age"
+                                value={age}
+                                onChange={e => setAge(e.target.value)}
+                                className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all shadow-sm"
+                            />
+                        </div>
+                        <div>
+                            <SectionLabel>City</SectionLabel>
+                            <div className="relative">
+                                <select
+                                    value={selectedCityId || ''}
+                                    onChange={e => {
+                                        const id = e.target.value;
+                                        const found = cities.find(c => c.id === id);
+                                        setSelectedCityId(id);
+                                        setCity(found ? found.name : '');
+                                    }}
+                                    className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-gray-900 text-sm font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all appearance-none shadow-sm cursor-pointer"
+                                >
+                                    <option value="" disabled>Select City</option>
+                                    {cities.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
                                 </div>
-                            ) : (
-                                'Complete Profile'
-                            )}
-                        </Button>
-                    </motion.div>
-                </motion.div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 my-6" />
+
+                    {/* Gender */}
+                    <div className="mb-6">
+                        <SectionLabel>Gender</SectionLabel>
+                        <div className="flex flex-wrap gap-2">
+                            {genders.map(g => <Pill key={g} label={g} active={gender === g} onClick={() => setGender(g)} />)}
+                        </div>
+                    </div>
+
+                    {/* Handedness */}
+                    <div className="mb-6">
+                        <SectionLabel>Handedness</SectionLabel>
+                        <div className="flex flex-wrap gap-2">
+                            {handednessOptions.map(h => <Pill key={h} label={h} active={handedness === h} onClick={() => setHandedness(h)} />)}
+                        </div>
+                    </div>
+
+                    {/* Skill Level */}
+                    <div className="mb-6">
+                        <SectionLabel>Skill Level</SectionLabel>
+                        <div className="flex flex-wrap gap-2">
+                            {skillLevels.map(s => <Pill key={s} label={s} active={skillLevel === s} onClick={() => setSkillLevel(s)} />)}
+                        </div>
+                    </div>
+
+                    {/* Sports */}
+                    {gameTypes.length > 0 && (
+                        <div className="mb-6">
+                            <SectionLabel>Favourite Sports</SectionLabel>
+                            <div className="flex flex-wrap gap-2">
+                                {gameTypes.map(sp => (
+                                    <Pill
+                                        key={sp.name}
+                                        label={sp.name}
+                                        active={selectedSports.includes(sp.name)}
+                                        onClick={() => toggle(sp.name, selectedSports, setSelectedSports)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Playing Style */}
+                    <div className="mb-2">
+                        <SectionLabel>Playing Style</SectionLabel>
+                        <div className="flex flex-wrap gap-2">
+                            {playingStyles.map(p => <Pill key={p} label={p} active={playingStyle === p} onClick={() => setPlayingStyle(p)} />)}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-4 mb-8">
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className="flex-1 h-14 rounded-2xl bg-white border border-gray-200 text-gray-700 font-bold text-sm uppercase tracking-wider hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                    >
+                        Back
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleContinue}
+                        disabled={isSaving}
+                        className="flex-[2] h-14 rounded-2xl bg-black text-white font-black text-sm uppercase tracking-wider hover:bg-gray-900 transition-all disabled:opacity-70 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                    >
+                        {isSaving ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            'Complete Profile →'
+                        )}
+                    </button>
+                </div>
+
+                <p className="text-center text-xs text-gray-400 font-medium leading-relaxed max-w-xs mx-auto">
+                    By continuing, you agree to our{' '}
+                    <Link to="/terms" target="_blank" className="text-gray-900 font-bold cursor-pointer hover:underline decoration-2 underline-offset-2">Terms of Service</Link>
+                    {' '}&{' '}
+                    <Link to="/terms" target="_blank" className="text-gray-900 font-bold cursor-pointer hover:underline decoration-2 underline-offset-2">Privacy Policy</Link>
+                </p>
             </div>
         </div>
     );

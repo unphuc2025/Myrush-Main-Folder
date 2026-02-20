@@ -176,6 +176,23 @@ export const venuesApi = {
     /**
      * Fetch branches filtered by city
      */
+    getCities: async () => {
+        try {
+            const response = await apiClient.get<string[]>('/venues/cities');
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('[VENUES API] Exception fetching cities:', error);
+            return {
+                success: false,
+                data: [],
+                error: error.message,
+            };
+        }
+    },
+
     getBranches: async (city?: string) => {
         try {
             const endpoint = city ? `/venues/branches?city=${encodeURIComponent(city)}` : '/venues/branches';

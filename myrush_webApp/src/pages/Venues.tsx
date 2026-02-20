@@ -280,9 +280,35 @@ export const Venues: React.FC = () => {
     const [selectedSport, setSelectedSport] = useState('All');
     const [selectedBranch, setSelectedBranch] = useState('All');
 
-    const CITIES = ['Hyderabad', 'Bangalore', 'Mumbai', 'Delhi'];
+    const [cities, setCities] = useState<string[]>(['Hyderabad', 'Bangalore', 'Mumbai', 'Delhi']);
     const [sports, setSports] = useState<string[]>(['All']);
     const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([{ id: 'All', name: 'All' }]);
+
+    // Fetch available cities on mount
+    useEffect(() => {
+        const fetchCities = async () => {
+            try {
+                // Modified to fetch ALL active cities from dedicated endpoint
+                const response = await venuesApi.getCities();
+                if (response.success && response.data) {
+                    const uniqueCities = response.data; // Already processed list of city names
+
+                    if (uniqueCities.length > 0) {
+                        setCities(uniqueCities);
+
+                        // If current selectedCity isn't in fetched list, default to first one
+                        if (!uniqueCities.includes(selectedCity) && uniqueCities[0]) {
+                            setSelectedCity(uniqueCities[0]);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch cities:", err);
+            }
+        };
+
+        fetchCities();
+    }, []);
 
     // Save selectedCity to localStorage whenever it changes
     useEffect(() => {
@@ -308,7 +334,7 @@ export const Venues: React.FC = () => {
             );
         }
         if (selectedSport !== 'All') {
-            res = res.filter(v => v.game_type === selectedSport);
+            res = res.filter(v => v.game_type.includes(selectedSport));
         }
         if (selectedBranch !== 'All') {
             res = res.filter(v => v.branch_name === branches.find(b => b.id === selectedBranch)?.name);
@@ -381,7 +407,7 @@ export const Venues: React.FC = () => {
                 setSearchTerm={setSearchTerm}
                 selectedCity={selectedCity}
                 setSelectedCity={setSelectedCity}
-                cities={CITIES}
+                cities={cities}
             />
 
             <div className="max-w-7xl mx-auto px-6 pb-20 flex flex-col lg:flex-row gap-12 relative z-10">

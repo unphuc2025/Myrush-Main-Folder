@@ -8,19 +8,19 @@ export const Pickleball: React.FC = () => {
     const locations = [
         {
             name: 'Rush Arena, Cooke Town',
-            image: '/venues/cooke-town.webp', // Placeholder, using what I can or generic
+            image: '/venue-assets/cooke-town.webp', // Placeholder, using what I can or generic
             description: "Located at the heart of East Bengaluru, our facility at Rush Arena Cooke Town is excited to introduce four state-of-the-art pickleball courts, launching in September '24. Designed with top-quality surfaces and professional lighting, our courts provide the perfect setting for both casual play and competitive matches. Whether you're a seasoned player or new to the sport, our dedicated pickleball area offers a premier experience for all enthusiasts. Join us from 6 AM to 11 PM and enjoy the thrill of the game in a welcoming and vibrant environment.",
             link: '/venues/cooke-town'
         },
         {
             name: 'Rush Arena, Divyasree Omega, Kondapur, Hyderabad',
-            image: '/venues/gachibowli.webp', // Placeholder
+            image: '/venue-assets/gachibowli.webp', // Placeholder
             description: "Located in the bustling area of Kondapur, Rush Arena Divyasree Omega is proud to offer top-tier pickleball courts designed for enthusiasts of all levels. Our facility boasts high-quality surfaces and professional lighting, ensuring an exceptional playing experience whether you're here for a casual game or competitive play. With a welcoming atmosphere and modern amenities, Rush Arena Divyasree Omega is the perfect destination for pickleball enthusiasts in Hyderabad. Join us to experience the excitement and camaraderie of this fast-growing sport in a state-of-the-art environment.",
             link: '/venues/gachibowli'
         },
         {
             name: 'Rush Arena Tambaram, Chennai',
-            image: '/venues/whitefield.webp', // Placeholder
+            image: '/venue-assets/whitefield.webp', // Placeholder
             description: "Located in the lively neighborhood of Tambaram, Chennai, Rush Arena offers a premier pickleball experience. Our facility features state-of-the-art pickleball courts with top-quality surfaces and professional lighting, providing an ideal setting for players of all skill levels. Whether you're looking to enjoy a casual game or engage in competitive play, our courts are designed to deliver an exceptional experience. Rush Arena Tambaram is a welcoming and vibrant space, perfect for pickleball enthusiasts in Chennai. Join us and be part of the exciting pickleball community in the city.",
             link: '/venues/whitefield'
         }
