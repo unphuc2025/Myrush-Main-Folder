@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as authApi from '../api/auth';
-import { apiClient } from '../api/apiClient';
+import { apiClient, USER_KEY } from '../api/apiClient';
 
 export interface UserProfile {
   id: string;
@@ -55,6 +56,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await apiClient.setToken(token);
       const user = await authApi.getProfile();
+
+      // Persist user data for offline access
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
 
       set({
         user: {
@@ -213,20 +217,73 @@ export const useAuthStore = create<AuthState>((set) => ({
   checkAuth: async (): Promise<void> => {
     console.log('[AUTH] Starting checkAuth...');
     set({ isLoading: true });
+
     try {
-      const isAuth = await Promise.race([
-        authApi.isAuthenticated(),
-        new Promise<boolean>((resolve) => setTimeout(() => {
-          console.log('[AUTH] checkAuth timeout - assuming not authenticated');
-          resolve(false);
-        }, 3000)) // 3 second timeout
-      ]);
+      // 1. Check if we have a token
+      const token = await apiClient.getToken();
 
-      console.log('[AUTH] isAuthenticated result:', isAuth);
+      if (!token) {
+        console.log('[AUTH] No token found - not authenticated');
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false
+        });
+        return;
+      }
 
-      if (isAuth) {
-        try {
-          const user = await authApi.getProfile();
+      // 2. Try to fetch fresh profile from backend
+      try {
+        console.log('[AUTH] Token found, fetching fresh profile...');
+        // We use a timeout here so we don't wait forever if network is flaky
+        // But importantly, we catch the timeout error and fall back to cache
+        // instead of logging out
+        const user = await Promise.race([
+          authApi.getProfile(),
+          new Promise<any>((_, reject) =>
+            setTimeout(() => reject(new Error('Network timeout')), 5000)
+          )
+        ]);
+
+        // Success - update cache and state
+        await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
+
+        set({
+          user: {
+            id: user.id,
+            email: user.email,
+            phoneNumber: user.phone_number,
+            firstName: user.first_name,
+            lastName: user.last_name,
+            city: user.city,
+            avatarUrl: user.avatar_url,
+          },
+          token: token,
+          isAuthenticated: true, // We have a working token and fresh user data
+          isLoading: false,
+        });
+        console.log('[AUTH] checkAuth online success');
+        return;
+
+      } catch (networkError: any) {
+        // 3. Handle Network/Timeout Errors vs Auth Errors
+        console.log('[AUTH] Profile fetch failed:', networkError.message);
+
+        // If explicitly unauthorized (401), verify token is actually invalid
+        if (networkError.message && networkError.message.includes('401')) {
+          console.log('[AUTH] Token expired/invalid (401) - logging out');
+          await authApi.logout();
+          set({ isAuthenticated: false, user: null, token: null, isLoading: false });
+          return;
+        }
+
+        // For other errors (Network, Timeout, 500), try to load from cache
+        console.log('[AUTH] Using offline/cached user data');
+        const cachedUserJson = await AsyncStorage.getItem(USER_KEY);
+
+        if (cachedUserJson) {
+          const user = JSON.parse(cachedUserJson);
           set({
             user: {
               id: user.id,
@@ -237,29 +294,23 @@ export const useAuthStore = create<AuthState>((set) => ({
               city: user.city,
               avatarUrl: user.avatar_url,
             },
-            token: await apiClient.getToken() || '',
-            isAuthenticated: true,
+            token: token,
+            isAuthenticated: true, // Optimistically authenticated offline
             isLoading: false,
           });
-          console.log('[AUTH] checkAuth completed - user authenticated');
-          return;
-        } catch (error) {
-          console.log('[AUTH] Profile fetch failed - logging out');
-          // Token might be expired, clear auth state
-          await authApi.logout();
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
+          console.log('[AUTH] checkAuth offline success');
+        } else {
+          // No cache, but we have a token. 
+          // Can't confirm user details, so we might have to force login 
+          // or show a "Retry Connection" screen. For now, strict:
+          console.log('[AUTH] No cached user data found - logging out');
+          // await authApi.logout(); // Optional: Don't logout, just stay unauth
+          set({ isAuthenticated: false, isLoading: false });
         }
-      } else {
-        console.log('[AUTH] checkAuth completed - not authenticated');
-        set({ isLoading: false, isAuthenticated: false });
       }
+
     } catch (error) {
-      console.error('[AUTH] checkAuth error:', error);
+      console.error('[AUTH] checkAuth critical error:', error);
       set({ isLoading: false, isAuthenticated: false });
     }
   },

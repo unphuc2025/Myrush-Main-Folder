@@ -16,6 +16,7 @@ import { RootStackParamList } from '../types';
 import { Container } from '../components/common/Container';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { otpApi } from '../api/otp';
 
 const { width, height } = Dimensions.get('window');
 
@@ -90,9 +91,10 @@ const OTPLoginScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const { otpApi } = require('../api/otp');
       const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+      // otpApi is statically imported — dynamic require() fails under Hermes (APK)
       const response = await otpApi.sendOTP(formattedPhone);
+
 
       if (response && response.success) {
         setIsLoading(false);
@@ -137,7 +139,6 @@ const OTPLoginScreen: React.FC = () => {
     setIsLoading(true);
     try {
       const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
-      const { otpApi } = require('../api/otp');
       const verifyResponse = await otpApi.verifyOTP(formattedPhone, enteredOTP);
 
       if (verifyResponse.needs_profile) {
@@ -149,7 +150,7 @@ const OTPLoginScreen: React.FC = () => {
             {
               text: "Let's Go",
               onPress: () => {
-                const { useAuthStore } = require('../store/authStore');
+                // Use statically imported useAuthStore — dynamic require() fails under Hermes (APK)
                 useAuthStore.setState({
                   user: {
                     id: '',
@@ -166,10 +167,8 @@ const OTPLoginScreen: React.FC = () => {
       }
 
       if (verifyResponse.access_token) {
-        // Direct login with received token to avoid double-verification issue
-        const { useAuthStore } = require('../store/authStore');
+        // Use statically imported useAuthStore — dynamic require() fails under Hermes (APK)
         const { setAuthSuccess } = useAuthStore.getState();
-
         await setAuthSuccess(verifyResponse.access_token);
         // Navigation is handled by AppNavigator observing auth state
       }
