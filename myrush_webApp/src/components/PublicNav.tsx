@@ -1,44 +1,61 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/Button';
+import { FaBars, FaTimes } from 'react-icons/fa';
 
 export const PublicNav: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { isAuthenticated } = useAuth();
-    const { scrollY } = useScroll();
-    const [isScrolled, setIsScrolled] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    useMotionValueEvent(scrollY, "change", (latest) => {
-        if (latest > 50) {
-            setIsScrolled(true);
-        } else {
-            setIsScrolled(false);
-        }
-    });
+    const navItems = [
+        { label: 'Home', path: '/' },
+        { label: 'Academy', path: '/academy' },
+        { label: 'Arena', path: '/arena' },
+        { label: 'Corporate', path: '/corporate' },
+        { label: 'Pickleball', path: '/pickleball' }
+    ];
 
     return (
-        <motion.nav
-            className={`fixed top-0 left-0 right-0 z-[100] transition-colors duration-300 ${isScrolled ? 'bg-black backdrop-blur-xl border-b border-white/5' : 'bg-transparent border-transparent'
-                }`}
-            initial={{ y: -100 }}
-            animate={{ y: 0 }}
-            transition={{ duration: 0.5 }}
+        <div
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                width: '100vw',
+                zIndex: 9999,
+                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                borderBottom: '1px solid rgba(0,0,0,0.08)',
+                boxShadow: '0 2px 20px rgba(0,0,0,0.08)',
+            }}
         >
-            <div className="w-full px-6 h-24 flex items-center justify-between">
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
-                    <img src="/Rush-logo.webp" alt="Rush" className="h-24 md:h-28 w-auto" />
+
+            {/* Nav Content — sits on top of background layer */}
+            <div
+                style={{ position: 'relative', zIndex: 1 }}
+                className="w-full px-4 md:px-6 h-14 md:h-16 flex items-center justify-between"
+            >
+                {/* Logo */}
+                <div
+                    className="flex items-center gap-2 cursor-pointer"
+                    onClick={() => {
+                        navigate('/');
+                        setIsMobileMenuOpen(false);
+                        window.scrollTo(0, 0);
+                    }}
+                >
+                    <img src="/Rush-logo.webp" alt="Rush" className="h-16 md:h-28 w-auto" />
                 </div>
-                <div className="hidden md:flex items-center gap-8 bg-white/5 backdrop-blur-md px-8 py-3 rounded-full border border-white/5">
-                    {[
-                        { label: 'Home', path: '/' },
-                        { label: 'Academy', path: '/academy' },
-                        { label: 'Arena', path: '/arena' },
-                        { label: 'Corporate', path: '/corporate' },
-                        { label: 'Pickleball', path: '/pickleball' }
-                    ].map((item) => {
+
+                {/* Desktop Nav Items */}
+                <div className="hidden md:flex items-center gap-8 px-8 py-3">
+                    {navItems.map((item) => {
                         const isActive = location.pathname === item.path;
                         return (
                             <button
@@ -51,39 +68,78 @@ export const PublicNav: React.FC = () => {
                                 {isActive && (
                                     <motion.div
                                         layoutId="publicNavIndicator"
-                                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-full shadow-glow"
-                                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-full"
+                                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                                     />
                                 )}
                             </button>
                         );
                     })}
                 </div>
-                {isAuthenticated ? (
-                    // Profile icon for authenticated users
-                    <button
-                        className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all hover:shadow-glow border border-white/10"
-                        onClick={() => navigate('/profile')}
-                        title="Go to Profile"
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                    </button>
-                ) : (
-                    // Login/Signup button for unauthenticated users
-                    <div className="flex items-center gap-4">
+
+                {/* Right: Auth + Mobile Toggle */}
+                <div className="flex items-center gap-3 md:gap-4">
+                    {isAuthenticated ? (
+                        <button
+                            className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10"
+                            onClick={() => navigate('/profile')}
+                            title="Go to Profile"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </button>
+                    ) : (
                         <Button
                             variant="primary"
                             onClick={() => navigate('/venues')}
-                            className="font-bold bg-primary text-black hover:bg-primary-hover uppercase tracking-wider text-sm px-6 py-2 shadow-glow hover:shadow-glow-strong rounded-full transition-all"
+                            className="font-bold bg-primary text-black hover:bg-primary-hover uppercase tracking-wider text-xs md:text-sm px-4 py-2 md:px-6 md:py-2 rounded-md transition-all flex items-center justify-center h-9"
                         >
                             Book Now
                         </Button>
-                    </div>
-                )}
+                    )}
+
+                    {/* Mobile Toggle */}
+                    <button
+                        className="md:hidden p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10 text-white hover:bg-white/10"
+                        onClick={() => setIsMobileMenuOpen(prev => !prev)}
+                    >
+                        {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
+                    </button>
+                </div>
             </div>
-        </motion.nav>
+
+            {/* Mobile Menu */}
+            <AnimatePresence>
+                {isMobileMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        style={{ position: 'relative', zIndex: 1 }}
+                        className="md:hidden bg-black flex flex-col items-center justify-start pt-12 gap-8 min-h-screen overflow-y-auto pb-12"
+                    >
+                        {navItems.map((item, index) => (
+                            <motion.button
+                                key={item.label}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                onClick={() => {
+                                    navigate(item.path);
+                                    setIsMobileMenuOpen(false);
+                                }}
+                                className={`text-2xl font-bold uppercase tracking-widest ${location.pathname === item.path ? 'text-primary' : 'text-white'
+                                    }`}
+                            >
+                                {item.label}
+                            </motion.button>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };

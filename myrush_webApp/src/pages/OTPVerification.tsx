@@ -61,15 +61,22 @@ export const OTPVerification: React.FC = () => {
                 otp_code: enteredOTP
             });
 
-            if (response.data.access_token) {
+            if (response.data.needs_profile) {
+                // New user — navigate to profile setup WITHOUT calling login() yet.
+                // Calling login() would set isAuthenticated=true and the useEffect
+                // would redirect to '/' before navigate('/setup-profile') fires.
+                navigate('/setup-profile', {
+                    state: {
+                        phone,
+                        token: response.data.access_token || null
+                    }
+                });
+            } else if (response.data.access_token) {
+                // Existing user — log in and redirect
                 login(response.data.access_token);
-                login(response.data.access_token);
-                // Redirect to original destination or home
                 const from = (location.state as any)?.from?.pathname || '/';
                 const fromState = (location.state as any)?.from?.state;
                 navigate(from, { replace: true, state: fromState });
-            } else if (response.data.needs_profile) {
-                navigate('/setup-profile', { state: { phone } });
             } else {
                 setError('Verification failed');
                 setOtp(['', '', '', '', '']);

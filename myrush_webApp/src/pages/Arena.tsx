@@ -187,7 +187,7 @@ export const Arena: React.FC = () => {
             <section id="features" className="py-12 md:py-16 bg-white w-full">
                 <div className="w-full px-6">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
+                        <h2 className="text-2xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
                             Premium <span className="text-primary italic">Facilities</span>
                         </h2>
                         <p className="text-body-lg text-gray-400 font-light uppercase tracking-[0.2em]">
@@ -199,7 +199,7 @@ export const Arena: React.FC = () => {
                         {features.map((feature, index) => (
                             <motion.div
                                 key={index}
-                                className="group relative w-full h-full flex flex-col items-center text-center p-12 rounded-[3rem] bg-gray-50 border border-transparent hover:border-gray-100 hover:shadow-premium transition-all duration-500 min-h-[300px] justify-center"
+                                className="group relative w-full h-full flex flex-col items-center text-center p-12 rounded-[3rem] bg-gray-50 border border-transparent hover:border-gray-100 hover:shadow-premium active:scale-[0.98] active:bg-gray-100 transition-all duration-500 min-h-[300px] justify-center"
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
@@ -226,7 +226,7 @@ export const Arena: React.FC = () => {
                 <div className="w-full max-w-7xl mx-auto px-6">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
+                            <h2 className="text-2xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
                                 Our <span className="text-primary italic">Venues</span>
                             </h2>
                             <p className="text-body-lg text-gray-400 font-light uppercase tracking-[0.2em]">
@@ -318,7 +318,7 @@ export const Arena: React.FC = () => {
                 <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-3xl md:text-5xl font-black text-white font-montserrat uppercase leading-tight mb-6">
+                            <h2 className="text-2xl md:text-5xl font-black text-white font-montserrat uppercase leading-tight mb-6">
                                 Complete <span className="text-primary italic">Amenities</span>
                             </h2>
                             <p className="text-body-lg text-white/40 font-light uppercase tracking-[0.2em]">
@@ -331,23 +331,23 @@ export const Arena: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-8">
                         {amenities.map((amenity, index) => (
                             <motion.div
                                 key={index}
-                                className="bg-white/[0.03] backdrop-blur-xl rounded-2xl p-8 border border-white/10 hover:bg-white/[0.05] hover:border-primary/30 transition-all duration-500 group cursor-pointer text-center"
+                                className="bg-white/[0.03] backdrop-blur-xl rounded-2xl p-4 md:p-8 border border-white/10 hover:bg-white/[0.05] hover:border-primary/30 active:bg-white/10 active:scale-[0.98] transition-all duration-500 group cursor-pointer text-center flex flex-col items-center h-full"
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.05 }}
                             >
-                                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-500">
+                                <div className="text-3xl md:text-4xl mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-500">
                                     {amenity.icon}
                                 </div>
-                                <h3 className="text-white font-bold uppercase tracking-wider text-sm mb-2">
+                                <h3 className="text-white font-bold uppercase tracking-wider text-xs md:text-sm mb-2">
                                     {amenity.name}
                                 </h3>
-                                <p className="text-white/60 text-xs leading-relaxed">
+                                <p className="text-white/60 text-[10px] md:text-xs leading-relaxed">
                                     {amenity.description}
                                 </p>
                             </motion.div>
@@ -365,7 +365,7 @@ export const Arena: React.FC = () => {
                         viewport={{ once: true }}
                         className="max-w-4xl mx-auto"
                     >
-                        <h2 className="text-h2 text-black mb-10 leading-[1.1]">
+                        <h2 className="text-3xl md:text-6xl font-black text-black font-montserrat uppercase leading-tight mb-10">
                             Ready to <span className="text-primary italic">Play?</span>
                         </h2>
                         <p className="text-body-lg text-gray-400 font-light mb-12 max-w-2xl mx-auto">

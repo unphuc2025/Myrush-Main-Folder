@@ -193,7 +193,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100 hover:border-primary/20"
+        className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl active:shadow-sm active:scale-[0.98] transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100 hover:border-primary/20 active:border-primary/50"
         onClick={onClick}
     >
         <div className="relative h-56 overflow-hidden">
@@ -218,7 +218,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
                 <span className="text-gray-400 group-hover/heart:text-red-500 transition-colors text-lg">♥</span>
             </button>
             {/* Location Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent p-5 pt-12 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent p-5 pt-12 md:translate-y-2 md:group-hover:translate-y-0 transition-transform duration-300">
                 <p className="text-white text-xs font-bold flex items-center gap-2 drop-shadow-md">
                     <span className="text-primary bg-primary/20 p-1 rounded-full"><IconMapPin /></span>
                     <span className="truncate opacity-90">{venue.location}</span>
@@ -241,7 +241,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
             </div>
 
             {/* Price & CTA */}
-            <div className="mt-auto pt-6 border-t border-gray-100 flex items-end justify-between gap-4">
+            <div className="mt-auto pt-6 border-t border-gray-100 flex items-center justify-between gap-4">
                 <div>
                     <span className="block text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">Starting from</span>
                     <div className="flex items-baseline gap-1">
@@ -250,13 +250,13 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
                     </div>
                 </div>
                 <Button
-                    className="bg-zinc-900 text-white hover:bg-primary hover:text-black font-semibold text-sm px-6 py-2.5 rounded-lg shadow-lg hover:shadow-primary/30 transition-all duration-300"
+                    className="bg-zinc-900 text-white hover:bg-primary hover:text-black font-semibold text-sm px-6 py-3 rounded-lg shadow-lg hover:shadow-primary/30 transition-all duration-300 whitespace-nowrap shrink-0"
                     onClick={(e) => {
                         e.stopPropagation();
                         onClick();
                     }}
                 >
-                    Book
+                    Book Now
                 </Button>
             </div>
         </div>

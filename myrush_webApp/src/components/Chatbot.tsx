@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { VenueDetailCard } from './chatbot/VenueDetailCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaRobot, FaPaperPlane, FaTimes, FaMinus, FaMapMarkerAlt, FaCalendarAlt, FaClock } from 'react-icons/fa';
+import { FaHeadset, FaPaperPlane, FaTimes, FaMinus, FaMapMarkerAlt, FaCalendarAlt, FaClock } from 'react-icons/fa';
 import type { Message, QuickReply, BookingState } from '../types/ChatbotTypes';
 import { CITIES, SPORTS } from '../types/ChatbotTypes';
 import { venuesApi } from '../api/venues';
@@ -14,16 +14,11 @@ export const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         {
-            id: '1',
-            text: 'Hello! 👋 I am the MyRush AI Assistant. I can help you book a court, check availability, or answer your questions. \n\nTry saying "I want to play badminton in Hyderabad"!',
+            id: crypto.randomUUID(),
+            text: "Hello! I'm from the Rush Support Team. How can I help you today?",
             sender: 'bot',
             timestamp: new Date(),
-            type: 'options',
-            options: [
-                { label: 'Book a Court', value: 'book_court', action: 'start_booking' },
-                { label: 'View My Bookings', value: 'view_bookings', action: 'view_bookings' },
-                // { label: 'Contact Support', value: 'support', action: 'contact_support' }
-            ]
+            type: 'text'
         }
     ]);
     const [inputText, setInputText] = useState('');
@@ -41,7 +36,7 @@ export const Chatbot: React.FC = () => {
 
     const addBotMessage = (text: string, type: Message['type'] = 'text', options?: QuickReply[], data?: any) => {
         const newMessage: Message = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             text,
             sender: 'bot',
             timestamp: new Date(),
@@ -54,7 +49,7 @@ export const Chatbot: React.FC = () => {
 
     const addUserMessage = (text: string) => {
         const newMessage: Message = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             text,
             sender: 'user',
             timestamp: new Date()
@@ -305,34 +300,8 @@ ${venue.overview || ''}
             addBotMessage('', 'options', suggestionOptions);
         }
 
-        // Handle traditional booking intent (backward compatibility)
-        if (aiResponse.intent === 'book_court' && aiResponse.action?.type === 'book') {
-            const city = aiResponse.action.parameters?.city;
-            const sport = aiResponse.action.parameters?.sport;
-
-            if (city && sport) {
-                const matchedCity = CITIES.find(c => c.toLowerCase() === city.toLowerCase());
-                if (matchedCity) {
-                    setBookingState(prev => ({ ...prev, city: matchedCity }));
-                    await handleSportSelection(sport, matchedCity);
-                } else {
-                    setBookingState({ step: 'selecting_city' });
-                    addBotMessage('Which city would you like to book in?', 'options',
-                        CITIES.map(c => ({ label: c, value: c, action: 'select_city' }))
-                    );
-                }
-            } else if (sport) {
-                setBookingState({ step: 'selecting_city', sport });
-                addBotMessage('Which city are you in?', 'options',
-                    CITIES.map(c => ({ label: c, value: c, action: 'select_city' }))
-                );
-            } else {
-                setBookingState({ step: 'selecting_city' });
-                addBotMessage('Which city would you like to book in?', 'options',
-                    CITIES.map(c => ({ label: c, value: c, action: 'select_city' }))
-                );
-            }
-        }
+        // Legacy booking intent handled naturally by Gemini response now.
+        // if (aiResponse.intent === 'book_court' && aiResponse.action?.type === 'book') { ... }
 
         // Handle view bookings
         if (aiResponse.intent === 'view_bookings') {
@@ -356,10 +325,10 @@ ${venue.overview || ''}
                         <div className="bg-primary p-4 flex justify-between items-center text-white shadow-md">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                                    <FaRobot size={20} />
+                                    <FaHeadset size={20} />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-lg leading-tight">MyRush AI</h3>
+                                    <h3 className="font-bold text-lg leading-tight">Rush Support</h3>
                                     <p className="text-xs text-white/80 flex items-center gap-1">
                                         <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                                         Online
@@ -568,7 +537,7 @@ ${venue.overview || ''}
                             animate={{ rotate: 0, opacity: 1 }}
                             exit={{ rotate: -90, opacity: 0 }}
                         >
-                            <FaRobot size={28} />
+                            <FaHeadset size={28} />
                         </motion.div>
                     )}
                 </AnimatePresence>

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { profileApi } from '../api/profile';
 import type { City, GameType } from '../api/profile';
-
+import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
 export const ProfileSetup: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    // const { login, logout } = useAuth();
+    const { login } = useAuth();
 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [fullName, setFullName] = useState('');
@@ -30,6 +30,7 @@ export const ProfileSetup: React.FC = () => {
     const [isLoadingData, setIsLoadingData] = useState(true);
 
     const phone = location.state?.phone;
+    const pendingToken = location.state?.token; // token passed from OTPVerification for new users
 
     useEffect(() => {
         if (phone) {
@@ -41,10 +42,9 @@ export const ProfileSetup: React.FC = () => {
         const fetchData = async () => {
             try {
                 setIsLoadingData(true);
-                const [citiesRes, gameTypesRes, profileRes] = await Promise.all([
+                const [citiesRes, gameTypesRes] = await Promise.all([
                     profileApi.getCities(),
                     profileApi.getGameTypes(),
-                    profileApi.getProfile(),
                 ]);
 
                 if (citiesRes.success) {
@@ -53,18 +53,26 @@ export const ProfileSetup: React.FC = () => {
                 if (gameTypesRes.success) {
                     setGameTypes(gameTypesRes.data);
                 }
-                if (profileRes.success && profileRes.data) {
-                    // Pre-populate form with existing profile data
-                    const profile = profileRes.data;
-                    setFullName(profile.full_name || '');
-                    setAge(profile.age ? profile.age.toString() : '');
-                    setCity(profile.city || '');
-                    setSelectedCityId(profile.city_id || null);
-                    setGender(profile.gender || '');
-                    setHandedness(profile.handedness || 'Right-handed');
-                    setSkillLevel(profile.skill_level || '');
-                    setSelectedSports(profile.sports || []);
-                    setPlayingStyle(profile.playing_style || 'All-court');
+
+                // Only try to fetch existing profile if there's already a token (existing user editing profile)
+                if (!location.state?.token) {
+                    try {
+                        const profileRes = await profileApi.getProfile();
+                        if (profileRes.success && profileRes.data) {
+                            const profile = profileRes.data;
+                            setFullName(profile.full_name || '');
+                            setAge(profile.age ? profile.age.toString() : '');
+                            setCity(profile.city || '');
+                            setSelectedCityId(profile.city_id || null);
+                            setGender(profile.gender || '');
+                            setHandedness(profile.handedness || 'Right-handed');
+                            setSkillLevel(profile.skill_level || '');
+                            setSelectedSports(profile.sports || []);
+                            setPlayingStyle(profile.playing_style || 'All-court');
+                        }
+                    } catch {
+                        // No profile yet — that's fine for new users
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching profile data:', error);
@@ -106,6 +114,13 @@ export const ProfileSetup: React.FC = () => {
         setIsSaving(true);
 
         try {
+            // If there's a pending token (new user), authenticate first so the API call works
+            if (pendingToken) {
+                login(pendingToken);
+                // Small delay to let the token propagate to apiClient interceptors
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
             const ageNumber = parseInt(age, 10);
 
             const payload = {

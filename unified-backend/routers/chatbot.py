@@ -423,7 +423,7 @@ async def search_venues_smart(
             params['area'] = area
         
         query_str = f"""
-            SELECT DISTINCT
+            SELECT
                 b.id,
                 b.name,
                 c.name as city_name,
@@ -438,17 +438,17 @@ async def search_venues_smart(
                      FROM admin_branch_game_types bgt
                      JOIN admin_game_types gt ON gt.id = bgt.game_type_id
                      WHERE bgt.branch_id = b.id),
-                    '[]'
+                    '[]'::json
                 ) as game_types,
                 COALESCE(
                     (SELECT json_agg(am.name)
                      FROM admin_branch_amenities ba
                      JOIN admin_amenities am ON am.id = ba.amenity_id
                      WHERE ba.branch_id = b.id),
-                    '[]'
+                    '[]'::json
                 ) as amenities,
-                (SELECT MIN(price) FROM admin_courts WHERE branch_id = b.id AND is_active = true) as min_price,
-                (SELECT MAX(price) FROM admin_courts WHERE branch_id = b.id AND is_active = true) as max_price
+                NULL as min_price,
+                NULL as max_price
             FROM admin_branches b
             JOIN admin_cities c ON c.id = b.city_id
             JOIN admin_areas a ON a.id = b.area_id
@@ -476,8 +476,14 @@ async def search_venues_smart(
         
         result = db.execute(text(query_str), params)
         venues = []
+        seen_ids = set()
         
         for row in result:
+            venue_id = str(row[0])
+            if venue_id in seen_ids:
+                continue
+            seen_ids.add(venue_id)
+            
             min_price = float(row[11]) if row[11] else None
             max_price = float(row[12]) if row[12] else None
             
@@ -490,7 +496,7 @@ async def search_venues_smart(
             images = row[7] if isinstance(row[7], list) else json.loads(row[7]) if row[7] else []
             
             venues.append({
-                'id': str(row[0]),
+                'id': venue_id,
                 'name': row[1],
                 'city': row[2],
                 'area': row[3],

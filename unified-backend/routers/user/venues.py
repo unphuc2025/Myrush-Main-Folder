@@ -175,7 +175,7 @@ def get_venues(
             result.append({
                 "id": str(b['id']),
                 "court_name": b['branch_name'], # Mapping Branch Name to 'court_name' for frontend compatibility
-                "location": f"{b.get('location', '')}, {b.get('city_name', '')}",
+                "location": f"{(b.get('location') or '')}, {(b.get('city_name') or '')}".strip(', '),
                 "game_type": b.get('game_types', '') or 'Multi-Sport',
                 "prices": str(b.get('min_price') or 'On Request'),
                 "description": b.get('ground_overview') or b.get('search_location') or '',
@@ -274,7 +274,7 @@ def get_venue(venue_id: str, db: Session = Depends(database.get_db)):
             return {
                 "id": str(b['id']),
                 "court_name": b['branch_name'],
-                "location": f"{b.get('location', '')}, {b.get('city_name', '')}",
+                "location": f"{(b.get('location') or '')}, {(b.get('city_name') or '')}".strip(', '),
                 "game_type": b.get('game_types', '') or 'Multi-Sport',
                 "prices": str(b.get('min_price') or 'On Request'),
                 "description": b.get('ground_overview') or b.get('search_location') or '',
@@ -425,10 +425,24 @@ def get_venue_slots(
         branch_res = db.execute(text(branch_query), {"venue_id": venue_id}).first()
         
         if not branch_res:
-            # Fallback to check if it's a court ID (legacy support for single court details page)
-            # But the requirement is for venue/branch table time conditions.
-            # Assuming venue_id is branch_id based on previous steps.
-            raise HTTPException(status_code=404, detail="Venue (Branch) not found")
+            # Fallback: Check if it's a Court ID (since frontend currently uses Court IDs for venue details)
+            # If so, resolve to the parent Branch ID
+            print(f"[VENUES API] Branch not found for ID {venue_id}. Checking if it's a Court ID...")
+            court_check_query = "SELECT branch_id FROM admin_courts WHERE id = :court_id"
+            court_check_res = db.execute(text(court_check_query), {"court_id": venue_id}).first()
+            
+            if court_check_res:
+                real_branch_id = str(court_check_res.branch_id)
+                print(f"[VENUES API] Resolved Court ID {venue_id} to Branch ID {real_branch_id}")
+                
+                # Retry fetching branch with the resolved ID
+                branch_res = db.execute(text(branch_query), {"venue_id": real_branch_id}).first()
+                if branch_res:
+                    venue_id = real_branch_id # Update variable for subsequent queries
+                else:
+                    raise HTTPException(status_code=404, detail="Parent Branch not found/active")
+            else:
+                raise HTTPException(status_code=404, detail="Venue (Branch) not found")
             
         branch = dict(branch_res._mapping)
         opening_hours = branch.get('opening_hours') or {}

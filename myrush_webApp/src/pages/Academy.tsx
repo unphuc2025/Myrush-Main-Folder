@@ -357,20 +357,22 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-screen flex items-center justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
+            <section className="relative h-screen flex items-center justify-center md:justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
+                {/* Background Image with Deep Gradient Overlay */}
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-10" />
-                    <div className="absolute inset-0 bg-dark-gradient z-10" />
+                    <div className="absolute inset-0 bg-black/40 md:hidden z-10" /> {/* Mobile Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-10 hidden md:block" /> {/* Desktop Gradient */}
+                    <div className="absolute inset-0 bg-dark-gradient z-10 opacity-60 md:opacity-100" />
                     <img
                         src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076&auto=format&fit=crop"
                         alt="Football training"
-                        className="w-full h-full object-cover opacity-50 scale-105"
+                        className="w-full h-full object-cover object-center opacity-60 md:opacity-50 scale-105"
                     />
                 </div>
 
                 <motion.div
-                    className="relative z-20 text-left w-full max-w-7xl"
+                    className="relative z-20 text-center md:text-left w-full max-w-7xl"
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
@@ -380,7 +382,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5, duration: 0.8 }}
-                        className="inline-flex items-center gap-3 mb-10 px-5 py-2.5 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl"
+                        className="inline-flex items-center gap-3 mb-10 px-5 py-2.5 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto md:mx-0"
                     >
                         <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                         <span className="text-lg md:text-xl font-bold text-primary uppercase tracking-[0.3em]">
@@ -389,13 +391,13 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-5xl md:text-7xl font-black text-white mb-10 leading-[0.9] tracking-[-0.05em]">
+                    <h1 className="text-4xl md:text-7xl font-black text-white mb-10 leading-[0.9] tracking-[-0.05em]">
                         Unlock Your Football Potential with <br />
                         <span className="text-primary italic">Rush Academy.</span>
                     </h1>
 
                     {/* CTA Section */}
-                    <div className="flex flex-col sm:flex-row items-center justify-start gap-8">
+                    <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-8">
                         <Button
                             variant="primary"
                             size="lg"
@@ -585,7 +587,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                                         className="w-full h-full object-cover grayscale transition-all duration-1000 group-hover:grayscale-0 group-hover:scale-110"
                                     />
                                     <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                                    <div className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-premium">
+                                    <div className="absolute bottom-6 right-6 w-10 h-10 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-premium">
                                         <span className="text-primary text-xl">★</span>
                                     </div>
                                 </div>
@@ -653,26 +655,13 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                             viewport={{ once: true }}
                             transition={{ delay: 0.2 }}
                         >
-                            <div className="absolute -top-12 right-0 left-0 flex justify-center z-20">
-                                <div className="relative">
-                                    <div className="absolute inset-0 bg-primary rotate-45 transform origin-center" />
-                                    <div className="relative bg-primary text-black font-bold px-6 py-8 rounded-full flex items-center justify-center w-24 h-24 shadow-lg">
-                                        <span className="flex flex-col items-center text-[10px] uppercase tracking-widest leading-tight">
-                                            Popular
-                                        </span>
-                                        {/* Star shape simulation with CSS clip-path usually better, but keeping simple marker for now or using SVG icon */}
-                                        <svg className="absolute inset-0 w-full h-full text-primary -z-10" viewBox="0 0 100 100" fill="currentColor">
-                                            <polygon points="50 0 61 35 98 35 68 57 79 91 50 70 21 91 32 57 2 35 39 35" />
-                                        </svg>
-                                    </div>
-                                    {/* Using a star icon from lucide/react-icons would be cleaner if available, simplified badge for now */}
-                                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-20 h-20 bg-primary rotate-45" style={{ clipPath: "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)" }}></div>
-                                    <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black font-bold text-[10px] uppercase text-center z-20">Popular</span>
+                            <div className="absolute -top-6 right-0 left-0 flex justify-center z-20">
+                                <div className="bg-primary text-black font-bold px-6 py-2 rounded-full shadow-lg uppercase tracking-widest text-xs border-2 border-white">
+                                    Most Popular
                                 </div>
-
                             </div>
-                            <div className="h-16 bg-primary/30 w-full mt-4" />
-                            <div className="p-10 flex flex-col items-center text-center flex-grow pt-12">
+                            <div className="h-12 bg-primary/30 w-full" />
+                            <div className="p-10 flex flex-col items-center text-center flex-grow pt-16">
                                 <h3 className="text-xl font-bold underline mb-8">Semi-annually</h3>
                                 <div className="mb-4">
                                     <span className="text-3xl font-black block mb-2">Starting from INR</span>
@@ -728,32 +717,32 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                 <div className="absolute -top-1/4 -right-1/4 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
 
                 <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-32 items-center">
-                        <div className="justify-self-start">
+                    <div className="flex flex-col lg:flex-row items-start justify-between gap-12 lg:gap-20">
+                        <div className="w-full lg:w-5/12 relative z-20">
                             <motion.div
                                 initial={{ opacity: 0, x: -30 }}
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
                             >
-                                <h2 className="text-display text-white mb-10 leading-[0.9] tracking-tight">
+                                <h2 className="text-5xl md:text-7xl font-black text-white mb-8 leading-none tracking-tight font-montserrat uppercase">
                                     Start Your <br />
                                     <span className="text-primary italic">Journey</span>
                                 </h2>
-                                <p className="text-body-lg text-white/40 font-light mb-16 leading-relaxed max-w-lg">
+                                <p className="text-lg text-white/60 font-medium mb-12 leading-relaxed max-w-lg">
                                     Secure your spot for a free assessment session. Our coaches will evaluate your technical skills and recommend the best pathway.
                                 </p>
-                                <div className="space-y-10">
+                                <div className="space-y-8">
                                     {[
                                         { label: 'Trial Session', text: 'Evaluation with UEFA-Pro coaches' },
                                         { label: 'Equipment', text: 'Full training kit provided on site' }
                                     ].map((item, i) => (
-                                        <div key={i} className="flex gap-8 items-start">
-                                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                                                <span className="text-primary font-black">0{i + 1}</span>
+                                        <div key={i} className="flex gap-6 items-start">
+                                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+                                                <span className="text-primary font-black text-lg">0{i + 1}</span>
                                             </div>
                                             <div>
-                                                <h4 className="text-white font-black uppercase tracking-widest text-[10px] mb-2">{item.label}</h4>
-                                                <p className="text-white/40 font-light">{item.text}</p>
+                                                <h4 className="text-white font-black uppercase tracking-wider text-sm mb-1">{item.label}</h4>
+                                                <p className="text-white/50 text-sm font-medium">{item.text}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -762,10 +751,10 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                         </div>
 
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            whileInView={{ opacity: 1, scale: 1 }}
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            className="bg-white/[0.03] backdrop-blur-3xl p-12 rounded-[3rem] border border-white/10 shadow-glow-strong w-full"
+                            className="bg-white/[0.03] backdrop-blur-2xl p-8 md:p-12 rounded-[2.5rem] border border-white/10 shadow-2xl w-full lg:w-6/12 relative z-20"
                         >
                             <form className="space-y-10" onSubmit={async (e) => {
                                 e.preventDefault();
