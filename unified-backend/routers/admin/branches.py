@@ -23,11 +23,14 @@ def get_all_branches(
     city_id: str = None, 
     area_id: str = None, 
     db: Session = Depends(get_db),
-    _ = Depends(PermissionChecker(["Manage Branch", "Reports and analytics"], "view")),
+    _ = Depends(PermissionChecker(["Manage Branch", "Reports and analytics", "Transactions And Earnings"], "view")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Get all branches, optionally filtered by city_id or area_id and admin access"""
-    query = db.query(models.Branch).options(joinedload(models.Branch.game_types))
+    query = db.query(models.Branch).options(
+        joinedload(models.Branch.game_types),
+        joinedload(models.Branch.amenities)
+    )
     
     # 1. Apply Security Filter
     if branch_filter is not None:
@@ -50,7 +53,10 @@ def get_branch(
     if branch_filter is not None and branch_id not in branch_filter:
          raise HTTPException(status_code=403, detail="Access denied to this branch")
 
-    branch = db.query(models.Branch).filter(models.Branch.id == branch_id).first()
+    branch = db.query(models.Branch).options(
+        joinedload(models.Branch.game_types),
+        joinedload(models.Branch.amenities)
+    ).filter(models.Branch.id == branch_id).first()
     if not branch:
         raise HTTPException(status_code=404, detail="Branch not found")
     return branch
@@ -68,6 +74,7 @@ async def create_branch(
     terms_condition: Optional[str] = Form(None),
     rule: Optional[str] = Form(None),
     google_map_url: Optional[str] = Form(None),
+    location_url: Optional[str] = Form(None),
     price: Optional[float] = Form(None),
     max_players: Optional[int] = Form(None),
     phone_number: Optional[str] = Form(None),
@@ -113,6 +120,7 @@ async def create_branch(
         terms_condition=terms_condition,
         rule=rule,
         google_map_url=google_map_url,
+        location_url=location_url,
         price=price,
         max_players=max_players,
         phone_number=phone_number,
@@ -148,7 +156,7 @@ async def create_branch(
     return db_branch
 
 
-@router.put("/{branch_id}", response_model=schemas.Branch, dependencies=[Depends(require_super_admin)])
+@router.put("/{branch_id}", response_model=schemas.Branch, dependencies=[Depends(PermissionChecker("Manage Branch", "edit"))])
 async def update_branch(
     branch_id: str,
     name: str = Form(...),
@@ -161,6 +169,7 @@ async def update_branch(
     terms_condition: Optional[str] = Form(None),
     rule: Optional[str] = Form(None),
     google_map_url: Optional[str] = Form(None),
+    location_url: Optional[str] = Form(None),
     price: Optional[float] = Form(None),
     max_players: Optional[int] = Form(None),
     phone_number: Optional[str] = Form(None),
@@ -217,6 +226,7 @@ async def update_branch(
     db_branch.terms_condition = terms_condition
     db_branch.rule = rule
     db_branch.google_map_url = google_map_url
+    db_branch.location_url = location_url
     db_branch.price = price
     db_branch.max_players = max_players
     db_branch.phone_number = phone_number
@@ -252,22 +262,8 @@ async def update_branch(
     db.refresh(db_branch)
     return db_branch
 
-@router.patch("/{branch_id}/toggle", response_model=schemas.Branch)
-def toggle_branch_status(branch_id: str, db: Session = Depends(get_db)):
-    """Toggle branch active status"""
-    db_branch = db.query(models.Branch).filter(models.Branch.id == branch_id).first()
-    if not db_branch:
-        raise HTTPException(status_code=404, detail="Branch not found")
-    
-    db_branch.is_active = not db_branch.is_active
-    db.commit()
-    db.refresh(db_branch)
-    return db_branch
 
-@router.delete("/{branch_id}")
-def delete_branch(branch_id: str, db: Session = Depends(get_db)):
-    """Delete a branch"""
-@router.patch("/{branch_id}/toggle", response_model=schemas.Branch, dependencies=[Depends(require_super_admin)])
+@router.patch("/{branch_id}/toggle", response_model=schemas.Branch, dependencies=[Depends(PermissionChecker("Manage Branch", "edit"))])
 def toggle_branch_status(branch_id: str, db: Session = Depends(get_db)):
     """Toggle branch active status"""
     db_branch = db.query(models.Branch).filter(models.Branch.id == branch_id).first()

@@ -58,14 +58,24 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
     );
 
     const [userRole, setUserRole] = useState('super_admin');
+    const [permissions, setPermissions] = useState({});
 
     useEffect(() => {
         const adminInfo = localStorage.getItem('admin_info');
         if (adminInfo) {
             const parsed = JSON.parse(adminInfo);
             setUserRole(parsed.role || 'super_admin');
+            setPermissions(parsed.permissions || {});
         }
     }, []);
+
+    // Check if the admin has any access (view/add/edit/delete) to a given module
+    const hasModuleAccess = (moduleName) => {
+        if (userRole === 'super_admin') return true;
+        const modulePerms = permissions[moduleName];
+        if (!modulePerms) return false;
+        return Object.values(modulePerms).some(v => v === true);
+    };
 
     // Close sidebar on click outside
     useEffect(() => {
@@ -144,11 +154,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
             >
                 {/* <!-- SIDEBAR HEADER --> */}
                 <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
-                    <Link to="/dashboard" className="flex items-center gap-2">
+                    <Link to="/" className="flex items-center justify-center gap-2 w-full">
                         <img
                             src={logo}
                             alt="MyRush Logo"
-                            className="h-10 w-auto object-contain rounded-md"
+                            className="w-full h-auto object-contain max-w-[220px]"
                         />
                     </Link>
 
@@ -219,30 +229,36 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                     {/* Dropdown Menu */}
                                     <div className={`translate transform overflow-hidden ${usersRolesExpanded ? '!h-auto' : '!h-0'}`}>
                                         <ul className="mt-4 mb-5.5 flex flex-col gap-2.5 pl-6">
-                                            <li>
-                                                <Link
-                                                    to="/roles"
-                                                    className={`group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white ${isActive('/roles') ? 'text-white' : ''}`}
-                                                >
-                                                    Role Management
-                                                </Link>
-                                            </li>
-                                            <li>
-                                                <Link
-                                                    to="/admins"
-                                                    className={`group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white ${isActive('/admins') ? 'text-white' : ''}`}
-                                                >
-                                                    Sub Admin Management
-                                                </Link>
-                                            </li>
-                                            <li>
-                                                <Link
-                                                    to="/users"
-                                                    className={`group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white ${isActive('/users') ? 'text-white' : ''}`}
-                                                >
-                                                    User Management
-                                                </Link>
-                                            </li>
+                                            {hasModuleAccess('Role Management') && (
+                                                <li>
+                                                    <Link
+                                                        to="/roles"
+                                                        className={`group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white ${isActive('/roles') ? 'text-white' : ''}`}
+                                                    >
+                                                        Role Management
+                                                    </Link>
+                                                </li>
+                                            )}
+                                            {hasModuleAccess('Sub Admin Management') && (
+                                                <li>
+                                                    <Link
+                                                        to="/admins"
+                                                        className={`group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white ${isActive('/admins') ? 'text-white' : ''}`}
+                                                    >
+                                                        Sub Admin Management
+                                                    </Link>
+                                                </li>
+                                            )}
+                                            {hasModuleAccess('User Management') && (
+                                                <li>
+                                                    <Link
+                                                        to="/users"
+                                                        className={`group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white ${isActive('/users') ? 'text-white' : ''}`}
+                                                    >
+                                                        User Management
+                                                    </Link>
+                                                </li>
+                                            )}
                                         </ul>
                                     </div>
                                 </li>
@@ -250,215 +266,258 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                         </div>
 
                         {/* OPERATIONS GROUP */}
-                        <div>
-                            <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
-                                OPERATIONS
-                            </h3>
-                            <ul className="mb-6 flex flex-col gap-1.5">
-                                {/* Bookings with Submenu */}
-                                <li>
-                                    <Link
-                                        to="/bookings"
-                                        onClick={handleBookingsClick}
-                                        className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/bookings') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                    >
-                                        <Calendar className="h-5 w-5" />
-                                        <span>Bookings</span>
-                                        <svg
-                                            className={`absolute right-4 top-1/2 -translate-y-1/2 fill-current ${bookingsExpanded ? 'rotate-180' : ''}`}
-                                            width="20"
-                                            height="20"
-                                            viewBox="0 0 20 20"
-                                            fill="none"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                clipRule="evenodd"
-                                                d="M4.41107 6.9107C4.73651 6.58527 5.26414 6.58527 5.58958 6.9107L10.0003 11.3214L14.4111 6.91071C14.7365 6.58527 15.2641 6.58527 15.5896 6.91071C15.915 7.23614 15.915 7.76378 15.5896 8.08922L10.5896 13.0892C10.2641 13.4147 9.73651 13.4147 9.41107 13.0892L4.41107 8.08922C4.08563 7.76378 4.08563 7.23614 4.41107 6.9107Z"
-                                                fill=""
-                                            />
-                                        </svg>
-                                    </Link>
-                                    {/* Dropdown Menu */}
-                                    <div className={`translate transform overflow-hidden ${bookingsExpanded ? '!h-auto' : '!h-0'}`}>
-                                        <ul className="mt-4 mb-5.5 flex flex-col gap-2.5 pl-6">
-                                            {bookingsItems.map(subItem => (
-                                                <li key={subItem.id}>
-                                                    <button
-                                                        onClick={() => handleBookingsItemClick(subItem.id)}
-                                                        className={`group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white ${isBookingsActive(subItem.id) ? 'text-white' : ''}`}
+                        {(hasModuleAccess('Manage Bookings') ||
+                            hasModuleAccess('Transactions And Earnings') ||
+                            hasModuleAccess('Manage Branch') ||
+                            hasModuleAccess('Manage Courts')) && (
+                                <div>
+                                    <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
+                                        OPERATIONS
+                                    </h3>
+                                    <ul className="mb-6 flex flex-col gap-1.5">
+                                        {/* Bookings with Submenu */}
+                                        {(hasModuleAccess('Manage Bookings') || hasModuleAccess('Transactions And Earnings')) && (
+                                            <li>
+                                                <Link
+                                                    to="/bookings"
+                                                    onClick={handleBookingsClick}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/bookings') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <Calendar className="h-5 w-5" />
+                                                    <span>Bookings</span>
+                                                    <svg
+                                                        className={`absolute right-4 top-1/2 -translate-y-1/2 fill-current ${bookingsExpanded ? 'rotate-180' : ''}`}
+                                                        width="20"
+                                                        height="20"
+                                                        viewBox="0 0 20 20"
+                                                        fill="none"
+                                                        xmlns="http://www.w3.org/2000/svg"
                                                     >
-                                                        {subItem.label}
-                                                    </button>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </li>
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            clipRule="evenodd"
+                                                            d="M4.41107 6.9107C4.73651 6.58527 5.26414 6.58527 5.58958 6.9107L10.0003 11.3214L14.4111 6.91071C14.7365 6.58527 15.2641 6.58527 15.5896 6.91071C15.915 7.23614 15.915 7.76378 15.5896 8.08922L10.5896 13.0892C10.2641 13.4147 9.73651 13.4147 9.41107 13.0892L4.41107 8.08922C4.08563 7.76378 4.08563 7.23614 4.41107 6.9107Z"
+                                                            fill=""
+                                                        />
+                                                    </svg>
+                                                </Link>
+                                                {/* Dropdown Menu */}
+                                                <div className={`translate transform overflow-hidden ${bookingsExpanded ? '!h-auto' : '!h-0'}`}>
+                                                    <ul className="mt-4 mb-5.5 flex flex-col gap-2.5 pl-6">
+                                                        {bookingsItems.map(subItem => (
+                                                            <li key={subItem.id}>
+                                                                <button
+                                                                    onClick={() => handleBookingsItemClick(subItem.id)}
+                                                                    className={`group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white ${isBookingsActive(subItem.id) ? 'text-white' : ''}`}
+                                                                >
+                                                                    {subItem.label}
+                                                                </button>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </li>
+                                        )}
 
-                                <li>
-                                    <Link
-                                        to="/venues"
-                                        className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/venues') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                    >
-                                        <Layout className="h-5 w-5" />
-                                        <span>Venues</span>
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link
-                                        to="/courts"
-                                        className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/courts') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                    >
-                                        <Play className="h-5 w-5" />
-                                        <span>Courts</span>
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link
-                                        to="/calendar"
-                                        className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/calendar') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                    >
-                                        <Calendar className="h-5 w-5" />
-                                        <span>Slots Calendar</span>
-                                    </Link>
-                                </li>
-                            </ul>
-                        </div>
+                                        {hasModuleAccess('Manage Branch') && (
+                                            <li>
+                                                <Link
+                                                    to="/venues"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/venues') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <Layout className="h-5 w-5" />
+                                                    <span>Venues</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                        {hasModuleAccess('Manage Courts') && (
+                                            <li>
+                                                <Link
+                                                    to="/courts"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/courts') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <Play className="h-5 w-5" />
+                                                    <span>Courts</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                        {(hasModuleAccess('Manage Courts') || hasModuleAccess('Manage Bookings')) && (
+                                            <li>
+                                                <Link
+                                                    to="/calendar"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/calendar') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <Calendar className="h-5 w-5" />
+                                                    <span>Slots Calendar</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                    </ul>
+                                </div>
+                            )}
 
                         {/* MARKETING GROUP */}
-                        <div>
-                            <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
-                                MARKETING
-                            </h3>
-                            <ul className="mb-6 flex flex-col gap-1.5">
-                                <li>
-                                    <Link
-                                        to="/coupons"
-                                        className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/coupons') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                    >
-                                        <Tag className="h-5 w-5" />
-                                        <span>Coupons</span>
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link
-                                        to="/reviews"
-                                        className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/reviews') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                    >
-                                        <FileText className="h-5 w-5" />
-                                        <span>Reviews</span>
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link
-                                        to="/reports"
-                                        className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/reports') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                    >
-                                        <PieChart className="h-5 w-5" />
-                                        <span>Analytics</span>
-                                    </Link>
-                                </li>
-                            </ul>
-                        </div>
+                        {(hasModuleAccess('Manage Coupons') ||
+                            hasModuleAccess('Manage Review And Ratings') ||
+                            hasModuleAccess('Reports and analytics')) && (
+                                <div>
+                                    <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
+                                        MARKETING
+                                    </h3>
+                                    <ul className="mb-6 flex flex-col gap-1.5">
+                                        {hasModuleAccess('Manage Coupons') && (
+                                            <li>
+                                                <Link
+                                                    to="/coupons"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/coupons') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <Tag className="h-5 w-5" />
+                                                    <span>Coupons</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                        {hasModuleAccess('Manage Review And Ratings') && (
+                                            <li>
+                                                <Link
+                                                    to="/reviews"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/reviews') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <FileText className="h-5 w-5" />
+                                                    <span>Reviews</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                        {hasModuleAccess('Reports and analytics') && (
+                                            <li>
+                                                <Link
+                                                    to="/reports"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/reports') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <PieChart className="h-5 w-5" />
+                                                    <span>Analytics</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                    </ul>
+                                </div>
+                            )}
 
                         {/* LEGAL GROUP */}
-                        <div>
-                            <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
-                                LEGAL & CONTENT
-                            </h3>
-                            <ul className="mb-6 flex flex-col gap-1.5">
-                                <li>
-                                    <Link
-                                        to="/policies"
-                                        className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/policies') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                    >
-                                        <FileText className="h-5 w-5" />
-                                        <span>Policies & Terms</span>
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link
-                                        to="/faqs"
-                                        className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/faqs') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                    >
-                                        <FileText className="h-5 w-5" />
-                                        <span>FAQ Management</span>
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link
-                                        to="/cms"
-                                        className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/cms') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                    >
-                                        <Layers className="h-5 w-5" />
-                                        <span>CMS Pages</span>
-                                    </Link>
-                                </li>
-                            </ul>
-                        </div>
+                        {(hasModuleAccess('Settings') ||
+                            hasModuleAccess('FAQ') ||
+                            hasModuleAccess('CMS Pages')) && (
+                                <div>
+                                    <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
+                                        LEGAL & CONTENT
+                                    </h3>
+                                    <ul className="mb-6 flex flex-col gap-1.5">
+                                        {hasModuleAccess('Settings') && (
+                                            <li>
+                                                <Link
+                                                    to="/policies"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/policies') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <FileText className="h-5 w-5" />
+                                                    <span>Policies & Terms</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                        {hasModuleAccess('FAQ') && (
+                                            <li>
+                                                <Link
+                                                    to="/faqs"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/faqs') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <FileText className="h-5 w-5" />
+                                                    <span>FAQ Management</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                        {hasModuleAccess('CMS Pages') && (
+                                            <li>
+                                                <Link
+                                                    to="/cms"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/cms') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <Layers className="h-5 w-5" />
+                                                    <span>CMS Pages</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                    </ul>
+                                </div>
+                            )}
 
                         {/* SETTINGS GROUP */}
-                        <div>
-                            <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
-                                SETTINGS
-                            </h3>
-                            <ul className="mb-6 flex flex-col gap-1.5">
-                                {userRole === 'super_admin' && (
-                                    <>
-                                        <li>
-                                            <Link
-                                                to="/cities"
-                                                className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/cities') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                            >
-                                                <MapPin className="h-5 w-5" />
-                                                <span>Cities & Areas</span>
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                to="/game-types"
-                                                className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/game-types') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                            >
-                                                <Settings className="h-5 w-5" />
-                                                <span>Game Types</span>
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                to="/amenities"
-                                                className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/amenities') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                            >
-                                                <Puzzle className="h-5 w-5" />
-                                                <span>Amenities</span>
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                to="/settings"
-                                                className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/settings') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                            >
-                                                <Settings className="h-5 w-5" />
-                                                <span>Site Config</span>
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                to="/playo-tokens"
-                                                onClick={handleLinkClick}
-                                                className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/playo-tokens') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                            >
-                                                <Lock className="h-5 w-5" />
-                                                <span>Playo Tokens</span>
-                                            </Link>
-                                        </li>
-
-
-                                    </>
-                                )}
-                            </ul>
-                        </div>
+                        {(hasModuleAccess('City Management') ||
+                            hasModuleAccess('Area Management') ||
+                            hasModuleAccess('Manage Sports') ||
+                            hasModuleAccess('Manage Amenities') ||
+                            hasModuleAccess('Settings')) && (
+                                <div>
+                                    <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
+                                        SETTINGS
+                                    </h3>
+                                    <ul className="mb-6 flex flex-col gap-1.5">
+                                        {(hasModuleAccess('City Management') || hasModuleAccess('Area Management')) && (
+                                            <li>
+                                                <Link
+                                                    to="/cities"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/cities') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <MapPin className="h-5 w-5" />
+                                                    <span>Cities & Areas</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                        {hasModuleAccess('Manage Sports') && (
+                                            <li>
+                                                <Link
+                                                    to="/game-types"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/game-types') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <Settings className="h-5 w-5" />
+                                                    <span>Game Types</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                        {hasModuleAccess('Manage Amenities') && (
+                                            <li>
+                                                <Link
+                                                    to="/amenities"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/amenities') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <Puzzle className="h-5 w-5" />
+                                                    <span>Amenities</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                        {hasModuleAccess('Settings') && (
+                                            <li>
+                                                <Link
+                                                    to="/settings"
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/settings') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <Settings className="h-5 w-5" />
+                                                    <span>Site Config</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                        {hasModuleAccess('Settings') && (
+                                            <li>
+                                                <Link
+                                                    to="/playo-tokens"
+                                                    onClick={handleLinkClick}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/playo-tokens') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                >
+                                                    <Lock className="h-5 w-5" />
+                                                    <span>Playo Tokens</span>
+                                                </Link>
+                                            </li>
+                                        )}
+                                    </ul>
+                                </div>
+                            )}
 
                         {/* Logout Section */}
                         <div className="mt-auto border-t border-strokedark pt-4">

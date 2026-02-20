@@ -16,6 +16,7 @@ const FAQ = () => {
     // Add/Edit Form State
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingFaq, setEditingFaq] = useState(null);
+    const [viewingFaq, setViewingFaq] = useState(null);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -61,13 +62,24 @@ const FAQ = () => {
         }
     };
 
-    const handleToggleStatus = async (id) => {
+    const handleToggleStatus = async (faq) => {
+        // Optimistically update local state (no loading spinner)
+        const newStatus = !faq.is_active;
+        setFaqs(prev => prev.map(f => f.id === faq.id ? { ...f, is_active: newStatus } : f));
         try {
-            await faqsApi.toggleStatus(id);
-            loadFaqs();
+            await faqsApi.update(faq.id, { is_active: newStatus });
         } catch (err) {
+            // Revert on failure
+            setFaqs(prev => prev.map(f => f.id === faq.id ? { ...f, is_active: faq.is_active } : f));
             console.error('Error toggling status:', err);
+            alert('Failed to toggle FAQ status');
         }
+    };
+
+    const handleView = (faq) => {
+        setViewingFaq(faq);
+        setEditingFaq(null);
+        setIsFormOpen(true);
     };
 
     return (
@@ -81,7 +93,7 @@ const FAQ = () => {
                 <div className="text-sm text-slate-500">
                     Showing {faqs.length} of {totalItems} records
                 </div>
-                <div className="flex w-full md:w-auto gap-3">
+                <div className="flex flex-wrap w-full md:w-auto gap-3">
                     <div className="relative flex-1 md:w-64">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                         <input
@@ -93,8 +105,8 @@ const FAQ = () => {
                         />
                     </div>
                     <button
-                        onClick={() => { setEditingFaq(null); setIsFormOpen(true); }}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
+                        onClick={() => { setEditingFaq(null); setViewingFaq(null); setIsFormOpen(true); }}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95 whitespace-nowrap"
                     >
                         <Plus className="h-4 w-4" />
                         <span className="text-sm font-semibold">Add FAQ</span>
@@ -141,17 +153,17 @@ const FAQ = () => {
                                             <td className="px-6 py-4 text-sm text-slate-700 truncate max-w-xs" title={faq.answer}>{faq.answer}</td>
                                             <td className="px-6 py-4">
                                                 <button
-                                                    onClick={() => handleToggleStatus(faq.id)}
-                                                    className={`w-11 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out ${faq.is_active ? 'bg-green-500' : 'bg-slate-300'}`}
+                                                    onClick={() => handleToggleStatus(faq)}
+                                                    className={`w-11 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out ${faq.is_active ? 'bg-green-500' : 'bg-red-400'}`}
                                                 >
                                                     <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${faq.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
                                                 </button>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <button className="p-1.5 text-purple-600 bg-purple-50 rounded hover:bg-purple-100"><Eye className="h-4 w-4" /></button>
+                                                    <button onClick={() => handleView(faq)} className="p-1.5 text-purple-600 bg-purple-50 rounded hover:bg-purple-100 cursor-pointer"><Eye className="h-4 w-4" /></button>
                                                     <button
-                                                        onClick={() => { setEditingFaq(faq); setIsFormOpen(true); }}
+                                                        onClick={() => { setEditingFaq(faq); setViewingFaq(null); setIsFormOpen(true); }}
                                                         className="p-1.5 text-amber-600 bg-amber-50 rounded hover:bg-amber-100"
                                                     >
                                                         <Edit2 className="h-4 w-4" />
@@ -175,8 +187,8 @@ const FAQ = () => {
                                             <h4 className="font-bold text-slate-900 line-clamp-2">{faq.question}</h4>
                                         </div>
                                         <button
-                                            onClick={() => handleToggleStatus(faq.id)}
-                                            className={`w-9 h-5 flex items-center rounded-full transition-colors duration-200 ease-in-out flex-shrink-0 ${faq.is_active ? 'bg-green-500' : 'bg-slate-300'}`}
+                                            onClick={() => handleToggleStatus(faq)}
+                                            className={`w-9 h-5 flex items-center rounded-full transition-colors duration-200 ease-in-out flex-shrink-0 ${faq.is_active ? 'bg-green-500' : 'bg-red-400'}`}
                                         >
                                             <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${faq.is_active ? 'translate-x-4' : 'translate-x-0.5'}`} />
                                         </button>
@@ -184,15 +196,21 @@ const FAQ = () => {
 
                                     <p className="text-sm text-slate-600 line-clamp-3 bg-slate-50 p-2 rounded-lg">{faq.answer}</p>
 
-                                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 mt-1">
-                                        <button className="p-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100"><Eye className="h-4 w-4" /></button>
+                                    <div className="flex items-center gap-2 pt-3 border-t border-slate-200 mt-1">
+                                        <button onClick={() => handleView(faq)} className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 cursor-pointer transition-colors">
+                                            <Eye className="h-4 w-4" />
+                                            <span className="text-sm font-medium">View</span>
+                                        </button>
                                         <button
-                                            onClick={() => { setEditingFaq(faq); setIsFormOpen(true); }}
-                                            className="p-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100"
+                                            onClick={() => { setEditingFaq(faq); setViewingFaq(null); setIsFormOpen(true); }}
+                                            className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
                                         >
                                             <Edit2 className="h-4 w-4" />
+                                            <span className="text-sm font-medium">Edit</span>
                                         </button>
-                                        <button onClick={() => handleDelete(faq.id)} className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100"><Trash2 className="h-4 w-4" /></button>
+                                        <button onClick={() => handleDelete(faq.id)} className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -207,9 +225,11 @@ const FAQ = () => {
 
             <AddFAQForm
                 isOpen={isFormOpen}
-                onClose={() => setIsFormOpen(false)}
+                onClose={() => { setIsFormOpen(false); setViewingFaq(null); }}
                 onFaqAdded={loadFaqs}
                 editingFaq={editingFaq}
+                viewOnly={!!viewingFaq}
+                viewingFaq={viewingFaq}
             />
         </Layout>
     );

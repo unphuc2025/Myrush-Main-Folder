@@ -3,33 +3,41 @@
  =========================ADMIN BRANCHES (Opening Hours)========================= 
 ================================================================================
 
-ID: a4844143-7552-48a3-bf62-c8f87a5f21a3
-Name: Rush Arena-Rajajinagar
+ID: 76704fa8-b7bc-4f30-92e7-6c65b1395fa2
+Name: venu
+Opening Hours: None
+----------------------------------------
+ID: 761bf3d3-7878-4080-be38-d4be3fecc52d
+Name: Rush Arena - Rajajinagar 
+Opening Hours: None
+----------------------------------------
+ID: a55d225c-3818-4a8d-82b5-605033040353
+Name: Rush x Ace Arena
 Opening Hours: {
   "friday": {
     "open": "09:00",
     "close": "22:00",
-    "isActive": true
+    "isActive": false
   },
   "monday": {
     "open": "09:00",
     "close": "22:00",
-    "isActive": true
+    "isActive": false
   },
   "sunday": {
     "open": "08:00",
     "close": "23:00",
-    "isActive": true
+    "isActive": false
   },
   "tuesday": {
     "open": "09:00",
     "close": "22:00",
-    "isActive": true
+    "isActive": false
   },
   "saturday": {
     "open": "08:00",
     "close": "23:00",
-    "isActive": true
+    "isActive": false
   },
   "thursday": {
     "open": "09:00",
@@ -39,87 +47,198 @@ Opening Hours: {
   "wednesday": {
     "open": "09:00",
     "close": "22:00",
-    "isActive": true
+    "isActive": false
   }
 }
+----------------------------------------
+ID: a4844143-7552-48a3-bf62-c8f87a5f21a3
+Name: Rush Arena-Rajajinagar
+Opening Hours: None
 ----------------------------------------
 
 ================================================================================
  ===============ADMIN COURTS (Prices, Conditions, Unavailability)================ 
 ================================================================================
 
+ID: dff9cb5c-9c81-4f87-a024-63ae2e0795f5
+Branch: Rush Arena X KheloMore GT Mall
+Court: Rush Arena X KheloMore GT Mall (Box Cricket.)
+Base Price: 2000.00
+Price Conditions: [
+  {
+    "id": "2026-02-04-09:00-10:00",
+    "type": "date",
+    "dates": [
+      "2026-02-04"
+    ],
+    "price": "123",
+    "slotTo": "10:00",
+    "slotFrom": "09:00"
+  }
+]
+Unavailability: None
+----------------------------------------
+ID: 840c12cc-7a5e-4229-a01b-af74d848951c
+Branch: Rush Arena GT World Mall
+Court: Rush Arena GT World Mall (BoxCricket)
+Base Price: 200.00
+Price Conditions: None
+Unavailability: None
+----------------------------------------
 ID: cc64bafd-5e65-46bb-a7f8-24c934a63c11
 Branch: Rush Arena-Rajajinagar
-Court: Box cricket Turf 1 (Box Cricket )
+Court: Box cricket Turf 1 (Box Cricket.)
 Base Price: 1000.00
 Price Conditions: [
   {
-    "id": 1770887673498.9565,
-    "days": [
-      "mon"
+    "id": "global-505a5af6-f789-4029-a857-c2ce66cb0e46",
+    "days": [],
+    "type": "date",
+    "dates": [
+      "2026-02-14"
     ],
-    "type": "recurring",
-    "price": "1000",
+    "price": "200.00",
+    "slotTo": "02:00",
+    "slotFrom": "01:00"
+  },
+  {
+    "id": "2026-02-04-09:00-10:00",
+    "type": "date",
+    "dates": [
+      "2026-02-04"
+    ],
+    "price": "123",
     "slotTo": "10:00",
     "slotFrom": "09:00"
   },
   {
-    "id": 1770887679192.076,
-    "days": [
-      "mon"
+    "id": 1771492010039,
+    "type": "date",
+    "dates": [
+      "2026-02-20"
     ],
-    "type": "recurring",
-    "price": "1000",
-    "slotTo": "11:00",
-    "slotFrom": "10:00"
-  },
+    "price": "1000.00",
+    "slotTo": "07:00",
+    "slotFrom": "05:00"
+  }
+]
+Unavailability: None
+----------------------------------------
+ID: f11bb39e-b240-4b3a-8ad7-61ccc194abf3
+Branch: venu
+Court: newcourt02 (Box Cricket.)
+Base Price: 1000.00
+Price Conditions: [
   {
-    "id": 1770887693482.0781,
-    "days": [
-      "mon"
+    "id": 1771492119222,
+    "type": "date",
+    "dates": [
+      "2026-02-19"
     ],
-    "type": "recurring",
-    "price": "1000",
-    "slotTo": "13:00",
-    "slotFrom": "00:00"
-  },
-  {
-    "id": 1770887723781.2715,
-    "days": [
-      "mon"
-    ],
-    "type": "recurring",
-    "price": "1000",
-    "slotTo": "14:00",
-    "slotFrom": "13:00"
-  },
-  {
-    "id": 1770887740207.0874,
-    "days": [
-      "mon"
-    ],
-    "type": "recurring",
-    "price": "1000",
-    "slotTo": "15:00",
-    "slotFrom": "14:00"
-  },
-  {
-    "id": 1770887752701.8867,
-    "days": [
-      "mon"
-    ],
-    "type": "recurring",
-    "price": "1000",
-    "slotTo": "16:00",
-    "slotFrom": "15:00"
-  },
+    "price": "1000.00",
+    "slotTo": "18:00",
+    "slotFrom": "17:00"
+  }
+]
+Unavailability: None
+----------------------------------------
+ID: 0e376b13-b84d-4808-9281-038daa4e1984
+Branch: Bangalore sport complex
+Court: new courts (FootBall)
+Base Price: 2000.00
+Price Conditions: [
   {
     "id": "global-505a5af6-f789-4029-a857-c2ce66cb0e46",
     "days": [],
-    "type": "recurring",
+    "type": "date",
+    "dates": [
+      "2026-02-14"
+    ],
     "price": "200.00",
     "slotTo": "02:00",
     "slotFrom": "01:00"
+  },
+  {
+    "id": "2026-02-04-09:00-10:00",
+    "type": "date",
+    "dates": [
+      "2026-02-04"
+    ],
+    "price": "123",
+    "slotTo": "10:00",
+    "slotFrom": "09:00"
+  }
+]
+Unavailability: None
+----------------------------------------
+ID: 2e653a10-1dff-427f-9287-803615260319
+Branch: Rush Arena Cooke Town
+Court: Rush Arena Cooke Town (FootBall)
+Base Price: 2000.00
+Price Conditions: [
+  {
+    "id": "2026-02-04-09:00-10:00",
+    "type": "date",
+    "dates": [
+      "2026-02-04"
+    ],
+    "price": "123",
+    "slotTo": "10:00",
+    "slotFrom": "09:00"
+  }
+]
+Unavailability: None
+----------------------------------------
+ID: 648cc35b-28ae-4e2d-98c5-f9e5d14beaa9
+Branch: Rush Arena - Rajajinagar 
+Court: Rush Arena - Rajajinagar (FootBall)
+Base Price: 2000.00
+Price Conditions: [
+  {
+    "id": "2026-02-04-09:00-10:00",
+    "type": "date",
+    "dates": [
+      "2026-02-04"
+    ],
+    "price": "123",
+    "slotTo": "10:00",
+    "slotFrom": "09:00"
+  }
+]
+Unavailability: None
+----------------------------------------
+ID: 6850d80a-142d-4edc-aad6-ca9defa7a55b
+Branch: Rush Arena X KheloMore GT Mall
+Court: Rush Arena X KheloMore GT Mall (FootBall)
+Base Price: 1000.00
+Price Conditions: [
+  {
+    "id": "2026-02-04-09:00-10:00",
+    "type": "date",
+    "dates": [
+      "2026-02-04"
+    ],
+    "price": "123",
+    "slotTo": "10:00",
+    "slotFrom": "09:00"
+  }
+]
+Unavailability: None
+----------------------------------------
+ID: 97713542-fae4-49ec-9de6-2c62a324ea88
+Branch: Rush Arena Cooke Town -2
+Court: Rush Arena Cooke Town -2 (PickleBall)
+Base Price: 1000.00
+Price Conditions: [
+  {
+    "id": "2026-02-04-09:00-10:00",
+    "type": "date",
+    "dates": [
+      "2026-02-04"
+    ],
+    "price": "123",
+    "slotTo": "10:00",
+    "slotFrom": "09:00"
   }
 ]
 Unavailability: None
@@ -135,10 +254,89 @@ Price Conditions: [
       "mon"
     ],
     "type": "recurring",
-    "price": "1000",
+    "price": "1",
     "slotTo": "10:00",
     "slotFrom": "09:00"
   },
+  {
+    "id": "global-505a5af6-f789-4029-a857-c2ce66cb0e46",
+    "days": [],
+    "type": "date",
+    "dates": [
+      "2026-02-14"
+    ],
+    "price": "200.00",
+    "slotTo": "02:00",
+    "slotFrom": "01:00"
+  },
+  {
+    "id": "2026-02-04-09:00-10:00",
+    "type": "date",
+    "dates": [
+      "2026-02-04"
+    ],
+    "price": "123",
+    "slotTo": "10:00",
+    "slotFrom": "09:00"
+  }
+]
+Unavailability: None
+----------------------------------------
+ID: 252978c8-0b17-4912-9893-1591f0720a80
+Branch: Sarpavaram Sports Complex
+Court: court00 (Cycling)
+Base Price: 4000.00
+Price Conditions: None
+Unavailability: None
+----------------------------------------
+ID: 3d8f36b6-347d-4e98-b406-a44bb2c2eed7
+Branch: Sarpavaram Sports Complex
+Court: Box Cricket (Box Cricket.)
+Base Price: 2000.00
+Price Conditions: None
+Unavailability: None
+----------------------------------------
+ID: cc93d266-57af-462f-986f-9507488e4d0b
+Branch: venu
+Court: newcourt01 (Cycling)
+Base Price: 1000.00
+Price Conditions: [
+  {
+    "id": "2026-02-19-18:00-19:00",
+    "type": "date",
+    "dates": [
+      "2026-02-19"
+    ],
+    "price": "2000",
+    "slotTo": "19:00",
+    "slotFrom": "18:00"
+  }
+]
+Unavailability: None
+----------------------------------------
+ID: e37dd9bd-c388-4deb-8ced-b645e13e3d66
+Branch: Rush Arena - Rajajinagar 
+Court: Rush arena - Rajajinagar (Box Cricket.)
+Base Price: 2000.00
+Price Conditions: [
+  {
+    "id": "2026-02-04-09:00-10:00",
+    "type": "date",
+    "dates": [
+      "2026-02-04"
+    ],
+    "price": "123",
+    "slotTo": "10:00",
+    "slotFrom": "09:00"
+  }
+]
+Unavailability: None
+----------------------------------------
+ID: 7c4eebf6-4b12-441e-9cee-762616eb4330
+Branch: Rush x Ace Arena
+Court: rushx (Box Cricket.)
+Base Price: 2500.00
+Price Conditions: [
   {
     "id": "global-505a5af6-f789-4029-a857-c2ce66cb0e46",
     "days": [],
@@ -146,6 +344,26 @@ Price Conditions: [
     "price": "200.00",
     "slotTo": "02:00",
     "slotFrom": "01:00"
+  },
+  {
+    "id": 1771493160341,
+    "type": "date",
+    "dates": [
+      "2026-02-19"
+    ],
+    "price": "2500.00",
+    "slotTo": "20:00",
+    "slotFrom": "18:00"
+  },
+  {
+    "id": 1771493218792.2207,
+    "days": [
+      "thu"
+    ],
+    "type": "recurring",
+    "price": "2500.00",
+    "slotTo": "10:00",
+    "slotFrom": "07:00"
   }
 ]
 Unavailability: None

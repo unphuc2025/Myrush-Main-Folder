@@ -2,6 +2,16 @@ import { useState } from 'react';
 import { Plus, Trash2, Clock, Calendar, CalendarDays, X, ChevronDown, Check, Edit2 } from 'lucide-react';
 import Modal from './Modal';
 
+const formatTimeAMPM = (timeStr) => {
+  if (!timeStr) return '';
+  const [hours, minutes] = timeStr.split(':');
+  let h = parseInt(hours, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  h = h ? h : 12;
+  return `${h}:${minutes} ${ampm}`;
+};
+
 function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
   const [activeTab, setActiveTab] = useState('recurring');
   const [selectedDates, setSelectedDates] = useState([]);
@@ -321,7 +331,7 @@ const SlotCard = ({ slot, onClick, onDelete, isDate }) => (
     <div className="flex justify-between items-start mb-2">
       <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-md border ${isDate ? 'bg-white text-blue-700 border-blue-100' : 'bg-slate-50 text-slate-600 border-slate-100'}`}>
         <Clock className="h-3 w-3" />
-        {slot.slotFrom} - {slot.slotTo}
+        {formatTimeAMPM(slot.slotFrom)} - {formatTimeAMPM(slot.slotTo)}
       </div>
     </div>
 

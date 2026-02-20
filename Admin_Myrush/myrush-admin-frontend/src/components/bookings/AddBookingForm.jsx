@@ -236,7 +236,7 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
         }
     };
 
-    const FormContent = () => (
+    const formContent = (
         <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white">
             <div className="flex-1 overflow-y-auto px-1 py-1 space-y-5">
 
@@ -365,7 +365,7 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
                     <div className="space-y-3">
                         {formData.time_slots.map((slot, index) => (
                             <div key={index} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 relative group">
-                                <div className="flex gap-4 items-end">
+                                <div className="flex gap-3 items-center">
                                     <div className="flex-1">
                                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Start</label>
                                         <TimePicker
@@ -438,12 +438,12 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
     if (loading) return <div className="p-12 text-center text-slate-400">Loading data...</div>;
 
     if (isFullPage) {
-        return <FormContent />;
+        return formContent;
     }
 
     return (
         <div className="h-full">
-            <FormContent />
+            {formContent}
         </div>
     );
 }

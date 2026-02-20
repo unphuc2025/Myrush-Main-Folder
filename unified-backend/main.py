@@ -151,6 +151,12 @@ from routers.admin import (
     playo_tokens
 )
 
+# Import media proxy router (serves private S3 files via server-side AWS credentials)
+from routers import media as media_router
+
+
+# Include media proxy router (no prefix - handles /api/media/{file_path})
+app.include_router(media_router.router)
 
 # Include admin routers with /api/admin prefix
 app.include_router(admin_auth.router, prefix="/api/admin", tags=["Admin Auth"])
@@ -220,6 +226,16 @@ app.include_router(chatbot.router, tags=["Chatbot Knowledge"])
 from routers import playo
 
 app.include_router(playo.router, prefix="/api", tags=["Playo Integration"])
+
+# ============================================================================
+# WHATSAPP INTEGRATION ROUTER
+# ============================================================================
+
+from routers import whatsapp
+from routers import media
+
+app.include_router(whatsapp.router, tags=["WhatsApp Webhook"])
+app.include_router(media.router, prefix="/api", tags=["Media Proxy"])
 
 # ============================================================================
 # EXAMPLE ERROR ROUTER (for demonstration)

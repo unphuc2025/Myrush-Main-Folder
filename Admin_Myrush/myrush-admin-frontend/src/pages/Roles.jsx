@@ -40,7 +40,8 @@ const Roles = () => {
                 loadRoles();
             } catch (err) {
                 console.error('Error deleting role:', err);
-                setError('Failed to delete role');
+                const message = err?.response?.data?.detail || err?.message || 'Failed to delete role';
+                setError(message);
             }
         }
     };

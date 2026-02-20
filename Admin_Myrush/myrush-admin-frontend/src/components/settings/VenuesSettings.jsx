@@ -2,11 +2,233 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Edit2, Plus, Building, Upload, X, MapPin, Clock, Camera, ChevronDown,
   Trash2, Search, Building2, Tag, Hash, Image as ImageIcon, Gamepad2,
-  CheckCircle2, Info, Map as MapIcon, XCircle
+  CheckCircle2, Info, Map as MapIcon, XCircle, Eye, ArrowUpRight
 } from 'lucide-react';
 import Drawer from './Drawer';
 import ToggleSwitch from './ToggleSwitch';
-import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi } from '../../services/adminApi';
+import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi, IMAGE_BASE_URL } from '../../services/adminApi';
+
+function VenueViewModal({ venue, cities, areas, onClose }) {
+  return (
+    <div className="bg-white rounded-lg">
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+        <h2 className="text-xl font-semibold text-slate-800">View Venue Details</h2>
+        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+          <X className="h-5 w-5 text-slate-600" />
+        </button>
+      </div>
+
+      <div className="space-y-8">
+        {/* Images Gallery */}
+        <div className="relative">
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+            {!venue.images?.length && (
+              <div className="w-full h-64 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-200 flex-shrink-0">
+                <ImageIcon className="h-16 w-16 text-slate-200" />
+              </div>
+            )}
+            {venue.images?.map((img, idx) => (
+              <div key={`img-${idx}`} className="h-64 aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm flex-shrink-0 snap-center">
+                <img src={img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`} alt={`Venue ${idx}`} className="w-full h-full object-cover" onError={(e) => { e.target.closest('div').style.display = 'none'; }} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Action Status */}
+        <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${venue.is_active ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+              {venue.is_active ? <CheckCircle2 className="h-6 w-6" /> : <XCircle className="h-6 w-6" />}
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900">{venue.is_active ? 'Active Venue' : 'Inactive Venue'}</p>
+              <p className="text-xs text-slate-500">Currently {venue.is_active ? 'visible' : 'hidden'} to users</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Info Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Building2 className="h-3.5 w-3.5" /> Basic Information
+              </h3>
+              <div className="bg-white border border-slate-100 rounded-xl p-4 space-y-4 shadow-sm">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-black">Venue Name</label>
+                  <p className="font-bold text-slate-900 text-lg">{venue.name}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-black">City</label>
+                    <p className="font-semibold text-slate-700">{cities.find(c => c.id === venue.city_id)?.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-black">Area</label>
+                    <p className="font-semibold text-slate-700">{areas.find(a => a.id === venue.area_id)?.name || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-black">Ground Type</label>
+                    <span className={`inline-flex mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${venue.ground_type === 'multiple' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {venue.ground_type || 'Single'} Ground
+                    </span>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-black">Max Players</label>
+                    <p className="font-bold text-slate-900">{venue.max_players || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <MapPin className="h-3.5 w-3.5" /> Address & Location
+              </h3>
+              <div className="bg-white border border-slate-100 rounded-xl p-4 space-y-4 shadow-sm">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-black">Full Address</label>
+                  <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                    {venue.address_line1}
+                    {venue.address_line2 && <><br />{venue.address_line2}</>}
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  {(venue.google_map_url || (venue.location_url && (venue.location_url.includes('google.com/maps') || venue.location_url.includes('goo.gl') || venue.location_url.includes('maps.app')))) && (
+                    <div className="space-y-3">
+                      <label className="text-[10px] text-slate-400 uppercase font-black block">Location Map</label>
+                      <div className="relative group overflow-hidden rounded-2xl border border-slate-200 shadow-md transition-all hover:border-blue-400">
+                        <iframe
+                          width="100%"
+                          height="220"
+                          style={{ border: 0 }}
+                          loading="lazy"
+                          allowFullScreen
+                          referrerPolicy="no-referrer-when-downgrade"
+                          src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(venue.address_line1 + ', ' + (cities.find(c => c.id === venue.city_id)?.name || ''))}`}
+                          className="grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500"
+                        ></iframe>
+                        <a
+                          href={venue.google_map_url || venue.location_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="absolute inset-0 bg-transparent cursor-pointer"
+                          title="Open full map"
+                        >
+                          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="bg-white shadow-lg p-2 rounded-lg flex items-center gap-1.5 text-[10px] font-black uppercase text-blue-600 border border-blue-50">
+                              <MapIcon className="h-3.5 w-3.5" />
+                              View Full Map
+                            </div>
+                          </div>
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {venue.location_url && !venue.location_url.includes('google.com/maps') && !venue.location_url.includes('goo.gl') && !venue.location_url.includes('maps.app') && (
+                    <a
+                      href={venue.location_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between gap-2 text-xs text-slate-600 hover:text-green-600 font-bold bg-slate-50 hover:bg-green-50 p-3 rounded-xl border border-slate-100 hover:border-green-200 transition-all group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-slate-400 group-hover:text-green-500" />
+                        <span>Visit Website</span>
+                      </div>
+                      <ArrowUpRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all translate-x-1 group-hover:translate-x-0" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Gamepad2 className="h-3.5 w-3.5" /> Available Games & Amenities
+              </h3>
+              <div className="bg-white border border-slate-100 rounded-xl p-4 space-y-6 shadow-sm">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-black mb-2 block">Games</label>
+                  <div className="flex flex-wrap gap-2">
+                    {venue.game_types?.map(gt => (
+                      <span key={gt.id} className="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-bold border border-green-100">
+                        {gt.name}
+                      </span>
+                    )) || <p className="text-xs text-slate-400 italic">No games listed</p>}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-black mb-2 block">Amenities</label>
+                  <div className="flex flex-wrap gap-2">
+                    {venue.amenities?.map(am => (
+                      <span key={am.id} className="px-3 py-1 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold border border-slate-200">
+                        {am.name}
+                      </span>
+                    )) || <p className="text-xs text-slate-400 italic">No amenities listed</p>}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Clock className="h-3.5 w-3.5" /> Opening Hours
+              </h3>
+              <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+                <div className="space-y-2">
+                  {venue.opening_hours && Object.entries(typeof venue.opening_hours === 'string' ? JSON.parse(venue.opening_hours) : venue.opening_hours).map(([day, hours]) => (
+                    <div key={day} className="flex items-center justify-between text-xs py-1 border-b border-slate-50 last:border-0">
+                      <span className="capitalize font-bold text-slate-500">{day}</span>
+                      <span className={`font-black ${hours.isActive ? 'text-slate-900' : 'text-slate-300 italic'}`}>
+                        {hours.isActive ? `${hours.open} - ${hours.close}` : 'Closed'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Overview section */}
+        <div className="space-y-6 pb-6">
+          <div>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Info className="h-3.5 w-3.5" /> Venue Overview
+            </h3>
+            <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+              <p className="text-sm text-slate-600 leading-relaxed font-medium whitespace-pre-wrap italic">
+                {venue.ground_overview || 'No overview provided.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Terms & Conditions</h3>
+              <div className="text-xs text-slate-500 bg-white p-3 rounded-lg border border-slate-100 max-h-40 overflow-y-auto whitespace-pre-wrap font-medium">
+                {venue.terms_condition || 'None'}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Rules & Policies</h3>
+              <div className="text-xs text-slate-500 bg-white p-3 rounded-lg border border-slate-100 max-h-40 overflow-y-auto whitespace-pre-wrap font-medium">
+                {venue.rule || 'None'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function VenuesSettings() {
   const [venues, setVenues] = useState([]);
@@ -39,7 +261,7 @@ function VenuesSettings() {
     groundOverview: '',
     termsCondition: '',
     rule: '',
-    googleMapUrl: '',
+    locationUrl: '',
     price: '',
     maxPlayers: '',
     phoneNumber: '',
@@ -177,7 +399,7 @@ function VenuesSettings() {
       groundOverview: '',
       termsCondition: '',
       rule: '',
-      googleMapUrl: '',
+      locationUrl: '',
       price: '',
       maxPlayers: '',
       phoneNumber: '',
@@ -236,7 +458,7 @@ function VenuesSettings() {
       groundOverview: venue.ground_overview || '',
       termsCondition: venue.terms_condition || '',
       rule: venue.rule || '',
-      googleMapUrl: venue.google_map_url || '',
+      locationUrl: venue.google_map_url || venue.location_url || '',
       price: venue.price || '',
       maxPlayers: venue.max_players || '',
       phoneNumber: venue.phone_number || '',
@@ -251,6 +473,10 @@ function VenuesSettings() {
       isActive: venue.is_active
     });
     setShowDrawer(true);
+  };
+
+  const handleViewClick = (venue) => {
+    setViewingVenue(venue);
   };
 
   const handleDeleteClick = async (id) => {
@@ -381,11 +607,22 @@ function VenuesSettings() {
       submitData.append('ground_overview', formData.groundOverview);
       submitData.append('terms_condition', formData.termsCondition);
       submitData.append('rule', formData.rule);
-      submitData.append('google_map_url', formData.googleMapUrl);
+      const isMapLink = formData.locationUrl.includes('google.com/maps') ||
+        formData.locationUrl.includes('goo.gl') ||
+        formData.locationUrl.includes('maps.app');
+
+      if (isMapLink) {
+        submitData.append('google_map_url', formData.locationUrl);
+        submitData.append('location_url', '');
+      } else {
+        submitData.append('google_map_url', '');
+        submitData.append('location_url', formData.locationUrl);
+      }
       // Price removed as per request
-      submitData.append('max_players', formData.maxPlayers);
-      submitData.append('phone_number', formData.phoneNumber);
-      submitData.append('email', formData.email);
+      if (formData.maxPlayers) {
+        submitData.append('max_players', formData.maxPlayers);
+      }
+      // Phone/Email removed as per request
       submitData.append('ground_type', formData.groundType);
       submitData.append('opening_hours', JSON.stringify(formData.openingHours));
       submitData.append('is_active', formData.isActive);
@@ -409,6 +646,8 @@ function VenuesSettings() {
       await fetchAllData();
       setShowDrawer(false);
       setEditingVenue(null);
+      setViewingVenue(null);
+      setEditingVenue(null);
     } catch (err) {
       console.error('Error saving venue:', err);
       setError(err.message || 'Failed to save venue');
@@ -420,8 +659,12 @@ function VenuesSettings() {
   // Filter areas based on selected city
   const filteredAreas = formData.cityId ? areas.filter(area => area.city_id == formData.cityId) : [];
 
+  if (viewingVenue) {
+    return <VenueViewModal venue={viewingVenue} cities={cities} areas={areas} onClose={() => setViewingVenue(null)} />;
+  }
+
   return (
-    <div>
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         {/* City Filter */}
@@ -521,10 +764,13 @@ function VenuesSettings() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 transition-opacity">
-                          <button onClick={() => handleEditClick(venue)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                          <button onClick={() => handleViewClick(venue)} title="View Venue" className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors">
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => handleEditClick(venue)} title="Edit Venue" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
                             <Edit2 className="h-4 w-4" />
                           </button>
-                          <button onClick={() => handleDeleteClick(venue.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
+                          <button onClick={() => handleDeleteClick(venue.id)} title="Delete Venue" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -582,6 +828,9 @@ function VenuesSettings() {
                       label={venue.is_active ? 'Active' : 'Inactive'}
                     />
                     <div className="flex items-center gap-2">
+                      <button onClick={() => handleViewClick(venue)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors bg-slate-50">
+                        <Eye className="h-4 w-4" />
+                      </button>
                       <button onClick={() => handleEditClick(venue)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors bg-slate-50">
                         <Edit2 className="h-4 w-4" />
                       </button>
@@ -610,9 +859,13 @@ function VenuesSettings() {
 
       {/* Drawer Form */}
       <Drawer
-        title={editingVenue ? 'Edit Venue' : 'Add New Venue'}
         isOpen={showDrawer}
-        onClose={() => setShowDrawer(false)}
+        onClose={() => {
+          setShowDrawer(false);
+          setViewingVenue(null);
+          setEditingVenue(null);
+        }}
+        title={viewingVenue ? 'View Venue' : (editingVenue ? 'Edit Venue' : 'Add New Venue')}
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full pb-6">
           <div className="flex-1 space-y-6">
@@ -620,22 +873,24 @@ function VenuesSettings() {
             {/* Images Section */}
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Venue Images</label>
-              <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:bg-slate-50 transition-colors text-center cursor-pointer relative group">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <div className="flex flex-col items-center gap-2 text-slate-400">
-                  <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center">
-                    <Camera className="h-5 w-5 text-slate-400" />
+              {!viewingVenue && (
+                <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:bg-slate-50 transition-colors text-center cursor-pointer relative group">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="flex flex-col items-center gap-2 text-slate-400">
+                    <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center">
+                      <Camera className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <span className="text-sm font-medium">Click to upload images</span>
+                    <span className="text-xs">Max 5 images recommended</span>
                   </div>
-                  <span className="text-sm font-medium">Click to upload images</span>
-                  <span className="text-xs">Max 5 images recommended</span>
                 </div>
-              </div>
+              )}
 
               {/* Image Previews */}
               {(formData.existingImages.length > 0 || formData.imagePreviews.length > 0) && (
@@ -643,8 +898,8 @@ function VenuesSettings() {
                   {formData.existingImages.map((url, index) => (
                     <div key={`existing-${index}`} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 group">
                       <img src={url} alt="Venue" className="h-full w-full object-cover" />
-                      <button type="button" onClick={() => handleRemoveExistingImage(index)} className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <X className="h-4 w-4 text-white" />
+                      <button type="button" onClick={() => !viewingVenue && handleRemoveExistingImage(index)} className={`absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${viewingVenue ? 'cursor-default' : ''}`}>
+                        {!viewingVenue && <X className="h-4 w-4 text-white" />}
                       </button>
                     </div>
                   ))}
@@ -669,7 +924,8 @@ function VenuesSettings() {
                   type="text"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300"
+                  disabled={!!viewingVenue}
+                  className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300 disabled:bg-slate-50 disabled:text-slate-500"
                   required
                   placeholder="e.g. Hyderabad Sports Complex"
                 />
@@ -682,9 +938,7 @@ function VenuesSettings() {
                 <div className="flex justify-between items-center mb-2 ml-1">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">City</label>
                   {!isAddingCity && (
-                    <button type="button" onClick={() => setIsAddingCity(true)} className="text-[10px] font-bold text-green-600 hover:text-green-700 uppercase tracking-wide flex items-center gap-1">
-                      <Plus className="h-3 w-3" /> New
-                    </button>
+                    <div className="h-5"></div>
                   )}
                 </div>
                 {isAddingCity ? (
@@ -708,19 +962,29 @@ function VenuesSettings() {
                     </div>
                   </div>
                 ) : (
-                  <div className="relative group">
-                    <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
-                    <select
-                      value={formData.cityId}
-                      onChange={(e) => setFormData({ ...formData, cityId: e.target.value, areaId: '' })}
-                      className="w-full pl-12 pr-10 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium appearance-none shadow-sm hover:border-slate-300"
-                      required
-                    >
-                      <option value="">Select City</option>
-                      {cities.filter(c => c.is_active).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-3.5 h-5 w-5 text-slate-400 pointer-events-none" />
-                  </div>
+                  <>
+                    <div className="relative group">
+                      <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                      <select
+                        value={formData.cityId}
+                        onChange={(e) => setFormData({ ...formData, cityId: e.target.value, areaId: '' })}
+                        disabled={!!viewingVenue}
+                        className="w-full pl-12 pr-10 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium appearance-none shadow-sm hover:border-slate-300 disabled:bg-slate-50 disabled:text-slate-500"
+                        required
+                      >
+                        <option value="">Select City</option>
+                        {cities.filter(c => c.is_active).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-3.5 h-5 w-5 text-slate-400 pointer-events-none" />
+                    </div>
+                    {!isAddingCity && !viewingVenue && (
+                      <div className="mt-2 text-right">
+                        <button type="button" onClick={() => setIsAddingCity(true)} className="text-[10px] font-bold text-green-600 hover:text-green-700 uppercase tracking-wide flex items-center gap-1 justify-end ml-auto">
+                          <Plus className="h-3 w-3" /> Add New City
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -728,9 +992,7 @@ function VenuesSettings() {
                 <div className="flex justify-between items-center mb-2 ml-1">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Area</label>
                   {!isAddingArea && formData.cityId && (
-                    <button type="button" onClick={() => setIsAddingArea(true)} className="text-[10px] font-bold text-green-600 hover:text-green-700 uppercase tracking-wide flex items-center gap-1">
-                      <Plus className="h-3 w-3" /> New
-                    </button>
+                    <div className="h-5"></div>
                   )}
                 </div>
                 {isAddingArea ? (
@@ -748,35 +1010,65 @@ function VenuesSettings() {
                     </div>
                   </div>
                 ) : (
-                  <div className="relative group">
-                    <Hash className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
-                    <select
-                      value={formData.areaId}
-                      onChange={(e) => setFormData({ ...formData, areaId: e.target.value })}
-                      className="w-full pl-12 pr-10 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium appearance-none shadow-sm hover:border-slate-300"
-                      disabled={!formData.cityId}
-                      required
-                    >
-                      <option value="">Select Area</option>
-                      {filteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-3.5 h-5 w-5 text-slate-400 pointer-events-none" />
-                  </div>
+                  <>
+                    <div className="relative group">
+                      <Hash className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                      <select
+                        value={formData.areaId}
+                        onChange={(e) => setFormData({ ...formData, areaId: e.target.value })}
+                        disabled={!formData.cityId || !!viewingVenue}
+                        className="w-full pl-12 pr-10 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium appearance-none shadow-sm hover:border-slate-300 disabled:bg-slate-50 disabled:text-slate-500"
+                        required
+                      >
+                        <option value="">Select Area</option>
+                        {filteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-3.5 h-5 w-5 text-slate-400 pointer-events-none" />
+                    </div>
+                    {!isAddingArea && formData.cityId && !viewingVenue && (
+                      <div className="mt-2 text-right">
+                        <button type="button" onClick={() => setIsAddingArea(true)} className="text-[10px] font-bold text-green-600 hover:text-green-700 uppercase tracking-wide flex items-center gap-1 justify-end ml-auto">
+                          <Plus className="h-3 w-3" /> Add New Area
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
 
-            {/* Google Map URL */}
+            {/* Consolidated Location/Map URL */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Google Map URL</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Location URL / Google Maps Link</label>
               <input
                 type="text"
-                value={formData.googleMapUrl}
-                onChange={(e) => setFormData({ ...formData, googleMapUrl: e.target.value })}
-                placeholder="https://maps.google.com/..."
-                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300"
+                value={formData.locationUrl}
+                onChange={(e) => setFormData({ ...formData, locationUrl: e.target.value })}
+                disabled={!!viewingVenue}
+                placeholder="Paste website URL or Google Maps link..."
+                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 disabled:bg-slate-50 disabled:text-slate-500"
               />
             </div>
+
+            {(formData.locationUrl && (formData.locationUrl.includes('google.com/maps') || formData.locationUrl.includes('goo.gl') || formData.locationUrl.includes('maps.app'))) && (
+              <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] text-blue-600 uppercase font-black flex items-center gap-1.5">
+                    <MapPin className="h-3 w-3" /> Live Map Preview
+                  </label>
+                  <span className="text-[10px] font-bold text-blue-400 italic">Visible in View mode</span>
+                </div>
+                <div className="relative aspect-video rounded-xl overflow-hidden border border-blue-100 shadow-sm bg-white">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(formData.addressLine1 || formData.name || 'India')}`}
+                  ></iframe>
+                </div>
+              </div>
+            )}
 
             {/* Ground Overview */}
             <div>
@@ -785,8 +1077,9 @@ function VenuesSettings() {
                 value={formData.groundOverview}
                 onChange={(e) => setFormData({ ...formData, groundOverview: e.target.value })}
                 rows={3}
+                disabled={!!viewingVenue}
                 placeholder="Brief description about the ground..."
-                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300"
+                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 disabled:bg-slate-50 disabled:text-slate-500"
               />
             </div>
 
@@ -797,8 +1090,9 @@ function VenuesSettings() {
                 value={formData.termsCondition}
                 onChange={(e) => setFormData({ ...formData, termsCondition: e.target.value })}
                 rows={3}
+                disabled={!!viewingVenue}
                 placeholder="Enter terms and conditions..."
-                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
+                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
               />
             </div>
 
@@ -809,43 +1103,24 @@ function VenuesSettings() {
                 value={formData.rule}
                 onChange={(e) => setFormData({ ...formData, rule: e.target.value })}
                 rows={3}
+                disabled={!!viewingVenue}
                 placeholder="Enter rules or cancellation policy..."
-                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
+                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
               />
             </div>
 
             {/* Contact Info */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Max Players per Slot</label>
-                <input
-                  type="number"
-                  value={formData.maxPlayers}
-                  onChange={(e) => setFormData({ ...formData, maxPlayers: e.target.value })}
-                  placeholder="e.g. 14"
-                  className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Phone Number</label>
-                <input
-                  type="tel"
-                  value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                  placeholder="Contact Number"
-                  className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Contact Email"
-                  className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
-                />
-              </div>
+            {/* Contact Info - Phone & Email removed */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Max Players per Slot</label>
+              <input
+                type="number"
+                value={formData.maxPlayers}
+                onChange={(e) => setFormData({ ...formData, maxPlayers: e.target.value })}
+                disabled={!!viewingVenue}
+                placeholder="e.g. 14"
+                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
+              />
             </div>
 
             {/* Address Lines */}
@@ -859,7 +1134,8 @@ function VenuesSettings() {
                     placeholder="Address Line 1"
                     value={formData.addressLine1}
                     onChange={e => setFormData({ ...formData, addressLine1: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
+                    disabled={!!viewingVenue}
+                    className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                     required
                   />
                 </div>
@@ -868,7 +1144,8 @@ function VenuesSettings() {
                   placeholder="Address Line 2 (Optional)"
                   value={formData.addressLine2}
                   onChange={e => setFormData({ ...formData, addressLine2: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900"
+                  disabled={!!viewingVenue}
+                  className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium shadow-sm hover:border-slate-300 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                 />
               </div>
             </div>
@@ -877,15 +1154,15 @@ function VenuesSettings() {
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ground Type</label>
               <div className="flex gap-4">
-                <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.groundType === 'single' ? 'border-green-500 bg-green-50/50 text-green-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                  <input type="radio" value="single" checked={formData.groundType === 'single'} onChange={e => setFormData({ ...formData, groundType: e.target.value })} className="hidden" />
+                <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${viewingVenue ? 'cursor-default' : 'cursor-pointer'} ${formData.groundType === 'single' ? 'border-green-500 bg-green-50/50 text-green-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                  <input type="radio" value="single" checked={formData.groundType === 'single'} onChange={e => !viewingVenue && setFormData({ ...formData, groundType: e.target.value })} className="hidden" disabled={!!viewingVenue} />
                   <div className="h-4 w-4 rounded-full border border-current flex items-center justify-center">
                     {formData.groundType === 'single' && <div className="h-2 w-2 rounded-full bg-current" />}
                   </div>
                   <span className="font-medium text-sm">Single Ground</span>
                 </label>
-                <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.groundType === 'multiple' ? 'border-purple-500 bg-purple-50/50 text-purple-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                  <input type="radio" value="multiple" checked={formData.groundType === 'multiple'} onChange={e => setFormData({ ...formData, groundType: e.target.value })} className="hidden" />
+                <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${viewingVenue ? 'cursor-default' : 'cursor-pointer'} ${formData.groundType === 'multiple' ? 'border-purple-500 bg-purple-50/50 text-purple-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                  <input type="radio" value="multiple" checked={formData.groundType === 'multiple'} onChange={e => !viewingVenue && setFormData({ ...formData, groundType: e.target.value })} className="hidden" disabled={!!viewingVenue} />
                   <div className="h-4 w-4 rounded-full border border-current flex items-center justify-center">
                     {formData.groundType === 'multiple' && <div className="h-2 w-2 rounded-full bg-current" />}
                   </div>
@@ -910,14 +1187,14 @@ function VenuesSettings() {
                       return (
                         <span key={id} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-lg uppercase tracking-wide">
                           {game.name}
-                          <X className="h-3 w-3 cursor-pointer hover:text-green-900" onClick={(e) => { e.stopPropagation(); handleGameSelect(id); }} />
+                          {!viewingVenue && <X className="h-3 w-3 cursor-pointer hover:text-green-900" onClick={(e) => { e.stopPropagation(); handleGameSelect(id); }} />}
                         </span>
                       );
                     })
                   ) : (
                     <span className="text-slate-400">Select games...</span>
                   )}
-                  <ChevronDown className={`ml-auto h-5 w-5 text-slate-400 transition-transform ${showGameDropdown ? 'rotate-180' : ''}`} />
+                  {viewingVenue ? null : <ChevronDown className={`ml-auto h-5 w-5 text-slate-400 transition-transform ${showGameDropdown ? 'rotate-180' : ''}`} />}
                 </div>
 
                 {showGameDropdown && (
@@ -951,8 +1228,8 @@ function VenuesSettings() {
                     <button
                       key={amenity.id}
                       type="button"
-                      onClick={() => handleAmenitySelect(amenity.id)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 border ${isSelected ? 'bg-green-600 text-white border-green-600 shadow-md shadow-green-200' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
+                      onClick={() => !viewingVenue && handleAmenitySelect(amenity.id)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 border ${isSelected ? 'bg-green-600 text-white border-green-600 shadow-md shadow-green-200' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'} ${viewingVenue ? 'cursor-default' : 'cursor-pointer'}`}
                     >
                       {isSelected && <CheckCircle2 className="h-3.5 w-3.5" />}
                       {amenity.name}
@@ -973,8 +1250,8 @@ function VenuesSettings() {
                         <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${hours.isActive ? 'bg-green-600 border-green-600' : 'bg-white border-slate-300'}`}>
                           {hours.isActive && <CheckCircle2 className="h-3 w-3 text-white" />}
                         </div>
-                        <input type="checkbox" checked={hours.isActive} onChange={() => handleDayToggle(day)} className="hidden" />
-                        <span className="text-sm font-semibold capitalize text-slate-700">{day}</span>
+                        <input type="checkbox" checked={hours.isActive} onChange={() => !viewingVenue && handleDayToggle(day)} className="hidden" disabled={!!viewingVenue} />
+                        <span className={`text-sm font-semibold capitalize ${hours.isActive ? 'text-slate-700' : 'text-slate-400'} ${viewingVenue ? 'cursor-default' : 'cursor-pointer'}`}>{day}</span>
                       </label>
                     </div>
                     {hours.isActive ? (
@@ -982,15 +1259,17 @@ function VenuesSettings() {
                         <input
                           type="time"
                           value={hours.open}
-                          onChange={(e) => handleOpeningHoursChange(day, 'open', e.target.value)}
-                          className="px-2 py-1 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-green-500"
+                          onChange={(e) => !viewingVenue && handleOpeningHoursChange(day, 'open', e.target.value)}
+                          disabled={!!viewingVenue}
+                          className="px-2 py-1 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-green-500 disabled:bg-slate-50 disabled:text-slate-500"
                         />
                         <span className="text-slate-400">-</span>
                         <input
                           type="time"
                           value={hours.close}
-                          onChange={(e) => handleOpeningHoursChange(day, 'close', e.target.value)}
-                          className="px-2 py-1 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-green-500"
+                          onChange={(e) => !viewingVenue && handleOpeningHoursChange(day, 'close', e.target.value)}
+                          disabled={!!viewingVenue}
+                          className="px-2 py-1 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-green-500 disabled:bg-slate-50 disabled:text-slate-500"
                         />
                       </>
                     ) : (
@@ -1003,26 +1282,32 @@ function VenuesSettings() {
 
           </div>
 
-          <div className="pt-6 mt-6 border-t border-slate-100 flex gap-4">
-            <button
-              type="button"
-              onClick={() => setShowDrawer(false)}
-              className="flex-1 px-6 py-3.5 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-[2] px-6 py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-70 shadow-lg shadow-slate-900/10 flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : null}
-              {isSubmitting ? 'Saving...' : (editingVenue ? 'Update Venue' : 'Create Venue')}
-            </button>
-          </div>
-        </form>
-      </Drawer>
-    </div>
+          {!viewingVenue && (
+            <div className="pt-6 mt-6 border-t border-slate-100 flex gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDrawer(false);
+                  setViewingVenue(null);
+                  setEditingVenue(null);
+                }}
+                className="flex-1 px-6 py-3.5 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-[2] px-6 py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-70 shadow-lg shadow-slate-900/10 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : null}
+                {isSubmitting ? 'Saving...' : (editingVenue ? 'Update Venue' : 'Create Venue')}
+              </button>
+            </div>
+          )}
+        </form >
+      </Drawer >
+    </div >
   );
 }
 

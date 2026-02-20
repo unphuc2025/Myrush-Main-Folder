@@ -2,7 +2,7 @@ import { X } from 'lucide-react';
 
 function Modal({ title, children, onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 pt-[15vh]">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden transform transition-all scale-100">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">

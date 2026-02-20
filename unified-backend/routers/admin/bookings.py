@@ -124,7 +124,7 @@ def create_booking(
 
     try:
         db_booking = models.Booking(
-            **booking.dict(exclude={'coupon_code', 'start_time', 'end_time', 'total_amount', 'duration_minutes', 'original_amount'}),
+            **booking.dict(exclude={'coupon_code', 'start_time', 'end_time', 'total_amount', 'duration_minutes', 'original_amount', 'razorpay_payment_id', 'razorpay_order_id', 'razorpay_signature'}),
             start_time=start_time_obj,
             end_time=end_time_obj,
             duration_minutes=duration_minutes,

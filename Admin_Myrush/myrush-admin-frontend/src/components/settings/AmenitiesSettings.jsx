@@ -136,7 +136,7 @@ function AmenitiesSettings() {
               <div className="flex items-start justify-between mb-4">
                 <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center p-2 group-hover:scale-105 transition-transform">
                   {amenity.icon_url ? (
-                    <img src={amenity.icon_url} alt={amenity.name} className="w-full h-full object-contain" />
+                    <img src={`${amenity.icon_url}?t=${new Date().getTime()}`} alt={amenity.name} className="w-full h-full object-contain" />
                   ) : (
                     <Star className="h-7 w-7 text-slate-400" />
                   )}

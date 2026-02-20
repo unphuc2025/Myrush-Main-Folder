@@ -58,6 +58,11 @@ function AddAmenityForm({ onCancel, onSave, initialData = null }) {
             submitData.append('description', formData.description);
             submitData.append('is_active', formData.isActive);
 
+            // Handle icon removal
+            if (!formData.icon && !formData.existingIcon) {
+                submitData.append('is_icon_removed', 'true');
+            }
+
             if (formData.icon?.file) {
                 submitData.append('icon', formData.icon.file);
             }

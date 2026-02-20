@@ -367,10 +367,13 @@ function BranchesSettings() {
       submitData.append('terms_condition', formData.termsCondition);
       submitData.append('rule', formData.rule);
       submitData.append('google_map_url', formData.googleMapUrl);
-      submitData.append('price', formData.price);
-      submitData.append('max_players', formData.maxPlayers);
-      submitData.append('phone_number', formData.phoneNumber);
-      submitData.append('email', formData.email);
+      if (formData.price) {
+        submitData.append('price', formData.price);
+      }
+      if (formData.maxPlayers) {
+        submitData.append('max_players', formData.maxPlayers);
+      }
+      // Phone/Email removed
       submitData.append('ground_type', formData.groundType);
       submitData.append('opening_hours', JSON.stringify(formData.openingHours));
       submitData.append('is_active', formData.isActive);
@@ -518,14 +521,7 @@ function BranchesSettings() {
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-medium text-slate-700">City *</label>
                 {!isAddingCity && (
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingCity(true)}
-                    className="text-xs flex items-center gap-1 text-green-600 hover:text-green-700 font-medium"
-                  >
-                    <Plus className="h-3 w-3" />
-                    New City
-                  </button>
+                  <div className="h-5"></div>
                 )}
               </div>
 
@@ -567,17 +563,31 @@ function BranchesSettings() {
                   </div>
                 </div>
               ) : (
-                <select
-                  value={formData.cityId}
-                  onChange={(e) => setFormData({ ...formData, cityId: e.target.value, areaId: '' })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
-                  required
-                >
-                  <option value="">Select City</option>
-                  {cities.filter(city => city.is_active).map((city) => (
-                    <option key={city.id} value={city.id}>{city.name} ({city.short_code})</option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    value={formData.cityId}
+                    onChange={(e) => setFormData({ ...formData, cityId: e.target.value, areaId: '' })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
+                    required
+                  >
+                    <option value="">Select City</option>
+                    {cities.filter(city => city.is_active).map((city) => (
+                      <option key={city.id} value={city.id}>{city.name} ({city.short_code})</option>
+                    ))}
+                  </select>
+                  {!isAddingCity && (
+                    <div className="mt-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingCity(true)}
+                        className="text-xs flex items-center gap-1 text-green-600 hover:text-green-700 font-medium justify-end ml-auto"
+                      >
+                        <Plus className="h-3 w-3" />
+                        New City
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -586,14 +596,7 @@ function BranchesSettings() {
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-medium text-slate-700">Area *</label>
                 {!isAddingArea && formData.cityId && (
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingArea(true)}
-                    className="text-xs flex items-center gap-1 text-green-600 hover:text-green-700 font-medium"
-                  >
-                    <Plus className="h-3 w-3" />
-                    New Area
-                  </button>
+                  <div className="h-5"></div>
                 )}
               </div>
 
@@ -628,23 +631,37 @@ function BranchesSettings() {
                   </div>
                 </div>
               ) : (
-                <select
-                  value={formData.areaId}
-                  onChange={(e) => setFormData({ ...formData, areaId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
-                  disabled={!formData.cityId}
-                >
-                  <option value="">Select Area</option>
-                  {filteredAreas.map((area) => (
-                    <option key={area.id} value={area.id}>{area.name}</option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    value={formData.areaId}
+                    onChange={(e) => setFormData({ ...formData, areaId: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
+                    disabled={!formData.cityId}
+                  >
+                    <option value="">Select Area</option>
+                    {filteredAreas.map((area) => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                  {!isAddingArea && formData.cityId && (
+                    <div className="mt-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingArea(true)}
+                        className="text-xs flex items-center gap-1 text-green-600 hover:text-green-700 font-medium justify-end ml-auto"
+                      >
+                        <Plus className="h-3 w-3" />
+                        New Area
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
-          </div>
+          </div >
 
           {/* Location Search */}
-          <div>
+          < div >
             <label className="block text-sm font-medium text-slate-700 mb-2">Search and Add Location</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
@@ -656,10 +673,10 @@ function BranchesSettings() {
                 className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
               />
             </div>
-          </div>
+          </div >
 
           {/* Google Map URL */}
-          <div>
+          < div >
             <label className="block text-sm font-medium text-slate-700 mb-2">Google Map URL</label>
             <input
               type="text"
@@ -668,10 +685,10 @@ function BranchesSettings() {
               placeholder="https://maps.google.com/..."
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
             />
-          </div>
+          </div >
 
           {/* Address Lines */}
-          <div className="grid grid-cols-2 gap-4">
+          < div className="grid grid-cols-2 gap-4" >
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Address Line 1 *</label>
               <input
@@ -691,10 +708,10 @@ function BranchesSettings() {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
               />
             </div>
-          </div>
+          </div >
 
           {/* Ground Overview */}
-          <div>
+          < div >
             <label className="block text-sm font-medium text-slate-700 mb-2">Ground Overview</label>
             <textarea
               value={formData.groundOverview}
@@ -703,10 +720,10 @@ function BranchesSettings() {
               placeholder="Brief description about the ground..."
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
             />
-          </div>
+          </div >
 
           {/* Terms & Conditions */}
-          <div>
+          < div >
             <label className="block text-sm font-medium text-slate-700 mb-2">Terms & Conditions</label>
             <textarea
               value={formData.termsCondition}
@@ -715,10 +732,10 @@ function BranchesSettings() {
               placeholder="Enter terms and conditions..."
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
             />
-          </div>
+          </div >
 
           {/* Rules / Cancellation Policy */}
-          <div>
+          < div >
             <label className="block text-sm font-medium text-slate-700 mb-2">Rules / Cancellation Policy</label>
             <textarea
               value={formData.rule}
@@ -727,10 +744,10 @@ function BranchesSettings() {
               placeholder="Enter rules or cancellation policy..."
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
             />
-          </div>
+          </div >
 
           {/* Pricing & Contact Info */}
-          <div className="grid grid-cols-2 gap-4">
+          < div className="grid grid-cols-2 gap-4" >
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Price Per Hour (₹)</label>
               <input
@@ -751,32 +768,13 @@ function BranchesSettings() {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Phone Number</label>
-              <input
-                type="tel"
-                value={formData.phoneNumber}
-                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                placeholder="Contact Number"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="Contact Email"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-slate-900"
-              />
-            </div>
-          </div>
+            {/* Contact Info Removed */}
+          </div >
 
           {/* Ground Type & Select Games - Grid Layout */}
-          <div className="grid grid-cols-2 gap-8">
+          < div className="grid grid-cols-2 gap-8" >
             {/* Ground Type - Left */}
-            <div>
+            < div >
               <label className="block text-sm font-medium text-slate-700 mb-2">Ground Type *</label>
               <div className="space-y-2">
                 <label className="flex items-center">
@@ -800,10 +798,10 @@ function BranchesSettings() {
                   Multiple Grounds
                 </label>
               </div>
-            </div>
+            </div >
 
             {/* Select Games - Right */}
-            <div>
+            < div >
               <label className="block text-sm font-medium text-slate-700 mb-2">Select Games *</label>
               <div className="space-y-2">
                 {/* Selected games as tags */}
@@ -873,11 +871,11 @@ function BranchesSettings() {
                   )}
                 </div>
               </div>
-            </div>
-          </div>
+            </div >
+          </div >
 
           {/* Select Amenities */}
-          <div>
+          < div >
             <label className="block text-sm font-medium text-slate-700 mb-2">Amenities</label>
             <div className="flex flex-wrap gap-2">
               {amenities.filter(am => am.is_active).map((amenity) => (
@@ -892,10 +890,10 @@ function BranchesSettings() {
                 </label>
               ))}
             </div>
-          </div>
+          </div >
 
           {/* Opening Hours */}
-          <div>
+          < div >
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-4">
               <Clock className="h-4 w-4" />
               Opening Hours
@@ -934,10 +932,10 @@ function BranchesSettings() {
                 </div>
               ))}
             </div>
-          </div>
+          </div >
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-6">
+          < div className="flex justify-end gap-3 pt-6" >
             <button
               type="button"
               onClick={() => {
@@ -955,9 +953,9 @@ function BranchesSettings() {
             >
               {isSubmitting ? 'Saving...' : (editingBranch ? 'Update Branch' : 'Add Branch')}
             </button>
-          </div>
-        </form>
-      </div>
+          </div >
+        </form >
+      </div >
     );
   }
 

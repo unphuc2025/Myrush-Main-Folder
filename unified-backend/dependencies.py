@@ -205,9 +205,14 @@ class PermissionChecker:
         has_access = False
         for module in self.modules:
             module_perms = permissions.get(module)
-            if module_perms and module_perms.get(self.action):
-                has_access = True
-                break
+            if module_perms:
+                if module_perms.get(self.action):
+                    has_access = True
+                    break
+                # 'access' permission also grants 'view' capability
+                if self.action == "view" and module_perms.get("access"):
+                    has_access = True
+                    break
         
         if not has_access:
              raise HTTPException(
