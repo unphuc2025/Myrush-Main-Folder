@@ -29,7 +29,8 @@ const ProfileOverviewScreen = () => {
     const navigation = useNavigation<RootNavigation>();
     const { user } = useAuthStore();
     const [profileData, setProfileData] = useState<ProfileData | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    // Start with false so store data renders immediately; API call will update if available
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const fetchProfileData = async () => {

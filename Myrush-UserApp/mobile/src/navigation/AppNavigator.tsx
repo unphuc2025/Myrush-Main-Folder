@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View, StyleSheet, TouchableOpacity, Text, Image } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -50,7 +50,7 @@ const HomeStack = createNativeStackNavigator<RootStackParamList>();
 
 const HomeStackNavigator = () => {
   return (
-    <HomeStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background.primary } }}>
+    <HomeStack.Navigator screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 200, contentStyle: { backgroundColor: colors.background.primary } }}>
       <HomeStack.Screen name="Home" component={HomeScreen} />
       <HomeStack.Screen name="Venues" component={VenuesScreen} />
       <HomeStack.Screen name="VenueDetails" component={VenueDetailsScreen} />
@@ -73,7 +73,7 @@ const HomeStackNavigator = () => {
 const PlayStack = createNativeStackNavigator<RootStackParamList>();
 const PlayStackNavigator = () => {
   return (
-    <PlayStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background.primary } }}>
+    <PlayStack.Navigator screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 200, contentStyle: { backgroundColor: colors.background.primary } }}>
       <PlayStack.Screen name="Play" component={PlayScreen} />
       <PlayStack.Screen name="CreateTournament" component={CreateTournamentScreen} />
       <PlayStack.Screen name="JoinGame" component={JoinGameScreen} />
@@ -86,7 +86,7 @@ const PlayStackNavigator = () => {
 const TrainStack = createNativeStackNavigator<RootStackParamList>();
 const TrainStackNavigator = () => {
   return (
-    <TrainStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background.primary } }}>
+    <TrainStack.Navigator screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 200, contentStyle: { backgroundColor: colors.background.primary } }}>
       <TrainStack.Screen name="Train" component={TrainScreen} />
       <TrainStack.Screen name="CoachDetails" component={CoachDetailsScreen} />
       {/* Reuse Booking Flow */}
@@ -103,7 +103,7 @@ const TrainStackNavigator = () => {
 const CommunityStack = createNativeStackNavigator<RootStackParamList>();
 const CommunityStackNavigator = () => {
   return (
-    <CommunityStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background.primary } }}>
+    <CommunityStack.Navigator screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 200, contentStyle: { backgroundColor: colors.background.primary } }}>
       <CommunityStack.Screen name="Community" component={CommunityScreen} />
       <CommunityStack.Screen name="Leaderboard" component={LeaderboardScreen} />
       <CommunityStack.Screen name="SquadList" component={SquadListScreen} />
@@ -184,18 +184,39 @@ export const AppNavigator = () => {
     );
   }
 
+  // Custom dark theme — replaces DefaultTheme which has a white background.
+  // React Navigation uses this theme background as the backdrop during screen
+  // transitions. Without this, transitions briefly flash white on Android.
+  const AppTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      background: '#000000',
+      card: '#1C1C1E',
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={AppTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
+          animation: 'fade',
+          animationDuration: 200,
           contentStyle: { backgroundColor: colors.background.primary },
         }}
       >
         {isAuthenticated ? (
           <>
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
-            <Stack.Screen name="ProfileOverview" component={ProfileOverviewScreen} />
+            <Stack.Screen
+              name="ProfileOverview"
+              component={ProfileOverviewScreen}
+              options={{
+                animation: 'fade',
+                animationDuration: 200,
+              }}
+            />
             <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
             <Stack.Screen name="BookingSuccess" component={BookingSuccessScreen} />
           </>
