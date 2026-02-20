@@ -158,7 +158,19 @@ class Branch(BranchBase):
     @classmethod
     def make_images_absolute(cls, v):
         if v and isinstance(v, list):
-            return [f"{API_BASE_URL}{url}" if url and url.startswith('/') else url for url in v]
+            result = []
+            for url in v:
+                if not url:
+                    continue
+                # Already a full URL (new S3 direct URL or external) - pass through
+                if url.startswith('http://') or url.startswith('https://'):
+                    result.append(url)
+                # Old proxy path - prepend API base for backward compatibility
+                elif url.startswith('/'):
+                    result.append(f"{API_BASE_URL}{url}")
+                else:
+                    result.append(url)
+            return result
         return v
 
     class Config:
@@ -196,7 +208,17 @@ class Court(CourtBase):
     @classmethod
     def make_images_absolute(cls, v):
         if v and isinstance(v, list):
-            return [f"{API_BASE_URL}{url}" if url and url.startswith('/') else url for url in v]
+            result = []
+            for url in v:
+                if not url:
+                    continue
+                if url.startswith('http://') or url.startswith('https://'):
+                    result.append(url)
+                elif url.startswith('/'):
+                    result.append(f"{API_BASE_URL}{url}")
+                else:
+                    result.append(url)
+            return result
         return v
 
     @field_validator('videos', mode='before')
