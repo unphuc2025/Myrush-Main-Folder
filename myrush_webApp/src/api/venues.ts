@@ -22,6 +22,9 @@ export interface Venue {
         icon_url?: string;
     }>;
     terms_and_conditions?: string;
+    rules?: string;
+    area?: string;
+    address_line2?: string;
     games_played?: number;
 }
 

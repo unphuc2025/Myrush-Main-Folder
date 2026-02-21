@@ -101,6 +101,7 @@ export const EditProfile: React.FC = () => {
         setSaving(true);
         try {
             const profileData: Partial<ProfileData> = {
+                phone_number: phoneNumber,
                 full_name: fullName.trim(),
                 age: parseInt(age, 10) || undefined,
                 city: selectedCity,

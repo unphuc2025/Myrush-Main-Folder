@@ -410,8 +410,8 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: datet
     # Apply Player Multiplier
     calculated_subtotal = calculated_total * number_of_players
     
-    # Apply Platform Fee (Fixed 20 for now)
-    PLATFORM_FEE = 20.0
+    # Apply Platform Fee (Set to 0 as requested)
+    PLATFORM_FEE = 0.0
     calculated_final_total = calculated_subtotal + PLATFORM_FEE
 
     # Log for debug

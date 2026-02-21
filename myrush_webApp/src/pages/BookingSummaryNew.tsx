@@ -37,7 +37,7 @@ export const BookingSummaryNew: React.FC = () => {
     }
 
     const basePrice = bookingData.selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
-    const taxesAndFees = basePrice * 0.05; // 5% taxes
+    const taxesAndFees = 0; // Taxes and fees removed as requested
     const discountAmount = (basePrice * discount) / 100;
     const total = basePrice + taxesAndFees - discountAmount;
 

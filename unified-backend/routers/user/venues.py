@@ -231,6 +231,8 @@ def get_venue(venue_id: str, db: Session = Depends(database.get_db)):
                 ab.ground_overview,
                 ab.search_location,
                 ab.google_map_url,
+                ab.terms_condition,
+                ab.rule,
                 ab.created_at,
                 ab.updated_at,
                 
@@ -250,7 +252,7 @@ def get_venue(venue_id: str, db: Session = Depends(database.get_db)):
                 ) as min_price
 
             FROM admin_branches ab
-            JOIN admin_cities acity ON ab.city_id = acity.id
+            LEFT JOIN admin_cities acity ON ab.city_id = acity.id
             WHERE ab.id = :venue_id
         """
         
@@ -279,11 +281,32 @@ def get_venue(venue_id: str, db: Session = Depends(database.get_db)):
 
             parsed_images = parse_images(b.get('images'))
             
-            # Fetch amenities for branch (aggregated from courts or branch amenities if table exists)
-            # Simplified: just return empty or static for now, or fetch from branch_amenities if it exists?
-            # Let's try fetching from admin_amenities linked to branch via admin_branch_amenities if it exists, or just courts.
-            # Assuming admin_branch_amenities might not exist or be populated, let's skip for safety or try generic query.
-            amenities_data = [] # Placeholder
+            # Fetch amenities for branch
+            amenities_data = []
+            try:
+                amenities_query = """
+                    SELECT aa.id, aa.name, aa.icon, aa.icon_url
+                    FROM admin_amenities aa
+                    JOIN admin_branch_amenities aba ON aa.id = aba.amenity_id
+                    WHERE aba.branch_id = :branch_id AND aa.is_active = true
+                """
+                amenities_res = db.execute(text(amenities_query), {"branch_id": venue_id}).fetchall()
+                for row in amenities_res:
+                    r = dict(row._mapping)
+                    amenities_data.append({
+                        "id": str(r['id']),
+                        "name": r['name'],
+                        "icon": r['icon'] or "✨",
+                        "icon_url": r['icon_url']
+                    })
+            except Exception as e:
+                print(f"Error fetching branch amenities: {e}")
+
+            # Combine terms and rules
+            terms_list = []
+            if b.get('terms_condition'): terms_list.append(b['terms_condition'])
+            if b.get('rule'): terms_list.append(b['rule'])
+            terms_and_conditions = "\n\n".join(terms_list)
             
             return {
                 "id": str(b['id']),
@@ -295,111 +318,18 @@ def get_venue(venue_id: str, db: Session = Depends(database.get_db)):
                 "photos": parsed_images,
                 "videos": [],
                 "amenities": amenities_data,
-                "terms_and_conditions": "", # Branch specific terms?
+                "terms_and_conditions": b.get('terms_condition') or '',
+                "rules": b.get('rule') or '',
                 "created_at": b['created_at'].isoformat() if b.get('created_at') else None,
                 "updated_at": b['updated_at'].isoformat() if b.get('updated_at') else None,
                 "branch_name": b['branch_name'],
-                "city_name": b['city_name'],
+                "city_name": b.get('city_name') or '',
                 "google_map_url": b.get('google_map_url')
             }
+        
+        # User requested to fetch from admin_branches table ONLY.
+        raise HTTPException(status_code=404, detail="Venue not found in admin_branches")
 
-        # 2. If not found in branches, try admin_courts (Legacy support)
-        query_sql = """
-            SELECT 
-                ac.id,
-                ac.name as court_name,
-                ac.price_per_hour as prices,
-                ac.images as photos,
-                ac.videos,
-                ac.amenities,
-                ac.terms_and_conditions,
-                ac.created_at,
-                ac.updated_at,
-                ab.name as branch_name,
-                ab.address_line1 as location,
-                ab.search_location as description,
-                acity.name as city_name,
-                agt.name as game_type
-            FROM admin_courts ac
-            JOIN admin_branches ab ON ac.branch_id = ab.id
-            JOIN admin_cities acity ON ab.city_id = acity.id
-            JOIN admin_game_types agt ON ac.game_type_id = agt.id
-            WHERE ac.id = :venue_id
-        """
-        
-        result = db.execute(text(query_sql), {"venue_id": venue_id}).first()
-        
-        if not result:
-            raise HTTPException(status_code=404, detail="Venue not found")
-            
-        court_dict = dict(result._mapping)
-        
-        # Helper reuse (duplicating for safety context)
-        def parse_images_c(images_value):
-            if not images_value: return []
-            if isinstance(images_value, list): return [str(img).strip() for img in images_value if img]
-            if isinstance(images_value, str):
-                images_value = images_value.strip()
-                if not images_value: return []
-                if images_value.startswith('[') and images_value.endswith(']'):
-                    try:
-                        import json
-                        parsed = json.loads(images_value)
-                        return [str(img).strip() for img in parsed if img] if isinstance(parsed, list) else []
-                    except: pass
-                if images_value.startswith('{') and images_value.endswith('}'):
-                    return [img.strip() for img in images_value[1:-1].split(',') if img.strip()]
-                if ',' in images_value:
-                    return [img.strip() for img in images_value.split(',') if img.strip()]
-                return [images_value]
-            return []
-
-        # Parse Amenities
-        amenities_data = []
-        raw_amenities = court_dict.get('amenities')
-        
-        parsed_images = parse_images_c(court_dict.get('photos'))
-        parsed_videos = parse_images_c(court_dict.get('videos'))
-        
-        if raw_amenities:
-            if isinstance(raw_amenities, str):
-                if raw_amenities.startswith('{') and raw_amenities.endswith('}'):
-                    raw_amenities = raw_amenities[1:-1].split(',')
-                elif raw_amenities.startswith('[') and raw_amenities.endswith(']'):
-                    import json
-                    try: raw_amenities = json.loads(raw_amenities) 
-                    except: raw_amenities = []
-            
-            if isinstance(raw_amenities, list) and len(raw_amenities) > 0:
-                amenity_ids = [str(a).strip() for a in raw_amenities if str(a).strip()]
-                if amenity_ids:
-                    try:
-                        clean_ids = [aid.replace('"', '').replace("'", "") for aid in amenity_ids]
-                        amenities_query = "SELECT id, name, icon FROM admin_amenities WHERE id::text = ANY(:ids)"
-                        amenity_res = db.execute(text(amenities_query), {"ids": clean_ids}).fetchall()
-                        for row in amenity_res:
-                            r = dict(row._mapping)
-                            amenities_data.append({"id": str(r['id']), "name": r['name'], "icon": r['icon'] or "✨"})
-                    except Exception as e:
-                        print(f"Error fetching amenities details: {e}")
-                        for aid in amenity_ids: amenities_data.append({"id": str(aid), "name": str(aid), "icon": "✨"})
-
-        response = {
-            "id": str(court_dict['id']),
-            "court_name": court_dict.get('court_name', ''),
-            "location": f"{court_dict.get('location', '')}, {court_dict.get('city_name', '')}",
-            "game_type": court_dict.get('game_type', ''),
-            "prices": str(court_dict.get('prices', '0')),
-            "description": court_dict.get('description', '') or f"{court_dict.get('branch_name', '')} - {court_dict.get('game_type', '')} Court",
-            "photos": parsed_images,
-            "videos": parsed_videos,
-            "amenities": amenities_data,
-            "terms_and_conditions": court_dict.get('terms_and_conditions', ''),
-            "created_at": court_dict['created_at'].isoformat() if court_dict.get('created_at') else None,
-            "updated_at": court_dict['updated_at'].isoformat() if court_dict.get('updated_at') else None,
-        }
-        
-        return response
 
     except HTTPException as he:
         raise he

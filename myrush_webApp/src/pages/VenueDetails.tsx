@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { venuesApi } from '../api/venues';
@@ -7,7 +7,7 @@ import { courtsApi } from '../api/courts';
 import type { CourtRatings } from '../api/courts';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaMapMarkerAlt, FaStar, FaCheck, FaClock } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaStar, FaClock, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 // --- Types ---
 interface Slot {
@@ -34,6 +34,7 @@ export const VenueDetailsPage: React.FC = () => {
     // Slot Selection State
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(currentDate.getDate());
+    const [scrollerBaseDate, setScrollerBaseDate] = useState(new Date());
     const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
     const [selectedSlots, setSelectedSlots] = useState<Slot[]>([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
@@ -53,6 +54,7 @@ export const VenueDetailsPage: React.FC = () => {
 
     useEffect(() => {
         if (id) fetchSlots(id);
+        setSelectedSlots([]); // Clear any previous selection when sport or date changes
     }, [id, selectedDate, currentDate, selectedSport]);
 
     const loadVenueData = async (venueId: string) => {
@@ -105,8 +107,11 @@ export const VenueDetailsPage: React.FC = () => {
         navigate('/booking/summary', {
             state: {
                 venueId: id,
+                venueName: venue?.court_name, // Explicitly pass venue name (matches Arena theme)
+                venueImage: venue?.photos?.[0], // Explicitly pass main image
                 date: `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.toString().padStart(2, '0')}`,
                 selectedSlots: selectedSlots,
+                selectedSport: selectedSport,
                 totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0) * numPlayers,
                 numPlayers: numPlayers // Pass selected number of players
             }
@@ -139,7 +144,7 @@ export const VenueDetailsPage: React.FC = () => {
         <div className="min-h-screen bg-gray-50 font-inter text-gray-900 pb-20">
             <TopNav />
 
-            <div className="max-w-[90%] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-6">
+            <div className="max-w-[90%] 2xl:max-w-[1700px] mx-auto px-4 md:px-8 py-8 pt-10 md:pt-6">
                 {/* Back Button */}
                 <button
                     onClick={() => navigate('/venues')}
@@ -158,7 +163,7 @@ export const VenueDetailsPage: React.FC = () => {
 
                         {/* Title Section (Moved Above Grid) */}
                         <div className="mb-6">
-                            <h1 className="text-3xl lg:text-5xl font-black font-montserrat text-gray-900 mb-2 uppercase tracking-tight leading-none">
+                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-montserrat text-gray-900 mb-2 uppercase tracking-tight leading-none">
                                 {venue.court_name}
                             </h1>
                             <p className="text-gray-500 flex items-center gap-2 text-sm font-medium">
@@ -167,10 +172,10 @@ export const VenueDetailsPage: React.FC = () => {
                             </p>
                         </div>
 
-                        {/* Image Gallery Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-[400px] shadow-lg group relative">
-                            {/* Main Large Image */}
-                            <div className={`md:col-span-2 md:row-span-2 relative h-full cursor-pointer`} onClick={() => {/* Open Lightbox logic could go here */ }}>
+                        {/* Image Gallery */}
+                        <div className="flex flex-col md:flex-row gap-3 rounded-2xl overflow-hidden shadow-md md:h-[420px]">
+                            {/* Main large photo — left half */}
+                            <div className="relative w-full md:w-1/2 h-[250px] md:h-full flex-shrink-0 overflow-hidden">
                                 <img
                                     src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076'}
                                     alt={venue.court_name}
@@ -187,162 +192,212 @@ export const VenueDetailsPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Secondary Images */}
-                            <div className="hidden md:block md:col-span-1 md:row-span-1 relative h-full cursor-pointer">
-                                <img
-                                    src={venue.photos?.[1] || 'https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2076'}
-                                    alt="Venue view 2"
-                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                                />
-                            </div>
-                            <div className="hidden md:block md:col-span-1 md:row-span-1 relative h-full cursor-pointer">
-                                <img
-                                    src={venue.photos?.[2] || 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2076'}
-                                    alt="Venue view 3"
-                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                                />
-                            </div>
-
-                            {/* Third/Fourth with overlay */}
-                            <div className="hidden md:flex md:col-span-2 md:row-span-1 gap-4">
-                                <div className="w-1/2 relative h-full cursor-pointer overflow-hidden">
-                                    <img
-                                        src={venue.photos?.[3] || 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=2076'}
-                                        alt="Venue view 4"
-                                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 rounded-bl-none" // grid-gap handles rounded checks effectively
-                                    />
-                                </div>
-                                <div className="w-1/2 relative h-full cursor-pointer overflow-hidden">
-                                    <img
-                                        src={venue.photos?.[4] || 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=2076'}
-                                        alt="Venue view 5"
-                                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                                    />
-                                    {/* Show "See All" if more photos exist */}
-                                    {venue.photos && venue.photos.length > 5 && (
-                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center group/more hover:bg-black/70 transition-colors">
-                                            <span className="text-white font-bold uppercase tracking-widest border border-white/30 px-4 py-2 rounded-full hover:bg-white hover:text-black transition-all">
-                                                +{venue.photos.length - 5} Photos
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Mobile Title Overlay (Only visible on small screens where grid acts as single hero) */}
-
-                        </div>
-
-
-
-                        {/* Stats Cards */}
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center flex flex-col items-center justify-center hover:shadow-md transition-shadow">
-                                <span className="text-3xl mb-2">🏆</span>
-                                <div className="text-xl font-black text-gray-900">1,200+</div>
-                                <div className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-widest mt-1">Games Played</div>
-                            </div>
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center flex flex-col items-center justify-center hover:shadow-md transition-shadow">
-                                <span className="text-3xl mb-2">☀️</span>
-                                <div className="text-xl font-black text-gray-900">Outdoor</div>
-                                <div className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-widest mt-1">Venue Type</div>
-                            </div>
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center flex flex-col items-center justify-center hover:shadow-md transition-shadow">
-                                <span className="text-3xl mb-2">⚽</span>
-                                <div className="text-xl font-black text-gray-900">{venue.game_type || 'Sports'}</div>
-                                <div className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-widest mt-1">Sport</div>
-                            </div>
-                        </div>
-
-                        {/* About Venue */}
-                        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6 uppercase font-montserrat">
-                                About Venue
-                            </h2>
-                            <p className="text-sm text-gray-600 leading-relaxed mb-8">
-                                {venue.description || "Experience world-class sporting action at this premier venue. Our premium facilities are designed for competitive matches and casual play alike, featuring high-quality surfaces and professional lighting for late-night sessions."}
-                            </p>
-
-                            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Amenities</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {(venue.amenities && venue.amenities.length > 0 ? venue.amenities : [
-                                    'Free Parking', 'Secure Lockers', 'Modern Showers', 'High-Speed Wi-Fi'
-                                ]).map((item, i) => (
-                                    <div key={i} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                        <div className="w-8 h-8 rounded-lg bg-green-100 text-primary flex items-center justify-center text-sm">
-                                            <FaCheck />
-                                        </div>
-                                        <span className="font-medium text-gray-700 text-sm">{typeof item === 'string' ? item : item.name}</span>
+                            {/* Right side — 2x2 grid of secondary photos */}
+                            <div className="hidden md:grid flex-1 grid-cols-2 grid-rows-2 gap-3">
+                                {[1, 2, 3, 4].map((idx) => (
+                                    <div key={idx} className="relative overflow-hidden">
+                                        {idx === 4 && venue.photos && venue.photos.length > 5 ? (
+                                            <>
+                                                <img
+                                                    src={venue.photos[idx] || `https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=2076`}
+                                                    alt={`Venue view ${idx + 1}`}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                                    <span className="text-white font-bold uppercase tracking-widest border border-white/30 px-4 py-2 rounded-full text-sm">
+                                                        +{venue.photos.length - 5} Photos
+                                                    </span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <img
+                                                src={venue.photos?.[idx] || [
+                                                    'https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2076',
+                                                    'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2076',
+                                                    'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=2076',
+                                                    'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=2076',
+                                                ][idx - 1]}
+                                                alt={`Venue view ${idx + 1}`}
+                                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                                            />
+                                        )}
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Location & Terms */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+
+                        {/* Available Sports */}
+                        {venue.game_type && (
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900 mb-3">Available Sports</h2>
+                                <div className="flex flex-wrap gap-2">
+                                    {venue.game_type.split(',').map((sport, idx) => {
+                                        const s = sport.trim();
+                                        if (!s) return null;
+                                        const sportIcons: Record<string, string> = {
+                                            football: '⚽', cricket: '🏏', badminton: '🏸',
+                                            tennis: '🎾', basketball: '🏀', volleyball: '🏐',
+                                            hockey: '🏑', swimming: '🏊', boxing: '🥊',
+                                        };
+                                        const icon = sportIcons[s.toLowerCase()] || '🏅';
+                                        const isSelected = selectedSport === s;
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => setSelectedSport(s)}
+                                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all border ${isSelected
+                                                    ? 'bg-primary text-white border-primary shadow-md scale-105'
+                                                    : 'bg-white border-gray-200 text-gray-700 shadow-sm hover:border-primary/50'
+                                                    }`}
+                                            >
+                                                <span>{icon}</span> {s}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Single flat content panel — all sections flow together */}
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+
+                            {/* About */}
+                            <div className="p-8">
+                                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Ground Overview</h2>
+                                <p className="text-sm text-gray-600 leading-relaxed">
+                                    {venue.description || "Experience world-class sporting action at this premier venue. Our premium facilities are designed for competitive matches and casual play alike."}
+                                </p>
+                            </div>
+
+                            {/* Amenities */}
+                            {venue.amenities && venue.amenities.length > 0 && (
+                                <>
+                                    <div className="h-px bg-gray-100 mx-8" />
+                                    <div className="p-8">
+                                        <h2 className="text-base font-bold text-gray-900 mb-5">Available Amenities</h2>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                                            {venue.amenities.map((item, i) => {
+                                                const label = typeof item === 'string' ? item : item.name;
+                                                const n = label.toLowerCase();
+                                                const getIcon = (): string => {
+                                                    if (n.includes('park')) return '🅿️';
+                                                    if (n.includes('wifi') || n.includes('wi-fi') || n.includes('internet')) return '📶';
+                                                    if (n.includes('toilet') || n.includes('washroom') || n.includes('restroom') || n.includes('wc')) return '🚻';
+                                                    if (n.includes('shower')) return '🚿';
+                                                    if (n.includes('changing') || n.includes('locker') || n.includes('dressing')) return '🔒';
+                                                    if (n.includes('flood') || n.includes('light') || n.includes('lamp')) return '💡';
+                                                    if (n.includes('drink') || n.includes('water')) return '💧';
+                                                    if (n.includes('cafe') || n.includes('coffee') || n.includes('tea')) return '☕';
+                                                    if (n.includes('food') || n.includes('canteen') || n.includes('restaurant') || n.includes('meal')) return '🍽️';
+                                                    if (n.includes('first aid') || n.includes('medical') || n.includes('health')) return '🩺';
+                                                    if (n.includes('cctv') || n.includes('security') || n.includes('camera')) return '📷';
+                                                    if (n.includes('ac') || n.includes('air con') || n.includes('cooling')) return '❄️';
+                                                    if (n.includes('coach') || n.includes('train')) return '🏆';
+                                                    if (n.includes('equip') || n.includes('kit') || n.includes('gear')) return '🎽';
+                                                    if (n.includes('turf') || n.includes('grass') || n.includes('ground')) return '🌿';
+                                                    if (n.includes('score') || n.includes('board')) return '📊';
+                                                    if (n.includes('seat') || n.includes('stand') || n.includes('gallery')) return '🪑';
+                                                    if (n.includes('bath') || n.includes('wash')) return '🚿';
+                                                    if (n.includes('child') || n.includes('kid')) return '👶';
+                                                    if (n.includes('atm') || n.includes('cash')) return '💳';
+                                                    return '⚙️';
+                                                };
+                                                return (
+                                                    <div key={i} className="flex items-center gap-3">
+                                                        <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-lg flex-shrink-0 border border-gray-200">
+                                                            {getIcon()}
+                                                        </div>
+                                                        <span className="text-sm font-medium text-gray-800">{label}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
                             {/* Location */}
-                            <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 h-full">
-                                <h2 className="text-xl font-bold text-gray-900 mb-6 uppercase font-montserrat">Location</h2>
-                                {venue.google_map_url ? (
+                            <div className="h-px bg-gray-100 mx-8" />
+                            <div className="p-8">
+                                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Location</h2>
+                                <div className="relative group overflow-hidden rounded-xl border border-gray-200 aspect-video mb-3">
+                                    <iframe
+                                        width="100%" height="100%"
+                                        style={{ border: 0 }}
+                                        loading="lazy" allowFullScreen
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                        src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(venue.location + (venue.city_name ? ', ' + venue.city_name : ''))}`}
+                                        className="grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500"
+                                    ></iframe>
                                     <a
-                                        href={venue.google_map_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="block aspect-video bg-gray-100 rounded-2xl mb-4 relative overflow-hidden group cursor-pointer border border-gray-200"
+                                        href={(venue.google_map_url && (venue.google_map_url.startsWith('http://') || venue.google_map_url.startsWith('https://')))
+                                            ? venue.google_map_url
+                                            : (venue.google_map_url ? `https://${venue.google_map_url}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.location + (venue.city_name ? ', ' + venue.city_name : ''))}`)}
+                                        target="_blank" rel="noopener noreferrer"
+                                        className="absolute inset-0 bg-transparent cursor-pointer"
+                                        title="Open full map"
                                     >
-                                        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 group-hover:bg-gray-100 transition-colors">
-                                            <div className="text-center">
-                                                <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-2 text-primary text-xl">
-                                                    <FaMapMarkerAlt />
-                                                </div>
-                                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Open in Maps</span>
+                                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="bg-white shadow-lg p-2 rounded-lg flex items-center gap-1.5 text-[10px] font-bold uppercase text-primary border border-gray-100">
+                                                <FaMapMarkerAlt className="h-3.5 w-3.5" /> View Full Map
                                             </div>
                                         </div>
                                     </a>
-                                ) : (
-                                    <div className="aspect-video bg-gray-100 rounded-2xl mb-4 relative overflow-hidden group cursor-pointer border border-gray-200">
-                                        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 group-hover:bg-gray-100 transition-colors">
-                                            <div className="text-center">
-                                                <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-2 text-primary text-xl">
-                                                    <FaMapMarkerAlt />
-                                                </div>
-                                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Open in Maps</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                                <p className="text-sm text-gray-600 leading-relaxed">
-                                    {venue.location}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-2">Easily accessible with ample parking.</p>
+                                </div>
+                                {/* Full Address */}
+                                <div className="mt-3 flex items-start gap-2 text-sm text-gray-500">
+                                    <FaMapMarkerAlt className="text-primary mt-0.5 shrink-0" />
+                                    <span>
+                                        {[venue.location, venue.city_name].filter(Boolean).join(', ')}
+                                    </span>
+                                </div>
                             </div>
 
-                            {/* Terms */}
-                            <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 h-full">
-                                <h2 className="text-xl font-bold text-gray-900 mb-6 uppercase font-montserrat">Terms</h2>
-                                <ul className="space-y-4">
-                                    <li className="flex gap-3 text-sm text-gray-600 items-start">
-                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 shrink-0"></span>
-                                        Advance booking recommended
-                                    </li>
-                                    <li className="flex gap-3 text-sm text-gray-600 items-start">
-                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 shrink-0"></span>
-                                        Valid ID proof required at entry
-                                    </li>
-                                    <li className="flex gap-3 text-sm text-gray-600 items-start">
-                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 shrink-0"></span>
-                                        Cancellation: 24 hours notice
-                                    </li>
-                                </ul>
-                            </div>
+                            {/* Terms & Conditions */}
+                            {venue.terms_and_conditions && venue.terms_and_conditions.trim() && (
+                                <>
+                                    <div className="h-px bg-gray-100 mx-8" />
+                                    <div className="p-8">
+                                        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Terms & Conditions</h2>
+                                        <div className="space-y-3">
+                                            {venue.terms_and_conditions.split('\n').filter(t => t.trim()).map((term, i) => (
+                                                <div key={i} className="flex gap-3 text-sm text-gray-600 items-start">
+                                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 shrink-0"></span>
+                                                    <span>{term.replace(/^\*|-|\u2022/, '').trim() || term}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Rules & Cancellation */}
+                            {(venue as any).rules && (venue as any).rules.trim() && (
+                                <>
+                                    <div className="h-px bg-gray-100 mx-8" />
+                                    <div className="p-8">
+                                        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Rules & Cancellation</h2>
+                                        <div className="space-y-3">
+                                            {(venue as any).rules.split('\n').filter((r: string) => r.trim()).map((rule: string, i: number) => (
+                                                <div key={i} className="flex gap-3 text-sm text-gray-600 items-start">
+                                                    <span className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2 shrink-0"></span>
+                                                    <span>{rule.replace(/^\*|-|\u2022/, '').trim() || rule}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
                         </div>
 
                     </div>
 
-                    {/* RIGHT COLUMN - Sticky Booking Widget */}
-                    <div className="lg:col-span-2">
-                        <div className="sticky top-24">
-                            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 relative overflow-hidden">
+                    <div className="lg:col-span-2 mt-8 lg:mt-0">
+                        <div className="static lg:sticky lg:top-24">
+                            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-400"></div>
 
                                 <div className="text-center mb-8 pt-2">
@@ -365,8 +420,8 @@ export const VenueDetailsPage: React.FC = () => {
                                                     <button
                                                         key={`${s}-${idx}`}
                                                         onClick={() => setSelectedSport(s)}
-                                                        className={`px-4 py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all border ${isSelected
-                                                            ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 scale-105'
+                                                        className={`px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider transition-all border ${isSelected
+                                                            ? 'bg-primary text-white border-primary shadow-sm scale-102'
                                                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                             }`}
                                                     >
@@ -382,15 +437,39 @@ export const VenueDetailsPage: React.FC = () => {
                                 <div className="mb-8">
                                     <div className="flex justify-between items-center mb-4">
                                         <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Select Date</span>
-                                        <span className="text-xs font-semibold text-gray-900 uppercase tracking-wide">
-                                            {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                                        </span>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => {
+                                                    const prev = new Date(scrollerBaseDate);
+                                                    prev.setMonth(prev.getMonth() - 1);
+                                                    // Don't go before today's month
+                                                    if (prev < new Date(new Date().getFullYear(), new Date().getMonth(), 1)) return;
+                                                    setScrollerBaseDate(prev);
+                                                }}
+                                                className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-900 transition-colors"
+                                            >
+                                                <FaChevronLeft className="text-[10px]" />
+                                            </button>
+                                            <span className="text-xs font-semibold text-gray-900 uppercase tracking-wide min-w-[120px] text-center">
+                                                {scrollerBaseDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                            </span>
+                                            <button
+                                                onClick={() => {
+                                                    const next = new Date(scrollerBaseDate);
+                                                    next.setMonth(next.getMonth() + 1);
+                                                    setScrollerBaseDate(next);
+                                                }}
+                                                className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-900 transition-colors"
+                                            >
+                                                <FaChevronRight className="text-[10px]" />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="flex overflow-x-auto pb-4 gap-3 no-scrollbar -mx-2 px-2 scroll-smooth">
                                         {Array.from({ length: 30 }).map((_, i) => {
-                                            const date = new Date();
-                                            date.setDate(date.getDate() + i);
+                                            const date = new Date(scrollerBaseDate);
+                                            date.setDate(scrollerBaseDate.getDate() + i);
 
                                             const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }); // Mon
                                             const dayNumber = date.getDate(); // 12
@@ -409,15 +488,15 @@ export const VenueDetailsPage: React.FC = () => {
                                                         setSelectedDate(dayNumber);
                                                         setCurrentDate(date);
                                                     }}
-                                                    className={`flex flex-col items-center justify-center min-w-[60px] h-[70px] rounded-xl border-2 transition-all duration-200 flex-shrink-0 ${isSelected
-                                                        ? 'bg-primary border-primary text-white shadow-lg shadow-primary/40 scale-105 transform'
+                                                    className={`flex flex-col items-center justify-center min-w-[55px] h-[65px] rounded-lg border transition-all duration-200 flex-shrink-0 ${isSelected
+                                                        ? 'bg-primary border-primary text-white shadow-md scale-102 transform'
                                                         : 'bg-white border-gray-200 text-gray-600 hover:border-primary/30 hover:bg-primary/5'
                                                         }`}
                                                 >
                                                     <span className={`text-[10px] font-medium uppercase mb-1 ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
                                                         {dayName}
                                                     </span>
-                                                    <span className={`text-xl font-semibold ${isSelected ? 'text-white' : 'text-gray-800'}`}>
+                                                    <span className={`text-lg font-semibold ${isSelected ? 'text-white' : 'text-gray-800'}`}>
                                                         {dayNumber}
                                                     </span>
                                                 </button>
@@ -427,8 +506,8 @@ export const VenueDetailsPage: React.FC = () => {
                                 </div>
 
                                 {/* Slots */}
-                                <div className="mb-8 p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                    <span className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Available Slots</span>
+                                <div className="mb-8">
+                                    <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Available Slots</span>
                                     {loadingSlots ? (
                                         <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
                                     ) : availableSlots.length === 0 ? (
@@ -470,7 +549,7 @@ export const VenueDetailsPage: React.FC = () => {
                                 <div className="grid grid-cols-2 gap-4 mb-8">
                                     <div>
                                         <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Players</label>
-                                        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 h-10">
+                                        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-md px-3 h-9">
                                             <button onClick={() => setNumPlayers(Math.max(1, numPlayers - 1))} className="text-gray-400 hover:text-primary transition-colors text-lg font-semibold">-</button>
                                             <span className="text-sm font-bold text-gray-900">{numPlayers}</span>
                                             <button onClick={() => setNumPlayers(numPlayers + 1)} className="text-gray-400 hover:text-primary transition-colors text-lg font-semibold">+</button>
@@ -481,7 +560,7 @@ export const VenueDetailsPage: React.FC = () => {
                                         <input
                                             type="text"
                                             placeholder="Optional"
-                                            className="w-full h-10 bg-white border border-gray-200 rounded-lg px-3 text-xs font-medium text-gray-900 outline-none focus:border-primary/50 placeholder:text-gray-300"
+                                            className="w-full h-9 bg-white border border-gray-200 rounded-md px-3 text-xs font-medium text-gray-900 outline-none focus:border-primary/40 placeholder:text-gray-300"
                                             value={teamName}
                                             onChange={(e) => setTeamName(e.target.value)}
                                         />
@@ -489,7 +568,7 @@ export const VenueDetailsPage: React.FC = () => {
                                 </div>
 
                                 {/* Booking Summary */}
-                                <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-5 mb-6">
+                                <div className="bg-white border border-gray-100 rounded-lg p-5 mb-6">
                                     <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Booking Summary</h3>
 
                                     {/* Selected Details */}

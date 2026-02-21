@@ -57,18 +57,18 @@ def create_booking(
         print(f"[BOOKINGS API] ✅ BOOKING CREATED SUCCESSFULLY: ID={result.id}, Total=₹{result.total_amount}")
         return result
 
+    except HTTPException as he:
+        # Re-raise HTTPExceptions as-is to preserve status code and detail
+        raise he
     except Exception as e:
         print("===========================================")
         print(f"[BOOKINGS API] ❌ CRITICAL ERROR CREATING BOOKING")
+        print(f"[BOOKINGS API] Error Type: {type(e).__name__}")
         print(f"[BOOKINGS API] Error: {e}")
-        print(f"[BOOKINGS API] Booking details: {booking.dict()}")
-        print(f"[BOOKINGS API] Current user: {current_user.id}")
         import traceback
         traceback.print_exc()
         print("===========================================")
 
-        # Return specific error response instead of generic 500
-        from fastapi import HTTPException
         raise HTTPException(
             status_code=400,
             detail=f"Booking creation failed: {str(e)}"

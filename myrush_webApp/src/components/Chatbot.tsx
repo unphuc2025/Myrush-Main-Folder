@@ -8,6 +8,7 @@ import { venuesApi } from '../api/venues';
 import { bookingsApi } from '../api/bookings';
 import { useNavigate } from 'react-router-dom';
 import { getGeminiResponse } from '../services/GeminiService';
+import { featureFlags } from '../config/featureFlags';
 
 export const Chatbot: React.FC = () => {
     const navigate = useNavigate();
@@ -309,6 +310,11 @@ ${venue.overview || ''}
             setIsOpen(false);
         }
     };
+
+    // If chatbot is disabled, don't render anything
+    if (!featureFlags.enableChatbot) {
+        return null;
+    }
 
     return (
         <>

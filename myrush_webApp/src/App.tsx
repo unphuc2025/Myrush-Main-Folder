@@ -45,9 +45,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const AppContent = () => {
   const location = useLocation();
 
-  // Hide footer only on specific pages like Setup Profile, Login, OTP
+  // Hide footer only on specific pages like Setup Profile, Login, OTP, Profile
   const shouldHideFooter = location.pathname === '/login' ||
     location.pathname === '/verify-otp' ||
+    location.pathname === '/profile' ||
     location.pathname === '/setup-profile';
 
   return (
