@@ -243,7 +243,7 @@ export const Arena: React.FC = () => {
                         {loading ? (
                             // Loading state skeleton
                             [1, 2, 3].map((i) => (
-                                <div key={i} className="bg-white rounded-3xl h-96 animate-pulse" />
+                                <div key={i} className="bg-white h-96 animate-pulse" />
                             ))
                         ) : venues.length === 0 ? (
                             <div className="col-span-full text-center py-20">
@@ -254,7 +254,7 @@ export const Arena: React.FC = () => {
 
                                 <motion.div
                                     key={venue.id}
-                                    className="bg-white rounded-3xl overflow-hidden shadow-premium hover:shadow-premium-hover transition-all duration-500 group cursor-pointer"
+                                    className="bg-white overflow-hidden shadow-premium hover:shadow-premium-hover transition-all duration-500 group cursor-pointer"
                                     initial={{ opacity: 0, y: 30 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}

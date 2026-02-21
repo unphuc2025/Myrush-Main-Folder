@@ -193,7 +193,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl active:shadow-sm active:scale-[0.98] transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100 hover:border-primary/20 active:border-primary/50"
+        className="group bg-white overflow-hidden shadow-sm hover:shadow-2xl active:shadow-sm active:scale-[0.98] transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100 hover:border-primary/20 active:border-primary/50"
         onClick={onClick}
     >
         <div className="relative h-56 overflow-hidden">
@@ -440,11 +440,11 @@ export const Venues: React.FC = () => {
                     {loading ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                             {[1, 2, 3, 4, 5, 6].map(n => (
-                                <div key={n} className="bg-white h-[400px] rounded-3xl animate-pulse shadow-sm border border-gray-100" />
+                                <div key={n} className="bg-white h-[400px] animate-pulse shadow-sm border border-gray-100" />
                             ))}
                         </div>
                     ) : filteredVenues.length === 0 ? (
-                        <div className="text-center py-24 bg-white/50 backdrop-blur-sm rounded-3xl border border-dashed border-gray-200">
+                        <div className="text-center py-24 bg-white/50 backdrop-blur-sm border border-dashed border-gray-200">
                             <div className="text-6xl mb-6 opacity-20">🏟️</div>
                             <h3 className="text-2xl font-black text-gray-900 mb-2 uppercase font-montserrat">No venues found</h3>
                             <p className="text-gray-500 font-medium">Try adjusting your filters or search for something else.</p>

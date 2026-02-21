@@ -173,7 +173,7 @@ export const VenueDetailsPage: React.FC = () => {
                         </div>
 
                         {/* Image Gallery */}
-                        <div className="flex flex-col md:flex-row gap-3 rounded-2xl overflow-hidden shadow-md md:h-[420px]">
+                        <div className="flex flex-col md:flex-row gap-3 overflow-hidden shadow-md md:h-[420px]">
                             {/* Main large photo — left half */}
                             <div className="relative w-full md:w-1/2 h-[250px] md:h-full flex-shrink-0 overflow-hidden">
                                 <img
@@ -204,7 +204,7 @@ export const VenueDetailsPage: React.FC = () => {
                                                     className="w-full h-full object-cover"
                                                 />
                                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                                    <span className="text-white font-bold uppercase tracking-widest border border-white/30 px-4 py-2 rounded-full text-sm">
+                                                    <span className="text-white font-bold uppercase tracking-widest border border-white/30 px-4 py-2 text-sm">
                                                         +{venue.photos.length - 5} Photos
                                                     </span>
                                                 </div>

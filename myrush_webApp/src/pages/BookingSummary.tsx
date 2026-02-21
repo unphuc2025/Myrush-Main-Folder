@@ -222,7 +222,7 @@ export const BookingSummary: React.FC = () => {
                     {/* LEFT COLUMN: Verification Details */}
                     <div className="lg:col-span-2 space-y-8">
                         {/* Main Spotlight Card */}
-                        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+                        <div className="bg-white overflow-hidden shadow-sm border border-gray-100">
                             <div className="flex flex-col md:grid md:grid-cols-5 h-full">
                                 <div className="relative aspect-[16/9] md:aspect-auto bg-gray-100 md:col-span-2">
                                     <img
