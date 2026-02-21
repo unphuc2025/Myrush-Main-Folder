@@ -1,8 +1,11 @@
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Text, TextInput } from 'react-native';
+import { Text, TextInput, StatusBar as RNStatusBar, Platform } from 'react-native';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import * as SplashScreen from 'expo-splash-screen';
+import { NetworkStatus } from './src/components/common/NetworkStatus';
+
 
 import {
   useFonts,
@@ -13,6 +16,9 @@ import {
   Lexend_700Bold,
   Lexend_900Black
 } from '@expo-google-fonts/lexend';
+
+// Keep the splash screen visible while we fetch fonts + resources
+SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -25,50 +31,54 @@ export default function App() {
   });
 
   useEffect(() => {
-    // ... notifications (commented out) ...
     console.log('📱 App started in Expo Go mode (Firebase disabled)');
+    // On Android, imperatively set the status bar so it always shows
+    // light (white) icons regardless of the system's light/dark theme
+    if (Platform.OS === 'android') {
+      RNStatusBar.setBarStyle('light-content', true);
+      RNStatusBar.setBackgroundColor('transparent', true);
+      RNStatusBar.setTranslucent(true);
+    }
   }, []);
 
   // Set default font family globally
   const setGlobalStyles = () => {
-    const customTextProps = {
-      style: {
-        fontFamily: 'Lexend_400Regular',
-      },
-      allowFontScaling: false, // Disable system font scaling
-    };
+    // @ts-ignore
+    Text.defaultProps = Text.defaultProps || {};
+    // @ts-ignore
+    Text.defaultProps.style = { fontFamily: 'Lexend_400Regular' };
+    // @ts-ignore
+    Text.defaultProps.allowFontScaling = false;
 
     // @ts-ignore
-    Text.defaultProps = {
-      // @ts-ignore
-      ...Text.defaultProps,
-      ...customTextProps,
-      style: [customTextProps.style, (Text as any).defaultProps?.style],
-    };
-
+    TextInput.defaultProps = TextInput.defaultProps || {};
     // @ts-ignore
-    TextInput.defaultProps = {
-      // @ts-ignore
-      ...TextInput.defaultProps,
-      ...customTextProps,
-      style: [customTextProps.style, (TextInput as any).defaultProps?.style],
-    };
+    TextInput.defaultProps.style = { fontFamily: 'Lexend_400Regular' };
+    // @ts-ignore
+    TextInput.defaultProps.allowFontScaling = false;
   };
 
   useEffect(() => {
     if (fontsLoaded) {
       setGlobalStyles();
+      // Hide splash screen now that app is ready (was held by preventAutoHideAsync)
+      SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
-    return null; // Or a loading spinner
+    return null;
   }
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="auto" />
+      {/* backgroundColor="transparent" + translucent: the status bar overlays the app content.
+          Since the app has a dark background, white icons (style="light") are always visible
+          even when the device is in system light mode. Without this, Android puts a white
+          background behind the status bar in light mode, making white icons invisible. */}
+      <StatusBar style="light" backgroundColor="transparent" translucent />
       <AppNavigator />
+      <NetworkStatus />
     </SafeAreaProvider>
   );
 }

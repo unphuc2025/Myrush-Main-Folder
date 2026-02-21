@@ -29,6 +29,8 @@ import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { profileApi, City, GameType } from '../api/profile';
+import { otpApi } from '../api/otp';
+import { apiClient } from '../api/apiClient';
 
 const { width } = Dimensions.get('window');
 
@@ -254,13 +256,7 @@ const PlayerProfileScreen = () => {
                 type,
             } as any);
 
-            const { profileApi } = require('../api/profile');
-            // We need to add uploadAvatar to profileApi or call axios directly. 
-            // Let's assume we add it or call here. 
-            // Actually, best to add to profileApi. But for speed, I'll inline the fetch/axios call here if profileApi is complex.
-            // Wait, I should add it to profileApi.
-            // Let's first define the function here to keep it simple if possible, or use the existing api client.
-            // I'll call a new method `uploadAvatar` on `profileApi` which I will assume exists (I need to add it).
+            // profileApi is statically imported — dynamic require() fails under Hermes (APK)
             const response = await profileApi.uploadAvatar(formData);
 
             if (response.success) {
@@ -343,7 +339,7 @@ const PlayerProfileScreen = () => {
             if (tempOTP) {
                 // New user - call verify-otp WITH profile data to create user
                 console.log('[PlayerProfile] New user - calling verify-otp with profile data');
-                const { otpApi } = require('../api/otp');
+                // otpApi is statically imported — dynamic require() fails under Hermes (APK)
 
                 const profileData = {
                     full_name: fullName.trim(),
@@ -372,34 +368,29 @@ const PlayerProfileScreen = () => {
                 // Login with the received token
                 if (response.access_token) {
                     // Manually set token first to allow avatar upload
-                    const { apiClient } = require('../api/apiClient');
+                    // apiClient is statically imported — dynamic require() fails under Hermes (APK)
                     await apiClient.setToken(response.access_token);
 
                     // NOW if we have a pending avatar, upload it BEFORE setting auth success (which triggers nav)
                     if (pendingAvatarAsset) {
                         try {
                             console.log('[PlayerProfile] Uploading pending avatar...');
-                            // We need to pass a flag or handle this such that we don't double-refresh checkAuth
-                            // But uploadImage calls checkAuth.
-                            // However, since we haven't called setAuthSuccess, checkAuth might not find the user yet?
-                            // Actually checkAuth relies on the token. We just set the token.
-                            // So checkAuth will work and fetch the profile (with the new avatar).
                             await uploadImage(pendingAvatarAsset);
                         } catch (e) {
                             console.error("Failed to upload pending avatar", e);
                         }
                     }
 
-                    // FINALLY, update the store to trigger navigation
-                    // setAuthSuccess will also fetch the profile which is redundant but safe.
+                    // FINALLY, update the store to trigger navigation.
+                    // NOTE: Do NOT call Alert.alert() after this line — setAuthSuccess triggers
+                    // isAuthenticated=true which causes AppNavigator to unmount this screen immediately.
+                    // Showing an Alert on an unmounted screen causes the app to crash/close.
+                    // The user lands on HomeScreen directly — no alert needed.
                     const { setAuthSuccess } = useAuthStore.getState();
                     await setAuthSuccess(response.access_token);
                 } else {
                     throw new Error('No access token received');
                 }
-
-                Alert.alert('Success', 'Welcome to MyRush!');
-                // Navigation will be handled by AppNavigator based on auth state
             } else {
                 // Existing user - update profile
                 const payload = {
@@ -429,6 +420,7 @@ const PlayerProfileScreen = () => {
                 (navigation as any).navigate('MainTabs');
             }
         } catch (error: any) {
+
             Alert.alert('Error', error?.message || 'Something went wrong while saving your profile.');
         } finally {
             setIsSaving(false);
