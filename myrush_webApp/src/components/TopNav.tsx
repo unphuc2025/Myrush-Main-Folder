@@ -51,7 +51,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
 
                         // Feature Flagged Items
                         featureFlags.enableGames && { label: 'Games', path: '/open-play' },
-                        { label: 'Academy', path: '/academy' },
+                        { label: 'My Bookings', path: '/bookings' },
                         featureFlags.enableCommunity && { label: 'Community', path: '/community' },
                         featureFlags.enableStore && { label: 'Store', path: '/store' }
                     ].filter((item): item is { label: string; path: string } => Boolean(item)).map((item) => (

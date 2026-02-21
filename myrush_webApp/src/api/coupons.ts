@@ -5,7 +5,9 @@ export interface AvailableCoupon {
     discount_type: string;
     discount_value: number;
     min_order_value?: number;
+    max_discount?: number;
     description?: string;
+    terms_condition?: string;
 }
 
 export interface CouponValidationRequest {

@@ -2,23 +2,25 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { fetchKnowledgeBase, buildChatbotContext, searchVenues, getVenueDetails } from './ChatbotContext';
 
 // API Key provided by the user
-const API_KEY = "AIzaSyA21AWLr2IJRxsUnITnTIxSvP-jqYzME3o";
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 // Build dynamic system instruction with real platform data
 const buildSystemInstruction = async () => {
-    const knowledge = await fetchKnowledgeBase();
+  const knowledge = await fetchKnowledgeBase();
 
-    const cities = knowledge.cities.map(c => c.name).join(', ');
-    const sports = knowledge.game_types.map(s => s.name).join(', ');
-    const amenities = knowledge.amenities.map(a => a.name).join(', ');
+  const cities = knowledge.cities.map(c => c.name).join(', ');
+  const sports = knowledge.game_types.map(s => s.name).join(', ');
+  const amenities = knowledge.amenities.map(a => a.name).join(', ');
 
-    // Format FAQs for context
-    const faqContext = knowledge.faqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
+  // Format FAQs for context
+  const faqContext = knowledge.faqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
 
-    return `
-You are MyRush AI, an expert concierge for India's premium sports booking platform.
+  return `
+You are a customer support executive for MyRush, India's premium sports booking platform.
+You are a REAL human team member. You are NOT an AI, bot, or virtual assistant.
+NEVER mention "AI", "language model", "training data", or "automation".
 
 PLATFORM KNOWLEDGE:
 - Active Cities: ${cities}
@@ -29,29 +31,27 @@ PLATFORM KNOWLEDGE:
 COMMON POLICIES & FAQs:
 ${faqContext}
 
-YOUR CAPABILITIES:
-1. Answer ANY question about MyRush (venues, pricing, amenities, rules,  locations, policies)
-2. Recommend venues based on user preferences
-3. Guide booking process conversationally
-4. Explain cancellation policies, payment methods, membership benefits
-5. Help with account and technical issues
-6. Provide specific venue details including pricing, rules, and amenities
+YOUR STYLE:
+- Natural, friendly, and confident.
+- Use short, clear sentences.
+- Chat like a human on WhatsApp.
+- Do not be robotic or overly formal.
+- Avoid bullet points unless listing venues.
+- If asked who you are: "I'm from the MyRush support team."
+- If asked if you are a bot: "I'm a real person here to help you get the best turf."
 
-CONVERSATIONAL STYLE:
-- Be friendly, helpful, and concise
-- Use emojis sparingly for emphasis (🏸, ⚽, 🏏, 🅿️, etc.)
-- Ask clarifying questions when needed
-- Provide specific information (venue names, addresses, prices)
-- Use bullet points for lists
-- Be proactive in offering relevant suggestions
+YOUR JOB:
+1. Help users find and book courts ("Let me check available badminton courts in Indiranagar...").
+2. Answer questions about pricing, rules, and amenities.
+3. Solve issues with bookings or payments.
+4. If info is missing: "Let me quickly check that for you." (Don't guess).
 
 IMPORTANT POLICIES:
-- Cancellation: Free cancellation 24+ hours before booking, 50% refund 12-24 hours, no refund <12 hours
-- Payment: All major cards, UPI, netbanking accepted
-- Booking Fee: ₹50 per booking
-- Rush Hours: Peak pricing typically 6 PM - 10 PM on weekdays, all day weekends
+- Cancellation: Free cancellation 24+ hours before. 50% refund 12-24 hours. No refund <12 hours.
+- Payment: Card, UPI, Netbanking.
+- Booking Fee: ₹50.
 
-OUTPUT SCHEMA (strict JSON, no markdown):
+OUTPUT SCHEMA (strict JSON):
 {
   "intent": "book_court" | "search_venues" | "ask_question" | "venue_details" | "view_bookings" | "support" | "general_chat",
   "action": {
@@ -66,149 +66,135 @@ OUTPUT SCHEMA (strict JSON, no markdown):
       "venueName"?: string
     }
   },
-  "response": string,
-  "suggestions": string[] (max 4 quick action buttons)
+  "response": string, // Natural human response
+  "suggestions": [] // ALWAYS EMPTY.
 }
 
 EXAMPLE INTERACTIONS:
 
-User: "What sports can I play at MyRush?"
-Output: {
-  "intent": "ask_question",
-  "action": { "type": "respond" },
-  "response": "We offer ${sports}! Each sport has dedicated venues with professional facilities. Which sport interests you?",
-  "suggestions": ["Book Badminton", "Book Football", "View All Venues"]
-}
-
-User: "Find cheapest football courts in Hyderabad with parking under ₹1000"
+User: "I want to play refined badminton"
 Output: {
   "intent": "search_venues",
-  "action": {
-    "type": "search",
-    "parameters": { "city": "Hyderabad", "sport": "Football", "amenities": ["parking"], "priceMax": 1000 }
-  },
-  "response": "Searching for budget-friendly football venues in Hyderabad with parking...",
+  "action": { "type": "search", "parameters": { "sport": "Badminton" } },
+  "response": "Nice choice! Badminton is super popular. Which city are you looking for?",
   "suggestions": []
 }
 
-User: "Tell me about [venue name]"
+User: "Show me football turfs in Hyderabad"
 Output: {
-  "intent": "venue_details",
-  "action": {
-    "type": "get_venue_details",
-    "parameters": { "venueName": "[venue name]" }
-  },
-  "response": "Let me get the details for you...",
+  "intent": "search_venues",
+  "action": { "type": "search", "parameters": { "city": "Hyderabad", "sport": "Football" } },
+  "response": "Got it. Here are some of the best football turfs in Hyderabad.",
   "suggestions": []
 }
 
-User: "What's your refund policy?"
+User: "What happens if it rains?"
 Output: {
   "intent": "ask_question",
   "action": { "type": "respond" },
-  "response": "MyRush Refund Policy:\\n\\n✅ Full Refund: Cancel 24+ hours before\\n⚠️ 50% Refund: Cancel 12-24 hours before\\n❌ No Refund: Cancel <12 hours or no-show\\n\\nYou can also reschedule for free up to 48 hours before your slot!",
-  "suggestions": ["View My Bookings", "Book a Court", "Contact Support"]
+  "response": "If it rains during your outdoor game, don't worry. We usually offer a credit refund or let you reschedule. Just have a word with the venue manager.",
+  "suggestions": []
 }
 
-User: "Hi" or "Hello"
+User: "Hi"
 Output: {
   "intent": "general_chat",
   "action": { "type": "respond" },
-  "response": "Hello! 👋 Welcome to MyRush. I can help you:\\n• Book sports courts\\n• Find venues\\n• Answer questions\\n• Manage bookings\\n\\nWhat would you like to do?",
-  "suggestions": ["Book a Court", "Search Venues", "View Bookings"]
+  "response": "Hey! I'm from the MyRush support team. How can I help you regarding your booking or game today?",
+  "suggestions": []
 }
 `;
 };
 
 // Enhanced Gemini response with context enrichment
 export const getGeminiResponse = async (userMessage: string, conversationHistory: any[] = []) => {
-    try {
-        // Build context based on user message
-        const context = await buildChatbotContext(userMessage);
+  try {
+    // Build context based on user message
+    const context = await buildChatbotContext(userMessage);
 
-        // Build dynamic system instruction
-        const systemInstruction = await buildSystemInstruction();
+    // Build dynamic system instruction
+    const systemInstruction = await buildSystemInstruction();
 
-        // Create model with enhanced configuration
-        const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-pro",
-            systemInstruction,
-            generationConfig: {
-                responseMimeType: "application/json",
-                temperature: 0.7,
-                topP: 0.9,
-                topK: 40
-            }
-        });
+    // Create model with enhanced configuration
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+      systemInstruction,
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.7,
+        topP: 0.9,
+        topK: 40
+      }
+    });
 
-        // Build conversation context (last 6 messages for memory)
-        let conversationContext = '';
-        if (conversationHistory.length > 0) {
-            const recentMessages = conversationHistory.slice(-6);
-            conversationContext = '\\n\\nRECENT CONVERSATION:\\n' +
-                recentMessages.map(msg =>
-                    `${msg.sender === 'user' ? 'User' : 'Bot'}: ${msg.text}`
-                ).join('\\n');
-        }
-
-        // Enrich prompt with context data if available
-        let enrichedPrompt = userMessage;
-
-        if (context.venues && context.venues.length > 0) {
-            enrichedPrompt += `\\n\\nAVAILABLE VENUES (for reference):\\n` +
-                context.venues.slice(0, 5).map((v: any) =>
-                    `- ${v.name} (${v.city}): ${v.game_types.join(', ')}, ₹${v.price_range?.min || 'N/A'}-${v.price_range?.max || 'N/A'}/hour`
-                ).join('\\n');
-        }
-
-        enrichedPrompt += conversationContext;
-
-        const result = await model.generateContent(enrichedPrompt);
-        const responseText = result.response.text();
-
-        try {
-            const parsed = JSON.parse(responseText);
-
-            // Handle search action - fetch real venues
-            if (parsed.action?.type === 'search' && parsed.action.parameters) {
-                const searchResult = await searchVenues(parsed.action.parameters);
-                if (searchResult.success) {
-                    parsed.searchResults = searchResult.data;
-                }
-            }
-
-            // Handle venue details action
-            if (parsed.action?.type === 'get_venue_details' && parsed.action.parameters?.venueName) {
-                // Try to find venue by name from context
-                const venue = context.venues?.find((v: any) =>
-                    v.name.toLowerCase().includes(parsed.action.parameters.venueName.toLowerCase())
-                );
-                if (venue) {
-                    const detailsResult = await getVenueDetails(venue.id);
-                    if (detailsResult.success) {
-                        parsed.venueDetails = detailsResult.data;
-                    }
-                }
-            }
-
-            return parsed;
-        } catch (e) {
-            console.error("Failed to parse Gemini response:", e, responseText);
-            // Fallback object
-            return {
-                intent: "general_chat",
-                action: { type: "respond" },
-                response: responseText || "I'm sorry, I didn't quite understand that. Could you rephrase?",
-                suggestions: ["Book a Court", "Search Venues", "Ask a Question"]
-            };
-        }
-    } catch (error) {
-        console.error("Gemini API Error:", error);
-        return {
-            intent: "error",
-            action: { type: "respond" },
-            response: "I'm having trouble connecting right now. Please try again in a moment.",
-            suggestions: ["Try Again", "Contact Support"]
-        };
+    // Build conversation context (last 6 messages for memory)
+    let conversationContext = '';
+    if (conversationHistory.length > 0) {
+      const recentMessages = conversationHistory.slice(-6);
+      conversationContext = '\\n\\nRECENT CONVERSATION:\\n' +
+        recentMessages.map(msg =>
+          `${msg.sender === 'user' ? 'User' : 'Bot'}: ${msg.text}`
+        ).join('\\n');
     }
+
+    // Enrich prompt with context data if available
+    let enrichedPrompt = userMessage;
+
+    if (context.venues && context.venues.length > 0) {
+      enrichedPrompt += `\\n\\nAVAILABLE VENUES (for reference):\\n` +
+        context.venues.slice(0, 5).map((v: any) =>
+          `- ${v.name} (${v.city}): ${v.game_types.join(', ')}, ₹${v.price_range?.min || 'N/A'}-${v.price_range?.max || 'N/A'}/hour`
+        ).join('\\n');
+    }
+
+    enrichedPrompt += conversationContext;
+
+    const result = await model.generateContent(enrichedPrompt);
+    const responseText = result.response.text();
+
+    try {
+      const parsed = JSON.parse(responseText);
+
+      // Handle search action - fetch real venues
+      if (parsed.action?.type === 'search' && parsed.action.parameters) {
+        const searchResult = await searchVenues(parsed.action.parameters);
+        if (searchResult.success) {
+          parsed.searchResults = searchResult.data;
+        }
+      }
+
+      // Handle venue details action
+      if (parsed.action?.type === 'get_venue_details' && parsed.action.parameters?.venueName) {
+        // Try to find venue by name from context
+        const venue = context.venues?.find((v: any) =>
+          v.name.toLowerCase().includes(parsed.action.parameters.venueName.toLowerCase())
+        );
+        if (venue) {
+          const detailsResult = await getVenueDetails(venue.id);
+          if (detailsResult.success) {
+            parsed.venueDetails = detailsResult.data;
+          }
+        }
+      }
+
+      return parsed;
+    } catch (e) {
+      console.error("Failed to parse Gemini response:", e, responseText);
+      // Fallback object
+      return {
+        intent: "general_chat",
+        action: { type: "respond" },
+        response: responseText || "I didn't quite catch that. Could you tell me again?",
+        suggestions: []
+      };
+    }
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    return {
+      intent: "error",
+      action: { type: "respond" },
+      response: "Our system is running a bit slow. Give me a moment to check that.",
+      suggestions: []
+    };
+  }
 };

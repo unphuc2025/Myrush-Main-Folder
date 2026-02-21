@@ -29,8 +29,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  padding-top: 5rem;
-  /* Account for fixed header */
+  padding-top: 4rem;
+  /* Account for fixed header (h-16 = 64px) */
   overscroll-behavior-y: none;
   height: 100%;
 }
@@ -38,8 +38,8 @@ body {
 /* Adjust padding for mobile header */
 @media (max-width: 767px) {
   body {
-    padding-top: 4rem;
-    /* 64px for mobile header */
+    padding-top: 3.5rem;
+    /* 56px for mobile header (h-14) */
   }
 }
 

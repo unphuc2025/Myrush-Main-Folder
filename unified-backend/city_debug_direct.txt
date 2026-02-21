@@ -1,0 +1,21 @@
+--- CITIES ---
+ID: 0d15d68a-bbf2-4ef5-b478-9bb628a6a167, Name: Delhi, Code: DL, Status: Active
+ID: 61cd52ef-1290-4899-ac73-2376a0a77bb3, Name: Chennai, Code: CHN, Status: Inactive
+ID: a691792c-9345-4e07-bd2f-03729cb09707, Name: PUNE, Code: PUNE, Status: Inactive
+ID: 48932793-13c7-4f70-9ae9-118371c1600d, Name: Kakinada, Code: KKD, Status: Inactive
+ID: 7332625f-bf8f-465f-b64d-1c3bced65260, Name: Bangalore, Code: BGR, Status: Active
+ID: 1d0e64bb-e916-4932-bcc2-63c68b50896c, Name: Hyderabad, Code: HYD, Status: Active
+
+--- BRANCHES ---
+(Delhi) Branch: venu, Status: Active
+(Bangalore) Branch: Rush Arena X KheloMore GT Mall, Status: Inactive
+(Bangalore) Branch: Rush Arena x Hotfut - South United GVH, Status: Inactive
+(Bangalore) Branch: Rush Arena Cooke Town -2, Status: Inactive
+(Bangalore) Branch: Bangalore sport complex, Status: Inactive
+(Bangalore) Branch: Rush Arena - Rajajinagar , Status: Inactive
+(Hyderabad) Branch: Rush Arena GT World Mall, Status: Inactive
+(Bangalore) Branch: Rush Arena Cooke Town, Status: Inactive
+(Kakinada) Branch: fgfgfgfgf, Status: Inactive
+(Kakinada) Branch: Sarpavaram Sports Complex, Status: Inactive
+(Bangalore) Branch: Rush Arena-Rajajinagar, Status: Inactive
+(Bangalore) Branch: Rush x Ace Arena, Status: Active

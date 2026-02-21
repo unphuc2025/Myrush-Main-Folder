@@ -150,13 +150,30 @@ def verify_otp(payload: schemas.VerifyOTPRequest):
 
             print(f"[VERIFY-OTP] User found: {user is not None}, is_new_user: {is_new_user}")
 
-            # If new user and no profile data, ask frontend to show profile form
+            # If new user and no profile data, create the user record first,
+            # generate a token, then ask the frontend to show the profile form.
             has_profile_data = payload.full_name is not None
             if is_new_user and not has_profile_data:
-                print("[VERIFY-OTP] New user needs to complete profile")
+                print("[VERIFY-OTP] New user needs to complete profile — creating user record first")
+                try:
+                    user = crud.create_user_with_phone(db, payload.phone_number, None)
+                    print(f"[VERIFY-OTP] New user created: {user.id}")
+                except Exception as db_err:
+                    print(f"[VERIFY-OTP] Error creating new user: {db_err}")
+                    db.close()
+                    raise HTTPException(status_code=500, detail=f"Could not create user: {str(db_err)}")
+
+                raw_sub = getattr(user, "email", None) or getattr(user, "id", None)
+                sub_value = str(raw_sub)
+                access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+                access_token = create_access_token(
+                    data={"sub": sub_value}, expires_delta=access_token_expires
+                )
                 db.close()
                 return {
                     "needs_profile": True,
+                    "access_token": access_token,
+                    "token_type": "bearer",
                     "phone_number": payload.phone_number,
                     "message": "Please complete your profile",
                 }

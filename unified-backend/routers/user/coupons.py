@@ -11,7 +11,9 @@ class AvailableCouponResponse(BaseModel):
     discount_type: str
     discount_value: float
     min_order_value: Optional[float] = None
+    max_discount: Optional[float] = None
     description: Optional[str] = None
+    terms_condition: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -98,7 +100,7 @@ def get_available_coupons(db: Session = Depends(get_db)):
     try:
         # Query to get all active coupons within valid date range
         query = text("""
-            SELECT code, discount_type, discount_value, min_order_value, description
+            SELECT code, discount_type, discount_value, min_order_value, max_discount, description, terms_condition, is_active, start_date, end_date
             FROM admin_coupons
             WHERE is_active = true
                 AND start_date <= NOW()
@@ -107,14 +109,19 @@ def get_available_coupons(db: Session = Depends(get_db)):
         """)
 
         results = db.execute(query).fetchall()
+        
+        # Log for debugging why some might not be show up
+        print(f"[COUPONS] Fetched {len(results)} active coupons from DB")
 
         return [
             AvailableCouponResponse(
                 code=row[0],
                 discount_type=row[1],
                 discount_value=float(row[2]),
-                min_order_value=float(row[3]) if row[3] is not None else None,
-                description=row[4] or ""
+                min_order_value=float(row[3]) if row[3] is not None else 0,
+                max_discount=float(row[4]) if row[4] is not None else None,
+                description=row[5] or "",
+                terms_condition=row[6] or ""
             ) for row in results
         ]
 

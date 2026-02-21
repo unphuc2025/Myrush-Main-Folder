@@ -272,13 +272,13 @@ export const Profile: React.FC = () => {
         <div className="min-h-screen bg-gray-50">
             <TopNav />
 
-            <div className="flex pt-20">
-                {/* Left Sidebar - Fixed Options */}
+            <div className="flex flex-col lg:flex-row pt-16 lg:pt-20">
+                {/* Left Sidebar - Responsive Options */}
                 <motion.div
                     initial={{ x: -100, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.6 }}
-                    className="fixed left-0 top-20 w-80 bg-white border-r border-gray-200 h-[calc(100vh-5rem)] p-6 overflow-y-auto z-10"
+                    className="relative lg:fixed lg:left-0 lg:top-20 w-full lg:w-80 bg-white border-b lg:border-r border-gray-200 h-auto lg:h-[calc(100vh-5rem)] p-4 lg:p-6 lg:overflow-y-auto z-10"
                 >
                     <div className="space-y-4">
                         <h2 className="text-xl font-bold text-gray-900 mb-6">Account Settings</h2>
@@ -286,15 +286,15 @@ export const Profile: React.FC = () => {
                         {/* Profile Overview */}
                         <motion.div
                             whileHover={{ scale: 1.02 }}
-                            className="bg-gradient-to-r from-primary to-blue-500 rounded-2xl p-4 text-white mb-6"
+                            className="bg-gradient-to-r from-primary to-blue-500 rounded-2xl p-4 text-white mb-4 lg:mb-6"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-lg font-bold">
+                                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 rounded-full flex items-center justify-center text-lg font-bold">
                                     {getInitials(user?.full_name)}
                                 </div>
                                 <div>
-                                    <h3 className="text-base font-bold">{user?.full_name || 'MyRush Player'}</h3>
-                                    <p className="text-white/80 text-sm">{user?.phone_number}</p>
+                                    <h3 className="text-sm lg:text-base font-bold truncate max-w-[150px] lg:max-w-none">{user?.full_name || 'MyRush Player'}</h3>
+                                    <p className="text-white/80 text-xs lg:text-sm">{user?.phone_number}</p>
                                 </div>
                             </div>
                         </motion.div>
@@ -351,27 +351,27 @@ export const Profile: React.FC = () => {
                     </div>
                 </motion.div>
 
-                {/* Right Side - Content (Scrollable) */}
+                {/* Right Side - Content (Responsive Scroll) */}
                 <motion.div
                     key={currentView}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3, duration: 0.6 }}
-                    className="flex-1 ml-80 p-8 overflow-y-auto h-[calc(100vh-5rem)]"
+                    className="flex-1 lg:ml-80 p-4 lg:p-8 lg:overflow-y-auto lg:h-[calc(100vh-5rem)]"
                 >
                     <div className="max-w-5xl mx-auto">
                         {currentView === 'profile' ? (
                             <>
                                 {/* Profile Header */}
-                                <div className="flex justify-between items-center mb-8">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                                     <div>
-                                        <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Profile <span className="text-primary">Settings</span></h1>
-                                        <p className="text-gray-600 text-lg">Manage your account details and preferences</p>
+                                        <h1 className="text-2xl lg:text-4xl font-black text-gray-900 mb-1 lg:mb-2 tracking-tight">Profile <span className="text-primary">Settings</span></h1>
+                                        <p className="text-gray-500 lg:text-gray-600 text-sm lg:text-lg">Manage your account details and preferences</p>
                                     </div>
-                                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
                                         <Button
                                             onClick={() => navigate('/profile/edit')}
-                                            className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-primary/30 flex items-center gap-2 transition-all"
+                                            className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-6 lg:px-8 py-2.5 lg:py-3 rounded-full font-bold shadow-lg shadow-primary/30 flex items-center justify-center gap-2 transition-all"
                                         >
                                             <FaEdit />
                                             Edit Profile

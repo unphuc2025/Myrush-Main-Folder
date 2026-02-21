@@ -43,7 +43,13 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const AppContent = () => {
-  const shouldHideFooter = location.pathname.startsWith('/profile') || location.pathname === '/login' || location.pathname === '/verify-otp';
+  const location = useLocation();
+
+  // Hide footer only on specific pages like Setup Profile, Login, OTP, Profile
+  const shouldHideFooter = location.pathname === '/login' ||
+    location.pathname === '/verify-otp' ||
+    location.pathname === '/profile' ||
+    location.pathname === '/setup-profile';
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden">

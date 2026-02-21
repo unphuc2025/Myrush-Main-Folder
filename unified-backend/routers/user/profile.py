@@ -40,6 +40,14 @@ def get_profile(
         raise HTTPException(status_code=404, detail="Profile not found")
     return db_profile
 
+@router.get("/me", response_model=schemas.ProfileResponse)
+def get_my_profile(
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(database.get_db)
+):
+    """Alias for / (get_profile) to match frontend expectation"""
+    return get_profile(current_user, db)
+
 @router.post("/upload-avatar")
 async def upload_avatar(
     file: UploadFile,

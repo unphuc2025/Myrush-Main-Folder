@@ -513,92 +513,86 @@ export const Corporate: React.FC = () => {
             </section>
 
             {/* Contact Section */}
-            <section id="contact" className="py-12 md:py-16 bg-white">
+            <section id="contact" className="py-12 md:py-24 bg-gray-50">
                 <div className="max-w-4xl mx-auto px-6 text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                     >
-                        <h2 className="text-3xl md:text-5xl font-black text-black mb-8 leading-tight">
-                            Contact Us.
+                        <h2 className="text-3xl md:text-5xl font-black text-black mb-6 leading-tight font-montserrat uppercase">
+                            Get in <span className="text-primary italic">Touch</span>
                         </h2>
-                        <p className="text-gray-600 text-lg mb-12 max-w-4xl mx-auto">
-                            Interested in elevating your corporate team through the power of sports? Reach out to us by filling out the contact form below. Our dedicated team will promptly respond to your inquiries and tailor the perfect sports engagement program to meet your organization's needs. Let's create a winning experience together
+                        <p className="text-gray-500 text-lg mb-12 max-w-2xl mx-auto font-light">
+                            Ready to elevate your team? Fill out the form below and we'll craft the perfect sports program for you.
                         </p>
 
-                        <div className="max-w-2xl mx-auto bg-gray-50 p-8 rounded-3xl">
-                            <form className="space-y-6">
+                        <div className="max-w-3xl mx-auto bg-white p-8 md:p-12 rounded-[2rem] shadow-xl border border-gray-100">
+                            <form className="space-y-6 text-left">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Name <span className="text-red-500">*</span></label>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <input
-                                                type="text"
-                                                placeholder="First Name"
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                                                required
-                                            />
-                                            <input
-                                                type="text"
-                                                placeholder="Last Name"
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Email <span className="text-red-500">*</span></label>
-                                        <input
-                                            type="email"
-                                            placeholder="your@email.com"
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone <span className="text-red-500">*</span></label>
-                                        <input
-                                            type="tel"
-                                            placeholder="+91 00000 00000"
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Company Name <span className="text-red-500">*</span></label>
+                                        <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">First Name</label>
                                         <input
                                             type="text"
-                                            placeholder="Company Name"
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                                            required
+                                            className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:border-primary/40 focus:bg-white rounded-xl focus:outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                                            placeholder="John"
                                         />
                                     </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">Last Name</label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:border-primary/40 focus:bg-white rounded-xl focus:outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                                            placeholder="Doe"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">Work Email</label>
+                                        <input
+                                            type="email"
+                                            className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:border-primary/40 focus:bg-white rounded-xl focus:outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                                            placeholder="john@company.com"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">Phone</label>
+                                        <input
+                                            type="tel"
+                                            className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:border-primary/40 focus:bg-white rounded-xl focus:outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                                            placeholder="+91 98765 43210"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">Company</label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:border-primary/40 focus:bg-white rounded-xl focus:outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                                            placeholder="Company Name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">Role</label>
+                                        <select className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:border-primary/40 focus:bg-white rounded-xl focus:outline-none transition-all font-medium text-gray-900 cursor-pointer">
+                                            <option value="">Select Role</option>
+                                            <option value="hr">HR Manager</option>
+                                            <option value="lead">Team Lead</option>
+                                            <option value="founder">Founder/CXO</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Select an option</label>
-                                    <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-white">
-                                        <option>Designation</option>
-                                        <option>Your role in the company</option>
-                                        <option>CEO/Founder</option>
-                                        <option>HR Manager</option>
-                                        <option>Team Lead</option>
-                                        <option>Employee</option>
-                                    </select>
-                                </div>
-                                <div className="text-center">
+
+                                <div className="pt-4 text-center">
                                     <Button
                                         variant="primary"
                                         size="lg"
-                                        className="px-12 py-4"
+                                        className="w-full md:w-auto px-12 py-5"
                                         onClick={(e) => {
                                             e.preventDefault();
-                                            alert('Form submitted successfully!');
+                                            alert('Thanks! We will be in touch shortly.');
                                         }}
                                     >
-                                        Send
+                                        Submit Request
                                     </Button>
                                 </div>
                             </form>

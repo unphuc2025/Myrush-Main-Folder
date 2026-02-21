@@ -1,0 +1,43 @@
+--- BRANCHES ---
+ID: 76704fa8-b7bc-4f30-92e7-6c65b1395fa2 | Name: venu | Active: True
+  Opening Hours (Type: <class 'dict'>): {"friday": {"open": "09:00", "close": "22:00", "isActive": false}, "monday": {"open": "09:00", "close": "22:00", "isActive": true}, "sunday": {"open": "08:00", "close": "23:00", "isActive": true}, "tuesday": {"open": "09:00", "close": "22:00", "isActive": true}, "saturday": {"open": "08:00", "close": "23:00", "isActive": false}, "thursday": {"open": "09:00", "close": "22:00", "isActive": true}, "wednesday": {"open": "09:00", "close": "22:00", "isActive": true}}
+--------------------
+ID: 7cf65541-7ce7-412b-80f3-b74a46d6b836 | Name: Rush Arena X KheloMore GT Mall | Active: False
+  Opening Hours (Type: <class 'NoneType'>): None
+--------------------
+ID: c0e468ee-1246-4b93-93aa-737ca8bfd6c3 | Name: Rush Arena x Hotfut - South United GVH | Active: False
+  Opening Hours (Type: <class 'NoneType'>): None
+--------------------
+ID: 4714d36f-8fa3-4ed5-8132-449c086eb250 | Name: Rush Arena Cooke Town -2 | Active: False
+  Opening Hours (Type: <class 'NoneType'>): None
+--------------------
+ID: bbdec863-c298-481a-a29b-b889207cf65d | Name: Bangalore sport complex | Active: False
+  Opening Hours (Type: <class 'NoneType'>): None
+--------------------
+ID: 761bf3d3-7878-4080-be38-d4be3fecc52d | Name: Rush Arena - Rajajinagar  | Active: False
+  Opening Hours (Type: <class 'NoneType'>): None
+--------------------
+ID: 2e85dcd9-fa65-4e1d-917f-739f84785e91 | Name: Rush Arena GT World Mall | Active: False
+  Opening Hours (Type: <class 'NoneType'>): None
+--------------------
+ID: af0b7a96-693e-4b1c-85fb-e294dfaf3cb1 | Name: Rush Arena Cooke Town | Active: False
+  Opening Hours (Type: <class 'NoneType'>): None
+--------------------
+ID: 6ecbc9f6-4364-4a21-9903-f3285776ba4d | Name: fgfgfgfgf | Active: False
+  Opening Hours (Type: <class 'dict'>): {"friday": {"open": "09:00", "close": "22:00", "isActive": true}, "monday": {"open": "09:00", "close": "22:00", "isActive": true}, "sunday": {"open": "08:00", "close": "23:00", "isActive": true}, "tuesday": {"open": "09:00", "close": "22:00", "isActive": true}, "saturday": {"open": "08:00", "close": "23:00", "isActive": true}, "thursday": {"open": "09:00", "close": "22:00", "isActive": true}, "wednesday": {"open": "09:00", "close": "22:00", "isActive": true}}
+--------------------
+ID: 843c8531-f4b8-417b-aadd-c058f8ccb081 | Name: Sarpavaram Sports Complex | Active: False
+  Opening Hours (Type: <class 'NoneType'>): None
+--------------------
+
+--- COURTS ---
+ID: cdd873c0-331a-4ccd-ae9e-6d4e63200718 | Name: 6 A Side Football Turf 1 | Branch: a55d225c-3818-4a8d-82b5-605033040353 | Active: True
+ID: e96071b9-dc0c-48ca-b4b4-75c2fc50736b | Name: Cricket Net 1 | Branch: a55d225c-3818-4a8d-82b5-605033040353 | Active: False
+ID: dff9cb5c-9c81-4f87-a024-63ae2e0795f5 | Name: Rush Arena X KheloMore GT Mall | Branch: 7cf65541-7ce7-412b-80f3-b74a46d6b836 | Active: False
+ID: 840c12cc-7a5e-4229-a01b-af74d848951c | Name: Rush Arena GT World Mall | Branch: 2e85dcd9-fa65-4e1d-917f-739f84785e91 | Active: False
+ID: cc64bafd-5e65-46bb-a7f8-24c934a63c11 | Name: Box cricket Turf 1 | Branch: a4844143-7552-48a3-bf62-c8f87a5f21a3 | Active: False
+ID: f11bb39e-b240-4b3a-8ad7-61ccc194abf3 | Name: newcourt02 | Branch: af0b7a96-693e-4b1c-85fb-e294dfaf3cb1 | Active: False
+ID: e37dd9bd-c388-4deb-8ced-b645e13e3d66 | Name: Rush arena - Rajajinagar | Branch: 761bf3d3-7878-4080-be38-d4be3fecc52d | Active: False
+ID: 0e376b13-b84d-4808-9281-038daa4e1984 | Name: new courts | Branch: bbdec863-c298-481a-a29b-b889207cf65d | Active: False
+ID: 7c4eebf6-4b12-441e-9cee-762616eb4330 | Name: rushx | Branch: a55d225c-3818-4a8d-82b5-605033040353 | Active: True
+ID: cc93d266-57af-462f-986f-9507488e4d0b | Name: newcourt01 | Branch: 76704fa8-b7bc-4f30-92e7-6c65b1395fa2 | Active: True

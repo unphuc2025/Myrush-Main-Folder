@@ -309,21 +309,21 @@ export const LandingPage: React.FC = () => {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[150px] pointer-events-none" />
                 <div className="relative z-10 max-w-6xl mx-auto flex flex-col items-center">
                     <motion.h2
-                        className="text-6xl md:text-9xl font-black text-white font-montserrat italic mb-8 leading-none"
+                        className="text-4xl md:text-9xl font-black text-white font-montserrat italic mb-8 leading-none"
                         initial={{ opacity: 0, scale: 0.8 }}
                         whileInView={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.8 }}
                     >
                         UNCOUCH.
                     </motion.h2>
-                    <p className="text-gray-400 text-2xl md:text-3xl mb-12 font-light max-w-4xl mx-auto leading-relaxed text-center">
+                    <p className="text-gray-400 text-lg md:text-3xl mb-12 font-light max-w-4xl mx-auto leading-relaxed text-center">
                         Stop watching from the sidelines.<br />
                         <span className="text-white font-medium">Start playing today. Join thousands of players in the Rush community today.</span>
                     </p>
                     <Button
                         variant="primary"
                         size="lg"
-                        className="text-2xl px-16 py-8 min-w-[320px] rounded-full font-black shadow-glow hover:scale-105 transition-transform"
+                        className="text-base md:text-2xl px-8 py-4 md:px-16 md:py-8 w-auto md:min-w-[320px] rounded-full font-black shadow-glow hover:scale-105 transition-transform"
                         onClick={() => navigate('/login')}
                     >
                         Join the Movement

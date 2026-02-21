@@ -1,28 +1,26 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { PublicNav } from '../components/PublicNav';
 
 export const Pickleball: React.FC = () => {
-    const navigate = useNavigate();
 
     const locations = [
         {
             name: 'Rush Arena, Cooke Town',
-            image: '/venues/cooke-town.webp', // Placeholder, using what I can or generic
+            image: '/venue-assets/cooke-town.webp', // Placeholder, using what I can or generic
             description: "Located at the heart of East Bengaluru, our facility at Rush Arena Cooke Town is excited to introduce four state-of-the-art pickleball courts, launching in September '24. Designed with top-quality surfaces and professional lighting, our courts provide the perfect setting for both casual play and competitive matches. Whether you're a seasoned player or new to the sport, our dedicated pickleball area offers a premier experience for all enthusiasts. Join us from 6 AM to 11 PM and enjoy the thrill of the game in a welcoming and vibrant environment.",
             link: '/venues/cooke-town'
         },
         {
             name: 'Rush Arena, Divyasree Omega, Kondapur, Hyderabad',
-            image: '/venues/gachibowli.webp', // Placeholder
+            image: '/venue-assets/gachibowli.webp', // Placeholder
             description: "Located in the bustling area of Kondapur, Rush Arena Divyasree Omega is proud to offer top-tier pickleball courts designed for enthusiasts of all levels. Our facility boasts high-quality surfaces and professional lighting, ensuring an exceptional playing experience whether you're here for a casual game or competitive play. With a welcoming atmosphere and modern amenities, Rush Arena Divyasree Omega is the perfect destination for pickleball enthusiasts in Hyderabad. Join us to experience the excitement and camaraderie of this fast-growing sport in a state-of-the-art environment.",
             link: '/venues/gachibowli'
         },
         {
             name: 'Rush Arena Tambaram, Chennai',
-            image: '/venues/whitefield.webp', // Placeholder
+            image: '/venue-assets/whitefield.webp', // Placeholder
             description: "Located in the lively neighborhood of Tambaram, Chennai, Rush Arena offers a premier pickleball experience. Our facility features state-of-the-art pickleball courts with top-quality surfaces and professional lighting, providing an ideal setting for players of all skill levels. Whether you're looking to enjoy a casual game or engage in competitive play, our courts are designed to deliver an exceptional experience. Rush Arena Tambaram is a welcoming and vibrant space, perfect for pickleball enthusiasts in Chennai. Join us and be part of the exciting pickleball community in the city.",
             link: '/venues/whitefield'
         }
@@ -133,7 +131,6 @@ export const Pickleball: React.FC = () => {
                                         <Button
                                             variant="primary"
                                             className="w-full h-14 bg-black text-white hover:bg-primary hover:text-black font-bold uppercase tracking-widest text-sm rounded-xl shadow-lg hover:shadow-primary/50 transition-all duration-300 transform group-hover:-translate-y-1"
-                                            onClick={() => navigate(loc.link)}
                                         >
                                             Book This Venue
                                         </Button>
@@ -192,14 +189,15 @@ export const Pickleball: React.FC = () => {
                             Got questions? We'd love to hear from you. Fill out the form below and we'll get back to you shortly.
                         </p>
 
-                        <div className="max-w-2xl mx-auto bg-gray-50 p-8 rounded-3xl shadow-sm border border-gray-100">
+                        <div className="max-w-4xl mx-auto bg-gray-50 p-10 rounded-3xl shadow-sm border border-gray-100">
                             <form className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="text-left">
                                         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">First Name</label>
                                         <input
                                             type="text"
-                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                            placeholder="e.g. Arjun"
+                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
                                             required
                                         />
                                     </div>
@@ -207,7 +205,8 @@ export const Pickleball: React.FC = () => {
                                         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Last Name</label>
                                         <input
                                             type="text"
-                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                            placeholder="e.g. Sharma"
+                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
                                             required
                                         />
                                     </div>
@@ -216,29 +215,31 @@ export const Pickleball: React.FC = () => {
                                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Email</label>
                                     <input
                                         type="email"
-                                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                        placeholder="you@example.com"
+                                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
                                         required
                                     />
                                 </div>
                                 <div className="text-left">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Message</label>
                                     <textarea
-                                        rows={4}
-                                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
+                                        rows={5}
+                                        placeholder="Tell us about your query, booking request, or anything else..."
+                                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-300"
                                         required
                                     />
                                 </div>
-                                <div className="text-center pt-4">
+                                <div className="text-center pt-2">
                                     <Button
                                         variant="primary"
                                         size="lg"
-                                        className="px-12 py-4 uppercase font-black tracking-widest bg-black text-white hover:bg-gray-800"
+                                        className="w-full py-4 uppercase font-black tracking-widest bg-black text-white hover:bg-primary hover:text-black transition-all duration-300"
                                         onClick={(e) => {
                                             e.preventDefault();
                                             alert('Form submitted successfully!');
                                         }}
                                     >
-                                        Send
+                                        Send Message
                                     </Button>
                                 </div>
                             </form>
