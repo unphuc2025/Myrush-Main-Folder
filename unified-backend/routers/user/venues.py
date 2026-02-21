@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import models, schemas, database
+from schemas import resolve_path
 import uuid
 
 router = APIRouter(
@@ -159,22 +160,27 @@ def get_venues(
         # Helper function to parse images
         def parse_images(images_value):
             if not images_value: return []
-            if isinstance(images_value, list): return [str(img).strip() for img in images_value if img]
-            if isinstance(images_value, str):
+            imgs = []
+            if isinstance(images_value, list):
+                imgs = [str(img).strip() for img in images_value if img]
+            elif isinstance(images_value, str):
                 images_value = images_value.strip()
                 if not images_value: return []
                 if images_value.startswith('[') and images_value.endswith(']'):
                     try:
                         import json
                         parsed = json.loads(images_value)
-                        return [str(img).strip() for img in parsed if img] if isinstance(parsed, list) else []
+                        imgs = [str(img).strip() for img in parsed if img] if isinstance(parsed, list) else []
                     except: pass
-                if images_value.startswith('{') and images_value.endswith('}'):
-                    return [img.strip() for img in images_value[1:-1].split(',') if img.strip()]
-                if ',' in images_value:
-                    return [img.strip() for img in images_value.split(',') if img.strip()]
-                return [images_value]
-            return []
+                elif images_value.startswith('{') and images_value.endswith('}'):
+                    imgs = [img.strip() for img in images_value[1:-1].split(',') if img.strip()]
+                elif ',' in images_value:
+                    imgs = [img.strip() for img in images_value.split(',') if img.strip()]
+                else:
+                    imgs = [images_value]
+            
+            # Resolve all paths to absolute URLs
+            return [resolve_path(img) for img in imgs]
 
         result = []
         for branch in branches:
@@ -265,19 +271,25 @@ def get_venue(venue_id: str, db: Session = Depends(database.get_db)):
             # Helper function to parse images (simple version)
             def parse_images(images_value):
                 if not images_value: return []
-                if isinstance(images_value, list): return [str(img).strip() for img in images_value if img]
-                if isinstance(images_value, str):
+                imgs = []
+                if isinstance(images_value, list):
+                    imgs = [str(img).strip() for img in images_value if img]
+                elif isinstance(images_value, str):
                     images_value = images_value.strip()
                     if not images_value: return []
                     if images_value.startswith('[') and images_value.endswith(']'):
                          try:
                              import json
                              parsed = json.loads(images_value)
-                             return [str(img).strip() for img in parsed if img] if isinstance(parsed, list) else []
+                             imgs = [str(img).strip() for img in parsed if img] if isinstance(parsed, list) else []
                          except: pass
-                    if ',' in images_value: return [img.strip() for img in images_value.split(',') if img.strip()]
-                    return [images_value]
-                return []
+                    elif ',' in images_value:
+                        imgs = [img.strip() for img in images_value.split(',') if img.strip()]
+                    else:
+                        imgs = [images_value]
+                
+                # Resolve all paths to absolute URLs
+                return [resolve_path(img) for img in imgs]
 
             parsed_images = parse_images(b.get('images'))
             

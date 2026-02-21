@@ -26,22 +26,20 @@ def resolve_path(path: str) -> str:
     if path.startswith('http://') or path.startswith('https://'):
         return path
         
-    # If S3 is configured, resolve to S3
-    if S3_BASE_URL:
-        # If it's a proxy path /api/media/folder/key, extract the key
-        if path.startswith('/api/media/'):
-            key = path.replace('/api/media/', '')
-            return f"{S3_BASE_URL}/{key}"
-        # If it's just a key or starts with /, ensure clean key
-        key = path.lstrip('/')
-        return f"{S3_BASE_URL}/{key}"
+    # Ensure API_BASE_URL is defined (fallback)
+    base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
     
-    # Fallback to local API proxy if S3 not set
-    if path.startswith('/'):
-        return f"{API_BASE_URL}{path}"
+    # Clean up path - remove /api/media/ prefix if it exists to avoid double prefixing
+    key = path
+    if path.startswith('/api/media/'):
+        key = path.replace('/api/media/', '')
+    elif path.startswith('api/media/'):
+        key = path.replace('api/media/', '')
     
-    # Assume it's a key that needs proxying
-    return f"{API_BASE_URL}/api/media/{path}"
+    key = key.lstrip('/')
+    
+    # Return local API proxy URL
+    return f"{base_url}/api/media/{key}"
 
 # ============================================================================
 # ADMIN SCHEMAS
@@ -1001,13 +999,17 @@ class VenueBase(BaseModel):
     game_type: str
     prices: str
     description: Optional[str] = None
-    photos: Optional[str] = None
-    videos: Optional[str] = None
+    photos: Optional[List[str]] = []
+    videos: Optional[List[str]] = []
 
     @field_validator('photos', 'videos', mode='before')
     @classmethod
     def make_absolute(cls, v):
-        return resolve_path(v)
+        if v and isinstance(v, list):
+            return [resolve_path(img) for img in v if img]
+        if v and isinstance(v, str):
+            return [resolve_path(v)]
+        return v
 
 class VenueCreate(VenueBase):
     pass
