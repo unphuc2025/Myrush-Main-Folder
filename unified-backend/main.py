@@ -64,6 +64,13 @@ app = FastAPI(
     debug=True
 )
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"[DEBUG] Incoming request: {request.method} {request.url.path}")
+    response = await call_next(request)
+    print(f"[DEBUG] Response status: {response.status_code} for {request.url.path}")
+    return response
+
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
@@ -155,8 +162,8 @@ from routers.admin import (
 from routers import media as media_router
 
 
-# Include media proxy router (no prefix - handles /api/media/{file_path})
-app.include_router(media_router.router)
+# Include media proxy router (with /api prefix to match helper generation)
+app.include_router(media_router.router, prefix="/api")
 
 # Include admin routers with /api/admin prefix
 app.include_router(admin_auth.router, prefix="/api/admin", tags=["Admin Auth"])
@@ -197,7 +204,10 @@ from routers.user import (
     notifications,
     courts_ratings,
     payments,
-    academy
+    academy,
+    favorites,
+    faq as user_faq,
+    policies as user_policies
 )
 
 # Import chatbot router
@@ -215,6 +225,9 @@ app.include_router(notifications.router, prefix="/api/user", tags=["User Notific
 app.include_router(courts_ratings.router, prefix="/api/user", tags=["User Court Ratings"])
 app.include_router(payments.router, prefix="/api/user", tags=["Payments"])
 app.include_router(academy.router, prefix="/api/user/academy", tags=["User Academy"])
+app.include_router(favorites.router, prefix="/api/user", tags=["User Favorites"])
+app.include_router(user_faq.router, prefix="/api/user", tags=["User FAQ"])
+app.include_router(user_policies.router, prefix="/api/user", tags=["User Policies"])
 
 # Include chatbot knowledge API
 app.include_router(chatbot.router, tags=["Chatbot Knowledge"])

@@ -298,9 +298,13 @@ const BookingDetailsScreen: React.FC = () => {
                 prefill: {
                     email: user?.email || 'guest@myrush.app',
                     contact: (user as any)?.phone_number || (user as any)?.phoneNumber || '',
-                    name: user ? `${user.firstName} ${user.lastName}` : 'Guest User'
+                    name: user ? `${user.firstName} ${user.lastName}` : 'Guest User',
+                    method: selectedPaymentMethod === 'upi' ? 'upi' : 'card'
                 },
-                theme: { color: colors.primary || '#CCFF00' }
+                theme: { color: colors.primary || '#CCFF00' },
+                modal: {
+                    ondismiss: () => setIsBookingLoading(false)
+                }
             };
 
             // Check if Razorpay native module is available

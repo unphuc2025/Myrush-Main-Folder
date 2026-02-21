@@ -39,10 +39,34 @@ export const getApiBaseUrl = (): string => {
 };
 
 /**
+ * Get the root server URL (without /api/user suffix)
+ */
+export const getRootUrl = (): string => {
+  const apiUrl = getApiBaseUrl();
+  // Remove /api/user or /api/admin suffix to get the root
+  return apiUrl.split('/api')[0];
+};
+
+/**
+ * Ensures an image URL is absolute
+ * If it's a relative path starting with /api/media, prepends the root URL
+ */
+export const getImageUrl = (path: string | null | undefined): string | undefined => {
+  if (!path) return undefined;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+
+  const rootUrl = getRootUrl();
+  // Ensure path starts with / if it's relative
+  const formattedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${rootUrl}${formattedPath}`;
+};
+
+/**
  * App Configuration
  */
 export const config = {
   apiBaseUrl: getApiBaseUrl(),
+  rootUrl: getRootUrl(),
   appName: 'MyRush',
   isDevelopment: __DEV__,
 };

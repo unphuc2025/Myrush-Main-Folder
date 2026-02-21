@@ -74,6 +74,8 @@ const PlayerProfileScreen = () => {
     const [modalType, setModalType] = useState<'city' | 'sports' | null>(null);
 
     const [isLocating, setIsLocating] = useState(false);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [pendingAvatarAsset, setPendingAvatarAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
 
     const detectLocation = async () => {
         setIsLocating(true);
@@ -187,8 +189,6 @@ const PlayerProfileScreen = () => {
         fetchData();
     }, [user?.phoneNumber]);
 
-    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-    const [pendingAvatarAsset, setPendingAvatarAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
 
     const handleImagePick = async () => {
         console.log('[PlayerProfile] handleImagePick called');
@@ -261,8 +261,8 @@ const PlayerProfileScreen = () => {
 
             if (response.success) {
                 setAvatarUrl(response.data.avatar_url);
-                // REFRESH AUTH STORE immediately so Dashboard gets the new image
-                await useAuthStore.getState().checkAuth();
+                // REFRESH AUTH STORE silently so Dashboard gets the new image without navigation reset
+                await useAuthStore.getState().checkAuth(true);
                 Alert.alert("Success", "Profile picture updated!");
             } else {
                 Alert.alert("Upload Failed", "Could not upload image.");

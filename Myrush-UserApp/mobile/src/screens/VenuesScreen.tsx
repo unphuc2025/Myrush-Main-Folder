@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
@@ -23,9 +23,11 @@ import { profileApi } from '../api/profile';
 import { RootStackParamList } from '../types';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
+type VenuesRouteProp = RouteProp<RootStackParamList, 'Venues'>;
 
 const VenuesScreen = () => {
     const navigation = useNavigation<Navigation>();
+    const route = useRoute<VenuesRouteProp>();
     const { user } = useAuthStore();
     const [venues, setVenues] = useState<Venue[]>([]);
     const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
@@ -63,7 +65,15 @@ const VenuesScreen = () => {
     useEffect(() => {
         fetchUserProfile();
         loadFilterOptions();
-    }, []);
+
+        // Point 7: Handle initial filters from navigation (e.g. gameType from Trending Events)
+        if (route.params?.gameType) {
+            setFilters(prev => ({
+                ...prev,
+                gameTypes: [route.params.gameType as string]
+            }));
+        }
+    }, [route.params?.gameType]);
 
     useEffect(() => {
         if (!isProfileLoading) {
@@ -146,8 +156,10 @@ const VenuesScreen = () => {
     const fetchVenues = async () => {
         setIsLoading(true);
         try {
+            // Include gameTypes from filters in the initial fetch if available
             const response = await venuesApi.getVenues({
                 location: displayCity,
+                game_type: filters.gameTypes.length > 0 ? filters.gameTypes : undefined
             });
 
             if (response.success && response.data) {
@@ -222,6 +234,36 @@ const VenuesScreen = () => {
     const renderVenueCard = (venue: Venue) => {
         const firstPhoto = venue.photos && venue.photos.length > 0 ? venue.photos[0] : null;
 
+        // Determine if venue is currently open
+        const getStatus = () => {
+            if (!venue.opening_hours) return { text: 'Contact for Hours', color: '#ccc' };
+
+            try {
+                const now = new Date();
+                const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const currentDay = days[now.getDay()];
+                const hours = venue.opening_hours[currentDay];
+
+                if (!hours || hours.isActive === false) return { text: 'Closed Now', color: '#ff4d4d' };
+
+                const currentTime = now.getHours() * 60 + now.getMinutes();
+                const [openH, openM] = hours.open.split(':').map(Number);
+                const [closeH, closeM] = hours.close.split(':').map(Number);
+
+                const openTime = openH * 60 + openM;
+                const closeTime = closeH * 60 + closeM;
+
+                if (currentTime >= openTime && currentTime < closeTime) {
+                    return { text: `Open until ${hours.close}`, color: '#4CAF50' };
+                }
+                return { text: 'Closed Now', color: '#ff4d4d' };
+            } catch (e) {
+                return { text: 'Hours Unavailable', color: '#ccc' };
+            }
+        };
+
+        const status = getStatus();
+
         return (
             <TouchableOpacity
                 key={venue.id}
@@ -251,13 +293,18 @@ const VenuesScreen = () => {
                                 <Text style={styles.venueName}>{venue.court_name}</Text>
                                 <View style={styles.ratingBadge}>
                                     <Ionicons name="star" size={moderateScale(12)} color="#000" />
-                                    <Text style={styles.ratingText}>4.5</Text>
+                                    <Text style={styles.ratingText}>{venue.rating ? venue.rating.toFixed(1) : '0.0'}</Text>
                                 </View>
                             </View>
 
-                            <View style={styles.venueMetaRow}>
-                                <Ionicons name="location-outline" size={moderateScale(14)} color="#ccc" />
-                                <Text style={styles.venueMeta} numberOfLines={1}>{venue.location}</Text>
+                            <View style={[styles.venueMetaRow, { justifyContent: 'space-between' }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                    <Ionicons name="location-outline" size={moderateScale(14)} color="#ccc" />
+                                    <Text style={styles.venueMeta} numberOfLines={1}>{venue.location}</Text>
+                                </View>
+                                <Text style={[styles.venueMeta, { color: status.color, fontSize: moderateScale(10) }]}>
+                                    {status.text}
+                                </Text>
                             </View>
 
                             <View style={styles.cardFooter}>

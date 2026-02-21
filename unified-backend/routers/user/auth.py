@@ -31,37 +31,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(database.get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        sub: str = payload.get("sub")
-        if sub is None:
-            raise credentials_exception
-        # token sub may be email or user id
-        token_data = schemas.TokenData(email=sub if "@" in sub else None)
-    except JWTError:
-        raise credentials_exception
-    user = None
-    if token_data.email:
-        user = crud.get_user_by_email(db, email=token_data.email)
-    if user is None:
-        # try by id
-        try:
-            # Check if sub is a valid UUID before querying to avoid DB errors
-            user_id = uuid.UUID(payload.get("sub"))
-            user = db.query(models.User).filter(models.User.id == user_id).first()
-        except (ValueError, TypeError):
-            # sub is not a valid UUID, so it can't match a UUID column
-            pass
-            
-    if user is None:
-        raise credentials_exception
-    return user
+from dependencies import get_current_user
 
 
 @router.post("/send-otp", response_model=schemas.SendOTPResponse)

@@ -27,8 +27,8 @@ import { typography } from '../theme/typography';
 import { spacing, borderRadius } from '../theme/spacing';
 import { RootStackParamList } from '../types';
 import { Container } from '../components/common/Container';
-import { profileApi, City, ProfileData } from '../api/profile';
-import { venuesApi, Venue } from '../api/venues';
+import { profileApi, City, ProfileData, Player } from '../api/profile';
+import { venuesApi, Venue, favoritesApi } from '../api/venues';
 
 const { width } = Dimensions.get('window');
 
@@ -38,8 +38,9 @@ export const HomeScreen: React.FC = () => {
 	const { user } = useAuthStore();
 	const navigation = useNavigation<Navigation>();
 	const [searchQuery, setSearchQuery] = useState('');
-	const [activeCategory, setActiveCategory] = useState('Sports');
+	const [activeCategory, setActiveCategory] = useState('All');
 	const [spinModalVisible, setSpinModalVisible] = useState(false);
+	const [categories, setCategories] = useState(['All']);
 
 	// City Selection State
 	const [cities, setCities] = useState<City[]>([]);
@@ -49,12 +50,26 @@ export const HomeScreen: React.FC = () => {
 	// Venues State
 	const [venues, setVenues] = useState<Venue[]>([]);
 	const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
+	const [favoriteVenues, setFavoriteVenues] = useState<Venue[]>([]);
 	const [isLoadingVenues, setIsLoadingVenues] = useState(true);
+	const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
+	const [topPlayers, setTopPlayers] = useState<Player[]>([]);
+	const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
 
 	useEffect(() => {
 		loadCities();
+		loadGameTypes();
 		loadVenues();
-	}, []);
+		loadFavorites();
+		loadTopPlayers();
+	}, [user?.city]);
+
+	const loadGameTypes = async () => {
+		const response = await venuesApi.getGameTypes();
+		if (response.success && response.data) {
+			setCategories(['All', ...response.data]);
+		}
+	};
 
 	const loadCities = async () => {
 		const response = await profileApi.getCities();
@@ -65,15 +80,32 @@ export const HomeScreen: React.FC = () => {
 
 	const loadVenues = async () => {
 		setIsLoadingVenues(true);
-		// Optionally filter by user's city if available, for now fetch all
-		const response = await venuesApi.getVenues();
+		// Point 4: Fetch venues based on user's city if available
+		const filter = user?.city ? { city: user.city } : undefined;
+		const response = await venuesApi.getVenues(filter);
 		if (response.success) {
 			setVenues(response.data);
 			setFilteredVenues(response.data);
-		} else {
-			Alert.alert('Error', 'Failed to fetch venues');
 		}
 		setIsLoadingVenues(false);
+	};
+
+	const loadFavorites = async () => {
+		setIsLoadingFavorites(true);
+		const response = await favoritesApi.getFavorites();
+		if (response.success) {
+			setFavoriteVenues(response.data);
+		}
+		setIsLoadingFavorites(false);
+	};
+
+	const loadTopPlayers = async () => {
+		setIsLoadingPlayers(true);
+		const response = await profileApi.getTopPlayers(5);
+		if (response.success) {
+			setTopPlayers(response.data);
+		}
+		setIsLoadingPlayers(false);
 	};
 
 	const handleUpdateCity = async (selectedCity: City) => {
@@ -124,9 +156,6 @@ export const HomeScreen: React.FC = () => {
 
 	const displayName = user?.fullName?.split(' ')[0] || user?.firstName || 'Alex';
 
-	// Updated categories to match venue types better
-	const categories = ['Sports', 'Football', 'Cricket', 'Badminton'];
-
 	const quickActions = [
 		{ icon: 'football', label: 'Book Court', color: colors.primary, route: 'Venues' },
 		{ icon: 'card', label: 'Payments', color: colors.primary, route: 'Payments' },
@@ -138,28 +167,26 @@ export const HomeScreen: React.FC = () => {
 	useEffect(() => {
 		let result = venues;
 
-		// 1. Search Filter
+		// 1. Point 1: Search Filter - search names, locations, and game types
 		if (searchQuery) {
+			const query = searchQuery.toLowerCase();
 			result = result.filter(venue =>
-				venue.court_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				venue.game_type.toLowerCase().includes(searchQuery.toLowerCase())
+				(venue.court_name && venue.court_name.toLowerCase().includes(query)) ||
+				(venue.game_type && venue.game_type.toLowerCase().includes(query)) ||
+				(venue.location && venue.location.toLowerCase().includes(query))
 			);
 		}
 
-		// 2. Category Filter
-		if (activeCategory && activeCategory !== 'Sports') {
-			result = result.filter(venue => venue.game_type.includes(activeCategory));
+		// 2. Point 3: Category Filter - handle 'All' and specific types
+		if (activeCategory && activeCategory !== 'All') {
+			result = result.filter(venue =>
+				venue.game_type && venue.game_type.toLowerCase().includes(activeCategory.toLowerCase())
+			);
 		}
 
 		setFilteredVenues(result);
 	}, [searchQuery, activeCategory, venues]);
 
-	const topRatedPlayers = [
-		{ name: 'John S', rating: 4.9 },
-		{ name: 'Sarah M', rating: 4.8 },
-		{ name: 'Mike T', rating: 4.7 },
-		{ name: 'Emma W', rating: 4.9 },
-	];
 
 	return (
 		<Container scrollable={false} backgroundColor="#000000" padding={false}>
@@ -203,7 +230,7 @@ export const HomeScreen: React.FC = () => {
 						{/* Welcome */}
 						<View style={styles.welcomeContainer}>
 							<Text style={styles.welcomeText}>
-								Welcome, <Text style={styles.userName}>{displayName}!</Text> 👋
+								<Text>Welcome, </Text><Text style={styles.userName}>{displayName}!</Text> 👋
 							</Text>
 							<Text style={styles.subWelcome}>Ready to play?</Text>
 						</View>
@@ -246,6 +273,43 @@ export const HomeScreen: React.FC = () => {
 								</TouchableOpacity>
 							))}
 						</ScrollView>
+
+						{/* Favorites Section */}
+						{favoriteVenues.length > 0 && (
+							<View style={{ marginBottom: hp(3) }}>
+								<View style={styles.sectionHeader}>
+									<Text style={styles.sectionTitle}>Your Favorites</Text>
+									<TouchableOpacity onPress={() => navigation.navigate('Venues')}>
+										<Text style={styles.viewAll}>View All</Text>
+									</TouchableOpacity>
+								</View>
+								<ScrollView
+									horizontal
+									showsHorizontalScrollIndicator={false}
+									contentContainerStyle={{ paddingLeft: moderateScale(20), gap: wp(4) }}
+								>
+									{favoriteVenues.map((item) => (
+										<TouchableOpacity
+											key={item.id}
+											style={styles.favoriteCard}
+											onPress={() => navigation.navigate('VenueDetails', { venue: item })}
+										>
+											<Image
+												source={item.photos && item.photos.length > 0 ? { uri: item.photos[0] } : require('../../assets/dashboard-hero.png')}
+												style={styles.favoriteImage}
+											/>
+											<View style={styles.favoriteInfo}>
+												<Text style={styles.favoriteName} numberOfLines={1}>{item.court_name}</Text>
+												<View style={styles.favoriteStats}>
+													<Ionicons name="star" size={moderateScale(10)} color="#FFB800" />
+													<Text style={styles.favoriteRating}>{item.rating?.toFixed(1) || '0.0'}</Text>
+												</View>
+											</View>
+										</TouchableOpacity>
+									))}
+								</ScrollView>
+							</View>
+						)}
 
 						{/* Game On Section */}
 						<Text style={styles.sectionTitle}>Game On</Text>
@@ -339,7 +403,10 @@ export const HomeScreen: React.FC = () => {
 							showsHorizontalScrollIndicator={false}
 							contentContainerStyle={styles.eventsContainer}
 						>
-							<TouchableOpacity style={[styles.eventCard, { backgroundColor: '#1A1A1A' }]} onPress={() => navigation.navigate('Venues')}>
+							<TouchableOpacity
+								style={[styles.eventCard, { backgroundColor: '#1A1A1A' }]}
+								onPress={() => navigation.navigate('Venues', { gameType: 'Badminton' })}
+							>
 								<View style={styles.eventCardContent}>
 									<Text style={styles.eventTitle}>Badminton Cup</Text>
 									<Text style={styles.eventSubtitle}>Join Now</Text>
@@ -347,7 +414,10 @@ export const HomeScreen: React.FC = () => {
 								<Ionicons name="trophy-outline" size={40} color={colors.primary} style={{ position: 'absolute', right: 10, bottom: 10, opacity: 0.2 }} />
 							</TouchableOpacity>
 
-							<TouchableOpacity style={[styles.eventCard, { backgroundColor: '#1A1A1A' }]} onPress={() => navigation.navigate('Venues')}>
+							<TouchableOpacity
+								style={[styles.eventCard, { backgroundColor: '#1A1A1A' }]}
+								onPress={() => navigation.navigate('Venues', { gameType: 'Football' })}
+							>
 								<View style={styles.eventCardContent}>
 									<Text style={styles.eventTitle}>Weekend Football</Text>
 									<Text style={styles.eventSubtitle}>Book Slot</Text>
@@ -361,7 +431,10 @@ export const HomeScreen: React.FC = () => {
 							<Text style={styles.sectionTitle}>Top Recommended</Text>
 						</View>
 						<View style={styles.recommendedList}>
-							<TouchableOpacity style={styles.recommendedItem}>
+							<TouchableOpacity
+								style={styles.recommendedItem}
+								onPress={() => navigation.navigate('Venues')}
+							>
 								<View style={styles.recommendedIcon}>
 									<Ionicons name="tennisball" size={moderateScale(18)} color={colors.primary} />
 								</View>
@@ -372,7 +445,10 @@ export const HomeScreen: React.FC = () => {
 								<Ionicons name="chevron-forward" size={16} color="#666" />
 							</TouchableOpacity>
 
-							<TouchableOpacity style={styles.recommendedItem}>
+							<TouchableOpacity
+								style={styles.recommendedItem}
+								onPress={() => navigation.navigate('Venues')}
+							>
 								<View style={styles.recommendedIcon}>
 									<Ionicons name="basketball" size={moderateScale(18)} color={colors.primary} />
 								</View>
@@ -389,18 +465,28 @@ export const HomeScreen: React.FC = () => {
 							<Text style={styles.sectionTitle}>Top Players</Text>
 						</View>
 						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.playersRow}>
-							{topRatedPlayers.map((player, index) => (
-								<View key={index} style={styles.playerCard}>
-									<View style={styles.playerAvatar}>
-										<Text style={styles.playerAvatarText}>{player.name.charAt(0)}</Text>
+							{isLoadingPlayers ? (
+								<ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: moderateScale(20) }} />
+							) : topPlayers.length > 0 ? (
+								topPlayers.map((player, index) => (
+									<View key={player.id || index} style={styles.playerCard}>
+										<View style={styles.playerAvatar}>
+											{player.avatar_url ? (
+												<Image source={{ uri: player.avatar_url }} style={{ width: '100%', height: '100%', borderRadius: moderateScale(25) }} />
+											) : (
+												<Text style={styles.playerAvatarText}>{player.name.charAt(0)}</Text>
+											)}
+										</View>
+										<Text style={styles.playerName} numberOfLines={1}>{player.name}</Text>
+										<View style={styles.ratingBadge}>
+											<Ionicons name="star" size={8} color="#000" />
+											<Text style={styles.playerRating}>{String(player.rating)}</Text>
+										</View>
 									</View>
-									<Text style={styles.playerName}>{player.name}</Text>
-									<View style={styles.ratingBadge}>
-										<Ionicons name="star" size={8} color="#000" />
-										<Text style={styles.playerRating}>{player.rating}</Text>
-									</View>
-								</View>
-							))}
+								))
+							) : (
+								<Text style={{ color: '#666', marginLeft: moderateScale(20), fontStyle: 'italic' }}>No top players found</Text>
+							)}
 						</ScrollView>
 
 						{/* Daily Spin Trigger */}
@@ -897,5 +983,38 @@ const styles = StyleSheet.create({
 		color: '#FFF',
 		fontWeight: 'bold',
 		fontSize: 16,
+	},
+	// Favorite Card Styles
+	favoriteCard: {
+		width: wp(40),
+		backgroundColor: '#1C1C1E',
+		borderRadius: moderateScale(16),
+		overflow: 'hidden',
+		borderWidth: 1,
+		borderColor: '#333',
+	},
+	favoriteImage: {
+		width: '100%',
+		height: hp(12),
+		backgroundColor: '#333',
+	},
+	favoriteInfo: {
+		padding: moderateScale(10),
+	},
+	favoriteName: {
+		color: '#fff',
+		fontSize: fontScale(12),
+		fontWeight: '600',
+		marginBottom: 4,
+	},
+	favoriteStats: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 4,
+	},
+	favoriteRating: {
+		color: '#FFB800',
+		fontSize: fontScale(10),
+		fontWeight: '700',
 	},
 });

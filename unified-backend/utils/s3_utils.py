@@ -87,15 +87,10 @@ async def upload_file_to_s3(file: UploadFile, folder: str = "uploads") -> str:
         # Reset file cursor for further use if needed (standard practice)
         await file.seek(0)
         
-        # Use proxy URL so the backend streams the image using server-side AWS credentials.
-        # This is required because the S3 bucket does not allow public access.
-        # API_BASE_URL must be set correctly in .env on the server (e.g. http://65.0.195.149:8000)
-        url = f"/api/media/{s3_key}"
-             
-        # Log the URL for debugging
-        logger.info(f"File uploaded successfully. Proxy URL: {url}")
-             
-        return url
+        # Return the S3 key (relative path). 
+        # The Pydantic schemas will resolve this to either a proxy URL or direct S3 URL.
+        # This keeps the database clean and environment-agnostic.
+        return s3_key
 
     except NoCredentialsError:
         logger.error("AWS Credentials not available.")

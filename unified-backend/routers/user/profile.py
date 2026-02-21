@@ -54,14 +54,27 @@ async def upload_avatar(
     current_user: Annotated[models.User, Depends(get_current_user)],
     db: Session = Depends(database.get_db)
 ):
+    print(f"[PROFILE] upload-avatar entry. User: {current_user.id}, File: {file.filename}")
     from utils.s3_utils import upload_file_to_s3
     
-    # Upload to S3
-    avatar_url = await upload_file_to_s3(file, folder="avatars")
-    
-    # Update User model
-    current_user.avatar_url = avatar_url
-    db.commit()
-    db.refresh(current_user)
-    
-    return {"avatar_url": avatar_url, "message": "Avatar updated successfully"}
+    try:
+        # Upload to S3
+        print(f"[PROFILE] Uploading {file.filename} to S3...")
+        avatar_url = await upload_file_to_s3(file, folder="avatars")
+        print(f"[PROFILE] S3 upload success. URL: {avatar_url}")
+        
+        # Update User model
+        current_user.avatar_url = avatar_url
+        db.commit()
+        db.refresh(current_user)
+        
+        print(f"[PROFILE] Database update success for user {current_user.id}")
+        return {"avatar_url": avatar_url, "message": "Avatar updated successfully"}
+    except Exception as e:
+        print(f"[PROFILE] upload-avatar error: {str(e)}")
+        raise
+
+@router.get("/top-players", response_model=List[schemas.TopPlayerResponse])
+def get_top_players(limit: int = 10, db: Session = Depends(database.get_db)):
+    """Get top players for the leaderboard"""
+    return crud.get_top_players(db, limit=limit)

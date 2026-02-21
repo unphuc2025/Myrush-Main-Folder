@@ -3,7 +3,7 @@ import { Edit2, Plus, Target, Trash2, Search, XCircle, Gamepad2 } from 'lucide-r
 import Drawer from './Drawer';
 import ToggleSwitch from './ToggleSwitch';
 import AddGameTypeForm from './AddGameTypeForm';
-import { gameTypesApi } from '../../services/adminApi';
+import { gameTypesApi, getImageUrl } from '../../services/adminApi';
 
 function GameTypesSettings() {
   const [gameTypes, setGameTypes] = useState([]);
@@ -140,7 +140,7 @@ function GameTypesSettings() {
               <div className="flex items-start justify-between mb-4">
                 <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center p-2 group-hover:scale-105 transition-transform">
                   {gameType.icon_url ? (
-                    <img src={`${gameType.icon_url}?t=${new Date().getTime()}`} alt={gameType.name} className="w-full h-full object-contain" />
+                    <img src={`${getImageUrl(gameType.icon_url)}?t=${new Date().getTime()}`} alt={gameType.name} className="w-full h-full object-contain" />
                   ) : (
                     <Gamepad2 className="h-7 w-7 text-slate-400" />
                   )}

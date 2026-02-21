@@ -10,6 +10,7 @@ import {
     Image,
     StatusBar,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +21,7 @@ import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { profileApi, ProfileData } from '../api/profile';
+import { favoritesApi, Venue } from '../api/venues';
 
 const { width } = Dimensions.get('window');
 
@@ -29,8 +31,9 @@ const ProfileOverviewScreen = () => {
     const navigation = useNavigation<RootNavigation>();
     const { user } = useAuthStore();
     const [profileData, setProfileData] = useState<ProfileData | null>(null);
-    // Start with false so store data renders immediately; API call will update if available
     const [isLoading, setIsLoading] = useState(false);
+    const [favoriteVenues, setFavoriteVenues] = useState<Venue[]>([]);
+    const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
 
     useEffect(() => {
         const fetchProfileData = async () => {
@@ -46,8 +49,29 @@ const ProfileOverviewScreen = () => {
             }
         };
 
+        const loadFavorites = async () => {
+            setIsLoadingFavorites(true);
+            const response = await favoritesApi.getFavorites();
+            if (response.success) {
+                setFavoriteVenues(response.data);
+            }
+            setIsLoadingFavorites(false);
+        };
+
         fetchProfileData();
+        loadFavorites();
     }, [user?.phoneNumber]);
+
+    const handleToggleFavorite = async (courtId: string) => {
+        const response = await favoritesApi.toggleFavorite(courtId);
+        if (response.success) {
+            // Refresh list
+            const favRes = await favoritesApi.getFavorites();
+            if (favRes.success) {
+                setFavoriteVenues(favRes.data);
+            }
+        }
+    };
 
     const renderMenuItem = (icon: any, title: string, onPress?: () => void, badge?: string) => (
         <TouchableOpacity style={styles.menuItem} onPress={onPress}>
@@ -55,7 +79,7 @@ const ProfileOverviewScreen = () => {
                 <Ionicons name={icon} size={moderateScale(20)} color={colors.primary} />
             </View>
             <Text style={styles.menuItemText}>{title}</Text>
-            {badge && (
+            {!!badge && (
                 <View style={styles.menuBadge}>
                     <Text style={styles.menuBadgeText}>{badge}</Text>
                 </View>
@@ -116,6 +140,62 @@ const ProfileOverviewScreen = () => {
                     </View>
                 </LinearGradient>
 
+                {/* Favorites Section */}
+                <View style={styles.favoritesSection}>
+                    <View style={styles.sectionHeaderContainer}>
+                        <Text style={styles.sectionHeader}>Your Favorites</Text>
+                        <TouchableOpacity onPress={() => navigation.navigate('Venues')}>
+                            <Text style={styles.viewAllText}>Explore</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {isLoadingFavorites ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="small" color={colors.primary} />
+                        </View>
+                    ) : favoriteVenues.length > 0 ? (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.favoritesScroll}
+                        >
+                            {favoriteVenues.map((item) => (
+                                <TouchableOpacity
+                                    key={item.id}
+                                    style={styles.favoriteCard}
+                                    onPress={() => navigation.navigate('VenueDetails', { venue: item })}
+                                >
+                                    <View style={styles.favoriteImageContainer}>
+                                        <Image
+                                            source={item.photos && item.photos.length > 0 ? { uri: item.photos[0] } : require('../../assets/dashboard-hero.png')}
+                                            style={styles.favoriteImage}
+                                        />
+                                        <TouchableOpacity
+                                            style={styles.heartButton}
+                                            onPress={() => handleToggleFavorite(item.id)}
+                                        >
+                                            <Ionicons name="heart" size={moderateScale(16)} color="#FF4757" />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={styles.favoriteInfo}>
+                                        <Text style={styles.favoriteName} numberOfLines={1}>{item.court_name}</Text>
+                                        <View style={styles.favoriteStats}>
+                                            <Ionicons name="star" size={moderateScale(10)} color="#FFB800" />
+                                            <Text style={styles.favoriteRating}>{item.rating?.toFixed(1) || '0.0'}</Text>
+                                            <Text style={styles.favoriteMeta}> • {item.game_type}</Text>
+                                        </View>
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    ) : (
+                        <View style={styles.emptyFavorites}>
+                            <Ionicons name="heart-outline" size={moderateScale(24)} color="#444" />
+                            <Text style={styles.emptyFavoritesText}>No favorites yet</Text>
+                        </View>
+                    )}
+                </View>
+
                 {/* Loyalty Program Section */}
                 {/* Loyalty Program Section - Hidden for MVP */}
                 {/* <TouchableOpacity
@@ -153,19 +233,27 @@ const ProfileOverviewScreen = () => {
                 {/* Stats Grid */}
                 <View style={styles.statsGrid}>
                     <View style={styles.statBox}>
-                        <Text style={styles.statNumber}>12</Text>
+                        <Text style={styles.statNumber}>{profileData?.games_played || 0}</Text>
                         <Text style={styles.statLabel}>Games</Text>
                     </View>
                     <View style={styles.statBox}>
-                        <Text style={styles.statNumber}>4.8</Text>
+                        <Text style={styles.statNumber}>{profileData?.rating || '5.0'}</Text>
                         <Text style={styles.statLabel}>Rating</Text>
                     </View>
                     <View style={styles.statBox}>
-                        <Text style={styles.statNumber}>8</Text>
-                        <Text style={styles.statLabel}>MVP</Text>
+                        <TouchableOpacity
+                            style={styles.mvpContainer}
+                            onPress={() => Alert.alert('MVP', 'Most Valuable Player: This is the number of times you have been voted as the best player in a match.')}
+                        >
+                            <Text style={styles.statNumber}>{profileData?.mvp_count || 0}</Text>
+                            <View style={styles.mvpLabelRow}>
+                                <Text style={styles.statLabel}>MVP</Text>
+                                <Ionicons name="information-circle-outline" size={moderateScale(12)} color="#888" style={{ marginLeft: 4 }} />
+                            </View>
+                        </TouchableOpacity>
                     </View>
                     <View style={styles.statBox}>
-                        <Text style={styles.statNumber}>92%</Text>
+                        <Text style={styles.statNumber}>{profileData?.reliability_score || 100}%</Text>
                         <Text style={styles.statLabel}>Reliability</Text>
                     </View>
                 </View>
@@ -184,7 +272,7 @@ const ProfileOverviewScreen = () => {
 
                     <Text style={[styles.sectionHeader, { marginTop: hp(3) }]}>Support</Text>
                     {renderMenuItem('help-circle-outline', 'Help & Support', () => navigation.navigate('Support'))}
-                    {renderMenuItem('shield-checkmark-outline', 'Privacy Policy', () => alert('Coming Soon'))}
+                    {renderMenuItem('shield-checkmark-outline', 'Privacy Policy', () => navigation.navigate('PrivacyPolicy' as any))}
 
                     <TouchableOpacity
                         style={styles.logoutButton}
@@ -397,6 +485,13 @@ const styles = StyleSheet.create({
         fontSize: fontScale(10),
         color: '#888',
     },
+    mvpContainer: {
+        alignItems: 'center',
+    },
+    mvpLabelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     menuContainer: {
         backgroundColor: '#1C1C1E',
         borderRadius: moderateScale(16),
@@ -461,6 +556,96 @@ const styles = StyleSheet.create({
         color: '#444',
         fontSize: fontScale(12),
         marginBottom: hp(2),
+    },
+    // Favorites Styles
+    favoritesSection: {
+        marginBottom: hp(3),
+    },
+    sectionHeaderContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: hp(1.5),
+    },
+    viewAllText: {
+        fontSize: fontScale(12),
+        color: colors.primary,
+        fontWeight: '600',
+    },
+    favoritesScroll: {
+        paddingRight: wp(5),
+    },
+    favoriteCard: {
+        width: wp(45),
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(16),
+        marginRight: wp(4),
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    favoriteImageContainer: {
+        width: '100%',
+        height: hp(12),
+        position: 'relative',
+    },
+    favoriteImage: {
+        width: '100%',
+        height: '100%',
+    },
+    heartButton: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        width: moderateScale(28),
+        height: moderateScale(28),
+        borderRadius: moderateScale(14),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    favoriteInfo: {
+        padding: wp(3),
+    },
+    favoriteName: {
+        fontSize: fontScale(14),
+        fontWeight: '700',
+        color: '#fff',
+        marginBottom: 4,
+    },
+    favoriteStats: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    favoriteRating: {
+        fontSize: fontScale(10),
+        color: '#FFB800',
+        fontWeight: '700',
+        marginLeft: 2,
+    },
+    favoriteMeta: {
+        fontSize: fontScale(10),
+        color: '#888',
+    },
+    emptyFavorites: {
+        backgroundColor: '#1C1C1E',
+        height: hp(12),
+        borderRadius: moderateScale(16),
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderStyle: 'dashed',
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    emptyFavoritesText: {
+        color: '#444',
+        fontSize: fontScale(12),
+        marginTop: 4,
+    },
+    loadingContainer: {
+        height: hp(12),
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
 

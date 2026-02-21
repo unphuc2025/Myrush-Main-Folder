@@ -30,6 +30,13 @@ export interface Branch {
   address_line1?: string;
 }
 
+export interface Player {
+  id: string;
+  name: string;
+  rating: number;
+  avatar_url?: string;
+}
+
 export interface SaveProfileResponse {
   success: boolean;
   message: string;
@@ -51,6 +58,11 @@ export interface ProfileData {
   avatar_url?: string; // Added avatar_url
   created_at: string;
   updated_at?: string;
+  // Stats
+  games_played: number;
+  mvp_count: number;
+  reliability_score: number;
+  rating: number;
 }
 
 export const profileApi = {
@@ -169,18 +181,15 @@ export const profileApi = {
   uploadAvatar: async (formData: FormData): Promise<SaveProfileResponse> => {
     try {
       const token = await apiClient.getToken();
-      // Use the singleton instance's base URL (cleaner than requiring)
-      const { API_BASE_URL } = require('./apiClient');
       const baseUrl = API_BASE_URL.replace(/\/$/, '');
       const url = `${baseUrl}/profile/upload-avatar`;
 
-      console.log(`[PROFILE API] Uploading avatar to ${url} using fetch`);
+      console.log(`[PROFILE API] Uploading avatar to ${url}`);
 
       const headers: any = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      // CRITICAL: Do NOT set Content-Type for FormData. Fetch will set it with the boundary.
 
       const response = await fetch(url, {
         method: 'POST',
@@ -188,9 +197,15 @@ export const profileApi = {
         body: formData,
       });
 
-      console.log('[PROFILE API] Response status:', response.status);
+      console.log(`[PROFILE API] Response status: ${response.status}`);
+      const responseText = await response.text();
 
-      const data = await response.json();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Server returned non-JSON response (Status ${response.status})`);
+      }
 
       if (!response.ok) {
         throw new Error(data.detail || data.message || 'Failed to upload avatar');
@@ -208,6 +223,41 @@ export const profileApi = {
         message: error.message || 'Failed to upload avatar',
         error: error.message,
       };
+    }
+  },
+
+  getTopPlayers: async (limit: number = 10): Promise<{ success: boolean; data: Player[]; error?: string }> => {
+    try {
+      const data = await apiClient.get<Player[]>(`/profile/top-players?limit=${limit}`);
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      console.error('[PROFILE API] Failed to fetch top players:', error.message);
+      return {
+        success: false,
+        data: [],
+        error: error.message,
+      };
+    }
+  },
+
+  getFaqs: async (): Promise<{ success: boolean; data: any; error?: string }> => {
+    try {
+      const data = await apiClient.get<any>('/faq/');
+      return { success: true, data };
+    } catch (error: any) {
+      return { success: false, data: null, error: error.message };
+    }
+  },
+
+  getPrivacyPolicy: async (): Promise<{ success: boolean; data: any; error?: string }> => {
+    try {
+      const data = await apiClient.get<any>('/policies/privacy-policy');
+      return { success: true, data };
+    } catch (error: any) {
+      return { success: false, data: null, error: error.message };
     }
   },
 };

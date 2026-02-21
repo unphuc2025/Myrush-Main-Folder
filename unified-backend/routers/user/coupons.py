@@ -3,8 +3,11 @@ from sqlalchemy.orm import Session
 from database import get_db
 from schemas import CouponValidateRequest, CouponResponse
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Annotated
 from pydantic import BaseModel
+import models
+from dependencies import get_current_user
+from utils.coupon_utils import validate_coupon_strictly
 
 class AvailableCouponResponse(BaseModel):
     code: str
@@ -19,74 +22,31 @@ class AvailableCouponResponse(BaseModel):
 router = APIRouter(prefix="/coupons", tags=["coupons"])
 
 @router.post("/validate", response_model=CouponResponse)
-def validate_coupon(request: CouponValidateRequest, db: Session = Depends(get_db)):
+def validate_coupon(
+    request: CouponValidateRequest, 
+    db: Session = Depends(get_db),
+    current_user: Annotated[Optional[models.User], Depends(get_current_user)] = None
+):
     """
-    Validate a coupon code and calculate discount
+    Validate a coupon code and calculate discount (Optional auth for per-user limits)
     """
-    from sqlalchemy import text
-
     try:
-        # Query to find the coupon
-        query = text("""
-            SELECT code, discount_type, discount_value, min_order_value, max_discount,
-                   start_date, end_date, is_active
-            FROM admin_coupons
-            WHERE code = :code AND is_active = true
-        """)
-
-        result = db.execute(query, {"code": request.coupon_code.upper()}).fetchone()
-
-        if not result:
-            return CouponResponse(
-                valid=False,
-                message="Invalid coupon code"
-            )
-
-        code, discount_type, discount_value, min_order_value, max_discount, start_date, end_date, is_active = result
-
-        # Check if coupon is within valid date range
-        now = datetime.utcnow()
-        if now < start_date or now > end_date:
-            return CouponResponse(
-                valid=False,
-                message="Coupon has expired or is not yet valid"
-            )
-
-        # Check minimum order value
-        if min_order_value and request.total_amount < float(min_order_value):
-            return CouponResponse(
-                valid=False,
-                message=f"Order value must be at least ₹{min_order_value} to use this coupon"
-            )
-
-        # Calculate discount based on type
-        if discount_type.lower() == 'percentage':
-            discount_amount = (request.total_amount * float(discount_value)) / 100
-            discount_percentage = float(discount_value)
-        else:  # fixed amount
-            discount_amount = float(discount_value)
-            discount_percentage = (discount_amount / request.total_amount) * 100
-
-        # Apply max discount limit if set
-        if max_discount and discount_amount > float(max_discount):
-            discount_amount = float(max_discount)
-
-        final_amount = request.total_amount - discount_amount
-
-        # Ensure final amount is not negative
-        final_amount = max(0, final_amount)
-
+        user_id = current_user.id if current_user else None
+        result = validate_coupon_strictly(db, request.coupon_code, request.total_amount, user_id)
+        
+        if not result["valid"]:
+            return CouponResponse(valid=False, message=result["message"])
+            
         return CouponResponse(
             valid=True,
-            discount_percentage=round(discount_percentage, 2),
-            discount_amount=round(discount_amount, 2),
-            final_amount=round(final_amount, 2),
-            message=f"Valid coupon: {discount_percentage}% discount applied"
+            discount_percentage=result["discount_percentage"],
+            discount_amount=result["discount_amount"],
+            final_amount=result["final_amount"],
+            message=result["message"]
         )
-
     except Exception as e:
+        print(f"[COUPONS API] Error validating: {e}")
         raise HTTPException(status_code=500, detail=f"Error validating coupon: {str(e)}")
-
 
 @router.get("/available", response_model=List[AvailableCouponResponse])
 def get_available_coupons(db: Session = Depends(get_db)):
@@ -96,13 +56,14 @@ def get_available_coupons(db: Session = Depends(get_db)):
     from sqlalchemy import text
 
     try:
-        # Query to get all active coupons within valid date range
+        # Query to get all active coupons within valid date range and under usage limit
         query = text("""
             SELECT code, discount_type, discount_value, min_order_value, description
             FROM admin_coupons
             WHERE is_active = true
                 AND start_date <= NOW()
                 AND end_date >= NOW()
+                AND (usage_limit IS NULL OR usage_count < usage_limit)
             ORDER BY code ASC
         """)
 

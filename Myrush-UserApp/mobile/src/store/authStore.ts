@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as authApi from '../api/auth';
 import { apiClient, USER_KEY } from '../api/apiClient';
+import { getImageUrl } from '../config/env';
 
 export interface UserProfile {
   id: string;
@@ -39,7 +40,7 @@ interface AuthState {
   loginWithPhone: (phoneNumber: string, otpCode: string, profileData?: any) => Promise<boolean>;
   register: (data: RegisterData) => Promise<boolean>;
   logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
+  checkAuth: (silent?: boolean) => Promise<void>;
   clearError: () => void;
   setAuthSuccess: (token: string) => Promise<void>;
 }
@@ -68,7 +69,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           firstName: user.first_name,
           lastName: user.last_name,
           city: user.city,
-          avatarUrl: user.avatar_url,
+          avatarUrl: getImageUrl(user.avatar_url),
         },
         token: token,
         isAuthenticated: true,
@@ -92,7 +93,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           firstName: user.first_name,
           lastName: user.last_name,
           city: user.city,
-          avatarUrl: user.avatar_url,
+          avatarUrl: getImageUrl(user.avatar_url),
         },
         token: await apiClient.getToken() || '',
         isAuthenticated: true,
@@ -214,9 +215,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 
-  checkAuth: async (): Promise<void> => {
-    console.log('[AUTH] Starting checkAuth...');
-    set({ isLoading: true });
+  checkAuth: async (silent: boolean = false): Promise<void> => {
+    console.log(`[AUTH] Starting checkAuth (silent: ${silent})...`);
+    if (!silent) set({ isLoading: true });
 
     try {
       // 1. Check if we have a token
@@ -257,7 +258,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             firstName: user.first_name,
             lastName: user.last_name,
             city: user.city,
-            avatarUrl: user.avatar_url,
+            avatarUrl: getImageUrl(user.avatar_url),
           },
           token: token,
           isAuthenticated: true, // We have a working token and fresh user data
@@ -292,7 +293,7 @@ export const useAuthStore = create<AuthState>((set) => ({
               firstName: user.first_name,
               lastName: user.last_name,
               city: user.city,
-              avatarUrl: user.avatar_url,
+              avatarUrl: getImageUrl(user.avatar_url),
             },
             token: token,
             isAuthenticated: true, // Optimistically authenticated offline

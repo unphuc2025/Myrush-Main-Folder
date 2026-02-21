@@ -2498,3 +2498,342 @@
     "request_body": null
   }
 }
+{
+  "timestamp": "2026-02-20T18:48:39.957002Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '7332625f-bf8f-465f-b64d-1c3bced65260'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '7332625f-bf8f-465f-b64d-1c3bced65260'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://192.168.1.3:8000/api/user/profile/branches?city_id=7332625f-bf8f-465f-b64d-1c3bced65260",
+    "path": "/api/user/profile/branches",
+    "query_params": {
+      "city_id": "7332625f-bf8f-465f-b64d-1c3bced65260"
+    },
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "***MASKED***",
+      "host": "192.168.1.3:8000",
+      "connection": "Keep-Alive",
+      "accept-encoding": "gzip",
+      "user-agent": "okhttp/4.12.0",
+      "if-modified-since": "Fri, 20 Feb 2026 09:19:50 GMT"
+    },
+    "client_ip": "192.168.1.2",
+    "user_agent": "okhttp/4.12.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-20T18:48:41.271701Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '48932793-13c7-4f70-9ae9-118371c1600d'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '48932793-13c7-4f70-9ae9-118371c1600d'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://192.168.1.3:8000/api/user/profile/branches?city_id=48932793-13c7-4f70-9ae9-118371c1600d",
+    "path": "/api/user/profile/branches",
+    "query_params": {
+      "city_id": "48932793-13c7-4f70-9ae9-118371c1600d"
+    },
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "***MASKED***",
+      "host": "192.168.1.3:8000",
+      "connection": "Keep-Alive",
+      "accept-encoding": "gzip",
+      "user-agent": "okhttp/4.12.0"
+    },
+    "client_ip": "192.168.1.2",
+    "user_agent": "okhttp/4.12.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-20T18:48:54.134390Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '0d15d68a-bbf2-4ef5-b478-9bb628a6a167'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '0d15d68a-bbf2-4ef5-b478-9bb628a6a167'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://192.168.1.3:8000/api/user/profile/branches?city_id=0d15d68a-bbf2-4ef5-b478-9bb628a6a167",
+    "path": "/api/user/profile/branches",
+    "query_params": {
+      "city_id": "0d15d68a-bbf2-4ef5-b478-9bb628a6a167"
+    },
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "***MASKED***",
+      "host": "192.168.1.3:8000",
+      "connection": "Keep-Alive",
+      "accept-encoding": "gzip",
+      "user-agent": "okhttp/4.12.0",
+      "if-modified-since": "Fri, 20 Feb 2026 09:21:00 GMT"
+    },
+    "client_ip": "192.168.1.2",
+    "user_agent": "okhttp/4.12.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-20T18:48:55.477542Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '48932793-13c7-4f70-9ae9-118371c1600d'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '48932793-13c7-4f70-9ae9-118371c1600d'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://192.168.1.3:8000/api/user/profile/branches?city_id=48932793-13c7-4f70-9ae9-118371c1600d",
+    "path": "/api/user/profile/branches",
+    "query_params": {
+      "city_id": "48932793-13c7-4f70-9ae9-118371c1600d"
+    },
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "***MASKED***",
+      "host": "192.168.1.3:8000",
+      "connection": "Keep-Alive",
+      "accept-encoding": "gzip",
+      "user-agent": "okhttp/4.12.0"
+    },
+    "client_ip": "192.168.1.2",
+    "user_agent": "okhttp/4.12.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-20T18:48:57.700489Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '7332625f-bf8f-465f-b64d-1c3bced65260'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '7332625f-bf8f-465f-b64d-1c3bced65260'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://192.168.1.3:8000/api/user/profile/branches?city_id=7332625f-bf8f-465f-b64d-1c3bced65260",
+    "path": "/api/user/profile/branches",
+    "query_params": {
+      "city_id": "7332625f-bf8f-465f-b64d-1c3bced65260"
+    },
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "***MASKED***",
+      "host": "192.168.1.3:8000",
+      "connection": "Keep-Alive",
+      "accept-encoding": "gzip",
+      "user-agent": "okhttp/4.12.0",
+      "if-modified-since": "Fri, 20 Feb 2026 09:19:50 GMT"
+    },
+    "client_ip": "192.168.1.2",
+    "user_agent": "okhttp/4.12.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-20T18:48:59.320609Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '1d0e64bb-e916-4932-bcc2-63c68b50896c'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column admin_branches.latitude does not exist\nLINE 1: ...es.opening_hours AS admin_branches_opening_hours, admin_bran...\n                                                             ^\n\n[SQL: SELECT admin_branches.id AS admin_branches_id, admin_branches.city_id AS admin_branches_city_id, admin_branches.area_id AS admin_branches_area_id, admin_branches.name AS admin_branches_name, admin_branches.address_line1 AS admin_branches_address_line1, admin_branches.address_line2 AS admin_branches_address_line2, admin_branches.landmark AS admin_branches_landmark, admin_branches.search_location AS admin_branches_search_location, admin_branches.ground_overview AS admin_branches_ground_overview, admin_branches.terms_condition AS admin_branches_terms_condition, admin_branches.rule AS admin_branches_rule, admin_branches.google_map_url AS admin_branches_google_map_url, admin_branches.location_url AS admin_branches_location_url, admin_branches.price AS admin_branches_price, admin_branches.max_players AS admin_branches_max_players, admin_branches.phone_number AS admin_branches_phone_number, admin_branches.email AS admin_branches_email, admin_branches.ground_type AS admin_branches_ground_type, admin_branches.images AS admin_branches_images, admin_branches.videos AS admin_branches_videos, admin_branches.opening_hours AS admin_branches_opening_hours, admin_branches.latitude AS admin_branches_latitude, admin_branches.longitude AS admin_branches_longitude, admin_branches.is_active AS admin_branches_is_active, admin_branches.created_at AS admin_branches_created_at, admin_branches.updated_at AS admin_branches_updated_at \nFROM admin_branches \nWHERE admin_branches.is_active = true AND admin_branches.city_id = %(city_id_1)s::UUID]\n[parameters: {'city_id_1': '1d0e64bb-e916-4932-bcc2-63c68b50896c'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://192.168.1.3:8000/api/user/profile/branches?city_id=1d0e64bb-e916-4932-bcc2-63c68b50896c",
+    "path": "/api/user/profile/branches",
+    "query_params": {
+      "city_id": "1d0e64bb-e916-4932-bcc2-63c68b50896c"
+    },
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "***MASKED***",
+      "host": "192.168.1.3:8000",
+      "connection": "Keep-Alive",
+      "accept-encoding": "gzip",
+      "user-agent": "okhttp/4.12.0"
+    },
+    "client_ip": "192.168.1.2",
+    "user_agent": "okhttp/4.12.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-21T06:35:59.529828Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ResponseValidationError: 1 validation error:\n  {'type': 'get_attribute_error', 'loc': ('response', 'profile'), 'msg': \"Error extracting attribute: ProgrammingError: (psycopg2.errors.UndefinedColumn) column profiles.games_played does not exist\\nLINE 1: ...profiles.playing_style AS profiles_playing_style, profiles.g...\\n                                                             ^\\n\\n[SQL: SELECT profiles.id AS profiles_id, profiles.phone_number AS profiles_phone_number, profiles.full_name AS profiles_full_name, profiles.age AS profiles_age, profiles.city AS profiles_city, profiles.gender AS profiles_gender, profiles.handedness AS profiles_handedness, profiles.skill_level AS profiles_skill_level, profiles.sports AS profiles_sports, profiles.playing_style AS profiles_playing_style, profiles.games_played AS profiles_games_played, profiles.mvp_count AS profiles_mvp_count, profiles.reliability_score AS profiles_reliability_score, profiles.rating AS profiles_rating, profiles.created_at AS profiles_created_at, profiles.updated_at AS profiles_updated_at \\nFROM profiles \\nWHERE profiles.id = %(pk_1)s::UUID]\\n[parameters: {'pk_1': UUID('6b813c15-ca22-420f-88dc-8df4a20d1343')}]\\n(Background on this error at: https://sqlalche.me/e/20/f405)\", 'input': <models.User object at 0x000001AE7509F680>, 'ctx': {'error': \"ProgrammingError: (psycopg2.errors.UndefinedColumn) column profiles.games_played does not exist\\nLINE 1: ...profiles.playing_style AS profiles_playing_style, profiles.g...\\n                                                             ^\\n\\n[SQL: SELECT profiles.id AS profiles_id, profiles.phone_number AS profiles_phone_number, profiles.full_name AS profiles_full_name, profiles.age AS profiles_age, profiles.city AS profiles_city, profiles.gender AS profiles_gender, profiles.handedness AS profiles_handedness, profiles.skill_level AS profiles_skill_level, profiles.sports AS profiles_sports, profiles.playing_style AS profiles_playing_style, profiles.games_played AS profiles_games_played, profiles.mvp_count AS profiles_mvp_count, profiles.reliability_score AS profiles_reliability_score, profiles.rating AS profiles_rating, profiles.created_at AS profiles_created_at, profiles.updated_at AS profiles_updated_at \\nFROM profiles \\nWHERE profiles.id = %(pk_1)s::UUID]\\n[parameters: {'pk_1': UUID('6b813c15-ca22-420f-88dc-8df4a20d1343')}]\\n(Background on this error at: https://sqlalche.me/e/20/f405)\"}}\n\n  File \"C:\\myrush-Main-folder\\unified-backend\\routers\\user\\auth.py\", line 307, in read_users_me\n    GET /api/user/auth/profile",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ResponseValidationError",
+  "error_message": "1 validation error:\n  {'type': 'get_attribute_error', 'loc': ('response', 'profile'), 'msg': \"Error extracting attribute: ProgrammingError: (psycopg2.errors.UndefinedColumn) column profiles.games_played does not exist\\nLINE 1: ...profiles.playing_style AS profiles_playing_style, profiles.g...\\n                                                             ^\\n\\n[SQL: SELECT profiles.id AS profiles_id, profiles.phone_number AS profiles_phone_number, profiles.full_name AS profiles_full_name, profiles.age AS profiles_age, profiles.city AS profiles_city, profiles.gender AS profiles_gender, profiles.handedness AS profiles_handedness, profiles.skill_level AS profiles_skill_level, profiles.sports AS profiles_sports, profiles.playing_style AS profiles_playing_style, profiles.games_played AS profiles_games_played, profiles.mvp_count AS profiles_mvp_count, profiles.reliability_score AS profiles_reliability_score, profiles.rating AS profiles_rating, profiles.created_at AS profiles_created_at, profiles.updated_at AS profiles_updated_at \\nFROM profiles \\nWHERE profiles.id = %(pk_1)s::UUID]\\n[parameters: {'pk_1': UUID('6b813c15-ca22-420f-88dc-8df4a20d1343')}]\\n(Background on this error at: https://sqlalche.me/e/20/f405)\", 'input': <models.User object at 0x000001AE7509F680>, 'ctx': {'error': \"ProgrammingError: (psycopg2.errors.UndefinedColumn) column profiles.games_played does not exist\\nLINE 1: ...profiles.playing_style AS profiles_playing_style, profiles.g...\\n                                                             ^\\n\\n[SQL: SELECT profiles.id AS profiles_id, profiles.phone_number AS profiles_phone_number, profiles.full_name AS profiles_full_name, profiles.age AS profiles_age, profiles.city AS profiles_city, profiles.gender AS profiles_gender, profiles.handedness AS profiles_handedness, profiles.skill_level AS profiles_skill_level, profiles.sports AS profiles_sports, profiles.playing_style AS profiles_playing_style, profiles.games_played AS profiles_games_played, profiles.mvp_count AS profiles_mvp_count, profiles.reliability_score AS profiles_reliability_score, profiles.rating AS profiles_rating, profiles.created_at AS profiles_created_at, profiles.updated_at AS profiles_updated_at \\nFROM profiles \\nWHERE profiles.id = %(pk_1)s::UUID]\\n[parameters: {'pk_1': UUID('6b813c15-ca22-420f-88dc-8df4a20d1343')}]\\n(Background on this error at: https://sqlalche.me/e/20/f405)\"}}\n\n  File \"C:\\myrush-Main-folder\\unified-backend\\routers\\user\\auth.py\", line 307, in read_users_me\n    GET /api/user/auth/profile",
+  "request_context": {
+    "method": "GET",
+    "url": "http://192.168.1.3:8000/api/user/auth/profile",
+    "path": "/api/user/auth/profile",
+    "query_params": {},
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "***MASKED***",
+      "host": "192.168.1.3:8000",
+      "connection": "Keep-Alive",
+      "accept-encoding": "gzip",
+      "user-agent": "okhttp/4.12.0",
+      "if-modified-since": "Sat, 21 Feb 2026 06:02:07 GMT"
+    },
+    "client_ip": "192.168.1.2",
+    "user_agent": "okhttp/4.12.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ResponseValidationError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-21T06:36:00.148172Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column profiles.games_played does not exist\nLINE 1: ...profiles.playing_style AS profiles_playing_style, profiles.g...\n                                                             ^\n\n[SQL: SELECT profiles.id AS profiles_id, profiles.phone_number AS profiles_phone_number, profiles.full_name AS profiles_full_name, profiles.age AS profiles_age, profiles.city AS profiles_city, profiles.gender AS profiles_gender, profiles.handedness AS profiles_handedness, profiles.skill_level AS profiles_skill_level, profiles.sports AS profiles_sports, profiles.playing_style AS profiles_playing_style, profiles.games_played AS profiles_games_played, profiles.mvp_count AS profiles_mvp_count, profiles.reliability_score AS profiles_reliability_score, profiles.rating AS profiles_rating, profiles.created_at AS profiles_created_at, profiles.updated_at AS profiles_updated_at \nFROM profiles \nWHERE profiles.id = %(id_1)s::UUID \n LIMIT %(param_1)s]\n[parameters: {'id_1': UUID('6b813c15-ca22-420f-88dc-8df4a20d1343'), 'param_1': 1}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column profiles.games_played does not exist\nLINE 1: ...profiles.playing_style AS profiles_playing_style, profiles.g...\n                                                             ^\n\n[SQL: SELECT profiles.id AS profiles_id, profiles.phone_number AS profiles_phone_number, profiles.full_name AS profiles_full_name, profiles.age AS profiles_age, profiles.city AS profiles_city, profiles.gender AS profiles_gender, profiles.handedness AS profiles_handedness, profiles.skill_level AS profiles_skill_level, profiles.sports AS profiles_sports, profiles.playing_style AS profiles_playing_style, profiles.games_played AS profiles_games_played, profiles.mvp_count AS profiles_mvp_count, profiles.reliability_score AS profiles_reliability_score, profiles.rating AS profiles_rating, profiles.created_at AS profiles_created_at, profiles.updated_at AS profiles_updated_at \nFROM profiles \nWHERE profiles.id = %(id_1)s::UUID \n LIMIT %(param_1)s]\n[parameters: {'id_1': UUID('6b813c15-ca22-420f-88dc-8df4a20d1343'), 'param_1': 1}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://192.168.1.3:8000/api/user/profile/",
+    "path": "/api/user/profile/",
+    "query_params": {},
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "***MASKED***",
+      "host": "192.168.1.3:8000",
+      "connection": "Keep-Alive",
+      "accept-encoding": "gzip",
+      "user-agent": "okhttp/4.12.0",
+      "if-modified-since": "Sat, 21 Feb 2026 06:13:27 GMT"
+    },
+    "client_ip": "192.168.1.2",
+    "user_agent": "okhttp/4.12.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-21T06:36:00.828840Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column profiles.games_played does not exist\nLINE 1: ...profiles.playing_style AS profiles_playing_style, profiles.g...\n                                                             ^\n\n[SQL: SELECT profiles.id AS profiles_id, profiles.phone_number AS profiles_phone_number, profiles.full_name AS profiles_full_name, profiles.age AS profiles_age, profiles.city AS profiles_city, profiles.gender AS profiles_gender, profiles.handedness AS profiles_handedness, profiles.skill_level AS profiles_skill_level, profiles.sports AS profiles_sports, profiles.playing_style AS profiles_playing_style, profiles.games_played AS profiles_games_played, profiles.mvp_count AS profiles_mvp_count, profiles.reliability_score AS profiles_reliability_score, profiles.rating AS profiles_rating, profiles.created_at AS profiles_created_at, profiles.updated_at AS profiles_updated_at \nFROM profiles \nWHERE profiles.id = %(id_1)s::UUID \n LIMIT %(param_1)s]\n[parameters: {'id_1': UUID('6b813c15-ca22-420f-88dc-8df4a20d1343'), 'param_1': 1}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column profiles.games_played does not exist\nLINE 1: ...profiles.playing_style AS profiles_playing_style, profiles.g...\n                                                             ^\n\n[SQL: SELECT profiles.id AS profiles_id, profiles.phone_number AS profiles_phone_number, profiles.full_name AS profiles_full_name, profiles.age AS profiles_age, profiles.city AS profiles_city, profiles.gender AS profiles_gender, profiles.handedness AS profiles_handedness, profiles.skill_level AS profiles_skill_level, profiles.sports AS profiles_sports, profiles.playing_style AS profiles_playing_style, profiles.games_played AS profiles_games_played, profiles.mvp_count AS profiles_mvp_count, profiles.reliability_score AS profiles_reliability_score, profiles.rating AS profiles_rating, profiles.created_at AS profiles_created_at, profiles.updated_at AS profiles_updated_at \nFROM profiles \nWHERE profiles.id = %(id_1)s::UUID \n LIMIT %(param_1)s]\n[parameters: {'id_1': UUID('6b813c15-ca22-420f-88dc-8df4a20d1343'), 'param_1': 1}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://192.168.1.3:8000/api/user/profile/",
+    "path": "/api/user/profile/",
+    "query_params": {},
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "***MASKED***",
+      "host": "192.168.1.3:8000",
+      "connection": "Keep-Alive",
+      "accept-encoding": "gzip",
+      "user-agent": "okhttp/4.12.0",
+      "if-modified-since": "Sat, 21 Feb 2026 06:13:27 GMT"
+    },
+    "client_ip": "192.168.1.2",
+    "user_agent": "okhttp/4.12.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-21T06:37:54.750791Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ProgrammingError: (psycopg2.errors.UndefinedColumn) column profiles.games_played does not exist\nLINE 1: ...profiles.playing_style AS profiles_playing_style, profiles.g...\n                                                             ^\n\n[SQL: SELECT profiles.id AS profiles_id, profiles.phone_number AS profiles_phone_number, profiles.full_name AS profiles_full_name, profiles.age AS profiles_age, profiles.city AS profiles_city, profiles.gender AS profiles_gender, profiles.handedness AS profiles_handedness, profiles.skill_level AS profiles_skill_level, profiles.sports AS profiles_sports, profiles.playing_style AS profiles_playing_style, profiles.games_played AS profiles_games_played, profiles.mvp_count AS profiles_mvp_count, profiles.reliability_score AS profiles_reliability_score, profiles.rating AS profiles_rating, profiles.created_at AS profiles_created_at, profiles.updated_at AS profiles_updated_at \nFROM profiles \nWHERE profiles.id = %(id_1)s::UUID \n LIMIT %(param_1)s]\n[parameters: {'id_1': UUID('6b813c15-ca22-420f-88dc-8df4a20d1343'), 'param_1': 1}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ProgrammingError",
+  "error_message": "(psycopg2.errors.UndefinedColumn) column profiles.games_played does not exist\nLINE 1: ...profiles.playing_style AS profiles_playing_style, profiles.g...\n                                                             ^\n\n[SQL: SELECT profiles.id AS profiles_id, profiles.phone_number AS profiles_phone_number, profiles.full_name AS profiles_full_name, profiles.age AS profiles_age, profiles.city AS profiles_city, profiles.gender AS profiles_gender, profiles.handedness AS profiles_handedness, profiles.skill_level AS profiles_skill_level, profiles.sports AS profiles_sports, profiles.playing_style AS profiles_playing_style, profiles.games_played AS profiles_games_played, profiles.mvp_count AS profiles_mvp_count, profiles.reliability_score AS profiles_reliability_score, profiles.rating AS profiles_rating, profiles.created_at AS profiles_created_at, profiles.updated_at AS profiles_updated_at \nFROM profiles \nWHERE profiles.id = %(id_1)s::UUID \n LIMIT %(param_1)s]\n[parameters: {'id_1': UUID('6b813c15-ca22-420f-88dc-8df4a20d1343'), 'param_1': 1}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+  "request_context": {
+    "method": "GET",
+    "url": "http://192.168.1.3:8000/api/user/profile/",
+    "path": "/api/user/profile/",
+    "query_params": {},
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "***MASKED***",
+      "host": "192.168.1.3:8000",
+      "connection": "Keep-Alive",
+      "accept-encoding": "gzip",
+      "user-agent": "okhttp/4.12.0",
+      "if-modified-since": "Sat, 21 Feb 2026 06:13:27 GMT"
+    },
+    "client_ip": "192.168.1.2",
+    "user_agent": "okhttp/4.12.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ProgrammingError",
+    "request_body": null
+  }
+}

@@ -36,6 +36,7 @@ import SupportScreen from '../screens/SupportScreen';
 import EventsScreen from '../screens/EventsScreen';
 import RedemptionStoreScreen from '../screens/RedemptionStoreScreen';
 import MembershipScreen from '../screens/MembershipScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { RootStackParamList } from '../types';
@@ -219,6 +220,7 @@ export const AppNavigator = () => {
             />
             <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
             <Stack.Screen name="BookingSuccess" component={BookingSuccessScreen} />
+            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
           </>
         ) : (
           <>

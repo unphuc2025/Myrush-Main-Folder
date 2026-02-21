@@ -22,6 +22,7 @@ import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
 import courtsApi from '../api/courts';
+import { venuesApi, favoritesApi } from '../api/venues';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +40,11 @@ const VenueDetailsScreen: React.FC = () => {
     const [ratings, setRatings] = useState({ average_rating: 0, total_reviews: 0 });
     const [reviews, setReviews] = useState<any[]>([]);
     const [isLoadingRatings, setIsLoadingRatings] = useState(true);
+
+    // Sports (Courts) management
+    const [availableCourts, setAvailableCourts] = useState<any[]>([]);
+    const [selectedCourt, setSelectedCourt] = useState<any>(null);
+    const [isLoadingCourts, setIsLoadingCourts] = useState(true);
 
     // Get venue data from params
     const paramsVenue = route.params?.venue;
@@ -60,6 +66,8 @@ const VenueDetailsScreen: React.FC = () => {
         terms_and_conditions: 'Default terms and conditions apply.',
         rules: 'Standard rules apply.',
         googleMapUrl: '',
+        opening_hours: null as any,
+        is_favorite: false,
     };
 
     // Map the API venue data to the screen's expected format
@@ -67,29 +75,88 @@ const VenueDetailsScreen: React.FC = () => {
         id: paramsVenue.id,
         name: paramsVenue.court_name || paramsVenue.branch_name || 'Unnamed Court',
         location: paramsVenue.location || `${paramsVenue.branch_name}, ${paramsVenue.city_name}`,
-        rating: ratings.average_rating || 0,
-        reviews: ratings.total_reviews || 0,
+        rating: paramsVenue.rating || ratings.average_rating || 0,
+        reviews: paramsVenue.reviews || ratings.total_reviews || 0,
         price: paramsVenue.prices,
-        image: paramsVenue.photos && paramsVenue.photos.length > 0
-            ? { uri: paramsVenue.photos[0] }
-            : require('../../assets/dashboard-hero.png'),
+        // Point 5 & 6: Use dynamic image from selected court or venue photos
+        image: (selectedCourt?.photos && selectedCourt.photos.length > 0)
+            ? { uri: selectedCourt.photos[0] }
+            : (paramsVenue.photos && paramsVenue.photos.length > 0)
+                ? { uri: paramsVenue.photos[0] }
+                : require('../../assets/dashboard-hero.png'),
         amenities: paramsVenue.amenities || [],
         about: paramsVenue.description || paramsVenue.ground_overview || `Premium ${paramsVenue.game_type} facility at ${paramsVenue.branch_name}. Book your slots now for the best playing experience.`,
         terms_and_conditions: paramsVenue.terms_condition || paramsVenue.terms_and_conditions || 'Standard booking terms apply. Cancellations must be made 24 hours in advance.',
         rules: paramsVenue.rule || '',
         googleMapUrl: paramsVenue.google_map_url || '',
+        opening_hours: paramsVenue.opening_hours || null,
+        is_favorite: paramsVenue.is_favorite || false,
     } : defaultVenue;
+
+    // Set initial favorite state from params
+    useEffect(() => {
+        if (paramsVenue && paramsVenue.is_favorite !== undefined) {
+            setIsFavorite(paramsVenue.is_favorite);
+        }
+    }, [paramsVenue]);
+
+    // Determine if venue is currently open
+    const getStatus = () => {
+        if (!venue.opening_hours) return { text: 'Contact for Hours', color: '#ccc' };
+
+        try {
+            const now = new Date();
+            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const currentDay = days[now.getDay()];
+            const hours = venue.opening_hours[currentDay];
+
+            if (!hours || hours.isActive === false) return { text: 'Closed Now', color: '#ff4d4d' };
+
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            const [openH, openM] = hours.open.split(':').map(Number);
+            const [closeH, closeM] = hours.close.split(':').map(Number);
+
+            const openTime = openH * 60 + openM;
+            const closeTime = closeH * 60 + closeM;
+
+            if (currentTime >= openTime && currentTime < closeTime) {
+                return { text: `Open until ${hours.close}`, color: '#4CAF50' };
+            }
+            return { text: 'Closed Now', color: '#ff4d4d' };
+        } catch (e) {
+            return { text: 'Hours Unavailable', color: '#ccc' };
+        }
+    };
+
+    const status = getStatus();
+
+    const toggleFavorite = async () => {
+        const newStatus = !isFavorite;
+        setIsFavorite(newStatus);
+
+        try {
+            const res = await favoritesApi.toggleFavorite(venue.id);
+            if (!res.success) {
+                // Rollback on error
+                setIsFavorite(!newStatus);
+            }
+        } catch (error) {
+            setIsFavorite(!newStatus);
+        }
+    };
 
     // Fetch ratings and reviews when component mounts
     useEffect(() => {
-        const fetchRatingsAndReviews = async () => {
+        const fetchData = async () => {
             if (!venue.id) return;
 
             setIsLoadingRatings(true);
+            setIsLoadingCourts(true);
             try {
-                const [ratingsResponse, reviewsResponse] = await Promise.all([
+                const [ratingsResponse, reviewsResponse, courtsResponse] = await Promise.all([
                     courtsApi.getCourtRatings(venue.id),
-                    courtsApi.getCourtReviews(venue.id, 5)
+                    courtsApi.getCourtReviews(venue.id, 5),
+                    venuesApi.getCourts(venue.id)
                 ]);
 
                 if (ratingsResponse.success) {
@@ -99,14 +166,23 @@ const VenueDetailsScreen: React.FC = () => {
                 if (reviewsResponse.success) {
                     setReviews(reviewsResponse.data.reviews);
                 }
+
+                if (courtsResponse.success) {
+                    setAvailableCourts(courtsResponse.data);
+                    // Select first court by default
+                    if (courtsResponse.data.length > 0) {
+                        setSelectedCourt(courtsResponse.data[0]);
+                    }
+                }
             } catch (error) {
-                console.error('Error fetching ratings:', error);
+                console.error('Error fetching data:', error);
             } finally {
                 setIsLoadingRatings(false);
+                setIsLoadingCourts(false);
             }
         };
 
-        fetchRatingsAndReviews();
+        fetchData();
     }, [venue.id]);
 
     const openMap = () => {
@@ -134,10 +210,11 @@ const VenueDetailsScreen: React.FC = () => {
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(15) }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(10) }}>
                 {/* Immersive Header Image */}
                 <ImageBackground
                     source={venue.image}
+                    key={JSON.stringify(venue.image)} // Point 5: Force re-render when image changes
                     style={styles.headerImage}
                     imageStyle={styles.headerImageStyle}
                 >
@@ -155,7 +232,7 @@ const VenueDetailsScreen: React.FC = () => {
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={styles.headerButton}
-                                    onPress={() => setIsFavorite(!isFavorite)}
+                                    onPress={toggleFavorite}
                                 >
                                     <Ionicons
                                         name={isFavorite ? 'heart' : 'heart-outline'}
@@ -183,20 +260,63 @@ const VenueDetailsScreen: React.FC = () => {
                         <View style={styles.statItem}>
                             <View style={styles.ratingBadge}>
                                 <Ionicons name="star" size={moderateScale(14)} color="#000" />
-                                <Text style={styles.ratingValue}>{venue.rating.toFixed(1)}</Text>
+                                <Text style={styles.ratingValue}>{venue.rating ? venue.rating.toFixed(1) : '0.0'}</Text>
                             </View>
-                            <Text style={styles.statLabel}>{venue.reviews} Reviews</Text>
+                            <Text style={styles.statLabel}>{venue.reviews || 0} Reviews</Text>
                         </View>
                         <View style={styles.divider} />
                         <View style={styles.statItem}>
-                            <Ionicons name="time-outline" size={moderateScale(20)} color="#ccc" />
-                            <Text style={styles.statLabel}>Open 24/7</Text>
+                            <Ionicons name="time-outline" size={moderateScale(20)} color={status.color} />
+                            <Text style={[styles.statLabel, { color: status.color }]}>{status.text}</Text>
                         </View>
                         <View style={styles.divider} />
                         <View style={styles.statItem}>
                             <Ionicons name="navigate-outline" size={moderateScale(20)} color="#ccc" />
-                            <Text style={styles.statLabel}>2.5 km</Text>
+                            <Text style={styles.statLabel}>{paramsVenue.distance || '---'} km</Text>
                         </View>
+                    </View>
+
+                    {/* Sport Selection */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>SELECT SPORT</Text>
+                        {isLoadingCourts ? (
+                            <ActivityIndicator size="small" color={colors.primary} />
+                        ) : availableCourts.length > 0 ? (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.courtsScrollContent}>
+                                {availableCourts.map((court) => (
+                                    <TouchableOpacity
+                                        key={court.id}
+                                        style={[
+                                            styles.courtCard,
+                                            selectedCourt?.id === court.id && styles.selectedCourtCard
+                                        ]}
+                                        onPress={() => setSelectedCourt(court)}
+                                    >
+                                        <View style={styles.courtIconContainer}>
+                                            <Ionicons
+                                                name={court.game_type?.toLowerCase().includes('cricket') ? 'baseball-outline' : 'football-outline'}
+                                                size={moderateScale(24)}
+                                                color={selectedCourt?.id === court.id ? '#000' : '#fff'}
+                                            />
+                                        </View>
+                                        <Text style={[
+                                            styles.courtNameText,
+                                            selectedCourt?.id === court.id && styles.selectedCourtNameText
+                                        ]}>
+                                            {court.game_type}
+                                        </Text>
+                                        <Text style={[
+                                            styles.courtPriceText,
+                                            selectedCourt?.id === court.id && styles.selectedCourtPriceText
+                                        ]}>
+                                            ₹{court.prices}/hr
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        ) : (
+                            <Text style={styles.emptySportsText}>No sports available</Text>
+                        )}
                     </View>
 
                     {/* Amenities */}
@@ -254,11 +374,11 @@ const VenueDetailsScreen: React.FC = () => {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>REVIEWS</Text>
-                            {venue.reviews > 0 && (
+                            {venue.reviews > 0 ? (
                                 <TouchableOpacity>
                                     <Text style={styles.seeAllText}>See All</Text>
                                 </TouchableOpacity>
-                            )}
+                            ) : null}
                         </View>
 
                         {isLoadingRatings ? (
@@ -310,18 +430,32 @@ const VenueDetailsScreen: React.FC = () => {
                 style={styles.footerGradient}
                 pointerEvents="none"
             />
-            <View style={[styles.footer, { paddingBottom: Math.max(hp(3), insets.bottom + 10) }]}>
+            <View style={[styles.footer, { paddingBottom: Math.max(moderateScale(8), insets.bottom + moderateScale(4)) }]}>
                 <View style={styles.priceContainer}>
                     <Text style={styles.priceLabel}>TOTAL PRICE</Text>
                     <View style={styles.priceRow}>
                         <Text style={styles.currencySymbol}>₹</Text>
-                        <Text style={styles.priceAmount}>{venue.price}</Text>
+                        <Text style={styles.priceAmount}>{selectedCourt ? selectedCourt.prices : venue.price}</Text>
                         <Text style={styles.priceUnit}>/hr</Text>
                     </View>
                 </View>
                 <TouchableOpacity
-                    style={styles.bookButton}
-                    onPress={() => navigation.navigate('SlotSelection', { venue: venue })}
+                    style={[styles.bookButton, !selectedCourt && { opacity: 0.6 }]}
+                    onPress={() => {
+                        if (selectedCourt) {
+                            // Important: Combine branch info with selected court info for SlotSelection
+                            navigation.navigate('SlotSelection', {
+                                venue: {
+                                    ...selectedCourt,
+                                    name: venue.name, // Pass Branch Name for header
+                                    branch_name: venue.name,
+                                    location: venue.location,
+                                    opening_hours: venue.opening_hours
+                                }
+                            });
+                        }
+                    }}
+                    disabled={!selectedCourt}
                     activeOpacity={0.8}
                 >
                     <Text style={styles.bookButtonText}>BOOK SLOT</Text>
@@ -402,6 +536,49 @@ const styles = StyleSheet.create({
         color: '#ccc',
         marginLeft: wp(1),
         marginRight: wp(1),
+        flex: 1,
+    },
+    courtsScrollContent: {
+        paddingRight: wp(5),
+    },
+    courtCard: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: moderateScale(16),
+        padding: moderateScale(16),
+        marginRight: wp(3),
+        minWidth: wp(35),
+        borderWidth: 1,
+        borderColor: '#333',
+        alignItems: 'center',
+    },
+    selectedCourtCard: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    courtIconContainer: {
+        marginBottom: hp(1),
+    },
+    courtNameText: {
+        fontSize: fontScale(14),
+        fontWeight: '700',
+        color: '#fff',
+        marginBottom: 4,
+    },
+    selectedCourtNameText: {
+        color: '#000',
+    },
+    courtPriceText: {
+        fontSize: fontScale(12),
+        color: '#9CA3AF',
+        fontWeight: '600',
+    },
+    selectedCourtPriceText: {
+        color: '#000',
+    },
+    emptySportsText: {
+        color: '#666',
+        fontSize: fontScale(14),
+        fontStyle: 'italic',
     },
     statsRow: {
         flexDirection: 'row',
@@ -583,7 +760,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        height: hp(20),
+        height: hp(12),
     },
     footer: {
         position: 'absolute',
@@ -595,8 +772,8 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         backgroundColor: '#1C1C1E',
         paddingHorizontal: wp(5),
-        paddingTop: hp(2.5),
-        paddingBottom: Platform.OS === 'ios' ? hp(4) : hp(3),
+        paddingTop: moderateScale(8),
+        paddingBottom: Platform.OS === 'ios' ? moderateScale(24) : moderateScale(8),
         borderTopWidth: 1,
         borderTopColor: '#333',
     },

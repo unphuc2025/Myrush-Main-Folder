@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, desc, func, text
 import models, schemas
+from utils.coupon_utils import increment_coupon_usage
 from passlib.context import CryptContext
 import uuid
 from datetime import timedelta, datetime
@@ -134,6 +135,53 @@ def create_or_update_profile(db: Session, profile: schemas.ProfileCreate, user_i
     db.refresh(db_profile)
     return db_profile
 
+# ============================================================================
+# PAYMENT METHOD CRUD
+# ============================================================================
+
+def get_payment_methods(db: Session, user_id: str):
+    return db.query(models.PaymentMethod).filter(models.PaymentMethod.user_id == user_id).all()
+
+def create_payment_method(db: Session, payment_method: schemas.PaymentMethodCreate, user_id: str):
+    # If this is set as default, unset others first
+    if payment_method.is_default:
+        db.query(models.PaymentMethod).filter(models.PaymentMethod.user_id == user_id).update({"is_default": False})
+    
+    db_payment_method = models.PaymentMethod(
+        **payment_method.dict(),
+        user_id=user_id
+    )
+    db.add(db_payment_method)
+    db.commit()
+    db.refresh(db_payment_method)
+    return db_payment_method
+
+def delete_payment_method(db: Session, payment_method_id: str, user_id: str):
+    db_payment_method = db.query(models.PaymentMethod).filter(
+        models.PaymentMethod.id == payment_method_id,
+        models.PaymentMethod.user_id == user_id
+    ).first()
+    if db_payment_method:
+        db.delete(db_payment_method)
+        db.commit()
+        return True
+    return False
+
+def set_default_payment_method(db: Session, payment_method_id: str, user_id: str):
+    # Unset all
+    db.query(models.PaymentMethod).filter(models.PaymentMethod.user_id == user_id).update({"is_default": False})
+    # Set default
+    db_payment_method = db.query(models.PaymentMethod).filter(
+        models.PaymentMethod.id == payment_method_id,
+        models.PaymentMethod.user_id == user_id
+    ).first()
+    if db_payment_method:
+        db_payment_method.is_default = True
+        db.commit()
+        db.refresh(db_payment_method)
+        return db_payment_method
+    return None
+
 def validate_booking_rules(db: Session, user_id: str, court_id: str, booking_date: datetime.date, start_time: datetime.time, end_time: datetime.time, duration_minutes: int):
     """
     Enforce critical booking rules:
@@ -225,8 +273,18 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: datet
 
     court_dict = dict(court._mapping)
     base_price = float(court_dict['price_per_hour'])
-    timing_config = court_dict.get('price_conditions') or []
-    unavailability_data = court_dict.get('unavailability_slots') or []
+    timing_config = court_dict.get('price_conditions')
+    unavailability_data = court_dict.get('unavailability_slots')
+
+    import json
+    def safe_json(val):
+        if isinstance(val, str):
+            try: return json.loads(val)
+            except: return []
+        return val or []
+
+    timing_config = safe_json(timing_config)
+    unavailability_data = safe_json(unavailability_data)
 
     # 2. Determine Valid Slots for this Date
     day_of_week = booking_date.strftime("%A").lower()[:3]
@@ -586,6 +644,13 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         db.commit()
         db.refresh(db_booking)
 
+        # 5. Increment Coupon Usage Count if used
+        if booking.coupon_code:
+            try:
+                increment_coupon_usage(db, booking.coupon_code)
+            except Exception as ce:
+                print(f"[CRUD BOOKING] Warning: Failed to increment coupon usage: {ce}")
+
         print(f"[CRUD BOOKING] SUCCESS: Booking created with ID: {db_booking.id}")
         return db_booking
 
@@ -847,6 +912,41 @@ def get_branches(db: Session, city_id: str = None):
 
 
 # Push Token CRUD Functions
+
+def get_top_players(db: Session, limit: int = 10):
+    """
+    Get top players based on profile completion and activity.
+    In a real app, this would use actual ratings/bookings analysis.
+    For now, we fetch users with full_name and assign a stable pseudo-rating.
+    """
+    users = db.query(models.User).filter(
+        models.User.full_name != None,
+        models.User.full_name != '',
+        models.User.is_active == True
+    ).limit(limit).all()
+    
+    players = []
+    for user in users:
+        # Generate a semi-stable rating based on user ID for realism
+        user_uuid_str = str(user.id)
+        # Use first 4 chars of UUID as integer for seeding
+        try:
+            seed_val = int(user_uuid_str.replace('-', '')[:4], 16)
+            random.seed(seed_val)
+        except:
+            random.seed(42)
+            
+        rating = round(random.uniform(4.5, 5.0), 1)
+        players.append({
+            "id": str(user.id),
+            "name": user.full_name,
+            "rating": rating,
+            "avatar_url": user.avatar_url
+        })
+    
+    # Sort by rating descending
+    players.sort(key=lambda x: x['rating'], reverse=True)
+    return players
 def create_push_token(db: Session, token_data: schemas.PushTokenCreate, user_id: str):
     """Create or update a push token for a user"""
     try:

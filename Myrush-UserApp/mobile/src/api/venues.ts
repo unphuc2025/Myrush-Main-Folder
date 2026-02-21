@@ -20,7 +20,11 @@ export interface Venue {
         icon?: string;
         icon_url?: string;
     }>;
-    terms_and_conditions?: string;
+    terms_condition?: string;
+    rating?: number;
+    reviews?: number;
+    opening_hours?: any;
+    google_map_url?: string;
 }
 
 export interface VenuesFilter {
@@ -34,7 +38,7 @@ export interface VenuesFilter {
 
 export const venuesApi = {
     /**
-     * Fetch venues filtered by location and game type
+     * Fetch list of venues (branches)
      */
     getVenues: async (filter?: VenuesFilter) => {
         try {
@@ -64,7 +68,8 @@ export const venuesApi = {
             // So `getGameTypes` must call `/venues/game-types`.
             // Existing `getVenues` calls `/courts/`. This is fine.
 
-            const endpoint = `/courts/${queryString ? `?${queryString}` : ''}`;
+            // Call /venues/ instead of /courts/ for the branch-first list
+            const endpoint = `/venues/${queryString ? `?${queryString}` : ''}`;
 
             const data = await apiClient.get<Venue[]>(endpoint);
 
@@ -95,6 +100,26 @@ export const venuesApi = {
             };
         } catch (error: any) {
             console.error('[VENUES API] Exception fetching game types:', error);
+            return {
+                success: false,
+                data: [],
+                error: error.message,
+            };
+        }
+    },
+
+    /**
+     * Fetch all courts/sports for a specific venue (branch)
+     */
+    getCourts: async (branchId: string) => {
+        try {
+            const data = await apiClient.get<Venue[]>(`/courts/?branch_id=${branchId}`);
+            return {
+                success: true,
+                data: data,
+            };
+        } catch (error: any) {
+            console.error('[VENUES API] Exception fetching courts for branch:', error);
             return {
                 success: false,
                 data: [],
@@ -526,6 +551,47 @@ export const paymentsApi = {
             return {
                 success: false,
                 data: null,
+                error: error.message,
+            };
+        }
+    }
+};
+
+// Favorites API
+export const favoritesApi = {
+    /**
+     * Toggle a court as favorite
+     */
+    toggleFavorite: async (courtId: string) => {
+        try {
+            const data = await apiClient.post<{ status: string; court_id: string }>('/favorites/toggle', { court_id: courtId });
+            return {
+                success: true,
+                data: data,
+            };
+        } catch (error: any) {
+            return {
+                success: false,
+                data: null,
+                error: error.message,
+            };
+        }
+    },
+
+    /**
+     * Get all favorite courts
+     */
+    getFavorites: async () => {
+        try {
+            const data = await apiClient.get<Venue[]>('/favorites/');
+            return {
+                success: true,
+                data: data,
+            };
+        } catch (error: any) {
+            return {
+                success: false,
+                data: [],
                 error: error.message,
             };
         }

@@ -2,6 +2,30 @@ import config from '../config';
 const API_BASE = config.API_URL;
 export const IMAGE_BASE_URL = API_BASE.replace('/api/admin', '');
 
+export const getImageUrl = (path) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return `${IMAGE_BASE_URL}${cleanPath}`;
+};
+
+export const sanitizeImageUrl = (url) => {
+    if (!url || typeof url !== 'string') return url;
+
+    // Strip local API base
+    if (url.startsWith(IMAGE_BASE_URL)) {
+        return url.replace(IMAGE_BASE_URL, '');
+    }
+
+    // Strip S3 base if present (e.g., https://bucket.s3.region.amazonaws.com/key)
+    if (url.includes('.amazonaws.com/')) {
+        const parts = url.split('.amazonaws.com/');
+        if (parts.length > 1) return parts[1];
+    }
+
+    return url;
+};
+
 async function apiRequest(url, options = {}) {
     const token = localStorage.getItem('admin_token');
 
@@ -239,6 +263,30 @@ export const courtsApi = {
             }
             return res.json();
         });
+    },
+    bulkDeleteSlots: (date, slotFrom, slotTo, branchId = null, gameTypeId = null) => {
+        const formData = new FormData();
+        formData.append('date', date);
+        formData.append('slot_from', slotFrom);
+        formData.append('slot_to', slotTo);
+        if (branchId) formData.append('branch_id', branchId);
+        if (gameTypeId) formData.append('game_type_id', gameTypeId);
+
+        const token = localStorage.getItem('admin_token');
+        return fetch(`${API_BASE}/courts/bulk-delete-slots`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            body: formData
+        }).then(res => {
+            if (!res.ok) {
+                return res.json().then(err => {
+                    throw new Error(err.detail || 'Failed to bulk delete slots');
+                });
+            }
+            return res.json();
+        });
     }
 };
 
@@ -327,23 +375,22 @@ export const globalPriceConditionsApi = {
 export const usersApi = {
     getAll: async (params = {}) => {
         const query = new URLSearchParams(params).toString();
-        const response = await apiRequest(`/auth/users?${query}`);
-        // Return just the items array for backward compatibility
+        const response = await apiRequest(`/users?${query}`);
         return response;
     },
-    get: (id) => apiRequest(`/auth/users/${id}`),
-    create: (data) => apiRequest('/auth/users', {
+    get: (id) => apiRequest(`/users/${id}`),
+    create: (data) => apiRequest('/users', {
         method: 'POST',
         body: JSON.stringify(data)
     }),
-    update: (id, data) => apiRequest(`/auth/users/${id}`, {
+    update: (id, data) => apiRequest(`/users/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
     }),
-    delete: (id) => apiRequest(`/auth/users/${id}`, {
+    delete: (id) => apiRequest(`/users/${id}`, {
         method: 'DELETE'
     }),
-    toggleStatus: (id) => apiRequest(`/auth/users/${id}/toggle`, { // Assuming toggle endpoint exists on backend or will use update
+    toggleStatus: (id) => apiRequest(`/users/${id}/toggle`, {
         method: 'PATCH'
     })
 };

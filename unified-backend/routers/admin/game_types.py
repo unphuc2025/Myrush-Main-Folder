@@ -55,10 +55,6 @@ async def create_game_type(
             # Do not fallback to None silently if possible, but keep existing behavior for now
             pass
             
-    # Force verify URL structure
-    if icon_url and "uploads" in icon_url and "api/media" not in icon_url:
-        print(f"CRITICAL WARNING: URL contains 'uploads' but should be proxy! {icon_url}")
-
     db_game_type = models.GameType(
         name=name,
         short_code=short_code,

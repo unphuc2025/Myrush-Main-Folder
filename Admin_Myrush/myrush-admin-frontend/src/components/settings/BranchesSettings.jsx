@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Edit2, Plus, Building, Upload, X, MapPin, Clock, Camera, ChevronDown, Eye, Trash2 } from 'lucide-react';
 import ToggleSwitch from './ToggleSwitch';
-import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi, IMAGE_BASE_URL } from '../../services/adminApi';
+import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi, IMAGE_BASE_URL, getImageUrl, sanitizeImageUrl } from '../../services/adminApi';
 
 function BranchesSettings() {
   const [branches, setBranches] = useState([]);
@@ -386,8 +386,8 @@ function BranchesSettings() {
       formData.images.forEach(file => submitData.append('images', file));
 
       if (editingBranch) {
-        // Append existing images for update
-        formData.existingImages.forEach(url => submitData.append('existing_images', url));
+        // Append existing images for update - sanitize to relative paths
+        formData.existingImages.forEach(url => submitData.append('existing_images', sanitizeImageUrl(url)));
         await branchesApi.update(editingBranch.id, submitData);
       } else {
         await branchesApi.create(submitData);
@@ -456,7 +456,7 @@ function BranchesSettings() {
                   {formData.existingImages.map((url, index) => (
                     <div key={`existing-${index}`} className="relative">
                       <img
-                        src={url}
+                        src={getImageUrl(url)}
                         alt={`Existing Branch ${index + 1}`}
                         className="w-20 h-20 object-cover rounded-lg border border-slate-300"
                       />
@@ -1013,7 +1013,7 @@ function BranchesSettings() {
                   <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center">
                     {branch.images && branch.images.length > 0 ? (
                       <img
-                        src={branch.images[0]}
+                        src={getImageUrl(branch.images[0])}
                         alt={branch.name}
                         className="w-full h-full object-cover"
                       />
@@ -1113,7 +1113,7 @@ function BranchViewModal({ branch, onClose }) {
               {branch.images.map((url, index) => (
                 <div key={index} className="w-32 h-32 rounded-lg overflow-hidden border border-slate-200">
                   <img
-                    src={`${IMAGE_BASE_URL}${url}`}
+                    src={getImageUrl(url)}
                     alt={`${branch.name} ${index + 1}`}
                     className="w-full h-full object-cover"
                     onError={(e) => { e.target.style.display = 'none'; }}

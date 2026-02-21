@@ -3,7 +3,7 @@ import {
   Building2, Gamepad2, Coins, CalendarDays, Camera, Video,
   Trash2, Plus, Info, X, MapPin
 } from 'lucide-react';
-import { branchesApi, gameTypesApi, courtsApi } from '../../services/adminApi';
+import { branchesApi, gameTypesApi, courtsApi, sanitizeImageUrl } from '../../services/adminApi';
 import SlotCalendar from './SlotCalendar';
 
 function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
@@ -166,10 +166,10 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
       formData.images.forEach(img => submitData.append('images', img.file));
       formData.videos.forEach(vid => submitData.append('videos', vid.file));
 
-      // Append existing files if editing
+      // Append existing files if editing - sanitize to relative paths
       if (initialData) {
-        formData.existingImages.forEach(url => submitData.append('existing_images', url));
-        formData.existingVideos.forEach(url => submitData.append('existing_videos', url));
+        formData.existingImages.forEach(url => submitData.append('existing_images', sanitizeImageUrl(url)));
+        formData.existingVideos.forEach(url => submitData.append('existing_videos', sanitizeImageUrl(url)));
 
         await courtsApi.update(initialData.id, submitData);
       } else {

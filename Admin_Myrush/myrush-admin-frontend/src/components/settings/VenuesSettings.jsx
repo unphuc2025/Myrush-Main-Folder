@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import Drawer from './Drawer';
 import ToggleSwitch from './ToggleSwitch';
-import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi, IMAGE_BASE_URL } from '../../services/adminApi';
+import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi, IMAGE_BASE_URL, getImageUrl, sanitizeImageUrl } from '../../services/adminApi';
 
 function VenueViewModal({ venue, cities, areas, onClose }) {
   return (
@@ -29,7 +29,7 @@ function VenueViewModal({ venue, cities, areas, onClose }) {
             )}
             {venue.images?.map((img, idx) => (
               <div key={`img-${idx}`} className="h-64 aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm flex-shrink-0 snap-center">
-                <img src={img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`} alt={`Venue ${idx}`} className="w-full h-full object-cover" onError={(e) => { e.target.closest('div').style.display = 'none'; }} />
+                <img src={getImageUrl(img)} alt={`Venue ${idx}`} className="w-full h-full object-cover" onError={(e) => { e.target.closest('div').style.display = 'none'; }} />
               </div>
             ))}
           </div>
@@ -636,7 +636,7 @@ function VenuesSettings() {
 
       if (editingVenue) {
         // Append existing images for update
-        formData.existingImages.forEach(url => submitData.append('existing_images', url));
+        formData.existingImages.forEach(url => submitData.append('existing_images', sanitizeImageUrl(url)));
         await branchesApi.update(editingVenue.id, submitData);
       } else {
         await branchesApi.create(submitData);
@@ -734,7 +734,7 @@ function VenuesSettings() {
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden">
                             {venue.images && venue.images.length > 0 ? (
-                              <img src={venue.images[0]} alt={venue.name} className="h-full w-full object-cover" />
+                              <img src={getImageUrl(venue.images[0])} alt={venue.name} className="h-full w-full object-cover" />
                             ) : (
                               <Building2 className="h-5 w-5 text-slate-400" />
                             )}

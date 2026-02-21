@@ -30,6 +30,7 @@ export type RootStackParamList = {
   Events: undefined;
   RedemptionStore: undefined;
   Membership: undefined;
+  PrivacyPolicy: undefined;
   VenueDetails: { venue?: any };
   SlotSelection: { venue?: any; venueId?: string; venueName?: string; sport?: string }; // Updated for coach booking
   BookingDetails: { venue?: string; venueObject?: any; pitch?: string; date?: number; month?: string; year?: number; monthIndex?: number; timeSlot?: string; slotPrice?: number; selectedSlots?: Array<{ time: string; display_time: string; price: number; }>; totalPrice?: number; };

@@ -42,36 +42,48 @@ def get_current_user(
     )
     
     try:
+        # Debug log for token (first 10 chars)
+        print(f"[AUTH] Validating token starting with: {token[:10]}...")
+        
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         sub: str = payload.get("sub")
         
         if sub is None:
+            print("[AUTH] Error: 'sub' missing from token payload")
             raise credentials_exception
             
-    except JWTError:
+        print(f"[AUTH] Valid token for sub: {sub}")
+            
+    except JWTError as e:
+        print(f"[AUTH] JWT Decode Error: {str(e)}")
         raise credentials_exception
     
-    # Check if sub is an email (contains @)
     user = None
+    # 1. Try finding by email (if sub contains @)
     if "@" in sub:
-        # Try finding by email
         user = db.query(models.User).filter(models.User.email == sub).first()
+        if user:
+            print(f"[AUTH] Found user by email: {sub}")
     
-    # If not found or not email, try by ID
+    # 2. Try finding by UUID ID
     if user is None:
-        # Validate if it looks like a valid UUID? 
-        # Actually sqlalchemy will handle string comparison safely usually, 
-        # but if sub is email and we check id==email, it might error if ID is UUID type
         try:
-            if "@" not in sub: # Only check ID if it doesn't look like email
-                user = db.query(models.User).filter(models.User.id == sub).first()
-        except Exception:
-            pass # ID format mismatch
+            import uuid
+            # Ensure sub is a valid UUID before querying
+            user_id = uuid.UUID(sub)
+            user = db.query(models.User).filter(models.User.id == user_id).first()
+            if user:
+                print(f"[AUTH] Found user by ID: {sub}")
+        except (ValueError, TypeError, Exception) as e:
+            print(f"[AUTH] ID search failed for {sub}: {type(e).__name__}")
+            pass # Not a UUID or other query error
             
     if user is None:
+        print(f"[AUTH] User not found in DB for sub: {sub}")
         raise credentials_exception
     
     if not user.is_active:
+        print(f"[AUTH] User inactive: {sub}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive"

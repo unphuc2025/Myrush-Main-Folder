@@ -86,81 +86,91 @@ function Reviews() {
             <div className="rounded-2xl bg-white shadow-sm border border-slate-100 overflow-hidden">
                 {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-600 table-fixed">
-                        <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                    <table className="w-full text-left text-sm text-slate-600">
+                        <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-bold border-b border-slate-100">
                             <tr>
-                                <th className="px-4 py-3 font-semibold w-[18%]">User</th>
-                                <th className="px-4 py-3 font-semibold w-[14%]">Review For</th>
-                                <th className="px-4 py-3 font-semibold w-[12%]">Rating</th>
-                                <th className="px-4 py-3 font-semibold w-[28%]">Comment</th>
-                                <th className="px-4 py-3 font-semibold w-[10%]">Date</th>
-                                <th className="px-4 py-3 font-semibold w-[10%]">Status</th>
-                                <th className="px-4 py-3 font-semibold w-[8%] text-right">Actions</th>
+                                <th className="px-6 py-4 font-bold w-[22%]">Customer</th>
+                                <th className="px-6 py-4 font-bold w-[18%]">Booking Detail</th>
+                                <th className="px-6 py-4 font-bold w-[14%]">Rating</th>
+                                <th className="px-6 py-4 font-bold w-[26%]">Comment</th>
+                                <th className="px-6 py-4 font-bold w-[10%]">Date</th>
+                                <th className="px-6 py-4 font-bold w-[10%] text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 bg-white">
                             {reviews.length > 0 ? (
                                 reviews.map((review) => (
-                                    <tr key={review.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-3">
-                                            {/* Assuming backend expands user, otherwise show ID */}
+                                    <tr key={review.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-5">
                                             {review.user ? (
-                                                <div>
-                                                    <div className="font-medium text-slate-900">
-                                                        {review.user.full_name ||
-                                                            (review.user.first_name ? `${review.user.first_name} ${review.user.last_name || ''}` : null) ||
-                                                            review.user.phone_number}
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold border border-slate-200">
+                                                        {review.user.first_name?.charAt(0) || 'U'}
                                                     </div>
-                                                    <div className="text-xs text-slate-400">{review.user.email}</div>
+                                                    <div>
+                                                        <div className="font-bold text-slate-900 leading-tight">
+                                                            {review.user.full_name ||
+                                                                (review.user.first_name ? `${review.user.first_name} ${review.user.last_name || ''}` : null) ||
+                                                                review.user.phone_number}
+                                                        </div>
+                                                        <div className="text-xs text-slate-500 font-medium">{review.user.email}</div>
+                                                    </div>
                                                 </div>
                                             ) : (
-                                                <div className="font-mono text-xs text-slate-400">{review.user_id.substring(0, 8)}...</div>
+                                                <div className="font-mono text-xs text-slate-400 p-2 bg-slate-50 rounded italic">Unknown User ({review.user_id.substring(0, 8)})</div>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {/* Assuming backend expands court/branch */}
-                                            <div className="font-medium text-slate-900">
+                                        <td className="px-6 py-5">
+                                            <div className="font-bold text-slate-900">
                                                 {review.court ? review.court.name : 'Court'}
                                             </div>
-                                            <div className="text-xs text-slate-400">
-                                                {review.court?.branch?.name || ''}
+                                            <div className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                                                {review.court?.branch?.name || 'Main Branch'}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {renderStars(review.rating)}
+                                        <td className="px-6 py-5">
+                                            <div className="bg-slate-50 px-2 py-1.5 rounded-lg inline-block border border-slate-100">
+                                                {renderStars(review.rating)}
+                                            </div>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <p className="line-clamp-2 text-slate-600 italic">"{review.review_text}"</p>
+                                        <td className="px-6 py-5">
+                                            <p className="line-clamp-3 text-slate-600 italic font-medium leading-relaxed">
+                                                "{review.review_text}"
+                                            </p>
                                         </td>
-                                        <td className="px-4 py-3 text-slate-500">
-                                            {new Date(review.created_at).toLocaleDateString()}
+                                        <td className="px-6 py-5">
+                                            <div className="text-slate-900 font-bold whitespace-nowrap">
+                                                {new Date(review.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Submitted</div>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${review.is_active
-                                                ? 'bg-emerald-100 text-emerald-800'
-                                                : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                {review.is_active ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <button
-                                                onClick={() => toggleStatus(review)}
-                                                className={`inline-flex items-center justify-center rounded-lg p-2 transition-colors ${review.is_active
-                                                    ? 'bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-600'
-                                                    : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                                                    }`}
-                                                title={review.is_active ? "Hide Review" : "Show Review"}
-                                            >
-                                                {review.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                            </button>
+                                        <td className="px-6 py-5 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <span className={`inline-flex items-center rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${review.is_active
+                                                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                                    : 'bg-red-100 text-red-700 border border-red-200'
+                                                    }`}>
+                                                    {review.is_active ? 'Visible' : 'Hidden'}
+                                                </span>
+                                                <button
+                                                    onClick={() => toggleStatus(review)}
+                                                    className={`inline-flex items-center justify-center rounded-xl p-2.5 transition-all shadow-sm border ${review.is_active
+                                                        ? 'bg-white text-slate-400 border-slate-200 hover:text-red-600 hover:border-red-200 hover:bg-red-50'
+                                                        : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 active:scale-95'
+                                                        }`}
+                                                    title={review.is_active ? "Hide Review" : "Show Review"}
+                                                >
+                                                    {review.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="px-6 py-12 text-center text-slate-400">
-                                        No reviews found yet.
+                                    <td colSpan="6" className="px-6 py-20 text-center text-slate-400 italic font-medium bg-slate-50/30">
+                                        No reviews found yet. User feedback will appear here.
                                     </td>
                                 </tr>
                             )}

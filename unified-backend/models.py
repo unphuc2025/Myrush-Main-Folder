@@ -135,6 +135,8 @@ class Branch(Base):
     images = Column(ARRAY(Text))
     videos = Column(ARRAY(Text))
     opening_hours = Column(JSONB)
+    latitude = Column(DECIMAL(10, 8))
+    longitude = Column(DECIMAL(11, 8))
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -311,6 +313,12 @@ class Profile(Base):
     skill_level = Column(String(50))
     sports = Column(JSON) # Store as JSON array
     playing_style = Column(String(100))
+    # New stats fields
+    games_played = Column(Integer, default=0)
+    mvp_count = Column(Integer, default=0)
+    reliability_score = Column(Integer, default=100) # Percentage 0-100
+    rating = Column(DECIMAL(3, 1), default=5.0)
+    
     created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
 
@@ -518,3 +526,31 @@ class PlayoOrder(Base):
     venue = relationship("Branch", foreign_keys=[venue_id])
     court = relationship("Court", foreign_keys=[court_id])
     booking = relationship("Booking", foreign_keys=[booking_id])
+
+class UserFavoriteCourt(Base):
+    __tablename__ = "user_favorite_courts"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    court_id = Column(UUID(as_uuid=True), ForeignKey("admin_courts.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
+
+    user = relationship("User")
+    court = relationship("Court")
+
+    # Composite unique constraint to prevent duplicate favorites
+    __table_args__ = (
+        UniqueConstraint('user_id', 'court_id', name='unique_user_court_favorite'),
+    )
+
+class PaymentMethod(Base):
+    __tablename__ = "user_payment_methods"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    type = Column(String(50), nullable=False) # 'card', 'upi', etc.
+    provider = Column(String(100)) # 'visa', 'mastercard', 'google_pay', etc.
+    details = Column(JSONB, nullable=False) # { 'masked_number': '**** 1234', 'expiry': '12/25' } or { 'vpa': 'user@upi' }
+    is_default = Column(Boolean, default=False)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
+
+    user = relationship("User")

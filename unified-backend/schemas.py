@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 from datetime import date, time, datetime
 from decimal import Decimal
 from uuid import UUID
@@ -7,6 +7,41 @@ import os
 
 # Get the API base URL from environment or use default
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+
+# S3 Configuration
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+AWS_REGION = os.getenv("AWS_REGION", "us-west-2")
+S3_BASE_URL = os.getenv("S3_BASE_URL")
+
+# Construct S3 base URL if not explicitly provided
+if not S3_BASE_URL and S3_BUCKET_NAME:
+    S3_BASE_URL = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com"
+
+def resolve_path(path: str) -> str:
+    """Resolves a relative path to an absolute URL (S3 or Local Proxy)"""
+    if not path or not isinstance(path, str):
+        return path
+    
+    # Already absolute
+    if path.startswith('http://') or path.startswith('https://'):
+        return path
+        
+    # If S3 is configured, resolve to S3
+    if S3_BASE_URL:
+        # If it's a proxy path /api/media/folder/key, extract the key
+        if path.startswith('/api/media/'):
+            key = path.replace('/api/media/', '')
+            return f"{S3_BASE_URL}/{key}"
+        # If it's just a key or starts with /, ensure clean key
+        key = path.lstrip('/')
+        return f"{S3_BASE_URL}/{key}"
+    
+    # Fallback to local API proxy if S3 not set
+    if path.startswith('/'):
+        return f"{API_BASE_URL}{path}"
+    
+    # Assume it's a key that needs proxying
+    return f"{API_BASE_URL}/api/media/{path}"
 
 # ============================================================================
 # ADMIN SCHEMAS
@@ -78,9 +113,7 @@ class GameType(GameTypeBase):
     @field_validator('icon_url', mode='before')
     @classmethod
     def make_icon_url_absolute(cls, v):
-        if v and v.startswith('/'):
-            return f"{API_BASE_URL}{v}"
-        return v
+        return resolve_path(v)
 
     class Config:
         from_attributes = True
@@ -107,9 +140,7 @@ class Amenity(AmenityBase):
     @field_validator('icon_url', mode='before')
     @classmethod
     def make_icon_url_absolute(cls, v):
-        if v and v.startswith('/'):
-            return f"{API_BASE_URL}{v}"
-        return v
+        return resolve_path(v)
 
     class Config:
         from_attributes = True
@@ -158,19 +189,7 @@ class Branch(BranchBase):
     @classmethod
     def make_images_absolute(cls, v):
         if v and isinstance(v, list):
-            result = []
-            for url in v:
-                if not url:
-                    continue
-                # Already a full URL (new S3 direct URL or external) - pass through
-                if url.startswith('http://') or url.startswith('https://'):
-                    result.append(url)
-                # Old proxy path - prepend API base for backward compatibility
-                elif url.startswith('/'):
-                    result.append(f"{API_BASE_URL}{url}")
-                else:
-                    result.append(url)
-            return result
+            return [resolve_path(img) for img in v if img]
         return v
 
     class Config:
@@ -208,24 +227,14 @@ class Court(CourtBase):
     @classmethod
     def make_images_absolute(cls, v):
         if v and isinstance(v, list):
-            result = []
-            for url in v:
-                if not url:
-                    continue
-                if url.startswith('http://') or url.startswith('https://'):
-                    result.append(url)
-                elif url.startswith('/'):
-                    result.append(f"{API_BASE_URL}{url}")
-                else:
-                    result.append(url)
-            return result
+            return [resolve_path(img) for img in v if img]
         return v
 
     @field_validator('videos', mode='before')
     @classmethod
     def make_videos_absolute(cls, v):
         if v and isinstance(v, list):
-            return [f"{API_BASE_URL}{url}" if url and url.startswith('/') else url for url in v]
+            return [resolve_path(vid) for vid in v if vid]
         return v
 
     class Config:
@@ -424,25 +433,11 @@ class AdminVenue(AdminVenueBase):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    @field_validator('id', mode='before')
+    @field_validator('photos', 'videos', mode='before')
     @classmethod
-    def convert_uuid_to_str(cls, v):
-        if isinstance(v, UUID):
-            return str(v)
-        return v
-
-    @field_validator('photos', mode='before')
-    @classmethod
-    def make_photos_absolute(cls, v):
+    def make_absolute(cls, v):
         if v and isinstance(v, list):
-            return [f"{API_BASE_URL}{url}" if url and url.startswith('/') else url for url in v]
-        return v
-
-    @field_validator('videos', mode='before')
-    @classmethod
-    def make_videos_absolute(cls, v):
-        if v and isinstance(v, list):
-            return [f"{API_BASE_URL}{url}" if url and url.startswith('/') else url for url in v]
+            return [resolve_path(url) for url in v if url]
         return v
 
     class Config:
@@ -502,6 +497,11 @@ class User(UserBase):
         if isinstance(v, UUID):
             return str(v)
         return v
+
+    @field_validator('avatar_url', mode='before')
+    @classmethod
+    def make_avatar_url_absolute(cls, v):
+        return resolve_path(v)
 
     class Config:
         from_attributes = True
@@ -613,9 +613,54 @@ class ProfileCreate(ProfileBase):
 
 class ProfileResponse(ProfileBase):
     id: UUID
+    # Stats fields (Response only)
+    games_played: int = 0
+    mvp_count: int = 0
+    reliability_score: int = 100
+    rating: float = 5.0
+    
     created_at: datetime
     updated_at: Optional[datetime] = None
 
+    class Config:
+        from_attributes = True
+
+# Payment Method Schemas
+class PaymentMethodBase(BaseModel):
+    type: str # 'card', 'upi'
+    provider: Optional[str] = None
+    details: Dict[str, Any]
+    is_default: Optional[bool] = False
+
+class PaymentMethodCreate(PaymentMethodBase):
+    pass
+
+class PaymentMethodResponse(PaymentMethodBase):
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class TopPlayerResponse(BaseModel):
+    id: str
+    name: str
+    rating: float
+    avatar_url: Optional[str] = None
+
+    @field_validator('avatar_url', mode='before')
+    @classmethod
+    def make_avatar_url_absolute(cls, v):
+        return resolve_path(v)
+    
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+    
     class Config:
         from_attributes = True
 
@@ -959,6 +1004,11 @@ class VenueBase(BaseModel):
     photos: Optional[str] = None
     videos: Optional[str] = None
 
+    @field_validator('photos', 'videos', mode='before')
+    @classmethod
+    def make_absolute(cls, v):
+        return resolve_path(v)
+
 class VenueCreate(VenueBase):
     pass
 
@@ -989,6 +1039,11 @@ class GameTypeResponse(BaseModel):
     icon_url: Optional[str] = None
     is_active: bool
 
+    @field_validator('icon_url', mode='before')
+    @classmethod
+    def make_absolute(cls, v):
+        return resolve_path(v)
+
     class Config:
         from_attributes = True
 
@@ -1014,6 +1069,13 @@ class AdminCourtResponse(BaseModel):
     images: Optional[List[str]] = []
     videos: Optional[List[str]] = []
     is_active: Optional[bool] = True
+
+    @field_validator('images', 'videos', mode='before')
+    @classmethod
+    def make_absolute(cls, v):
+        if v and isinstance(v, list):
+            return [resolve_path(url) for url in v if url]
+        return v
     created_at: datetime
     updated_at: Optional[datetime] = None
 

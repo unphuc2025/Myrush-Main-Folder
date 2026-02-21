@@ -14,6 +14,7 @@ from dependencies import get_current_user
 import models
 import schemas
 import crud
+from utils.coupon_utils import validate_coupon_strictly
 
 router = APIRouter(
     prefix="/payments",
@@ -29,12 +30,44 @@ client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 def verify_slot_availability(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]]):
     """
-    Check if any of the requested slots are already booked.
+    Check if any of the requested slots are already booked OR blocked by admin.
     """
     if not requested_slots:
         return
         
-    # Get all bookings for this court and date
+    # 1. Fetch Court Config (Opening Hours & Unavailability)
+    court_query = text("""
+        SELECT price_conditions, unavailability_slots, branch_id
+        FROM admin_courts WHERE id = :court_id AND is_active = true
+    """)
+    court_res = db.execute(court_query, {"court_id": court_id}).first()
+    if not court_res:
+        raise HTTPException(status_code=404, detail="Court not found")
+        
+    def safe_json(val):
+        if isinstance(val, str):
+            try: return json.loads(val)
+            except: return []
+        return val or []
+
+    un_slots = safe_json(court_res._mapping.get('unavailability_slots'))
+    
+    # Check Admin Blocking (Unavailability)
+    day_short = booking_date.strftime("%a").lower()
+    date_str = str(booking_date)
+    
+    disabled_hours = set()
+    for un in un_slots:
+        if isinstance(un, dict):
+            match = False
+            if date_str in (un.get('dates') or []): match = True
+            if day_short in [d.lower()[:3] for d in (un.get('days') or [])]: match = True
+            if match:
+                for t in (un.get('times') or []):
+                    try: disabled_hours.add(int(t.split(':')[0]))
+                    except: pass
+
+    # 2. Get existing bookings
     bookings = db.query(models.Booking).filter(
         models.Booking.court_id == court_id,
         models.Booking.booking_date == booking_date,
@@ -42,21 +75,24 @@ def verify_slot_availability(db: Session, court_id: str, booking_date: date, req
     ).all()
     
     booked_times = set()
-    for booking in bookings:
-        if booking.time_slots and isinstance(booking.time_slots, list):
-            for slot in booking.time_slots:
-                if isinstance(slot, dict) and 'time' in slot:
-                    booked_times.add(slot['time']) # Format HH:MM
-                elif isinstance(slot, dict) and 'start_time' in slot:
-                     booked_times.add(slot['start_time'])
+    for b in bookings:
+        if b.time_slots and isinstance(b.time_slots, list):
+            for slot in b.time_slots:
+                if isinstance(slot, dict):
+                    t_str = slot.get('time') or slot.get('start_time')
+                    if t_str: booked_times.add(int(t_str.split(':')[0]))
 
+    # 3. Validate requested slots
     for slot in requested_slots:
-        start_time = slot.get('time') or slot.get('start_time')
-        if start_time in booked_times:
-             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Slot {start_time} is already booked."
-            )
+        time_str = slot.get('time') or slot.get('start_time')
+        if not time_str: continue
+        try:
+            h = int(time_str.split(':')[0])
+            if h in disabled_hours:
+                raise HTTPException(status_code=400, detail=f"Slot {time_str} has been blocked by Admin.")
+            if h in booked_times:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Slot {time_str} is already booked.")
+        except ValueError: pass
 
 def calculate_authoritative_price(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]], number_of_players: int) -> float:
     """
@@ -125,37 +161,19 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
     final_base_price = total_slot_price * number_of_players
     return final_base_price
 
-def validate_authoritative_coupon(db: Session, coupon_code: str, total_amount: float) -> float:
+def validate_authoritative_coupon(db: Session, coupon_code: str, total_amount: float, user_id: str) -> float:
     """
     Validate coupon and return discount amount.
     """
     if not coupon_code:
         return 0.0
         
-    coupon = db.query(models.Coupon).filter(
-        models.Coupon.code == coupon_code,
-        models.Coupon.is_active == True,
-        models.Coupon.start_date <= datetime.utcnow(),
-        models.Coupon.end_date >= datetime.utcnow()
-    ).first()
+    result = validate_coupon_strictly(db, coupon_code, total_amount, user_id)
     
-    if not coupon:
-        # Invalid coupon - you might verify if we throw error or just ignore. 
-        # For security, throw error to verify intent.
-        raise HTTPException(status_code=400, detail="Invalid or expired coupon code")
+    if not result["valid"]:
+        raise HTTPException(status_code=400, detail=result["message"])
         
-    if coupon.min_order_value and total_amount < float(coupon.min_order_value):
-         raise HTTPException(status_code=400, detail=f"Order value must be at least {coupon.min_order_value}")
-         
-    discount = 0.0
-    if coupon.discount_type == 'percentage':
-        discount = (total_amount * float(coupon.discount_value)) / 100
-        if coupon.max_discount:
-            discount = min(discount, float(coupon.max_discount))
-    else:
-        discount = float(coupon.discount_value)
-        
-    return discount
+    return result["discount_amount"]
 
 @router.post("/create-order")
 def create_payment_order(
@@ -187,7 +205,12 @@ def create_payment_order(
     # 3. Coupon Validation
     discount_amount = 0.0
     if booking_details.coupon_code:
-        discount_amount = validate_authoritative_coupon(db, booking_details.coupon_code, server_base_price)
+        discount_amount = validate_authoritative_coupon(
+            db, 
+            booking_details.coupon_code, 
+            server_base_price,
+            str(current_user.id)
+        )
         
     # 4. Final Total
     final_amount = (server_base_price + PLATFORM_FEE) - discount_amount
@@ -259,3 +282,48 @@ def verify_payment(
         raise HTTPException(status_code=400, detail="Payment signature verification failed")
     except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# PAYMENT METHOD MANAGEMENT
+# ============================================================================
+
+@router.get("/methods", response_model=List[schemas.PaymentMethodResponse])
+def get_user_payment_methods(
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db)
+):
+    """List all saved payment methods for the current user"""
+    return crud.get_payment_methods(db, str(current_user.id))
+
+@router.post("/methods", response_model=schemas.PaymentMethodResponse)
+def add_user_payment_method(
+    payment_method: schemas.PaymentMethodCreate,
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db)
+):
+    """Save a new payment method"""
+    return crud.create_payment_method(db, payment_method, str(current_user.id))
+
+@router.delete("/methods/{method_id}")
+def delete_user_payment_method(
+    method_id: str,
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db)
+):
+    """Delete a saved payment method"""
+    success = crud.delete_payment_method(db, method_id, str(current_user.id))
+    if not success:
+        raise HTTPException(status_code=404, detail="Payment method not found or access denied")
+    return {"status": "success", "message": "Payment method deleted"}
+
+@router.post("/methods/{method_id}/default", response_model=schemas.PaymentMethodResponse)
+def set_default_user_payment_method(
+    method_id: str,
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db)
+):
+    """Set a payment method as default"""
+    updated = crud.set_default_payment_method(db, method_id, str(current_user.id))
+    if not updated:
+        raise HTTPException(status_code=404, detail="Payment method not found")
+    return updated

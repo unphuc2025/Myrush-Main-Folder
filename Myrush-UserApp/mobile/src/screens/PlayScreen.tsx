@@ -416,7 +416,7 @@ const PlayScreen = () => {
 
                 <TouchableOpacity
                     style={[styles.profileButton, user?.avatarUrl ? { padding: 0, overflow: 'hidden', borderWidth: 1, borderColor: '#333', backgroundColor: 'transparent' } : {}]}
-                    onPress={() => navigation.navigate('PlayerProfile')}
+                    onPress={() => navigation.navigate('ProfileOverview')}
                 >
                     {user?.avatarUrl ? (
                         <Image
