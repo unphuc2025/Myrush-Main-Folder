@@ -26,7 +26,12 @@ def resolve_path(path: str) -> str:
     if path.startswith('http://') or path.startswith('https://'):
         return path
         
-    # Ensure API_BASE_URL is defined (fallback)
+    # If S3 is configured, return direct S3 URL
+    if S3_BASE_URL:
+        key = path.lstrip('/')
+        return f"{S3_BASE_URL}/{key}"
+    
+    # Fallback to API proxy if S3 is not configured
     base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
     
     # Clean up path - remove /api/media/ prefix if it exists to avoid double prefixing
@@ -38,7 +43,6 @@ def resolve_path(path: str) -> str:
     
     key = key.lstrip('/')
     
-    # Return local API proxy URL
     return f"{base_url}/api/media/{key}"
 
 # ============================================================================
@@ -724,6 +728,10 @@ class BookingResponse(BaseModel):
     payment_status: str
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    # Enriched venue fields (populated via JOIN in get_bookings)
+    venue_name: Optional[str] = None
+    venue_location: Optional[str] = None
 
     class Config:
         from_attributes = True

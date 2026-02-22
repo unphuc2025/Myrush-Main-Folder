@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { FaMapMarkerAlt, FaClock, FaUsers, FaStar } from "react-icons/fa";
-import { apiClient } from '../api/client';
-import { courtsApi } from '../api/courts';
+import { venuesApi } from '../api/venues';
 
 
 const FALLBACK_IMAGES = [
@@ -79,28 +78,27 @@ export const Arena: React.FC = () => {
     React.useEffect(() => {
         const fetchVenues = async () => {
             try {
-                // Fetch all courts (no city filter)
-                const res = await apiClient.get('/courts');
-                const venuesData = Array.isArray(res.data) ? res.data : [];
+                // Fetch all venues (no city filter) - Professional arenas across Bengaluru
+                const response = await venuesApi.getVenues();
 
-                // Fetch ratings for each venue
-                const venuesWithRatings = await Promise.all(
-                    venuesData.map(async (venue: Venue) => {
-                        try {
-                            const ratingsRes = await courtsApi.getCourtRatings(venue.id);
-                            return {
-                                ...venue,
-                                rating: ratingsRes.data.average_rating,
-                                reviewCount: ratingsRes.data.total_reviews
-                            };
-                        } catch (error) {
-                            console.error(`Failed to fetch ratings for venue ${venue.id}:`, error);
-                            return venue;
-                        }
-                    })
-                );
+                if (response.success && Array.isArray(response.data)) {
+                    // Map API response to local Venue interface
+                    const mappedVenues: Venue[] = response.data.map((v: any) => ({
+                        id: v.id,
+                        court_name: v.court_name,
+                        location: v.location,
+                        game_type: v.game_type,
+                        prices: v.prices,
+                        photos: v.photos || [],
+                        description: v.description || '',
+                        branch_name: v.branch_name,
+                        amenities: v.amenities,
+                        rating: v.rating || 4.8,
+                        reviewCount: v.reviews || 0
+                    }));
 
-                setVenues(venuesWithRatings);
+                    setVenues(mappedVenues);
+                }
             } catch (err) {
                 console.error("Failed to fetch venues:", err);
             } finally {
@@ -150,7 +148,7 @@ export const Arena: React.FC = () => {
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl text-white mb-8 leading-[0.9] tracking-[-0.05em] font-black uppercase">
+                    <h1 className="text-3xl md:text-5xl lg:text-7xl xl:text-8xl text-white mb-8 leading-[0.9] tracking-[-0.05em] font-black uppercase">
                         play your <br />
                         <span className="text-primary italic">favourite sport</span> <br />
                         at a rush arena near you.

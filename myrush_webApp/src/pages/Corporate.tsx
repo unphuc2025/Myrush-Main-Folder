@@ -168,7 +168,7 @@ export const Corporate: React.FC = () => {
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-4xl md:text-6xl lg:text-7xl text-white mb-8 leading-[1.1] tracking-[-0.02em] font-black">
+                    <h1 className="text-3xl md:text-5xl lg:text-7xl text-white mb-8 leading-[1.1] tracking-[-0.02em] font-black">
                         Unleash Team Spirit and Boost Productivity with Our Dynamic Sports Programs
                     </h1>
 

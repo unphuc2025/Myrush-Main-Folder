@@ -65,7 +65,7 @@ export const Pickleball: React.FC = () => {
                 </div>
 
                 <div className="relative z-10 text-center max-w-5xl mx-auto px-6">
-                    <h1 className="text-4xl md:text-6xl font-black text-white font-montserrat uppercase leading-tight mb-8">
+                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white font-montserrat uppercase leading-tight mb-8">
                         Join the <span className="text-primary">Pickleball Revolution</span> at<br />Rush Arenas
                     </h1>
                     <Button

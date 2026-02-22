@@ -26,6 +26,8 @@ export interface Venue {
     area?: string;
     address_line2?: string;
     games_played?: number;
+    rating?: number;
+    reviews?: number;
 }
 
 export interface VenuesFilter {

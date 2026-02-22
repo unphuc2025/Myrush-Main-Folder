@@ -232,181 +232,75 @@ def get_available_slots(
 ):
     """
     Get available time slots for a specific court on a specific date.
-    Returns slots based on admin configuration minus booked slots.
+    Returns slots based on venue opening hours and price conditions.
     """
     try:
         from datetime import datetime
         from date_utils import parse_date_safe
+        from utils.booking_utils import generate_allowed_slots_map, get_booked_hours, get_now_ist, safe_parse_hour
+        
+        print(f"[COURTS API] Fetching slots for court={court_id}, date={date}")
         
         # 1. Parse Date
-        booking_date = parse_date_safe(date, "%Y-%m-%d", "date")
-        day_of_week_full = booking_date.strftime("%A") 
-        day_of_week_short = day_of_week_full[:3].lower()
+        try:
+            booking_date = parse_date_safe(date, "%Y-%m-%d", "date")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid date format: {e}")
+
+        # 2. Generate Authoritative Allowed Slots (Venue Hours + Pricing + Admin Blocks)
+        allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
         
-        # 2. Get Court & Branch Details
-        court_query = """
-            SELECT ac.id, ac.price_per_hour, ac.price_conditions, ac.unavailability_slots, ab.opening_hours
-            FROM admin_courts ac
-            JOIN admin_branches ab ON ac.branch_id = ab.id
-            WHERE ac.id = :court_id AND ac.is_active = true
-        """
-        court_res = db.execute(text(court_query), {"court_id": court_id}).first()
+        if not allowed_slots_map:
+            return {"court_id": court_id, "date": date, "slots": [], "message": "Venue is closed or not configured."}
+
+        # 3. Fetch Active Bookings to find occupied slots
+        active_bookings = db.query(models.Booking).filter(
+            models.Booking.court_id == court_id,
+            models.Booking.booking_date == booking_date,
+            models.Booking.status != 'cancelled'
+        ).all()
         
-        if not court_res:
-            raise HTTPException(status_code=404, detail="Court not found")
-
-        court = dict(court_res._mapping)
-        b_price = float(court['price_per_hour'])
-        p_cond = court.get('price_conditions') or []
-        un_slots = court.get('unavailability_slots') or []
-        opening_hours = court.get('opening_hours') or {}
-
-        # 3. Determine Operating Hours
-        branch_is_active = True
-        venue_start_hour = 8
-        venue_end_hour = 22
+        booked_hours = get_booked_hours(active_bookings)
         
-        # Helper for JSON parsing
-        def safe_json(val):
-            if isinstance(val, str):
-                try: return json.loads(val)
-                except: return []
-            return val or []
-
-        p_cond = safe_json(court.get('price_conditions'))
-        un_slots = safe_json(court.get('unavailability_slots'))
-        opening_hours = safe_json(court.get('opening_hours'))
-
-        if isinstance(opening_hours, dict):
-            possible_keys = [day_of_week_full.lower(), day_of_week_full, day_of_week_short, day_of_week_short.title(), 'default']
-            day_config = None
-            for k in possible_keys:
-                if k in opening_hours:
-                    day_config = opening_hours[k]
-                    break
-            
-            if day_config and isinstance(day_config, dict):
-                start_str = day_config.get('open') or day_config.get('start') or '08:00'
-                end_str = day_config.get('close') or day_config.get('end') or '22:00'
-                if day_config.get('isActive') is False:
-                    branch_is_active = False
-                try:
-                    venue_start_hour = int(start_str.split(':')[0])
-                    venue_end_hour = int(end_str.split(':')[0])
-                except: pass
-
-        # 4. Generate & Override Slots
-        court_slots = {} # hour(int) -> {price, id}
-        
-        # Only populate default slots if branch is active for this day
-        if branch_is_active:
-            # Handle overnight wrap-around (e.g., 9 PM to 2 AM)
-            if venue_end_hour < venue_start_hour:
-                for h in range(venue_start_hour, 24):
-                    court_slots[h] = {'price': b_price, 'id': 'default'}
-                for h in range(0, venue_end_hour):
-                    court_slots[h] = {'price': b_price, 'id': 'default'}
-            else:
-                for h in range(venue_start_hour, venue_end_hour):
-                    court_slots[h] = {'price': b_price, 'id': 'default'}
-        else:
-            print(f"[COURTS API] Venue is marked OFF on {day_of_week_full} ({date}), skipping default slots.")
-
-        # Fetch Global Conditions
-        global_conditions = db.query(models.GlobalPriceCondition).filter(models.GlobalPriceCondition.is_active == True).all()
-
-        g_recurring, l_recurring, g_date, l_date = [], [], [], []
-        for gc in global_conditions:
-            match = False
-            if gc.condition_type == 'date' and gc.dates and date in gc.dates: match = True
-            elif gc.condition_type == 'recurring' and gc.days and (day_of_week_short in [d.lower()[:3] for d in gc.days] or day_of_week_full.lower() in [d.lower() for d in gc.days]): match = True
-            if match:
-                item = {'slotFrom': gc.slot_from, 'slotTo': gc.slot_to, 'price': float(gc.price), 'id': f"global-{gc.id}"}
-                if gc.condition_type == 'date': g_date.append(item)
-                else: g_recurring.append(item)
-        
-        if isinstance(p_cond, list):
-            for pc in p_cond:
-                if not isinstance(pc, dict): continue
-                match = False
-                is_date = False
-                if 'dates' in pc and date in (pc.get('dates') or []): match = True; is_date = True
-                elif 'days' in pc and (day_of_week_short in [d.lower()[:3] for d in (pc.get('days') or [])] or day_of_week_full.lower() in [d.lower() for d in (pc.get('days') or [])]): match = True
-                if match:
-                    item = {'slotFrom': pc.get('slotFrom'), 'slotTo': pc.get('slotTo'), 'price': float(pc.get('price', b_price)), 'id': pc.get('id', 'override')}
-                    if is_date: l_date.append(item)
-                    else: l_recurring.append(item)
-
-        for items in [g_recurring, l_recurring, g_date, l_date]:
-            for cfg in items:
-                try:
-                    s_h = int(cfg['slotFrom'].split(':')[0])
-                    e_h = int(cfg['slotTo'].split(':')[0])
-                    # Handle overnight wrap-around for overrides
-                    if e_h < s_h:
-                        for h in range(s_h, 24):
-                            court_slots[h] = {'price': cfg['price'], 'id': cfg['id']}
-                        for h in range(0, e_h):
-                            court_slots[h] = {'price': cfg['price'], 'id': cfg['id']}
-                    else:
-                        for h in range(s_h, e_h):
-                            court_slots[h] = {'price': cfg['price'], 'id': cfg['id']}
-                except: pass
-
-        # 5. Check Availability (Unavailability & Bookings)
-        disabled_hours = set()
-        for un in un_slots:
-            if isinstance(un, dict):
-                match = False
-                if date in (un.get('dates') or []): match = True
-                if day_of_week_short in [d.lower()[:3] for d in (un.get('days') or [])]: match = True
-                if match:
-                    for t in (un.get('times') or []):
-                        try: disabled_hours.add(int(t.split(':')[0]))
-                        except: pass
-        
-        booked_res = db.execute(text("SELECT time_slots FROM booking WHERE court_id = :cid AND booking_date = :bdate AND status != 'cancelled'"), {"cid": court_id, "bdate": booking_date}).fetchall()
-        booked_hours = set()
-        for row in booked_res:
-            if row[0] and isinstance(row[0], list):
-                for s in row[0]:
-                    try: booked_hours.add(int(s['start_time'].split(':')[0]))
-                    except: pass
-
-        # 6. Format Output
+        # 4. Filter and Format Output
         all_slots = []
-        now = datetime.now()
-        is_today = (booking_date == now.date())
+        now_ist = get_now_ist()
+        is_today = (booking_date == now_ist.date())
 
-        for h in sorted(court_slots.keys()):
-            # Filter out Today's past slots
-            if is_today and h <= now.hour and (h < now.hour or now.minute > 0):
-                continue
-
-            # CRITICAL: Hide deleted (unavailable) or booked slots from the APK
-            # This ensures only selectable slots are displayed.
-            if h in disabled_hours or h in booked_hours:
-                continue
-
-            time_key = f"{h:02d}:00"
-            available = True # We already filtered out non-available ones
+        for h_str, details in sorted(allowed_slots_map.items()):
+            # Extract hour int for business logic checks
+            h = safe_parse_hour(h_str)
             
+            # --- Past Slot filtering removed as per strict admin-defined model requirements ---
+            # if is_today and h < now_ist.hour:
+            #      continue
+            # if is_today and h == now_ist.hour and now_ist.minute > 45: 
+            #     continue
+            
+            # Skip Admin Blocked slots
+            if details['is_blocked']: continue
+            
+            # Skip already booked slots
+            if h in booked_hours: continue
+
+            # Format time for display (12-hour format)
             sh_disp = h if h <= 12 else h - 12
             if sh_disp == 0: sh_disp = 12
             ampm_s = "AM" if h < 12 else "PM"
-            eh_disp = (h+1) if (h+1) <= 12 else (h+1) - 12
+            
+            h_end = (h + 1) % 24
+            eh_disp = h_end if h_end <= 12 else h_end - 12
             if eh_disp == 0: eh_disp = 12
-            ampm_e = "AM" if (h+1) < 12 else "PM"
+            ampm_e = "AM" if h_end < 12 else "PM"
 
             all_slots.append({
-                "time": time_key,
+                "time": h_str,
                 "display_time": f"{sh_disp:02d}:00 {ampm_s} - {eh_disp:02d}:00 {ampm_e}",
-                "price": court_slots[h]['price'],
-                "available": available,
-                "slot_id": court_slots[h]['id']
+                "price": details['price'],
+                "available": True,
+                "slot_id": f"slot_{h_str.replace(':', '')}" # Synthetic ID
             })
 
-        print(f"[COURTS API] Returning {len(all_slots)} slots for court {court_id} on {date}")
         return {"court_id": court_id, "date": date, "slots": all_slots}
 
     except HTTPException as he: raise he
@@ -415,3 +309,12 @@ def get_available_slots(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+    except HTTPException as he: raise he
+    except Exception as e:
+        print(f"[COURTS API] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+

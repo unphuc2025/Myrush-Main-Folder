@@ -66,7 +66,7 @@ export const BookingSummary: React.FC = () => {
 
         loadVenue();
         loadCoupons();
-    }, [state, state.venueId, navigate]);
+    }, [state, state?.venueId, navigate]);
 
     if (!state || (!venue && !state.venueName)) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div></div>;
 
@@ -144,7 +144,9 @@ export const BookingSummary: React.FC = () => {
                 currency: currency,
                 name: "MyRush",
                 description: `Booking for ${state.venueName || venue?.court_name}`,
-                image: `${window.location.origin}/Rush-logo.webp`,
+                image: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? undefined
+                    : `${window.location.origin}/Rush-logo.webp`,
                 order_id: order_id,
                 handler: async function (response: any) {
                     try {
@@ -169,8 +171,10 @@ export const BookingSummary: React.FC = () => {
                         const res = await bookingsApi.createBooking(payload);
 
                         if (res.success) {
-                            alert('Booking Confirmed!');
-                            navigate('/bookings');
+                            alert('Booking Confirmed! 🎉');
+                            // Navigate to bookings — VenueDetails will auto-refetch slots
+                            // on window focus when user returns, hiding the booked slot.
+                            navigate('/bookings', { state: { bookingSuccess: true } });
                         } else {
                             alert('Payment successful but booking creation failed. ' + (res.data?.detail || ''));
                         }

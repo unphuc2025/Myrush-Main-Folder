@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { bookingsApi } from '../api/bookings';
 import { TopNav } from '../components/TopNav';
-import { Button } from '../components/ui/Button';
-import { FaTimes } from 'react-icons/fa';
 import './MyBookings.css';
 
 interface Booking {
@@ -41,29 +39,6 @@ export const MyBookings: React.FC = () => {
     const [selectedRating, setSelectedRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
     const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
-
-    // Host Game State
-    const [isHostModalOpen, setIsHostModalOpen] = useState(false);
-    const [selectedBookingForHost, setSelectedBookingForHost] = useState<Booking | null>(null);
-    const [hostSkillLevel, setHostSkillLevel] = useState('Open');
-    const [hostNumPlayers, setHostNumPlayers] = useState(2);
-
-    const handleHostGameClick = (booking: Booking, e: React.MouseEvent) => {
-        e.stopPropagation();
-        setSelectedBookingForHost(booking);
-        setHostNumPlayers(2); // reset default
-        setHostSkillLevel('Open'); // reset default
-        setIsHostModalOpen(true);
-    };
-
-    const handleConfirmHostGame = (e: React.FormEvent) => {
-        e.preventDefault();
-        // Here we would effectively make an API call to create the Open Play game
-        // For now, we mock the success.
-        alert(`Game Hosted Successfully!\n\nVenue: ${selectedBookingForHost?.venue_name}\nLevel: ${hostSkillLevel}\nPlayers Needed: ${hostNumPlayers}`);
-        setIsHostModalOpen(false);
-        setSelectedBookingForHost(null);
-    };
 
     useEffect(() => {
         loadBookings();
@@ -224,17 +199,6 @@ export const MyBookings: React.FC = () => {
                                         <span className="month">{new Date(booking.booking_date).toLocaleDateString('en-US', { month: 'short' })}</span>
                                     </div>
                                     {getStatusBadge(booking.status)}
-
-                                    {/* Host Game Button for Upcoming Bookings */}
-                                    {(booking.status === 'upcoming' || booking.status === 'confirmed') && (
-                                        <Button
-                                            variant="outline"
-                                            className="ml-auto text-xs py-1 px-3 h-8 border-primary text-primary hover:bg-primary hover:text-white z-10 relative"
-                                            onClick={(e) => handleHostGameClick(booking, e)}
-                                        >
-                                            Host Game
-                                        </Button>
-                                    )}
                                 </div>
 
                                 <div className="card-body-modern">
@@ -416,90 +380,6 @@ export const MyBookings: React.FC = () => {
                     )}
                 </main>
             </div>
-            {/* HOST GAME MODAL */}
-            <AnimatePresence>
-                {isHostModalOpen && selectedBookingForHost && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
-                        onClick={() => setIsHostModalOpen(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.9, y: 20 }}
-                            className="bg-white rounded-3xl p-8 max-w-md w-full relative shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <button
-                                onClick={() => setIsHostModalOpen(false)}
-                                className="absolute top-6 right-6 text-gray-400 hover:text-black transition-colors"
-                            >
-                                <FaTimes size={20} />
-                            </button>
-
-                            <h3 className="text-2xl font-black uppercase mb-2">Host This Game</h3>
-                            <p className="text-gray-500 text-sm mb-6">Invite others to join your booking.</p>
-
-                            <div className="space-y-4 mb-6">
-                                <div className="bg-gray-50 p-4 rounded-xl">
-                                    <p className="font-bold text-sm">{selectedBookingForHost.venue_name}</p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {new Date(selectedBookingForHost.booking_date).toLocaleDateString()} • {selectedBookingForHost.start_time?.slice(0, 5)}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Skill Level</label>
-                                    <select
-                                        value={hostSkillLevel}
-                                        onChange={(e) => setHostSkillLevel(e.target.value)}
-                                        className="w-full h-12 border border-gray-200 rounded-xl px-4 font-bold text-sm bg-white focus:border-primary outline-none transition-colors"
-                                    >
-                                        <option value="Open">Open for All</option>
-                                        <option value="Beginner">Beginner</option>
-                                        <option value="Intermediate">Intermediate</option>
-                                        <option value="Advanced">Advanced</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Players Needed</label>
-                                    <div className="flex items-center gap-4">
-                                        <button
-                                            type="button"
-                                            onClick={() => setHostNumPlayers(Math.max(1, hostNumPlayers - 1))}
-                                            className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold hover:bg-gray-200 transition-colors"
-                                        >
-                                            -
-                                        </button>
-                                        <span className="font-black text-xl w-8 text-center">{hostNumPlayers}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setHostNumPlayers(hostNumPlayers + 1)}
-                                            className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold hover:bg-gray-200 transition-colors"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Button
-                                variant="primary"
-                                className="w-full h-12 text-lg font-bold uppercase"
-                                onClick={handleConfirmHostGame}
-                            >
-                                Confirm & Host
-                            </Button>
-
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
         </div>
     );
 };

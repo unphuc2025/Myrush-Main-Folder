@@ -18,7 +18,8 @@ export const OTPVerification: React.FC = () => {
     useEffect(() => {
         if (isAuthenticated) {
             const from = (location.state as any)?.from?.pathname || '/';
-            navigate(from, { replace: true });
+            const fromState = (location.state as any)?.from?.state;
+            navigate(from, { replace: true, state: fromState });
         }
     }, [isAuthenticated, navigate, location]);
 
