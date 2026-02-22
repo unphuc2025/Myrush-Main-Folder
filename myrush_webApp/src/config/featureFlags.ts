@@ -3,5 +3,5 @@ export const featureFlags = {
     enableCommunity: false,
     enableStore: false,
     enableLoyalty: false,
-    enableChatbot: false
+    enableChatbot: true
 };

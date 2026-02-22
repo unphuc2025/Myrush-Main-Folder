@@ -1,4 +1,6 @@
-import { venuesApi } from '../api/venues';
+
+
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/user').replace('/api/user', '');
 
 // ============================================================================
 // KNOWLEDGE BASE CACHING
@@ -25,8 +27,8 @@ export const fetchKnowledgeBase = async (): Promise<KnowledgeBase> => {
 
     try {
         const [baseRes, faqRes] = await Promise.all([
-            fetch('http://localhost:8000/api/chatbot/knowledge/base'),
-            fetch('http://localhost:8000/api/chatbot/knowledge/faqs')
+            fetch(`${API_BASE_URL}/api/chatbot/knowledge/base`),
+            fetch(`${API_BASE_URL}/api/chatbot/knowledge/faqs`)
         ]);
 
         const baseResult = await baseRes.json();
@@ -72,7 +74,7 @@ export const searchVenues = async (params: {
         if (params.amenity) queryParams.append('amenity', params.amenity);
         if (params.price_max) queryParams.append('price_max', params.price_max.toString());
 
-        const response = await fetch(`http://localhost:8000/api/chatbot/search/venues?${queryParams.toString()}`);
+        const response = await fetch(`${API_BASE_URL}/api/chatbot/search/venues?${queryParams.toString()}`);
         const result = await response.json();
 
         if (result.success) {
@@ -93,7 +95,7 @@ export const searchVenues = async (params: {
  */
 export const getVenueDetails = async (venueId: string) => {
     try {
-        const response = await fetch(`http://localhost:8000/api/chatbot/context/venue/${venueId}`);
+        const response = await fetch(`${API_BASE_URL}/api/chatbot/context/venue/${venueId}`);
         const result = await response.json();
 
         if (result.success) {
@@ -110,11 +112,32 @@ export const getVenueDetails = async (venueId: string) => {
 };
 
 /**
+ * Look up booking details by display ID
+ */
+export const getBookingDetails = async (displayId: string) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/chatbot/booking/${displayId}`);
+        const result = await response.json();
+
+        if (result.success) {
+            return {
+                success: true,
+                data: result.data
+            };
+        }
+    } catch (error) {
+        console.error('[CHATBOT] Failed to get booking details:', error);
+    }
+
+    return { success: false, message: 'Booking not found' };
+};
+
+/**
  * Get all venues summary (lightweight)
  */
 export const getAllVenuesSummary = async () => {
     try {
-        const response = await fetch('http://localhost:8000/api/chatbot/knowledge/venues');
+        const response = await fetch(`${API_BASE_URL}/api/chatbot/knowledge/venues`);
         const result = await response.json();
 
         if (result.success) {
@@ -133,7 +156,7 @@ export const getAllVenuesSummary = async () => {
 /**
  * Build enriched context for Gemini based on user query and intent
  */
-export const buildChatbotContext = async (userQuery: string, intent?: string) => {
+export const buildChatbotContext = async (userQuery: string) => {
     const knowledge = await fetchKnowledgeBase();
     let contextData: any = {
         knowledge
