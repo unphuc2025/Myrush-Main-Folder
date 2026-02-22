@@ -4,9 +4,12 @@ import models, schemas
 from utils.coupon_utils import increment_coupon_usage
 from passlib.context import CryptContext
 import uuid
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, time, date
+
 import random
+import json
 from sqlalchemy import and_
+
 from typing import Optional
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -182,246 +185,126 @@ def set_default_payment_method(db: Session, payment_method_id: str, user_id: str
         return db_payment_method
     return None
 
-def validate_booking_rules(db: Session, user_id: str, court_id: str, booking_date: datetime.date, start_time: datetime.time, end_time: datetime.time, duration_minutes: int):
+def validate_booking_rules(db: Session, court_id: str, booking_date: date, start_time: time, end_time: time, user_id: str):
     """
-    Enforce critical booking rules:
-    1. Double Booking (Overlap)
-    2. User Overlap (Same user, same time)
-    3. Max Window (30 days)
-    4. Max Duration (4 hours)
-    5. Past Time Check
+    Validate various constraints before allowing a booking.
+    Now using robust hourly overlap checks and timezone-aware past-time checks.
     """
+    from utils.booking_utils import get_now_ist, get_booked_hours, validate_slot_not_past
     from fastapi import HTTPException
-    from sqlalchemy import and_, or_
-    import models
-    from datetime import datetime, timedelta
+    
+    now_ist = get_now_ist()
+    print(f"[RULES CHECK] Validating rules: user={user_id}, court={court_id}, date={booking_date}, time={start_time} to {end_time}")
+    print(f"[RULES CHECK] Server Now (IST): {now_ist}")
 
     # --- Rule 1: Max Advance Booking Window (30 Days) ---
     max_days = 30
-    if booking_date > datetime.now().date() + timedelta(days=max_days):
+    if booking_date > now_ist.date() + timedelta(days=max_days):
+        print(f"[RULES CHECK FAIL] Advance booking limit: {booking_date} is more than {max_days} days in advance.")
         raise HTTPException(status_code=400, detail=f"Bookings can only be made up to {max_days} days in advance.")
 
-    # --- Rule 2: Strict Past Time Check ---
-    # Create full datetime objects for comparison
-    booking_start_dt = datetime.combine(booking_date, start_time)
+    # --- Rule 2: Past Time Check removed as per strict admin-defined model requirements ---
+    # validate_slot_not_past(booking_date, start_time.hour)
+
+    # --- Rule 3: Double Booking Check (Court Concurrency) ---
+    from models import Booking
+    existing_bookings = db.query(Booking).filter(
+        Booking.court_id == court_id,
+        Booking.booking_date == booking_date,
+        Booking.status != 'cancelled'
+    ).all()
     
-    # Allow a small buffer (e.g., 2 minutes) for network latency/clock skew
-    if booking_start_dt < datetime.now() - timedelta(minutes=2):
-        raise HTTPException(status_code=400, detail="Cannot book a slot in the past.")
+    booked_hours = get_booked_hours(existing_bookings)
+    
+    # Calculate requested hours
+    requested_start_h = start_time.hour
+    # If end_time is 00:00, treat as 24 for calculation
+    requested_end_h = end_time.hour if end_time.hour != 0 or end_time.minute != 0 else 24
+    
+    for h in range(requested_start_h, requested_end_h):
+        if h in booked_hours:
+            print(f"[RULES CHECK FAIL] Conflict at Hour {h}: Slot already booked.")
+            raise HTTPException(status_code=409, detail="This slot is already booked. Please choose another time.")
 
-    # --- Rule 3: Max Duration Limit (4 Hours) ---
-    max_duration = 240 # 4 hours
-    if duration_minutes > max_duration:
-        raise HTTPException(status_code=400, detail=f"Maximum booking duration is {max_duration // 60} hours.")
+    # --- Rule 4: User Overlap Check (prevent same user playing in 2 places) ---
+    user_bookings = db.query(Booking).filter(
+        Booking.user_id == user_id,
+        Booking.booking_date == booking_date,
+        Booking.status != 'cancelled'
+    ).all()
+    
+    user_booked_hours = get_booked_hours(user_bookings)
+    for h in range(requested_start_h, requested_end_h):
+        if h in user_booked_hours:
+            print(f"[RULES CHECK FAIL] User Overlap at Hour {h}: Already has another booking.")
+            raise HTTPException(status_code=400, detail="You already have another booking during this time.")
 
-    # --- Rule 4: Double Booking Check (Court Concurrency) ---
-    # Check if ANY existing booking for this court overlaps with requested time
-    # Overlap Logic: (StartA < EndB) and (EndA > StartB)
-    overlapping_booking = db.query(models.Booking).filter(
-        models.Booking.court_id == court_id,
-        models.Booking.booking_date == booking_date,
-        models.Booking.status != 'cancelled',
-        # New Overlap Logic using Time objects
-        models.Booking._old_start_time < end_time,
-        models.Booking._old_end_time > start_time
-    ).first()
+    print("[RULES CHECK] All rules passed.")
 
-    if overlapping_booking:
-        print(f"[VALIDATION] Double booking detected! Existing: {overlapping_booking.booking_display_id}")
-        raise HTTPException(status_code=409, detail="This slot is already booked. Please choose another time.")
 
-    # --- Rule 5: User Overlap Check (prevent same user playing in 2 places) ---
-    user_overlap = db.query(models.Booking).filter(
-        models.Booking.user_id == user_id,
-        models.Booking.booking_date == booking_date,
-        models.Booking.status != 'cancelled',
-        models.Booking._old_start_time < end_time,
-        models.Booking._old_end_time > start_time
-    ).first()
-
-    if user_overlap:
-        print(f"[VALIDATION] User overlap detected! Existing: {user_overlap.booking_display_id}")
-        raise HTTPException(status_code=400, detail="You already have a booking overlapping with this time.")
-
-def validate_court_configuration(db: Session, court_id: str, booking_date: datetime.date, requested_slots: list, expected_total_amount: float, number_of_players: int = 1):
+def validate_court_configuration(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]], number_of_players: int, expected_total_amount: float):
     """
-    Validate that the requested slots:
-    1. Exist within the court's operating hours (Business Hours)
-    2. Are not blocked by admin (Unavailability)
-    3. Have the correct price (Price Tampering)
+    Ensures the requested slots exist in the court's configuration and the price is correct.
     """
+    print(f"[CONFIG CHECK] Validating court config: court={court_id}, date={booking_date}, slots={len(requested_slots)}, players={number_of_players}, expected_total={expected_total_amount}")
+    
     from fastapi import HTTPException
-    from sqlalchemy import text
-    from datetime import datetime, time, timedelta
-    import json
+    from utils.booking_utils import generate_allowed_slots_map, safe_parse_hour
 
-    # 1. Fetch Court Config
-    court_query = """
-        SELECT
-            ac.id,
-            ac.price_per_hour,
-            ac.price_conditions,
-            ac.unavailability_slots
-        FROM admin_courts ac
-        WHERE ac.id = :court_id AND ac.is_active = true
-    """
-    result = db.execute(text(court_query), {"court_id": str(court_id)})
-    court = result.fetchone()
+    # 1. Generate Authoritative Slots Map
+    allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
+    print(f"[CONFIG CHECK] Allowed slots for {booking_date}: {sorted(list(allowed_slots_map.keys()))}")
 
-    if not court:
-        raise HTTPException(status_code=404, detail="Court not found or inactive")
+    if not allowed_slots_map:
+        print(f"[CONFIG CHECK FAIL] No available slots generated for {booking_date} (Venue might be closed).")
+        raise HTTPException(status_code=400, detail="The venue is closed or not configured for this date.")
 
-    court_dict = dict(court._mapping)
-    base_price = float(court_dict['price_per_hour'])
-    timing_config = court_dict.get('price_conditions')
-    unavailability_data = court_dict.get('unavailability_slots')
-
-    import json
-    def safe_json(val):
-        if isinstance(val, str):
-            try: return json.loads(val)
-            except: return []
-        return val or []
-
-    timing_config = safe_json(timing_config)
-    unavailability_data = safe_json(unavailability_data)
-
-    # 2. Determine Valid Slots for this Date
-    day_of_week = booking_date.strftime("%A").lower()[:3]
-    date_str = booking_date.strftime("%Y-%m-%d")
-
-    matching_configs = []
-    # (Logic reused from courts.py for consistent slot generation)
-    if isinstance(timing_config, list) and len(timing_config) > 0:
-        date_specific = []
-        day_specific = []
-        for timing in timing_config:
-            if isinstance(timing, dict):
-                # Date Specific
-                if 'dates' in timing and isinstance(timing.get('dates'), list):
-                    if date_str in timing.get('dates', []):
-                        date_specific.append(timing)
-                # Day Specific
-                elif 'days' in timing and isinstance(timing.get('days'), list):
-                    days_list = [d.lower()[:3] for d in timing.get('days', [])]
-                    if day_of_week in days_list:
-                        day_specific.append(timing)
-        
-        # Prioritize Date > Day
-        raw_configs = date_specific if date_specific else day_specific
-        
-        # Parse configs
-        for cfg in raw_configs:
-            try:
-                msg = f"Parsing config: {cfg}" # debug
-                s_h = int(cfg.get('slotFrom', '08:00').split(':')[0])
-                e_h = int(cfg.get('slotTo', '22:00').split(':')[0])
-                p = float(cfg.get('price', base_price))
-                matching_configs.append({'start': s_h, 'end': e_h, 'price': p})
-            except: pass
-
-    # Default if no config matches
-    if not matching_configs:
-        # Default 6 AM to 11 PM (extended default) or 8-10? 
-        # courts.py led to 8-22. Let's stick to 8-22 to be consistent if no config.
-        # But actually, simpler: standard 24h or logic? 
-        # Let's use 8-22 as fallback to match courts.py
-        for h in range(8, 22):
-            matching_configs.append({'start': h, 'end': h+1, 'price': base_price})
-
-    # 3. Build Map of Allowed Hourly Slots (StartHour -> Price)
-    # Using 'start_time' string as key to match requested slots easily
-    allowed_slots_map = {} # "HH:MM" -> price
-    
-    # We need to map the configuration ranges to actual hourly slots
-    # E.g. Config 10:00-12:00 @ 200 => Slots 10:00-11:00, 11:00-12:00
-    for cfg in matching_configs:
-        # If config is range, break into hourly slots
-        # Note: courts.py creates SINGLE slot for the range now ? 
-        # "Each configuration now creates a SINGLE slot" in courts.py comment line 298
-        # Wait, if courts.py creates ONE slot 10-12, then the user MUST book 10-12?
-        # Yes, standard Playo-like systems often define slots.
-        # Let's support verifying the EXACT slot logic.
-        
-        # If courts.py generates "10:00"-"12:00", then requested slot MUST be "10:00"-"12:00"
-        # validation should check if requested slot == an allowed slot.
-        s_str = f"{cfg['start']:02d}:00"
-        e_str = f"{cfg['end']:02d}:00"
-        allowed_slots_map[s_str] = {
-            'end_time': e_str,
-            'price': cfg['price'],
-            'is_blocked': False
-        }
-
-    # 4. Apply Unavailability (Block slots)
-    # unavailability_slots structure: { "dates": [...], "times": ["10:00", "11:00"] }
-    # Times refer to start_time of the slot.
-    full_day_name = booking_date.strftime("%A") # Monday...
-    for unavail in unavailability_data:
-        if isinstance(unavail, dict):
-            # Check Date/Day match
-            is_match = False
-            if 'dates' in unavail and date_str in unavail.get('dates', []):
-                is_match = True
-            if 'days' in unavail:
-                days_cfg = [d.lower() for d in unavail.get('days', [])]
-                if full_day_name.lower() in days_cfg:
-                    is_match = True
-            
-            if is_match:
-                blocked_times = unavail.get('times', [])
-                for t in blocked_times:
-                    if t in allowed_slots_map:
-                        allowed_slots_map[t]['is_blocked'] = True
-
-    # 5. Validate Each REQUESTED Slot
-    calculated_total = 0.0
-    
+    # 2. Validate Each REQUESTED Slot
+    calculated_total_base = 0.0
     for req in requested_slots:
-        # req is dict { "start_time": "HH:MM", "end_time": "HH:MM", "price": ... }
-        r_start = req['start_time']
+        r_start = req.get('start_time') or req.get('time')
+        if not r_start: continue
         
-        # Check integrity
-        if r_start not in allowed_slots_map:
-            raise HTTPException(status_code=400, detail=f"Slot starting at {r_start} is not available/valid for this court on this date.")
+        # Normalize to HH:00
+        h_req = safe_parse_hour(r_start)
+        norm_start = f"{h_req:02d}:00"
         
-        server_slot = allowed_slots_map[r_start]
+        print(f"[CONFIG CHECK] Verifying slot Hour {h_req} ({r_start})")
         
-        # Check 'Admin Unavailability'
+        if norm_start not in allowed_slots_map:
+            print(f"[CONFIG CHECK FAIL] Slot {norm_start} not in allowed_slots_map.")
+            raise HTTPException(status_code=400, detail=f"Slot starting at {r_start} is not available for this venue.")
+        
+        server_slot = allowed_slots_map[norm_start]
         if server_slot['is_blocked']:
-             raise HTTPException(status_code=400, detail=f"Slot at {r_start} is currently unavailable (Blocked by Admin).")
+             print(f"[CONFIG CHECK FAIL] Slot {norm_start} is blocked by admin.")
+             raise HTTPException(status_code=400, detail="This slot has been blocked by Admin.")
             
-        # Check 'Price Tampering'
-        # Allow small diff?
         expected_price = float(server_slot['price'])
         provided_price = float(req.get('price', 0))
         
-        if abs(expected_price - provided_price) > 1.0: # 1 rupee tolerance
-             print(f"[PRICE CHECK FAIL] Slot {r_start}: Expected {expected_price}, Got {provided_price}")
-             # fail or warn? STRICT for now
-             raise HTTPException(status_code=400, detail=f"Price mismatch for slot {r_start}. Please refresh and try again.")
+        print(f"[CONFIG CHECK] Slot {norm_start}: Expected Price {expected_price}, Provided {provided_price}")
+        
+        # Allow small rounding difference
+        if abs(expected_price - provided_price) > 5.0:
+             print(f"[PRICE CHECK FAIL] Mismatch for {norm_start}: Expected {expected_price} vs Provided {provided_price}")
+             raise HTTPException(status_code=400, detail=f"Price mismatch for slot {r_start}")
              
-        calculated_total += expected_price
+        calculated_total_base += expected_price
 
-    # 6. Validate Total Amount
-    # If booking.original_amount is sent, it should match sum of slots * players + platform fee
-    # Total Amount = Original - Discount. We validate original here.
-    
-    # Apply Player Multiplier
-    calculated_subtotal = calculated_total * number_of_players
-    
-    # Apply Platform Fee (Set to 0 as requested)
-    PLATFORM_FEE = 0.0
-    calculated_final_total = calculated_subtotal + PLATFORM_FEE
+    # 3. Validate Total Amount
+    # Total = (Sum of Slot Prices) * Number of Players
+    # CRITICAL: Confirm if total_amount = (SlotPrice * Players) or just SlotPrice
+    # Based on payments.py, it's (SlotPrice * Players)
+    calculated_final_total = (calculated_total_base * number_of_players)
+    print(f"[CONFIG CHECK] Final Calculation: ({calculated_total_base} total_slots_price * {number_of_players} players) = {calculated_final_total}")
+    print(f"[CONFIG CHECK] Comparison: Server={calculated_final_total} vs Client={expected_total_amount}")
 
-    # Log for debug
-    print(f"[VALIDATION] Price Check: Server Calc={calculated_final_total} (Slots={calculated_total} * P={number_of_players} + Fee={PLATFORM_FEE}) vs Expected={expected_total_amount}")
+    if abs(calculated_final_total - float(expected_total_amount)) > 10.0:
+         print(f"[CONFIG CHECK FAIL] Total amount mismatch.")
+         raise HTTPException(status_code=400, detail="Total booking amount mismatch. Please refresh.")
 
-    if abs(calculated_final_total - float(expected_total_amount)) > 5.0:
-         print(f"[VALIDATION FAIL] Mismatch! Server: {calculated_final_total}, Client: {expected_total_amount}")
-         raise HTTPException(status_code=400, detail=f"Total booking amount mismatch. Server calculated: {calculated_final_total}, You sent: {expected_total_amount}")
-
-    print("[VALIDATION] Configuration & Price Check passed.")
+    print("[CONFIG CHECK] Success.")
 
 
 def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
@@ -444,24 +327,10 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             suffix = ''.join(random.choices(chars, k=6))
             return f"BK-{suffix}"
         
+        from utils.booking_utils import safe_parse_hour
+        
         # New Booking ID
         new_display_id = generate_booking_display_id()
-
-        def parse_time_str(time_str):
-            time_str = str(time_str).strip()
-            if re.match(r'^\d{1,2}:\d{2}$', time_str):
-                 return dt.strptime(time_str, '%H:%M').time()
-            match = re.match(r'(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?', time_str)
-            if match:
-                hour = int(match.group(1))
-                minute = int(match.group(2))
-                ampm = match.group(3)
-                if ampm and ampm.upper() == 'PM' and hour != 12:
-                    hour += 12
-                elif ampm and ampm.upper() == 'AM' and hour == 12:
-                    hour = 0
-                return time(hour, minute)
-            return time(10, 0) # Fallback
 
         # Check if multi-slot data is provided (New Flow)
         if booking.time_slots and len(booking.time_slots) > 0:
@@ -473,18 +342,17 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
                 price = slot.get('price')
                 
                 # Parse start time
-                s_time = parse_time_str(raw_time)
+                s_h = safe_parse_hour(raw_time)
+                s_time = time(s_h, 0)
                 
-                # Calculate end time (assume 60 mins if not provided)
-                # If end_time provided, parse it, else add 60 mins
+                # Calculate end time (assume 1 hour per slot)
                 raw_end = slot.get('end_time')
                 if raw_end:
-                     e_time = parse_time_str(raw_end)
+                     e_h = safe_parse_hour(raw_end)
+                     # Handle midnight closure as 00:00
+                     e_time = time(e_h % 24, 0)
                 else:
-                     # Add 60 mins
-                     dummy_date = dt.combine(dt.today(), s_time)
-                     e_date = dummy_date + timedelta(minutes=60)
-                     e_time = e_date.time()
+                     e_time = time((s_h + 1) % 24, 0)
                 
                 sanitized_slots.append({
                     "start_time": s_time.strftime("%H:%M"),
@@ -494,44 +362,33 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
                 })
             
             time_slots = sanitized_slots
-            # Assume 60 mins per slot for now if not specified
             total_duration = len(time_slots) * 60 
             
-            # Get first slot for legacy compatibility
             if len(time_slots) > 0:
-                start_time_val = dt.strptime(time_slots[0]['start_time'], '%H:%M').time()
-                # End time of LAST slot? or first slot? 
-                # Legacy implies booking is one block. If multi-slots are 10-11, 11-12, total is 10-12.
-                # Let's set start of first, end of last?
-                # Actually legacy start/end usually means the whole block.
-                # But let's stick to simple: start of first.
-                # End time? 
-                end_time_val = dt.strptime(time_slots[-1]['end_time'], '%H:%M').time()
+                start_time_val = time(safe_parse_hour(time_slots[0]['start_time']), 0)
+                end_time_val = time(safe_parse_hour(time_slots[-1]['end_time']), 0)
             else:
-                 # Should not happen
-                 start_time_val = time(10, 0)
-                 end_time_val = time(11, 0)
+                start_time_val = time(10, 0)
+                end_time_val = time(11, 0)
 
         else:
             # Legacy Flow (Single Slot)
             print("[CRUD BOOKING] Processing legacy single-slot booking")
             time_str = str(booking.start_time).strip()
             
-            start_dt = parse_time_str(time_str)
-            start_datetime = dt.combine(booking.booking_date, start_dt)
-            end_dt_result = start_datetime + timedelta(minutes=booking.duration_minutes)
-            end_time_obj = end_dt_result.time()
+            s_h = safe_parse_hour(time_str)
+            start_time_val = time(s_h, 0)
             
-            start_time_val = start_dt
-            end_time_val = end_time_obj
             total_duration = booking.duration_minutes
+            # Calculate end time by adding duration
+            dummy_dt = dt.combine(dt.today(), start_time_val) + timedelta(minutes=total_duration)
+            end_time_val = dummy_dt.time()
             
-            # Create single slot for time_slots array
             time_slots = [{
-                "start_time": start_dt.strftime("%H:%M"),
-                "end_time": end_time_obj.strftime("%H:%M"),
+                "start_time": start_time_val.strftime("%H:%M"),
+                "end_time": end_time_val.strftime("%H:%M"),
                 "price": booking.price_per_hour,
-                "display_time": f"{start_dt.strftime('%I:%M %p')} - {end_time_obj.strftime('%I:%M %p')}"
+                "display_time": f"{start_time_val.strftime('%I:%M %p')} - {end_time_val.strftime('%I:%M %p')}"
             }]
 
         # 2. Calculate Amounts
@@ -573,17 +430,23 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         from uuid import UUID
         c_uuid = UUID(str(booking.court_id))
 
+        # --- ATOMIC LOCKING ---
+        # Acquire row-level lock on the court to serialize validation and creation.
+        # This prevents two concurrent requests from seeing the same slot as available.
+        print(f"[CRUD BOOKING] Acquiring lock for court {c_uuid}")
+        db.query(models.Court).filter(models.Court.id == c_uuid).with_for_update().first()
+
         # --- VALIDATE BOOKING RULES (Double Booking, etc.) ---
         # Run strict validation before proceeding
         validate_booking_rules(
             db=db,
-            user_id=user_id,
             court_id=c_uuid, # Pass as UUID to match model
             booking_date=booking.booking_date,
             start_time=start_time_val,
             end_time=end_time_val,
-            duration_minutes=total_duration
+            user_id=user_id
         )
+
 
         # --- VALIDATE CONFIGURATION (Business Hours, Admin Blocks, Price) ---
         validate_court_configuration(
@@ -690,26 +553,104 @@ def verify_otp_record(db: Session, phone_number: str, otp_code: str):
     return otp
 
 def get_bookings(db: Session, user_id: str):
-    """Get all bookings for a user"""
+    """Get all bookings for a user, enriched with court name and venue location."""
     try:
         print(f"[CRUD] Getting bookings for user: {user_id}")
-        
-        # Use ORM directly now that models are safer
-        from sqlalchemy import desc
-        bookings = db.query(models.Booking)\
-            .filter(models.Booking.user_id == user_id)\
-            .order_by(desc(models.Booking.booking_date), desc(models.Booking.start_time))\
-            .all()
-            
-        print(f"[CRUD] Found {len(bookings)} bookings")
-        return bookings
+
+        from sqlalchemy import text
+        query = text("""
+            SELECT
+                b.id,
+                b.user_id,
+                b.court_id,
+                b.booking_display_id,
+                b.booking_date,
+                b._deprecated_start_time_v2 AS start_time,
+                b._deprecated_end_time_v2 AS end_time,
+                b._deprecated_duration_minutes_v2 AS duration_minutes,
+                b._deprecated_price_per_hour_v2 AS price_per_hour,
+                b._deprecated_original_price_per_hour_v2 AS original_price_per_hour,
+                b.time_slots,
+                b.total_duration_minutes,
+                b.original_amount,
+                b.discount_amount,
+                b.coupon_code,
+                b.number_of_players,
+                b.team_name,
+                b.special_requests,
+                b.total_amount,
+                b.status,
+                b.payment_status,
+                b.created_at,
+                b.updated_at,
+                c.name AS venue_name,
+                br.address_line1 AS venue_location,
+                br.name AS branch_name
+            FROM booking b
+            LEFT JOIN admin_courts c ON b.court_id::text = c.id::text
+            LEFT JOIN admin_branches br ON c.branch_id::text = br.id::text
+            WHERE b.user_id = :user_id
+            ORDER BY b.booking_date DESC, b._deprecated_start_time_v2 DESC
+        """)
+
+        result = db.execute(query, {"user_id": str(user_id)}).fetchall()
+        print(f"[CRUD] Found {len(result)} bookings")
+
+        import json
+        bookings_list = []
+        for row in result:
+            # Parse time_slots from JSON string if needed
+            raw_time_slots = row[10]
+            if isinstance(raw_time_slots, str):
+                try:
+                    time_slots_parsed = json.loads(raw_time_slots)
+                except Exception:
+                    time_slots_parsed = []
+            elif isinstance(raw_time_slots, list):
+                time_slots_parsed = raw_time_slots
+            else:
+                time_slots_parsed = []
+
+            # Build venue_location: prefer address_line1, fall back to branch name
+            venue_location = row[24] or row[25] or "Unknown Location"
+
+            booking_dict = {
+                "id": row[0],
+                "user_id": row[1],
+                "court_id": row[2],
+                "booking_display_id": row[3],
+                "booking_date": row[4],
+                "start_time": row[5],
+                "end_time": row[6],
+                "duration_minutes": row[7],
+                "price_per_hour": row[8],
+                "original_price_per_hour": row[9],
+                "time_slots": time_slots_parsed,
+                "total_duration_minutes": row[11] or 0,
+                "original_amount": row[12],
+                "discount_amount": row[13] or 0,
+                "coupon_code": row[14],
+                "number_of_players": row[15] or 2,
+                "team_name": row[16],
+                "special_requests": row[17],
+                "total_amount": row[18],
+                "status": row[19],
+                "payment_status": row[20],
+                "created_at": row[21],
+                "updated_at": row[22],
+                "venue_name": row[23] or "Unknown Court",
+                "venue_location": venue_location,
+            }
+            bookings_list.append(booking_dict)
+
+        return bookings_list
 
     except Exception as e:
         print(f"[CRUD] Critical error getting bookings for user {user_id}: {e}")
         import traceback
         traceback.print_exc()
-        # Final fallback - return empty list to prevent app crash
         return []
+
 
 def create_review(db: Session, review: schemas.ReviewCreate, user_id: str):
     print(f"[CRUD] create_review called for user={user_id}, booking={review.booking_id}")

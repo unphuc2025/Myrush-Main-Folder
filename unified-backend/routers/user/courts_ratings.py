@@ -123,20 +123,38 @@ def get_court_ratings(court_id: str, db: Session = Depends(database.get_db)):
                 "total_reviews": 0,
                 "rating_distribution": {"5": 0, "4": 0, "3": 0, "2": 0, "1": 0}
             }
-        query_sql = """
-            SELECT
-                court_id,
-                COUNT(*) as total_reviews,
-                ROUND(AVG(rating)::numeric, 1) as average_rating,
-                COUNT(CASE WHEN rating = 5 THEN 1 END) as five_stars,
-                COUNT(CASE WHEN rating = 4 THEN 1 END) as four_stars,
-                COUNT(CASE WHEN rating = 3 THEN 1 END) as three_stars,
-                COUNT(CASE WHEN rating = 2 THEN 1 END) as two_stars,
-                COUNT(CASE WHEN rating = 1 THEN 1 END) as one_star
-            FROM reviews
-            WHERE court_id = :court_id AND is_active = true
-            GROUP BY court_id
-        """
+        # Determine if it's a court or a branch
+        is_branch = db.execute(text("SELECT 1 FROM admin_branches WHERE id = :id"), {"id": court_id}).first() is not None
+        
+        if is_branch:
+             query_sql = """
+                SELECT
+                    COUNT(*) as total_reviews,
+                    ROUND(AVG(r.rating)::numeric, 1) as average_rating,
+                    COUNT(CASE WHEN r.rating = 5 THEN 1 END) as five_stars,
+                    COUNT(CASE WHEN r.rating = 4 THEN 1 END) as four_stars,
+                    COUNT(CASE WHEN r.rating = 3 THEN 1 END) as three_stars,
+                    COUNT(CASE WHEN r.rating = 2 THEN 1 END) as two_stars,
+                    COUNT(CASE WHEN r.rating = 1 THEN 1 END) as one_star
+                FROM reviews r
+                JOIN admin_courts ac ON r.court_id = ac.id
+                WHERE ac.branch_id = :court_id AND r.is_active = true
+            """
+        else:
+            query_sql = """
+                SELECT
+                    court_id,
+                    COUNT(*) as total_reviews,
+                    ROUND(AVG(rating)::numeric, 1) as average_rating,
+                    COUNT(CASE WHEN rating = 5 THEN 1 END) as five_stars,
+                    COUNT(CASE WHEN rating = 4 THEN 1 END) as four_stars,
+                    COUNT(CASE WHEN rating = 3 THEN 1 END) as three_stars,
+                    COUNT(CASE WHEN rating = 2 THEN 1 END) as two_stars,
+                    COUNT(CASE WHEN rating = 1 THEN 1 END) as one_star
+                FROM reviews
+                WHERE court_id = :court_id AND is_active = true
+                GROUP BY court_id
+            """
         
         result = db.execute(text(query_sql), {"court_id": court_id})
         row = result.fetchone()
@@ -159,7 +177,7 @@ def get_court_ratings(court_id: str, db: Session = Depends(database.get_db)):
         row_dict = dict(row._mapping)
         
         return {
-            "court_id": str(row_dict['court_id']),
+            "court_id": str(row_dict.get('court_id', court_id)),
             "average_rating": float(row_dict['average_rating']) if row_dict['average_rating'] else 0,
             "total_reviews": int(row_dict['total_reviews']),
             "rating_distribution": {
@@ -191,20 +209,40 @@ def get_court_reviews(
         except ValueError:
              return { "court_id": court_id, "reviews": [], "total": 0 }
 
-        query_sql = """
-            SELECT
-                r.id,
-                r.rating,
-                r.review_text,
-                r.created_at,
-                COALESCE(u.full_name, p.full_name, 'Anonymous User') as user_name
-            FROM reviews r
-            LEFT JOIN users u ON r.user_id = u.id
-            LEFT JOIN profiles p ON r.user_id = p.id
-            WHERE r.court_id = :court_id AND r.is_active = true
-            ORDER BY r.created_at DESC
-            LIMIT :limit OFFSET :offset
-        """
+        # Determine if it's a court or a branch
+        is_branch = db.execute(text("SELECT 1 FROM admin_branches WHERE id = :id"), {"id": court_id}).first() is not None
+
+        if is_branch:
+             query_sql = """
+                SELECT
+                    r.id,
+                    r.rating,
+                    r.review_text,
+                    r.created_at,
+                    COALESCE(u.full_name, p.full_name, 'Anonymous User') as user_name
+                FROM reviews r
+                JOIN admin_courts ac ON r.court_id = ac.id
+                LEFT JOIN users u ON r.user_id = u.id
+                LEFT JOIN profiles p ON r.user_id = p.id
+                WHERE ac.branch_id = :court_id AND r.is_active = true
+                ORDER BY r.created_at DESC
+                LIMIT :limit OFFSET :offset
+            """
+        else:
+            query_sql = """
+                SELECT
+                    r.id,
+                    r.rating,
+                    r.review_text,
+                    r.created_at,
+                    COALESCE(u.full_name, p.full_name, 'Anonymous User') as user_name
+                FROM reviews r
+                LEFT JOIN users u ON r.user_id = u.id
+                LEFT JOIN profiles p ON r.user_id = p.id
+                WHERE r.court_id = :court_id AND r.is_active = true
+                ORDER BY r.created_at DESC
+                LIMIT :limit OFFSET :offset
+            """
         
         result = db.execute(
             text(query_sql),

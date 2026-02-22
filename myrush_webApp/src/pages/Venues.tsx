@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FaFutbol, FaBasketballBall, FaVolleyballBall } from 'react-icons/fa';
+import { GiCricketBat, GiShuttlecock, GiTennisRacket } from 'react-icons/gi';
 import { venuesApi } from '../api/venues';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaFutbol, FaBasketballBall, FaVolleyballBall } from 'react-icons/fa';
-import { GiCricketBat, GiShuttlecock, GiTennisRacket, GiTennisBall } from 'react-icons/gi';
-import { MdSportsCricket, MdSportsSoccer, MdSportsTennis } from 'react-icons/md';
 interface Venue {
     id: string;
     court_name: string;
@@ -193,7 +192,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl active:shadow-sm active:scale-[0.98] transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100 hover:border-primary/20 active:border-primary/50"
+        className="group bg-white overflow-hidden shadow-sm hover:shadow-2xl active:shadow-sm active:scale-[0.98] transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100 hover:border-primary/20 active:border-primary/50"
         onClick={onClick}
     >
         <div className="relative h-56 overflow-hidden">
@@ -213,10 +212,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
                     ))}
                 </div>
             </div>
-            {/* Heart Icon */}
-            <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center text-sm shadow-sm hover:bg-white transition-all hover:scale-110 border border-white/50 group/heart">
-                <span className="text-gray-400 group-hover/heart:text-red-500 transition-colors text-lg">♥</span>
-            </button>
+
             {/* Location Overlay */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent p-5 pt-12 md:translate-y-2 md:group-hover:translate-y-0 transition-transform duration-300">
                 <p className="text-white text-xs font-bold flex items-center gap-2 drop-shadow-md">
@@ -249,15 +245,15 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
                         <span className="text-xs text-gray-500 font-medium">/hr</span>
                     </div>
                 </div>
-                <Button
-                    className="bg-zinc-900 text-white hover:bg-primary hover:text-black font-semibold text-sm px-6 py-3 rounded-lg shadow-lg hover:shadow-primary/30 transition-all duration-300 whitespace-nowrap shrink-0"
+                <button
+                    className="bg-zinc-900 text-white hover:bg-primary hover:text-black font-semibold text-sm px-6 py-3 rounded-lg shadow-lg hover:shadow-primary/30 transition-all duration-300 whitespace-nowrap shrink-0 active:scale-95"
                     onClick={(e) => {
                         e.stopPropagation();
                         onClick();
                     }}
                 >
                     Book Now
-                </Button>
+                </button>
             </div>
         </div>
     </motion.div>
@@ -291,7 +287,7 @@ export const Venues: React.FC = () => {
                 // Modified to fetch ALL active cities from dedicated endpoint
                 const response = await venuesApi.getCities();
                 if (response.success && response.data) {
-                    const uniqueCities = response.data; // Already processed list of city names
+                    const uniqueCities: string[] = response.data as string[]; // Already processed list of city names
 
                     if (uniqueCities.length > 0) {
                         setCities(uniqueCities);
@@ -361,8 +357,8 @@ export const Venues: React.FC = () => {
                     description: v.description || '',
                     branch_name: v.branch_name,
                     amenities: v.amenities,
-                    rating: 0,
-                    reviewCount: 0
+                    rating: v.rating || 0,
+                    reviewCount: v.reviews || 0
                 }));
                 setVenues(mappedVenues);
                 setFilteredVenues(mappedVenues);
@@ -440,11 +436,11 @@ export const Venues: React.FC = () => {
                     {loading ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                             {[1, 2, 3, 4, 5, 6].map(n => (
-                                <div key={n} className="bg-white h-[400px] rounded-3xl animate-pulse shadow-sm border border-gray-100" />
+                                <div key={n} className="bg-white h-[400px] animate-pulse shadow-sm border border-gray-100" />
                             ))}
                         </div>
                     ) : filteredVenues.length === 0 ? (
-                        <div className="text-center py-24 bg-white/50 backdrop-blur-sm rounded-3xl border border-dashed border-gray-200">
+                        <div className="text-center py-24 bg-white/50 backdrop-blur-sm border border-dashed border-gray-200">
                             <div className="text-6xl mb-6 opacity-20">🏟️</div>
                             <h3 className="text-2xl font-black text-gray-900 mb-2 uppercase font-montserrat">No venues found</h3>
                             <p className="text-gray-500 font-medium">Try adjusting your filters or search for something else.</p>

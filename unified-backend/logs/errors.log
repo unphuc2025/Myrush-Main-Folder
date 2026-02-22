@@ -2837,3 +2837,130 @@
     "request_body": null
   }
 }
+{
+  "timestamp": "2026-02-21T14:22:45.077025Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: UnicodeEncodeError: 'charmap' codec can't encode character '\\u274c' in position 15: character maps to <undefined>",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "UnicodeEncodeError",
+  "error_message": "'charmap' codec can't encode character '\\u274c' in position 15: character maps to <undefined>",
+  "request_context": {
+    "method": "POST",
+    "url": "http://localhost:8000/api/user/bookings/",
+    "path": "/api/user/bookings/",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "connection": "keep-alive",
+      "content-length": "706",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "authorization": "***MASKED***",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0",
+      "accept": "application/json, text/plain, */*",
+      "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"Microsoft Edge\";v=\"145\", \"Chromium\";v=\"145\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "origin": "http://localhost:5173",
+      "sec-fetch-site": "same-site",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5173/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "en-US,en;q=0.9"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "UnicodeEncodeError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-21T18:50:14.321055Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: IntegrityError: (psycopg2.errors.ForeignKeyViolation) update or delete on table \"admin_courts\" violates foreign key constraint \"fk_booking_court\" on table \"booking\"\nDETAIL:  Key (id)=(0e376b13-b84d-4808-9281-038daa4e1984) is still referenced from table \"booking\".\n\n[SQL: DELETE FROM admin_courts WHERE admin_courts.id = %(id)s::UUID]\n[parameters: {'id': UUID('0e376b13-b84d-4808-9281-038daa4e1984')}]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "IntegrityError",
+  "error_message": "(psycopg2.errors.ForeignKeyViolation) update or delete on table \"admin_courts\" violates foreign key constraint \"fk_booking_court\" on table \"booking\"\nDETAIL:  Key (id)=(0e376b13-b84d-4808-9281-038daa4e1984) is still referenced from table \"booking\".\n\n[SQL: DELETE FROM admin_courts WHERE admin_courts.id = %(id)s::UUID]\n[parameters: {'id': UUID('0e376b13-b84d-4808-9281-038daa4e1984')}]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+  "request_context": {
+    "method": "DELETE",
+    "url": "http://localhost:8000/api/admin/branches/bbdec863-c298-481a-a29b-b889207cf65d",
+    "path": "/api/admin/branches/bbdec863-c298-481a-a29b-b889207cf65d",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "connection": "keep-alive",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "authorization": "***MASKED***",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0",
+      "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"Microsoft Edge\";v=\"145\", \"Chromium\";v=\"145\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "accept": "*/*",
+      "origin": "http://localhost:5174",
+      "sec-fetch-site": "same-site",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5174/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "en-US,en;q=0.9"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "IntegrityError",
+    "request_body": null
+  }
+}
+{
+  "timestamp": "2026-02-21T20:43:13.332364Z",
+  "level": "ERROR",
+  "logger": "myrush_backend",
+  "message": "Backend Error: ResponseValidationError: 8 validation errors:\n  {'type': 'get_attribute_error', 'loc': ('response', 5, 'area'), 'msg': \"Error extracting attribute: OperationalError: (psycopg2.OperationalError) server closed the connection unexpectedly\\n\\tThis probably means the server terminated abnormally\\n\\tbefore or while processing the request.\\nserver closed the connection unexpectedly\\n\\tThis probably means the server terminated abnormally\\n\\tbefore or while processing the request.\\n\\n[SQL: SELECT admin_areas.id AS admin_areas_id, admin_areas.city_id AS admin_areas_city_id, admin_areas.name AS admin_areas_name, admin_areas.is_active AS admin_areas_is_active, admin_areas.created_at AS admin_areas_created_at, admin_areas.updated_at AS admin_areas_updated_at \\nFROM admin_areas \\nWHERE admin_areas.id = %(pk_1)s::UUID]\\n[parameters: {'pk_1': UUID('7d7838ee-e8c1-4182-bc64-9c042abdcae0')}]\\n(Background on this error at: https://sqlalche.me/e/20/e3q8)\", 'input': <models.Branch object at 0x0000019500656850>, 'ctx': {'error': \"OperationalError: (psycopg2.OperationalError) server closed the connection unexpectedly\\n\\tThis probably means the server terminated abnormally\\n\\tbefore or while processing the request.\\nserver closed the connection unexpectedly\\n\\tThis probably means the server terminated abnormally\\n\\tbefore or while processing the request.\\n\\n[SQL: SELECT admin_areas.id AS admin_areas_id, admin_areas.city_id AS admin_areas_city_id, admin_areas.name AS admin_areas_name, admin_areas.is_active AS admin_areas_is_active, admin_areas.created_at AS admin_areas_created_at, admin_areas.updated_at AS admin_areas_updated_at \\nFROM admin_areas \\nWHERE admin_areas.id = %(pk_1)s::UUID]\\n[parameters: {'pk_1': UUID('7d7838ee-e8c1-4182-bc64-9c042abdcae0')}]\\n(Background on this error at: https://sqlalche.me/e/20/e3q8)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 6, 'city'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x0000019500654F50>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 6, 'area'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x0000019500654F50>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 7, 'area'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x0000019500657890>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 8, 'area'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x0000019500654B90>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 9, 'city'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x00000195006556D0>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 9, 'area'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x00000195006556D0>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 10, 'area'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x00000195006542D0>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n\n  File \"C:\\Users\\Z BOOK\\Downloads\\New folder\\Myrush-Main-Folder\\unified-backend\\routers\\admin\\branches.py\", line 20, in get_all_branches\n    GET /api/admin/branches",
+  "module": "logger",
+  "function": "log_error",
+  "line": 198,
+  "error_type": "ResponseValidationError",
+  "error_message": "8 validation errors:\n  {'type': 'get_attribute_error', 'loc': ('response', 5, 'area'), 'msg': \"Error extracting attribute: OperationalError: (psycopg2.OperationalError) server closed the connection unexpectedly\\n\\tThis probably means the server terminated abnormally\\n\\tbefore or while processing the request.\\nserver closed the connection unexpectedly\\n\\tThis probably means the server terminated abnormally\\n\\tbefore or while processing the request.\\n\\n[SQL: SELECT admin_areas.id AS admin_areas_id, admin_areas.city_id AS admin_areas_city_id, admin_areas.name AS admin_areas_name, admin_areas.is_active AS admin_areas_is_active, admin_areas.created_at AS admin_areas_created_at, admin_areas.updated_at AS admin_areas_updated_at \\nFROM admin_areas \\nWHERE admin_areas.id = %(pk_1)s::UUID]\\n[parameters: {'pk_1': UUID('7d7838ee-e8c1-4182-bc64-9c042abdcae0')}]\\n(Background on this error at: https://sqlalche.me/e/20/e3q8)\", 'input': <models.Branch object at 0x0000019500656850>, 'ctx': {'error': \"OperationalError: (psycopg2.OperationalError) server closed the connection unexpectedly\\n\\tThis probably means the server terminated abnormally\\n\\tbefore or while processing the request.\\nserver closed the connection unexpectedly\\n\\tThis probably means the server terminated abnormally\\n\\tbefore or while processing the request.\\n\\n[SQL: SELECT admin_areas.id AS admin_areas_id, admin_areas.city_id AS admin_areas_city_id, admin_areas.name AS admin_areas_name, admin_areas.is_active AS admin_areas_is_active, admin_areas.created_at AS admin_areas_created_at, admin_areas.updated_at AS admin_areas_updated_at \\nFROM admin_areas \\nWHERE admin_areas.id = %(pk_1)s::UUID]\\n[parameters: {'pk_1': UUID('7d7838ee-e8c1-4182-bc64-9c042abdcae0')}]\\n(Background on this error at: https://sqlalche.me/e/20/e3q8)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 6, 'city'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x0000019500654F50>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 6, 'area'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x0000019500654F50>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 7, 'area'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x0000019500657890>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 8, 'area'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x0000019500654B90>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 9, 'city'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x00000195006556D0>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 9, 'area'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x00000195006556D0>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n  {'type': 'get_attribute_error', 'loc': ('response', 10, 'area'), 'msg': \"Error extracting attribute: PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\", 'input': <models.Branch object at 0x00000195006542D0>, 'ctx': {'error': \"PendingRollbackError: Can't reconnect until invalid transaction is rolled back.  Please rollback() fully before proceeding (Background on this error at: https://sqlalche.me/e/20/8s2b)\"}}\n\n  File \"C:\\Users\\Z BOOK\\Downloads\\New folder\\Myrush-Main-Folder\\unified-backend\\routers\\admin\\branches.py\", line 20, in get_all_branches\n    GET /api/admin/branches",
+  "request_context": {
+    "method": "GET",
+    "url": "http://localhost:8000/api/admin/branches",
+    "path": "/api/admin/branches",
+    "query_params": {},
+    "headers": {
+      "host": "localhost:8000",
+      "connection": "keep-alive",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "authorization": "***MASKED***",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0",
+      "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"Microsoft Edge\";v=\"145\", \"Chromium\";v=\"145\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "accept": "*/*",
+      "origin": "http://localhost:5174",
+      "sec-fetch-site": "same-site",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5174/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "en-US,en;q=0.9"
+    },
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0"
+  },
+  "additional_context": {
+    "error_type": "internal_error",
+    "error_class": "ResponseValidationError",
+    "request_body": null
+  }
+}

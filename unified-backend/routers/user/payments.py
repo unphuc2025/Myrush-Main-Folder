@@ -16,6 +16,8 @@ import schemas
 import crud
 from utils.coupon_utils import validate_coupon_strictly
 
+from utils.booking_utils import get_booked_hours, safe_parse_hour
+
 router = APIRouter(
     prefix="/payments",
     tags=["payments"],
@@ -30,136 +32,81 @@ client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 def verify_slot_availability(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]]):
     """
-    Check if any of the requested slots are already booked OR blocked by admin.
+    Check if any of the requested slots are already booked OR blocked by admin OR outside venue hours.
     """
     if not requested_slots:
         return
         
-    # 1. Fetch Court Config (Opening Hours & Unavailability)
-    court_query = text("""
-        SELECT price_conditions, unavailability_slots, branch_id
-        FROM admin_courts WHERE id = :court_id AND is_active = true
-    """)
-    court_res = db.execute(court_query, {"court_id": court_id}).first()
-    if not court_res:
-        raise HTTPException(status_code=404, detail="Court not found")
-        
-    def safe_json(val):
-        if isinstance(val, str):
-            try: return json.loads(val)
-            except: return []
-        return val or []
+    from utils.booking_utils import generate_allowed_slots_map, safe_parse_hour, get_booked_hours
 
-    un_slots = safe_json(court_res._mapping.get('unavailability_slots'))
+    # 1. Generate Authoritative Allowed Slots (Venue Hours + Pricing + Admin Blocks)
+    allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
     
-    # Check Admin Blocking (Unavailability)
-    day_short = booking_date.strftime("%a").lower()
-    date_str = str(booking_date)
-    
-    disabled_hours = set()
-    for un in un_slots:
-        if isinstance(un, dict):
-            match = False
-            if date_str in (un.get('dates') or []): match = True
-            if day_short in [d.lower()[:3] for d in (un.get('days') or [])]: match = True
-            if match:
-                for t in (un.get('times') or []):
-                    try: disabled_hours.add(int(t.split(':')[0]))
-                    except: pass
+    if not allowed_slots_map:
+        raise HTTPException(status_code=400, detail="The venue is closed or not configured for this date.")
 
-    # 2. Get existing bookings
-    bookings = db.query(models.Booking).filter(
+    # 2. Fetch Active Bookings to find occupied slots
+    active_bookings = db.query(models.Booking).filter(
         models.Booking.court_id == court_id,
         models.Booking.booking_date == booking_date,
         models.Booking.status != 'cancelled'
     ).all()
     
-    booked_times = set()
-    for b in bookings:
-        if b.time_slots and isinstance(b.time_slots, list):
-            for slot in b.time_slots:
-                if isinstance(slot, dict):
-                    t_str = slot.get('time') or slot.get('start_time')
-                    if t_str: booked_times.add(int(t_str.split(':')[0]))
+    booked_times = get_booked_hours(active_bookings)
 
     # 3. Validate requested slots
     for slot in requested_slots:
-        time_str = slot.get('time') or slot.get('start_time')
+        time_str = slot.get('start_time') or slot.get('time')
         if not time_str: continue
-        try:
-            h = int(time_str.split(':')[0])
-            if h in disabled_hours:
-                raise HTTPException(status_code=400, detail=f"Slot {time_str} has been blocked by Admin.")
-            if h in booked_times:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Slot {time_str} is already booked.")
-        except ValueError: pass
+        
+        h = safe_parse_hour(time_str)
+        norm_start = f"{h:02d}:00"
+        
+        if norm_start not in allowed_slots_map:
+            raise HTTPException(status_code=400, detail=f"Slot {time_str} is not in the venue's operating hours.")
+        
+        server_slot = allowed_slots_map[norm_start]
+        if server_slot['is_blocked']:
+            raise HTTPException(status_code=400, detail=f"Slot {time_str} has been blocked by Admin.")
+            
+        if h in booked_times:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Slot {time_str} is already booked.")
 
 def calculate_authoritative_price(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]], number_of_players: int) -> float:
     """
-    Calculate the total price based on DB configuration.
+    Calculate the total price based on unified slot generation engine.
     Logic: Sum(Slot Prices) * Number of Players
     """
-    # 1. Fetch Court Pricing Config
-    court = db.query(models.Court).filter(models.Court.id == court_id).first()
-    if not court:
-        raise HTTPException(status_code=404, detail="Court not found")
-        
-    price_per_hour = float(court.price_per_hour)
-    timing_config = court.price_conditions or []
+    from utils.booking_utils import generate_allowed_slots_map, safe_parse_hour
+
+    # 1. Generate Slots Map to get correct prices
+    allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
     
-    # 2. Determine price for each requested slot
     total_slot_price = 0.0
-    
-    day_of_week = booking_date.strftime("%A").lower()[:3] # mon, tue
-    date_str = booking_date.strftime("%Y-%m-%d")
-
     for slot in requested_slots:
-        slot_time_str = slot.get('time') or slot.get('start_time') # "07:00"
-        try:
-            slot_hour = int(slot_time_str.split(':')[0])
-        except:
-             raise HTTPException(status_code=400, detail=f"Invalid slot time format: {slot_time_str}")
+        slot_time_str = slot.get('time') or slot.get('start_time')
+        if not slot_time_str: continue
+        
+        h = safe_parse_hour(slot_time_str)
+        norm_start = f"{h:02d}:00"
+        
+        # Use price from map if available, else default (though validation should have caught it)
+        if norm_start in allowed_slots_map:
+            total_slot_price += float(allowed_slots_map[norm_start]['price'])
+        else:
+            print(f"[PAYMENTS ERROR] Slot {norm_start} not found in allowed map during price calc.")
+            # Fallback to court base price if absolutely necessary
+            court = db.query(models.Court).filter(models.Court.id == court_id).first()
+            if court:
+                total_slot_price += float(court.price_per_hour)
 
-        # Default price
-        current_slot_price = price_per_hour
-        
-        # Check specific pricing rules (Date specific > Day specific)
-        rule_found = False
-        
-        # Priority 1: Date specific
-        if isinstance(timing_config, list):
-             for config in timing_config:
-                if 'dates' in config and date_str in config['dates']:
-                    start_h = int(config.get('slotFrom', '00:00').split(':')[0])
-                    end_h = int(config.get('slotTo', '23:00').split(':')[0])
-                    if start_h <= slot_hour < end_h:
-                         current_slot_price = float(config.get('price', price_per_hour))
-                         rule_found = True
-                         break
-        
-        # Priority 2: Day specific
-        if not rule_found and isinstance(timing_config, list):
-            for config in timing_config:
-                if 'days' in config and isinstance(config['days'], list):
-                    days = [d.lower()[:3] for d in config['days']]
-                    if day_of_week in days:
-                        start_h = int(config.get('slotFrom', '00:00').split(':')[0])
-                        end_h = int(config.get('slotTo', '23:00').split(':')[0])
-                        if start_h <= slot_hour < end_h:
-                             current_slot_price = float(config.get('price', price_per_hour))
-                             rule_found = True
-                             break
-        
-        total_slot_price += current_slot_price
-
-    # 3. Multiply by Players
-    # Logic from frontend: (Total Slots Price) * Players
-    # Validate player count
+    # 2. Multiply by Players
     if number_of_players < 1:
         number_of_players = 1
         
     final_base_price = total_slot_price * number_of_players
     return final_base_price
+
 
 def validate_authoritative_coupon(db: Session, coupon_code: str, total_amount: float, user_id: str) -> float:
     """
@@ -188,29 +135,51 @@ def create_payment_order(
          raise HTTPException(status_code=500, detail="Payment gateway not configured")
 
     # 1. Availability Check
-    verify_slot_availability(db, booking_details.court_id, booking_details.booking_date, booking_details.time_slots)
+    print(f"[PAYMENTS DEBUG] Creating order for user {current_user.id}, court {booking_details.court_id}, date {booking_details.booking_date}")
+    print(f"[PAYMENTS DEBUG] Provided slots: {booking_details.time_slots}")
+    try:
+        verify_slot_availability(db, booking_details.court_id, booking_details.booking_date, booking_details.time_slots)
+    except HTTPException as e:
+        print(f"[PAYMENTS DEBUG] Availability check failed: {e.detail}")
+        raise e
+    except Exception as e:
+        print(f"[PAYMENTS DEBUG] Unexpected availability error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Availability error: {str(e)}")
     
     # 2. Price Calculation
-    server_base_price = calculate_authoritative_price(
-        db, 
-        booking_details.court_id, 
-        booking_details.booking_date, 
-        booking_details.time_slots, 
-        booking_details.number_of_players
-    )
+    try:
+        server_base_price = calculate_authoritative_price(
+            db, 
+            booking_details.court_id, 
+            booking_details.booking_date, 
+            booking_details.time_slots, 
+            booking_details.number_of_players or 2
+        )
+        print(f"[PAYMENTS DEBUG] Calculated Base Price: {server_base_price}")
+    except Exception as e:
+        print(f"[PAYMENTS DEBUG] Price calculation failed: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Price calculation failed: {str(e)}")
     
     # Platform Fee (Hardcoded for now matching frontend)
-    PLATFORM_FEE = 20.0 
+    PLATFORM_FEE = 0.0 
     
     # 3. Coupon Validation
     discount_amount = 0.0
     if booking_details.coupon_code:
-        discount_amount = validate_authoritative_coupon(
-            db, 
-            booking_details.coupon_code, 
-            server_base_price,
-            str(current_user.id)
-        )
+        print(f"[PAYMENTS DEBUG] Validating coupon: {booking_details.coupon_code}")
+        try:
+            discount_amount = validate_authoritative_coupon(
+                db, 
+                booking_details.coupon_code, 
+                server_base_price,
+                str(current_user.id)
+            )
+        except HTTPException as e:
+            print(f"[PAYMENTS DEBUG] Coupon validation failed: {e.detail}")
+            raise e
+        except Exception as e:
+            print(f"[PAYMENTS DEBUG] Unexpected coupon error: {e}")
+            raise HTTPException(status_code=400, detail=f"Coupon error: {str(e)}")
         
     # 4. Final Total
     final_amount = (server_base_price + PLATFORM_FEE) - discount_amount

@@ -27,11 +27,7 @@ export const Profile: React.FC = () => {
     const [reviewText, setReviewText] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
 
-    // Host Game State
-    const [isHostModalOpen, setIsHostModalOpen] = useState(false);
-    const [selectedBookingForHost, setSelectedBookingForHost] = useState<any | null>(null);
-    const [hostSkillLevel, setHostSkillLevel] = useState('Open');
-    const [hostNumPlayers, setHostNumPlayers] = useState(2);
+
 
     useEffect(() => {
         const fetchProfileAndStats = async () => {
@@ -236,20 +232,7 @@ export const Profile: React.FC = () => {
         }
     };
 
-    const handleHostGameClick = (booking: any, e: React.MouseEvent) => {
-        e.stopPropagation();
-        setSelectedBookingForHost(booking);
-        setHostNumPlayers(2);
-        setHostSkillLevel('Open');
-        setIsHostModalOpen(true);
-    };
 
-    const handleConfirmHostGame = (e: React.FormEvent) => {
-        e.preventDefault();
-        alert(`Game Hosted Successfully!\n\nVenue: ${selectedBookingForHost?.venue_name}\nLevel: ${hostSkillLevel}\nPlayers Needed: ${hostNumPlayers}`);
-        setIsHostModalOpen(false);
-        setSelectedBookingForHost(null);
-    };
 
     const toggleBookingExpansion = (bookingId: string) => {
         setExpandedBookingId(prev => prev === bookingId ? null : bookingId);
@@ -512,36 +495,6 @@ export const Profile: React.FC = () => {
                                                 <div className="text-emerald-500 bg-emerald-50 p-2 rounded-lg"><FaTrophy /></div>
                                             </div>
                                         </div>
-
-                                        <div
-                                            className="glass-card rounded-2xl p-6 cursor-pointer group relative overflow-hidden"
-                                            onClick={() => navigate('/loyalty')}
-                                        >
-                                            <div className="absolute inset-0 bg-yellow-400/5 group-hover:bg-yellow-400/10 transition-colors"></div>
-                                            <p className="text-sm font-bold text-yellow-600 uppercase tracking-wider mb-2 relative z-10">Loyalty Points</p>
-                                            <div className="flex justify-between items-end relative z-10">
-                                                <p className="text-4xl font-black text-yellow-600">{user?.loyalty_points || 0}</p>
-                                                <div className="text-yellow-500 bg-yellow-50 p-2 rounded-lg"><FaGift /></div>
-                                            </div>
-                                            <div className="mt-2 flex items-center gap-1 text-xs font-bold text-yellow-600 group-hover:gap-2 transition-all relative z-10">
-                                                Redeem <span className="text-lg">→</span>
-                                            </div>
-                                        </div>
-
-                                        <div
-                                            className="glass-card rounded-2xl p-6 cursor-pointer group relative overflow-hidden"
-                                            onClick={() => navigate('/community')}
-                                        >
-                                            <div className="absolute inset-0 bg-purple-400/5 group-hover:bg-purple-400/10 transition-colors"></div>
-                                            <p className="text-sm font-bold text-purple-600 uppercase tracking-wider mb-2 relative z-10">My Squad</p>
-                                            <div className="flex justify-between items-end relative z-10">
-                                                <p className="text-xl font-black text-purple-900 truncate max-w-[120px]">None</p>
-                                                <div className="text-purple-500 bg-purple-50 p-2 rounded-lg"><FaUser /></div>
-                                            </div>
-                                            <div className="mt-2 flex items-center gap-1 text-xs font-bold text-purple-600 group-hover:gap-2 transition-all relative z-10">
-                                                Join Squad <span className="text-lg">→</span>
-                                            </div>
-                                        </div>
                                     </div>
                                 </motion.div>
                             </>
@@ -766,16 +719,6 @@ export const Profile: React.FC = () => {
                                                                 </div>
 
                                                                 <div className="flex flex-col gap-2">
-                                                                    {(booking.status === 'upcoming' || booking.status === 'confirmed') && (
-                                                                        <Button
-                                                                            onClick={(e) => handleHostGameClick(booking, e)}
-                                                                            className="bg-primary hover:!bg-primary/90 text-white px-4 py-2 rounded-xl font-medium text-sm border-2 border-primary flex items-center justify-center gap-2"
-                                                                        >
-                                                                            <span className="text-sm">🎮</span>
-                                                                            Host Game
-                                                                        </Button>
-                                                                    )}
-
                                                                     <Button
                                                                         onClick={() => toggleBookingExpansion(booking.id)}
                                                                         className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-4 py-2 rounded-xl font-medium text-sm border-2 border-gray-200 flex items-center justify-center gap-2"
@@ -922,83 +865,6 @@ export const Profile: React.FC = () => {
                 </motion.div>
             </div>
 
-            {/* HOST GAME MODAL */}
-            {isHostModalOpen && selectedBookingForHost && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
-                    onClick={() => setIsHostModalOpen(false)}
-                >
-                    <motion.div
-                        initial={{ scale: 0.9, y: 20 }}
-                        animate={{ scale: 1, y: 0 }}
-                        exit={{ scale: 0.9, y: 20 }}
-                        className="bg-white rounded-3xl p-8 max-w-md w-full relative shadow-2xl"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            onClick={() => setIsHostModalOpen(false)}
-                            className="absolute top-6 right-6 text-gray-400 hover:text-black transition-colors"
-                        >
-                            <span className="text-xl font-bold">×</span>
-                        </button>
-
-                        <h3 className="text-2xl font-black uppercase mb-2">Host This Game</h3>
-                        <p className="text-gray-500 text-sm mb-6">Invite others to join your booking.</p>
-
-                        <div className="space-y-4 mb-6">
-                            <div className="bg-gray-50 p-4 rounded-xl">
-                                <p className="font-bold text-sm">{selectedBookingForHost.venue_name}</p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    {new Date(selectedBookingForHost.booking_date).toLocaleDateString()} • {selectedBookingForHost.start_time?.slice(0, 5)}
-                                </p>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Skill Level</label>
-                                <select
-                                    value={hostSkillLevel}
-                                    onChange={(e) => setHostSkillLevel(e.target.value)}
-                                    className="w-full h-12 border border-gray-200 rounded-xl px-4 font-bold text-sm bg-white focus:border-primary outline-none transition-colors"
-                                >
-                                    <option value="Open">Open for All</option>
-                                    <option value="Beginner">Beginner</option>
-                                    <option value="Intermediate">Intermediate</option>
-                                    <option value="Advanced">Advanced</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Players Needed</label>
-                                <div className="flex items-center gap-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setHostNumPlayers(Math.max(1, hostNumPlayers - 1))}
-                                        className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold hover:bg-gray-200 transition-colors"
-                                    >
-                                        -
-                                    </button>
-                                    <span className="font-black text-xl w-8 text-center">{hostNumPlayers}</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setHostNumPlayers(hostNumPlayers + 1)}
-                                        className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold hover:bg-gray-200 transition-colors"
-                                    >
-                                        +
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <Button
-                            className="w-full h-12 text-lg font-bold uppercase bg-primary text-white hover:!bg-primary/90 rounded-xl"
-                            onClick={handleConfirmHostGame}
-                        >
-                            Confirm & Host
-                        </Button>
-
-                    </motion.div>
-                </div>
-            )}
 
             {/* Rating Modal */}
             {showRatingModal && (

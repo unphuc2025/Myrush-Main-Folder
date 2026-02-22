@@ -23,7 +23,7 @@ def create_booking(
 ):
     try:
         print("===========================================")
-        print(f"[BOOKINGS API] 🔥 RECEIVED CREATE BOOKING REQUEST")
+        print(f"[BOOKINGS API] RECEIVED CREATE BOOKING REQUEST")
         print(f"[BOOKINGS API] User: {current_user.id}")
         
         # Verify Payment if Razorpay details are present
@@ -35,7 +35,7 @@ def create_booking(
                     'razorpay_payment_id': booking.razorpay_payment_id,
                     'razorpay_signature': booking.razorpay_signature
                 })
-                print("[BOOKINGS API] ✅ Payment Signature Verified")
+                print("[BOOKINGS API] Payment Signature Verified")
                 booking.payment_status = "paid" # Mark as paid
                 
                 # Optional: Fetch order from Razorpay to verify amount match?
@@ -43,18 +43,18 @@ def create_booking(
                 # Use server-side validation during order creation to ensure amount was correct.
                 
             except razorpay.errors.SignatureVerificationError:
-                print("[BOOKINGS API] ❌ Payment Signature Verification Failed")
+                print("[BOOKINGS API] Payment Signature Verification Failed")
                 raise HTTPException(status_code=400, detail="Payment verification failed")
             except Exception as e:
-                print(f"[BOOKINGS API] ❌ Payment Verification Error: {e}")
+                print(f"[BOOKINGS API] Payment Verification Error: {e}")
                 raise HTTPException(status_code=400, detail="Payment verification error")
         else:
-             print("[BOOKINGS API] ⚠️ No payment ID provided - assuming legacy/pay-at-venue flow")
+             print("[BOOKINGS API] No payment ID provided - assuming legacy/pay-at-venue flow")
              # Use default pending status
              
         result = crud.create_booking(db=db, booking=booking, user_id=current_user.id)
         
-        print(f"[BOOKINGS API] ✅ BOOKING CREATED SUCCESSFULLY: ID={result.id}, Total=₹{result.total_amount}")
+        print(f"[BOOKINGS API] BOOKING CREATED SUCCESSFULLY: ID={result.id}, Total=₹{result.total_amount}")
         return result
 
     except HTTPException as he:
@@ -62,7 +62,7 @@ def create_booking(
         raise he
     except Exception as e:
         print("===========================================")
-        print(f"[BOOKINGS API] ❌ CRITICAL ERROR CREATING BOOKING")
+        print(f"[BOOKINGS API] CRITICAL ERROR CREATING BOOKING")
         print(f"[BOOKINGS API] Error Type: {type(e).__name__}")
         print(f"[BOOKINGS API] Error: {e}")
         import traceback

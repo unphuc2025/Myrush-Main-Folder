@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import models, schemas, database
+from schemas import resolve_path
 import uuid
 
 router = APIRouter(
@@ -109,6 +110,21 @@ def get_venues(
                     WHERE ac.branch_id = ab.id AND ac.is_active = true
                 ) as min_price,
 
+                -- Aggregated Ratings for Branch (from all courts in branch)
+                (
+                    SELECT ROUND(AVG(r.rating)::numeric, 1)
+                    FROM reviews r
+                    JOIN admin_courts ac ON r.court_id = ac.id
+                    WHERE ac.branch_id = ab.id AND r.is_active = true
+                ) as average_rating,
+                
+                (
+                    SELECT COUNT(*)
+                    FROM reviews r
+                    JOIN admin_courts ac ON r.court_id = ac.id
+                    WHERE ac.branch_id = ab.id AND r.is_active = true
+                ) as total_reviews,
+
                 ab.created_at,
                 ab.updated_at
 
@@ -159,22 +175,27 @@ def get_venues(
         # Helper function to parse images
         def parse_images(images_value):
             if not images_value: return []
-            if isinstance(images_value, list): return [str(img).strip() for img in images_value if img]
-            if isinstance(images_value, str):
+            imgs = []
+            if isinstance(images_value, list):
+                imgs = [str(img).strip() for img in images_value if img]
+            elif isinstance(images_value, str):
                 images_value = images_value.strip()
                 if not images_value: return []
                 if images_value.startswith('[') and images_value.endswith(']'):
                     try:
                         import json
                         parsed = json.loads(images_value)
-                        return [str(img).strip() for img in parsed if img] if isinstance(parsed, list) else []
+                        imgs = [str(img).strip() for img in parsed if img] if isinstance(parsed, list) else []
                     except: pass
-                if images_value.startswith('{') and images_value.endswith('}'):
-                    return [img.strip() for img in images_value[1:-1].split(',') if img.strip()]
-                if ',' in images_value:
-                    return [img.strip() for img in images_value.split(',') if img.strip()]
-                return [images_value]
-            return []
+                elif images_value.startswith('{') and images_value.endswith('}'):
+                    imgs = [img.strip() for img in images_value[1:-1].split(',') if img.strip()]
+                elif ',' in images_value:
+                    imgs = [img.strip() for img in images_value.split(',') if img.strip()]
+                else:
+                    imgs = [images_value]
+            
+            # Resolve all paths to absolute URLs
+            return [resolve_path(img) for img in imgs]
 
         result = []
         for branch in branches:
@@ -195,6 +216,8 @@ def get_venues(
                 "description": b.get('ground_overview') or b.get('search_location') or '',
                 "photos": parsed_images,
                 "videos": [], # Branch videos if any
+                "rating": float(b.get('average_rating') or 0),
+                "reviews": int(b.get('total_reviews') or 0),
                 "branch_name": b['branch_name'],
                 "city_name": b['city_name'],
                 "created_at": b['created_at'].isoformat() if b.get('created_at') else None,
@@ -249,7 +272,22 @@ def get_venue(venue_id: str, db: Session = Depends(database.get_db)):
                     SELECT MIN(ac.price_per_hour)
                     FROM admin_courts ac
                     WHERE ac.branch_id = ab.id AND ac.is_active = true
-                ) as min_price
+                ) as min_price,
+
+                -- Aggregated Ratings for Branch
+                (
+                    SELECT ROUND(AVG(r.rating)::numeric, 1)
+                    FROM reviews r
+                    JOIN admin_courts ac ON r.court_id = ac.id
+                    WHERE ac.branch_id = ab.id AND r.is_active = true
+                ) as average_rating,
+                
+                (
+                    SELECT COUNT(*)
+                    FROM reviews r
+                    JOIN admin_courts ac ON r.court_id = ac.id
+                    WHERE ac.branch_id = ab.id AND r.is_active = true
+                ) as total_reviews
 
             FROM admin_branches ab
             LEFT JOIN admin_cities acity ON ab.city_id = acity.id
@@ -265,19 +303,25 @@ def get_venue(venue_id: str, db: Session = Depends(database.get_db)):
             # Helper function to parse images (simple version)
             def parse_images(images_value):
                 if not images_value: return []
-                if isinstance(images_value, list): return [str(img).strip() for img in images_value if img]
-                if isinstance(images_value, str):
+                imgs = []
+                if isinstance(images_value, list):
+                    imgs = [str(img).strip() for img in images_value if img]
+                elif isinstance(images_value, str):
                     images_value = images_value.strip()
                     if not images_value: return []
                     if images_value.startswith('[') and images_value.endswith(']'):
                          try:
                              import json
                              parsed = json.loads(images_value)
-                             return [str(img).strip() for img in parsed if img] if isinstance(parsed, list) else []
+                             imgs = [str(img).strip() for img in parsed if img] if isinstance(parsed, list) else []
                          except: pass
-                    if ',' in images_value: return [img.strip() for img in images_value.split(',') if img.strip()]
-                    return [images_value]
-                return []
+                    elif ',' in images_value:
+                        imgs = [img.strip() for img in images_value.split(',') if img.strip()]
+                    else:
+                        imgs = [images_value]
+                
+                # Resolve all paths to absolute URLs
+                return [resolve_path(img) for img in imgs]
 
             parsed_images = parse_images(b.get('images'))
             
@@ -318,6 +362,8 @@ def get_venue(venue_id: str, db: Session = Depends(database.get_db)):
                 "photos": parsed_images,
                 "videos": [],
                 "amenities": amenities_data,
+                "rating": float(b.get('average_rating') or 0),
+                "reviews": int(b.get('total_reviews') or 0),
                 "terms_and_conditions": b.get('terms_condition') or '',
                 "rules": b.get('rule') or '',
                 "created_at": b['created_at'].isoformat() if b.get('created_at') else None,
@@ -414,7 +460,10 @@ def get_venue_slots(
 
         # 4. Get Relevant Courts
         court_query = """
-            SELECT ac.id, ac.name, ac.price_per_hour, ac.price_conditions, ac.unavailability_slots, agt.name as game_type
+            SELECT 
+                ac.id, ac.name, ac.price_per_hour, ac.price_conditions, ac.unavailability_slots, agt.name as game_type,
+                (SELECT ROUND(AVG(rating)::numeric, 1) FROM reviews r WHERE r.court_id = ac.id AND r.is_active = true) as court_rating,
+                (SELECT COUNT(*) FROM reviews r WHERE r.court_id = ac.id AND r.is_active = true) as court_reviews
             FROM admin_courts ac
             JOIN admin_game_types agt ON ac.game_type_id = agt.id
             WHERE ac.branch_id = :branch_id AND ac.is_active = true
@@ -549,11 +598,14 @@ def get_venue_slots(
                         "price": cfg['price'],
                         "court_id": c_id,
                         "court_name": court.get('name', ''),
+                        "current_court_rating": float(court.get('court_rating') or 0),
+                        "current_court_reviews": int(court.get('court_reviews') or 0),
                         "available": is_available,
                         "slot_id": cfg['id']
                     }
 
-        final_slots = sorted(consolidated_slots.values(), key=lambda x: x['time'])
+        # Filter to only available slots
+        final_slots = sorted([slot for slot in consolidated_slots.values() if slot['available']], key=lambda x: x['time'])
         
         return {
             "venue_id": venue_id,
@@ -561,7 +613,8 @@ def get_venue_slots(
             "slots": final_slots
         }
 
-    except HTTPException as he: raise he
+    except HTTPException as he: 
+        raise he
     except Exception as e:
         print(f"[VENUES API] Error: {e}")
         import traceback

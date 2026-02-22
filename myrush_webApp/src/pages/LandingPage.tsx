@@ -100,7 +100,7 @@ export const LandingPage: React.FC = () => {
                     </motion.div>
 
                     <motion.h1
-                        className="text-5xl md:text-7xl font-black font-montserrat tracking-tighter text-white mb-8 uppercase leading-none"
+                        className="text-3xl md:text-5xl lg:text-7xl font-black font-montserrat tracking-tighter text-white mb-8 uppercase leading-none"
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.2 }}
