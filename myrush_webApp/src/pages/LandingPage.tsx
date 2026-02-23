@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, type Variants, useScroll, useTransform } from 'framer-motion';
 import { Button } from '../components/ui/Button';
-import { FaInstagram, FaYoutube, FaLinkedin, FaTwitter, FaArrowRight } from 'react-icons/fa';
+import { FaArrowRight, FaCalendarCheck } from 'react-icons/fa';
 // import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 // import { Card } from '../components/ui/Card';
@@ -18,12 +18,12 @@ const fadeInUp: Variants = {
 
 const marqueeVariants: Variants = {
     animate: {
-        x: [0, -1000],
+        x: [0, "-50%"],
         transition: {
             x: {
                 repeat: Infinity,
                 repeatType: "loop",
-                duration: 20,
+                duration: 30, // Increased duration for a smoother, slower scroll
                 ease: "linear",
             },
         },
@@ -31,6 +31,9 @@ const marqueeVariants: Variants = {
 };
 
 export const LandingPage: React.FC = () => {
+    useEffect(() => {
+        console.log("DEBUG: LandingPage Version 2.0 - Marquee Fixed");
+    }, []);
     const navigate = useNavigate();
     const { scrollY } = useScroll();
     // const headersOpacity = useTransform(scrollY, [0, 100], [0, 1]);
@@ -54,6 +57,14 @@ export const LandingPage: React.FC = () => {
             colSpan: 'md:col-span-1'
         },
         {
+            title: 'Corporate',
+            description: 'Team building and sports events for businesses.',
+            icon: '🤝',
+            image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070',
+            link: '/corporate',
+            colSpan: 'md:col-span-2'
+        },
+        {
             title: 'Tournaments',
             description: 'Compete in high-stakes leagues and tournaments.',
             icon: '🏆',
@@ -61,14 +72,6 @@ export const LandingPage: React.FC = () => {
             link: '#',
             colSpan: 'md:col-span-1',
             comingSoon: true
-        },
-        {
-            title: 'Corporate',
-            description: 'Team building and sports events for businesses.',
-            icon: '🤝',
-            image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070',
-            link: '/corporate',
-            colSpan: 'md:col-span-2'
         }
     ];
 
@@ -79,7 +82,7 @@ export const LandingPage: React.FC = () => {
             <PublicNav />
 
             {/* HERO SECTION */}
-            <section className="relative h-screen flex items-center justify-center overflow-hidden bg-black">
+            <section className="relative h-[80vh] flex items-center justify-center overflow-hidden bg-black">
                 <motion.div style={{ y: heroY }} className="absolute inset-0 z-0">
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
                     <img
@@ -100,7 +103,7 @@ export const LandingPage: React.FC = () => {
                     </motion.div>
 
                     <motion.h1
-                        className="text-3xl md:text-5xl lg:text-7xl font-black font-montserrat tracking-tighter text-white mb-8 uppercase leading-none"
+                        className="text-2xl md:text-4xl lg:text-6xl font-extrabold font-outfit tracking-tighter text-white mb-8 uppercase leading-none"
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.2 }}
@@ -119,29 +122,34 @@ export const LandingPage: React.FC = () => {
                             variant="primary"
                             size="lg"
                             onClick={() => navigate('/venues')}
-                            className="bg-primary text-black hover:bg-primary-hover text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                            icon={<FaCalendarCheck />}
+                            className="text-lg px-8 py-5 min-w-[220px] uppercase tracking-wider font-montserrat font-black rounded-full transition-all duration-300 shadow-glow hover:shadow-glow-strong"
                         >
                             Book a Court
                         </Button>
                         <Button
-                            className="bg-transparent border-2 border-white text-white hover:bg-primary hover:border-primary hover:text-black text-lg px-12 py-5 min-w-[240px] uppercase tracking-wider font-montserrat font-black rounded-full transition-all duration-300 flex items-center justify-center gap-3 group"
+                            variant="outline"
+                            size="lg"
                             onClick={() => navigate('/arena')}
+                            icon={<FaArrowRight className="group-hover:translate-x-1 transition-transform" />}
+                            className="border-white text-white hover:border-primary text-lg px-8 py-5 min-w-[220px] uppercase tracking-wider font-montserrat font-black rounded-xl transition-all duration-300 group shadow-glow hover:shadow-glow-strong"
                         >
-                            Explore Venues <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
+                            Explore Venues
                         </Button>
                     </motion.div>
                 </div>
             </section>
 
             {/* MARQUEE STRIP */}
-            <div className="bg-primary overflow-hidden py-4 z-30 relative shadow-glow -rotate-1 scale-105 border-y-4 border-black mt-20">
+            <div className="bg-primary overflow-hidden py-4 z-30 relative shadow-glow -rotate-1 scale-105 border-y-4 border-black mt-8">
                 <motion.div
                     className="flex whitespace-nowrap"
                     variants={marqueeVariants}
                     animate="animate"
                 >
-                    {[...Array(10)].map((_, i) => (
-                        <span key={i} className="text-black font-black text-3xl mx-8 uppercase font-montserrat italic tracking-tighter flex items-center gap-4">
+                    {/* Duplicate set for seamless loop */}
+                    {[...Array(20)].map((_, i) => (
+                        <span key={i} className="text-black font-bold text-3xl mx-8 uppercase font-outfit italic tracking-tighter flex items-center gap-4">
                             RUSH ARENA • ACADEMY • TOURNAMENTS • CORPORATE •
                         </span>
                     ))}
@@ -152,8 +160,8 @@ export const LandingPage: React.FC = () => {
             <section className="py-12 md:py-16 bg-white">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="mb-16 text-center">
-                        <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
-                            Everything <span className="text-primary">Sport.</span>
+                        <h2 className="text-2xl md:text-4xl font-extrabold font-outfit text-white uppercase leading-tight">
+                            Our <span className="text-primary italic">Services</span>
                         </h2>
                         <p className="text-gray-600 text-lg max-w-2xl mx-auto">
                             Welcome to Rush Arena, a premier chain of sports arenas with 9 centers, offering world-class facilities. Located in Bengaluru, Hyderabad and Chennai.
@@ -188,24 +196,23 @@ export const LandingPage: React.FC = () => {
                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
 
                                 <div className="absolute inset-0 p-8 flex flex-col justify-between">
-                                    <div className="flex justify-between items-start">
-                                        <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-2xl text-white border border-white/20">
-                                            {service.icon}
-                                        </div>
+                                    <div className="flex justify-end items-start">
                                         {/* @ts-ignore */}
                                         {service.comingSoon ? (
                                             <span className="px-3 py-1 rounded-full bg-primary text-black text-xs font-bold uppercase tracking-wider shadow-lg">
                                                 Coming Soon
                                             </span>
                                         ) : (
-                                            <div className="w-10 h-10 rounded-full bg-primary text-black flex items-center justify-center opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg font-bold text-lg">
-                                                ↗
+                                            <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
+                                                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold text-lg">
+                                                    ↗
+                                                </div>
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                                        <h3 className="text-2xl md:text-3xl font-black text-white font-montserrat uppercase italic mb-3 leading-tight">
+                                        <h3 className="text-xl md:text-2xl font-extrabold text-white font-outfit uppercase italic mb-3 leading-tight">
                                             {service.title}
                                         </h3>
                                         <p className="text-white text-base font-medium leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
@@ -220,7 +227,7 @@ export const LandingPage: React.FC = () => {
                     <div className="text-center mt-12">
                         <button
                             onClick={() => navigate('/venues')}
-                            className="inline-flex items-center gap-2 text-black font-bold uppercase tracking-wider text-sm hover:text-primary transition-colors pb-2 border-b-2 border-transparent hover:border-primary"
+                            className="bg-primary text-black hover:bg-primary-hover text-lg px-8 py-4 uppercase tracking-wider font-outfit font-extrabold shadow-glow hover:shadow-glow-strong"
                         >
                             View All Facilities
                             <span className="transition-transform group-hover:translate-x-1">→</span>
@@ -251,56 +258,35 @@ export const LandingPage: React.FC = () => {
                 <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-white to-transparent z-20 pointer-events-none" />
                 <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-white to-transparent z-20 pointer-events-none" />
 
-                <div className="flex flex-col gap-16 relative z-10 w-full">
-                    {/* Row 1: Scrolling Left */}
-                    <motion.div
-                        className="flex gap-20 items-center px-10 min-w-max"
-                        animate={{ x: [0, -2000] }}
-                        transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
-                    >
-                        {[...Array(4)].map((_, setIndex) => (
-                            [
-                                { name: 'WeWork', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/2d0b91a9-133a-49ba-b4d9-66daa96deb3b/we_avatar_qr.bca8f0cdca8104e6ac293e4b95862f8c.png?format=300w' },
-                                { name: 'Amazon', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/a3016f65-d5c7-4462-80d7-377435224838/Amazon-logo-meaning.jpg?format=500w' },
-                                { name: 'AIFF', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/5a575ade-272e-4e66-a038-641d381953fd/All_India_Football_Federation_logo.png' },
-                                { name: 'Kotak', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/d338c19b-08f1-490c-8d2a-583817365eed/1200px-Kotak_Mutual_Fund_logo.svg+%282%29.png' },
-                                { name: 'Hosachiguru', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/93e041cc-f9c3-4965-a3b6-0203a31f936d/Hosachiguru.png' },
-                            ].map((client, i) => (
-                                <div key={`row1-${setIndex}-${i}`} className="opacity-80 hover:opacity-100 transition-opacity duration-300">
-                                    <img
-                                        src={client.logo}
-                                        alt={client.name}
-                                        className="h-16 w-auto object-contain mix-blend-multiply transition-all duration-300"
-                                    />
-                                </div>
-                            ))
+                <div className="max-w-7xl mx-auto px-6 relative z-10">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 md:gap-12 items-center justify-items-center">
+                        {[
+                            { name: 'WeWork', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/2d0b91a9-133a-49ba-b4d9-66daa96deb3b/we_avatar_qr.bca8f0cdca8104e6ac293e4b95862f8c.png?format=300w' },
+                            { name: 'Amazon', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/a3016f65-d5c7-4462-80d7-377435224838/Amazon-logo-meaning.jpg?format=500w' },
+                            { name: 'AIFF', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/5a575ade-272e-4e66-a038-641d381953fd/All_India_Football_Federation_logo.png' },
+                            { name: 'Kotak', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/d338c19b-08f1-490c-8d2a-583817365eed/1200px-Kotak_Mutual_Fund_logo.svg+%282%29.png' },
+                            { name: 'Hosachiguru', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/93e041cc-f9c3-4965-a3b6-0203a31f936d/Hosachiguru.png' },
+                            { name: 'Bengaluru FC', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/d742993b-fd42-424b-986d-291fb798d44a/Bengaluru_FC_logo.svg+%281%29.png' },
+                            { name: 'SILA', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/d2c6d315-f797-4251-a279-4b3c59d3740d/SILA+Logo+Grey.png' },
+                            { name: 'Applied', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/afe2353e-b057-435f-b0f4-026b5145efe7/Appliedlogo_blue_102021%5B1953674%5D.png' },
+                            { name: 'Torpedoes', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/628119dc-b0cd-43f0-b35b-bbad924c35c3/Bengaluru_Torpedoes_pvl_team_logo-2.png' },
+                        ].map((client, i) => (
+                            <motion.div
+                                key={client.name}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                whileHover={{ scale: 1.1 }}
+                                transition={{ delay: i * 0.1, duration: 0.5 }}
+                                className="flex items-center justify-center p-4 transition-all duration-300"
+                            >
+                                <img
+                                    src={client.logo}
+                                    alt={client.name}
+                                    className="h-12 md:h-16 lg:h-20 w-auto object-contain mix-blend-multiply transition-all duration-500"
+                                />
+                            </motion.div>
                         ))}
-                    </motion.div>
-
-                    {/* Row 2: Scrolling Right */}
-                    <motion.div
-                        className="flex gap-20 items-center px-10 min-w-max"
-                        initial={{ x: -2000 }}
-                        animate={{ x: 0 }}
-                        transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
-                    >
-                        {[...Array(4)].map((_, setIndex) => (
-                            [
-                                { name: 'Bengaluru FC', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/d742993b-fd42-424b-986d-291fb798d44a/Bengaluru_FC_logo.svg+%281%29.png' },
-                                { name: 'SILA', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/d2c6d315-f797-4251-a279-4b3c59d3740d/SILA+Logo+Grey.png' },
-                                { name: 'Applied', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/afe2353e-b057-435f-b0f4-026b5145efe7/Appliedlogo_blue_102021%5B1953674%5D.png' },
-                                { name: 'Torpedoes', logo: 'https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/628119dc-b0cd-43f0-b35b-bbad924c35c3/Bengaluru_Torpedoes_pvl_team_logo-2.png' },
-                            ].map((client, i) => (
-                                <div key={`row2-${setIndex}-${i}`} className="opacity-80 hover:opacity-100 transition-opacity duration-300">
-                                    <img
-                                        src={client.logo}
-                                        alt={client.name}
-                                        className="h-16 w-auto object-contain mix-blend-multiply transition-all duration-300"
-                                    />
-                                </div>
-                            ))
-                        ))}
-                    </motion.div>
+                    </div>
                 </div>
             </section>
 
@@ -317,13 +303,12 @@ export const LandingPage: React.FC = () => {
                         UNCOUCH.
                     </motion.h2>
                     <p className="text-gray-400 text-lg md:text-3xl mb-12 font-light max-w-4xl mx-auto leading-relaxed text-center">
-                        Stop watching from the sidelines.<br />
                         <span className="text-white font-medium">Start playing today. Join thousands of players in the Rush community today.</span>
                     </p>
                     <Button
                         variant="primary"
                         size="lg"
-                        className="text-base md:text-2xl px-8 py-4 md:px-16 md:py-8 w-auto md:min-w-[320px] rounded-full font-black shadow-glow hover:scale-105 transition-transform"
+                        className="text-lg px-10 py-5 min-w-[240px] rounded-full font-black shadow-glow hover:scale-105 transition-transform uppercase tracking-wider"
                         onClick={() => navigate('/login')}
                     >
                         Join the Movement

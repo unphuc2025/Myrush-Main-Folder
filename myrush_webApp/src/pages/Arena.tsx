@@ -116,7 +116,7 @@ export const Arena: React.FC = () => {
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative min-h-screen flex items-center justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
+            <section className="relative h-[80vh] min-h-[600px] flex items-center justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
                     <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-10" />
@@ -148,7 +148,7 @@ export const Arena: React.FC = () => {
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-3xl md:text-5xl lg:text-7xl xl:text-8xl text-white mb-8 leading-[0.9] tracking-[-0.05em] font-black uppercase">
+                    <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold text-white font-outfit uppercase leading-tight mb-8">
                         play your <br />
                         <span className="text-primary italic">favourite sport</span> <br />
                         at a rush arena near you.
@@ -159,13 +159,13 @@ export const Arena: React.FC = () => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                            className="bg-primary text-black hover:bg-primary-hover text-lg px-8 py-5 min-w-[220px] uppercase tracking-wider font-outfit font-extrabold shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
                             onClick={() => navigate('/venues')}
                         >
                             Explore Venues
                         </Button>
                         <button
-                            className="text-sm font-black text-white uppercase tracking-[0.2em] transition-all py-4 px-8 group flex items-center gap-3 border-2 border-white/20 hover:bg-white/10 hover:border-white/40 rounded-xl"
+                            className="border-white text-white hover:border-primary text-base px-6 py-4 uppercase tracking-wider font-montserrat font-black rounded-xl transition-all duration-300 group shadow-glow hover:shadow-glow-strong flex items-center justify-center gap-3"
                             onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             View Facilities
@@ -176,7 +176,7 @@ export const Arena: React.FC = () => {
 
                 {/* Vertical Indicator */}
                 <div className="absolute bottom-12 right-12 hidden lg:flex flex-col items-center gap-6 z-20">
-                    <span className="text-[10px] font-black text-white/20 rotate-90 uppercase tracking-[0.5em] mb-12">Scroll</span>
+                    <span className="text-[10px] font-extrabold font-outfit text-white/20 rotate-90 uppercase tracking-[0.5em] mb-12">Scroll</span>
                     <div className="w-[1px] h-20 bg-gradient-to-b from-primary to-transparent" />
                 </div>
             </section>
@@ -185,8 +185,8 @@ export const Arena: React.FC = () => {
             <section id="features" className="py-12 md:py-16 bg-white w-full">
                 <div className="w-full px-6">
                     <div className="text-center mb-12">
-                        <h2 className="text-2xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
-                            Premium <span className="text-primary italic">Facilities</span>
+                        <h2 className="text-xl md:text-4xl font-extrabold font-outfit text-black uppercase leading-tight mb-6">
+                            Elite <span className="text-primary italic">Features</span>
                         </h2>
                         <p className="text-body-lg text-gray-400 font-light uppercase tracking-[0.2em]">
                             Everything you need for the perfect game.
@@ -252,7 +252,7 @@ export const Arena: React.FC = () => {
 
                                 <motion.div
                                     key={venue.id}
-                                    className="bg-white overflow-hidden shadow-premium hover:shadow-premium-hover transition-all duration-500 group cursor-pointer"
+                                    className="bg-white overflow-hidden rounded-2xl shadow-premium hover:shadow-premium-hover transition-all duration-500 group cursor-pointer"
                                     initial={{ opacity: 0, y: 30 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}

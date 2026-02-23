@@ -58,10 +58,10 @@ export default {
                 warning: '#F59E0B',
             },
             fontSize: {
-                // FLUID TYPOGRAPHY (10/10 SCALE)
-                'display': ['clamp(3.5rem, 10vw, 9rem)', { lineHeight: '0.85', fontWeight: '900', letterSpacing: '-0.05em' }],
-                'h1': ['clamp(2.5rem, 8vw, 5rem)', { lineHeight: '1', fontWeight: '900', letterSpacing: '-0.04em' }],
-                'h2': ['clamp(2rem, 6vw, 3.5rem)', { lineHeight: '1.1', fontWeight: '800', letterSpacing: '-0.03em' }],
+                // FLUID TYPOGRAPHY (10/10 SCALE) - Reduced for better balance
+                'display': ['clamp(3rem, 8vw, 7rem)', { lineHeight: '0.85', fontWeight: '800', letterSpacing: '-0.05em' }],
+                'h1': ['clamp(2.25rem, 6vw, 4rem)', { lineHeight: '1', fontWeight: '800', letterSpacing: '-0.04em' }],
+                'h2': ['clamp(1.75rem, 5vw, 3rem)', { lineHeight: '1.1', fontWeight: '700', letterSpacing: '-0.03em' }],
                 'h3': ['clamp(1.5rem, 4vw, 2.5rem)', { lineHeight: '1.2', fontWeight: '700', letterSpacing: '-0.02em' }],
                 'h4': ['1.75rem', { lineHeight: '1.3', fontWeight: '700' }],
                 'h5': ['1.25rem', { lineHeight: '1.4', fontWeight: '600' }],

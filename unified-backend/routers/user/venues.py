@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import models, schemas, database
+from utils.booking_utils import get_booked_hours, safe_parse_hour
 from schemas import resolve_path
 import uuid
 
@@ -545,16 +546,17 @@ def get_venue_slots(
                     if day_of_week_short in [d.lower()[:3] for d in (un.get('days') or [])]: match = True
                     if match:
                         for t in (un.get('times') or []):
-                            try: disabled_hours.add(int(t.split(':')[0]))
+                            try: disabled_hours.add(safe_parse_hour(t))
                             except: pass
-                            
-            booked_res = db.execute(text("SELECT time_slots FROM booking WHERE court_id = :cid AND booking_date = :bdate AND status != 'cancelled'"), {"cid": c_id, "bdate": booking_date}).fetchall()
-            booked_hours = set()
-            for row in booked_res:
-                if row[0] and isinstance(row[0], list):
-                    for s in row[0]:
-                        try: booked_hours.add(int(s['start_time'].split(':')[0]))
-                        except: pass
+            
+            # Use centralized robust booked_hours logic from booking_utils
+            # Cast CID to UUID for strict comparison in Postgres
+            active_bookings = db.query(models.Booking).filter(
+                models.Booking.court_id == uuid.UUID(c_id),
+                models.Booking.booking_date == booking_date,
+                models.Booking.status != 'cancelled'
+            ).all()
+            booked_hours = get_booked_hours(active_bookings)
             
             # D. Merge to Consolidated
             now = datetime.now()
