@@ -517,6 +517,67 @@ async def search_venues_smart(
     except Exception as e:
         print(f"[CHATBOT API] Error searching venues: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+@router.get("/booking/{display_id}")
+async def get_booking_details(display_id: str, db: Session = Depends(get_db)):
+    """
+    Look up booking details and venue location by booking display ID.
+    Used by chatbot to help users find their court location.
+    """
+    try:
+        query = text("""
+            SELECT 
+                b.booking_display_id,
+                b.booking_date,
+                b.status,
+                b.payment_status,
+                br.name as venue_name,
+                br.address_line1,
+                br.address_line2,
+                br.landmark,
+                br.area_id,
+                br.city_id,
+                br.google_map_url,
+                c.name as city_name,
+                a.name as area_name,
+                cr.name as court_name
+            FROM booking b
+            JOIN admin_courts cr ON cr.id = b.court_id
+            JOIN admin_branches br ON br.id = cr.branch_id
+            JOIN admin_cities c ON c.id = br.city_id
+            JOIN admin_areas a ON a.id = br.area_id
+            WHERE b.booking_display_id = :display_id
+        """)
+        
+        result = db.execute(query, {"display_id": display_id}).first()
+        
+        if not result:
+            return {
+                "success": False,
+                "message": "Booking not found. Please check the ID and try again."
+            }
+        
+        booking_info = {
+            "booking_id": result[0],
+            "date": str(result[1]),
+            "status": result[2],
+            "payment_status": result[3],
+            "venue_name": result[4],
+            "address": f"{result[5]}, {result[6]}" if result[6] else result[5],
+            "landmark": result[7],
+            "google_map_url": result[10],
+            "city": result[11],
+            "area": result[12],
+            "court_name": result[13]
+        }
+        
+        return {
+            "success": True,
+            "data": booking_info
+        }
+    except Exception as e:
+        print(f"[CHATBOT API] Error looking up booking: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/knowledge/faqs")
 async def get_faqs():
     """Get common FAQs for chatbot context"""

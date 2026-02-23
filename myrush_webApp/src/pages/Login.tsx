@@ -5,6 +5,7 @@ import { apiClient } from '../api/client';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
+import { FaArrowLeft } from 'react-icons/fa';
 
 export const Login: React.FC = () => {
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -53,17 +54,26 @@ export const Login: React.FC = () => {
             </div>
 
             <div className="relative z-10 w-full max-w-md">
-                <Card variant="glass" className="border-white/10 shadow-2xl bg-black/40 backdrop-blur-xl">
+                <Card variant="glass" className="border-white/10 shadow-2xl bg-black/40 backdrop-blur-xl relative">
+                    {/* Back Button */}
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="absolute top-6 left-6 text-white/40 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
+                        title="Go Back"
+                    >
+                        <FaArrowLeft size={18} />
+                    </button>
+
                     {/* Logo/Brand */}
                     <div className="text-center mb-8">
                         <div className="inline-block px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
                             <span className="text-xl font-black text-primary tracking-widest">SPORTS</span>
                         </div>
-                        <h1 className="text-3xl md:text-4xl font-black text-white mb-2 font-montserrat">
-                            Welcome Back
+                        <h1 className="text-2xl md:text-3xl font-black text-white mb-2 font-montserrat uppercase">
+                            Login / Signup
                         </h1>
                         <p className="text-white/60 text-sm leading-relaxed">
-                            From football to badminton and tennis, get live games, training, and bookings in one place.
+                            New here? Your account will be created automatically.
                         </p>
                     </div>
 
@@ -94,11 +104,17 @@ export const Login: React.FC = () => {
                     <div className="mt-8 text-center">
                         <p className="text-xs text-white/40 leading-relaxed">
                             By continuing, you agree to our{' '}
-                            <span className="text-primary hover:text-white transition-colors cursor-pointer font-semibold underline underline-offset-2">
+                            <span
+                                onClick={() => navigate('/terms')}
+                                className="text-primary hover:text-white transition-colors cursor-pointer font-semibold underline underline-offset-2"
+                            >
                                 Terms of Service
                             </span>{' '}
                             &{' '}
-                            <span className="text-primary hover:text-white transition-colors cursor-pointer font-semibold underline underline-offset-2">
+                            <span
+                                onClick={() => navigate('/terms')}
+                                className="text-primary hover:text-white transition-colors cursor-pointer font-semibold underline underline-offset-2"
+                            >
                                 Privacy Policy
                             </span>
                         </p>

@@ -45,6 +45,83 @@ const getSportIcon = (sport: string) => {
     return <span className="text-[10px] font-bold">{sport.substring(0, 2)}</span>;
 };
 
+const CustomDropdown: React.FC<{
+    label: string,
+    value: string,
+    options: string[] | { id: string, name: string }[],
+    onChange: (val: string) => void
+}> = ({ value, options, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const getDisplayValue = () => {
+        if (typeof options[0] === 'string') {
+            return value;
+        }
+        const opt = (options as { id: string, name: string }[]).find(o => o.id === value);
+        return opt ? opt.name : value;
+    };
+
+    return (
+        <div className="relative" ref={dropdownRef}>
+            <div
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full bg-white border-2 rounded-xl p-3.5 text-sm font-semibold text-gray-700 flex items-center justify-between cursor-pointer transition-all hover:border-gray-300 ${isOpen ? 'border-primary' : 'border-gray-100'}`}
+            >
+                <span className="truncate">{getDisplayValue()}</span>
+                <motion.div
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    className="text-gray-400 group-hover:text-primary transition-colors"
+                >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </motion.div>
+            </div>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden z-[110]"
+                    >
+                        <div className="max-h-60 overflow-y-auto">
+                            {options.map((option) => {
+                                const id = typeof option === 'string' ? option : option.id;
+                                const name = typeof option === 'string' ? option : option.name;
+                                return (
+                                    <div
+                                        key={id}
+                                        onClick={() => {
+                                            onChange(id);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`px-4 py-3 text-sm font-semibold cursor-pointer transition-colors hover:bg-primary/5 ${value === id ? 'text-primary bg-primary/5' : 'text-gray-700'}`}
+                                    >
+                                        {name}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
 // --- Sub-Components ---
 const VenueHero: React.FC<{
     searchTerm: string;
@@ -80,17 +157,17 @@ const VenueHero: React.FC<{
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 }}
             >
-                <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3 border border-transparent focus-within:border-primary/50 transition-colors">
+                <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3 border-2 border-transparent focus-within:border-primary transition-all">
                     <span className="text-gray-400"><IconSearch /></span>
                     <input
                         type="text"
                         placeholder="Search venues, sports..."
-                        className="bg-transparent border-none outline-none text-gray-900 placeholder-gray-400 w-full font-medium"
+                        className="bg-transparent border-0 ring-0 outline-none focus:ring-0 focus:outline-none text-gray-900 placeholder-gray-400 w-full font-medium"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="w-full md:w-64 bg-white rounded-xl px-4 py-3 flex items-center justify-between gap-3 border border-gray-100 hover:border-primary/50 focus-within:border-primary/50 transition-all relative group cursor-pointer shadow-sm">
+                <div className="w-full md:w-64 bg-white rounded-xl px-4 py-3 flex items-center justify-between gap-3 border-2 border-gray-100 hover:border-primary/30 focus-within:border-primary transition-all relative group cursor-pointer shadow-sm">
                     <span className="text-primary pointer-events-none"><IconMapPin /></span>
                     <select
                         className="bg-transparent absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
@@ -141,46 +218,22 @@ const FilterSidebar: React.FC<{
         <div className="space-y-6">
             <div>
                 <label className="block text-xs font-extrabold text-gray-900 uppercase tracking-widest mb-3">Branch</label>
-                <div className="relative group">
-                    <select
-                        className="w-full bg-white border-2 border-gray-100 rounded-xl p-3.5 text-sm font-semibold text-gray-700 focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all appearance-none cursor-pointer hover:border-gray-300"
-                        value={selectedBranch}
-                        onChange={(e) => setSelectedBranch(e.target.value)}
-                    >
-                        {branches.map(branch => (
-                            <option key={branch.id} value={branch.id}>
-                                {branch.name}
-                            </option>
-                        ))}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-primary transition-colors">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </div>
+                <CustomDropdown
+                    label="Branch"
+                    value={selectedBranch}
+                    options={branches}
+                    onChange={setSelectedBranch}
+                />
             </div>
 
             <div>
                 <label className="block text-xs font-extrabold text-gray-900 uppercase tracking-widest mb-3">Sport</label>
-                <div className="relative group">
-                    <select
-                        className="w-full bg-white border-2 border-gray-100 rounded-xl p-3.5 text-sm font-semibold text-gray-700 focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all appearance-none cursor-pointer hover:border-gray-300"
-                        value={selectedSport}
-                        onChange={(e) => setSelectedSport(e.target.value)}
-                    >
-                        {sports.map(sport => (
-                            <option key={sport} value={sport}>
-                                {sport}
-                            </option>
-                        ))}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-primary transition-colors">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </div>
+                <CustomDropdown
+                    label="Sport"
+                    value={selectedSport}
+                    options={sports}
+                    onChange={setSelectedSport}
+                />
             </div>
         </div>
     </div>
@@ -192,7 +245,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="group bg-white overflow-hidden shadow-sm hover:shadow-2xl active:shadow-sm active:scale-[0.98] transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100 hover:border-primary/20 active:border-primary/50"
+        className="group bg-white overflow-hidden rounded-2xl shadow-sm hover:shadow-2xl active:shadow-sm active:scale-[0.98] transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100 hover:border-primary/20 active:border-primary/50"
         onClick={onClick}
     >
         <div className="relative h-56 overflow-hidden">
@@ -292,14 +345,79 @@ export const Venues: React.FC = () => {
                     if (uniqueCities.length > 0) {
                         setCities(uniqueCities);
 
-                        // If current selectedCity isn't in fetched list, default to first one
-                        if (!uniqueCities.includes(selectedCity) && uniqueCities[0]) {
+                        const hasDetected = localStorage.getItem('locationDetected') === 'true';
+                        if (!hasDetected) {
+                            detectUserLocation(uniqueCities);
+                        } else if (!uniqueCities.includes(selectedCity) && uniqueCities[0]) {
                             setSelectedCity(uniqueCities[0]);
                         }
+                    } else {
+                        // Fallback to default list if backend list is empty
+                        detectUserLocation(['Hyderabad', 'Bangalore', 'Mumbai', 'Delhi']);
                     }
                 }
             } catch (err) {
                 console.error("Failed to fetch cities:", err);
+            }
+        };
+
+        const detectUserLocation = async (availableCities: string[]) => {
+            console.log("DEBUG: Attempting to detect user location. Available cities:", availableCities);
+            if ("geolocation" in navigator) {
+                console.log("DEBUG: Geolocation API available.");
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const { latitude, longitude } = position.coords;
+                    console.log(`DEBUG: Position found: ${latitude}, ${longitude}`);
+                    try {
+                        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+                        console.log("DEBUG: Using Google Maps API Key:", apiKey ? "Found" : "NOT FOUND");
+
+                        if (!apiKey) throw new Error("Google Maps API Key missing in .env");
+
+                        const geoResp = await fetch(
+                            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
+                        );
+                        const geoData = await geoResp.json();
+                        console.log("DEBUG: GeoData from Google Maps:", geoData);
+
+                        // Extract city from Google Maps results (usually 'locality' or 'administrative_area_level_2')
+                        let detectedCity = '';
+                        const result = geoData.results[0];
+                        if (result) {
+                            const cityComp = result.address_components.find((c: any) =>
+                                c.types.includes('locality') ||
+                                c.types.includes('administrative_area_level_2')
+                            );
+                            detectedCity = cityComp?.long_name || '';
+                        }
+
+                        console.log("DEBUG: Extracted city name:", detectedCity);
+
+                        if (detectedCity) {
+                            // Find matching city in our available cities (case-insensitive)
+                            const matchedCity = availableCities.find(
+                                c => c.toLowerCase().includes(detectedCity.toLowerCase()) ||
+                                    detectedCity.toLowerCase().includes(c.toLowerCase())
+                            );
+
+                            console.log("DEBUG: Matched city in our list:", matchedCity);
+
+                            if (matchedCity) {
+                                setSelectedCity(matchedCity);
+                                localStorage.setItem('locationDetected', 'true');
+                                console.log("DEBUG: Automatically selected city:", matchedCity);
+                            } else {
+                                console.log("DEBUG: No matching city found in availableCities.");
+                            }
+                        }
+                    } catch (error) {
+                        console.error("DEBUG: Error in reverse geocoding:", error);
+                    }
+                }, (error) => {
+                    console.warn("DEBUG: Geolocation permission denied or error:", error);
+                });
+            } else {
+                console.log("DEBUG: Geolocation API NOT available in this browser.");
             }
         };
 

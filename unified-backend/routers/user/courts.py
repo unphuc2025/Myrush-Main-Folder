@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import Optional
-import models, database, json
+import models, database, json, uuid
 from date_utils import parse_date_safe
 
 router = APIRouter(
@@ -255,7 +255,7 @@ def get_available_slots(
 
         # 3. Fetch Active Bookings to find occupied slots
         active_bookings = db.query(models.Booking).filter(
-            models.Booking.court_id == court_id,
+            models.Booking.court_id == uuid.UUID(str(court_id)),
             models.Booking.booking_date == booking_date,
             models.Booking.status != 'cancelled'
         ).all()

@@ -8,9 +8,8 @@ import { courtsApi } from '../api/courts';
 import type { CourtRatings, CourtReview } from '../api/courts';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
+import { VenueImageGallery } from '../components/VenueImageGallery';
 import { FaMapMarkerAlt, FaStar, FaClock, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-
-// --- Types ---
 interface Slot {
     time: string;
     display_time: string;
@@ -205,7 +204,7 @@ export const VenueDetailsPage: React.FC = () => {
 
                         {/* Title Section (Moved Above Grid) */}
                         <div className="mb-6">
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-montserrat text-gray-900 mb-2 uppercase tracking-tight leading-none">
+                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-montserrat text-gray-900 mb-2 uppercase tracking-tight leading-none">
                                 {venue.court_name}
                             </h1>
                             <p className="text-gray-500 flex items-center gap-2 text-sm font-medium">
@@ -214,59 +213,10 @@ export const VenueDetailsPage: React.FC = () => {
                             </p>
                         </div>
 
-                        {/* Image Gallery */}
-                        <div className="flex flex-col md:flex-row gap-3 overflow-hidden shadow-md md:h-[420px]">
-                            {/* Main large photo — left half */}
-                            <div className="relative w-full md:w-1/2 h-[250px] md:h-full flex-shrink-0 overflow-hidden">
-                                <img
-                                    src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076'}
-                                    alt={venue.court_name}
-                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                                />
-                                <div className="absolute top-4 left-4 flex gap-2">
-                                    <div className="bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-md">
-                                        Top Rated
-                                    </div>
-                                    <div className="bg-black/60 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 border border-white/10">
-                                        <FaStar className="text-yellow-400" />
-                                        <span>{(venue.rating || ratings?.average_rating)?.toFixed(1) || '0.0'} ({venue.reviews || ratings?.total_reviews || 0})</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Right side — 2x2 grid of secondary photos */}
-                            <div className="hidden md:grid flex-1 grid-cols-2 grid-rows-2 gap-3">
-                                {[1, 2, 3, 4].map((idx) => (
-                                    <div key={idx} className="relative overflow-hidden">
-                                        {idx === 4 && venue.photos && venue.photos.length > 5 ? (
-                                            <>
-                                                <img
-                                                    src={venue.photos[idx] || `https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=2076`}
-                                                    alt={`Venue view ${idx + 1}`}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                                    <span className="text-white font-bold uppercase tracking-widest border border-white/30 px-4 py-2 text-sm">
-                                                        +{venue.photos.length - 5} Photos
-                                                    </span>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <img
-                                                src={venue.photos?.[idx] || [
-                                                    'https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2076',
-                                                    'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2076',
-                                                    'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=2076',
-                                                    'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=2076',
-                                                ][idx - 1]}
-                                                alt={`Venue view ${idx + 1}`}
-                                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                                            />
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        <VenueImageGallery
+                            photos={venue.photos || []}
+                            venueName={venue.court_name}
+                        />
 
 
 

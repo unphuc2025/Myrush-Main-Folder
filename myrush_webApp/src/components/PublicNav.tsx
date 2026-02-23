@@ -61,7 +61,7 @@ export const PublicNav: React.FC = () => {
                             <button
                                 key={item.label}
                                 onClick={() => navigate(item.path)}
-                                className={`relative text-sm font-bold uppercase tracking-wider transition-all ${isActive ? 'text-primary' : 'text-gray-300 hover:text-primary hover:scale-105'
+                                className={`relative text-sm font-bold uppercase tracking-wider transition-all ${isActive ? 'text-primary' : 'text-black hover:text-primary hover:scale-105'
                                     }`}
                             >
                                 {item.label}
@@ -81,7 +81,7 @@ export const PublicNav: React.FC = () => {
                 <div className="flex items-center gap-3 md:gap-4">
                     {isAuthenticated ? (
                         <button
-                            className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10"
+                            className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-100 flex items-center justify-center text-black hover:bg-gray-200 transition-all border border-gray-200"
                             onClick={() => navigate('/profile')}
                             title="Go to Profile"
                         >
@@ -94,7 +94,7 @@ export const PublicNav: React.FC = () => {
                         <Button
                             variant="primary"
                             onClick={() => navigate('/venues')}
-                            className="font-bold bg-primary text-black hover:bg-primary-hover uppercase tracking-wider text-xs md:text-sm px-4 py-2 md:px-6 md:py-2 rounded-md transition-all flex items-center justify-center h-9"
+                            className="font-bold bg-primary text-black hover:bg-primary-hover uppercase tracking-wider text-xs md:text-sm px-4 py-2 md:px-6 md:py-2 rounded-[10px] transition-all flex items-center justify-center h-9"
                         >
                             Book Now
                         </Button>
@@ -102,7 +102,7 @@ export const PublicNav: React.FC = () => {
 
                     {/* Mobile Toggle */}
                     <button
-                        className="md:hidden p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10 text-white hover:bg-white/10"
+                        className="md:hidden p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10 text-black hover:bg-black/5"
                         onClick={() => setIsMobileMenuOpen(prev => !prev)}
                     >
                         {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
@@ -140,6 +140,6 @@ export const PublicNav: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 };

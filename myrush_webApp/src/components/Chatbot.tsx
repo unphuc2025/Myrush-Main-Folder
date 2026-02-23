@@ -1,26 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { VenueDetailCard } from './chatbot/VenueDetailCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaHeadset, FaPaperPlane, FaTimes, FaMinus, FaMapMarkerAlt, FaCalendarAlt, FaClock } from 'react-icons/fa';
+import { FaHeadset, FaPaperPlane, FaTimes, FaMinus, FaMapMarkerAlt, FaCalendarAlt, FaClock, FaRobot } from 'react-icons/fa';
 import type { Message, QuickReply, BookingState } from '../types/ChatbotTypes';
 import { CITIES, SPORTS } from '../types/ChatbotTypes';
 import { venuesApi } from '../api/venues';
-import { bookingsApi } from '../api/bookings';
 import { useNavigate } from 'react-router-dom';
 import { getGeminiResponse } from '../services/GeminiService';
 import { featureFlags } from '../config/featureFlags';
 
 export const Chatbot: React.FC = () => {
     const navigate = useNavigate();
-    const generateId = () => {
-        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    };
-
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         {
-            id: generateId(),
-            text: "Hello! I'm from the Rush Support Team. How can I help you today?",
+            id: crypto.randomUUID(),
+            text: "Hello! I'm from the MyRush Support Team. How can I help you regarding your booking or game today?",
             sender: 'bot',
             timestamp: new Date(),
             type: 'text'
@@ -41,7 +36,7 @@ export const Chatbot: React.FC = () => {
 
     const addBotMessage = (text: string, type: Message['type'] = 'text', options?: QuickReply[], data?: any) => {
         const newMessage: Message = {
-            id: generateId(),
+            id: crypto.randomUUID(),
             text,
             sender: 'bot',
             timestamp: new Date(),
@@ -54,7 +49,7 @@ export const Chatbot: React.FC = () => {
 
     const addUserMessage = (text: string) => {
         const newMessage: Message = {
-            id: generateId(),
+            id: crypto.randomUUID(),
             text,
             sender: 'user',
             timestamp: new Date()
@@ -64,6 +59,15 @@ export const Chatbot: React.FC = () => {
 
     const handleOptionClick = async (option: QuickReply) => {
         addUserMessage(option.label);
+
+        if (option.action === 'book_venue' && option.data?.venueId) {
+            // Fetch details first to ensure we have the name
+            const res = await venuesApi.getVenueById(option.data.venueId);
+            if (res.success) {
+                handleVenueSelection(res.data);
+            }
+            return;
+        }
 
         switch (option.action) {
             case 'start_booking':
@@ -98,7 +102,6 @@ export const Chatbot: React.FC = () => {
         const cityIndex = cityOverride || bookingState.city;
 
         if (!cityIndex) {
-            // Should not happen in normal flow, but good for safety
             setBookingState(prev => ({ ...prev, sport, step: 'selecting_city' }));
             addBotMessage('Which city are you looking for?', 'options',
                 CITIES.map(c => ({ label: c, value: c, action: 'select_city' }))
@@ -112,16 +115,15 @@ export const Chatbot: React.FC = () => {
         setIsLoading(false);
 
         if (res.success && res.data && res.data.length > 0) {
-            addBotMessage(`Here are the top ${sport} venues in ${cityIndex}:`, 'venues', undefined, res.data.slice(0, 5));
+            addBotMessage(`Here are some ${sport} venues in ${cityIndex}:`, 'venues', undefined, res.data.slice(0, 5));
         } else {
             addBotMessage(`Sorry, I couldn't find any ${sport} venues in ${cityIndex}. Please try another sport or city.`);
-            setBookingState(prev => ({ ...prev, step: 'selecting_sport' })); // Go back
+            setBookingState(prev => ({ ...prev, step: 'selecting_sport' }));
         }
     };
 
     const handleVenueSelection = (venue: any) => {
         setBookingState(prev => ({ ...prev, venue, step: 'selecting_date' }));
-        // Provide date options: Today, Tomorrow
         const today = new Date();
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -131,23 +133,21 @@ export const Chatbot: React.FC = () => {
             { label: 'Tomorrow', value: tomorrow.toISOString().split('T')[0], action: 'select_date' }
         ];
 
-        addBotMessage(`You chose ${venue.court_name}. When do you want to play?`, 'options', dateOptions);
+        addBotMessage(`You chose ${venue.court_name || venue.name}. When do you want to play?`, 'options', dateOptions);
     };
 
     const handleDateSelection = async (date: string) => {
         setBookingState(prev => ({ ...prev, date, step: 'selecting_slot' }));
         setIsLoading(true);
-        const res = await venuesApi.getAvailableSlots(bookingState.venue.id, date);
+        const res = await venuesApi.getVenueSlots(bookingState.venue.id, date, bookingState.sport);
         setIsLoading(false);
 
         if (res.success && res.data && res.data.slots && res.data.slots.length > 0) {
-            // Filter only available slots
-            const available = res.data.slots.filter(s => s.available).slice(0, 12); // Limit to 12 for UI
+            const available = res.data.slots.filter((s: any) => s.available).slice(0, 12);
             if (available.length > 0) {
                 addBotMessage(`Here are available slots for ${new Date(date).toDateString()}:`, 'slots', undefined, available);
             } else {
                 addBotMessage('Sorry, no slots available for this date. Please choose another date.');
-                // Re-trigger date selection manually or add back button logic
             }
         } else {
             addBotMessage('Could not fetch slots. Please try again.');
@@ -163,42 +163,29 @@ export const Chatbot: React.FC = () => {
         });
     };
 
-    const confirmBooking = async () => {
+    const confirmBooking = () => {
         if (!bookingState.venue || !bookingState.date || !bookingState.slot) return;
 
-        setIsLoading(true);
-        // Direct booking creation (Assuming no payment gateway for chat flow MVP)
-        const payload = {
-            courtId: bookingState.venue.id,
-            bookingDate: bookingState.date!,
-            startTime: bookingState.slot.time,
-            durationMinutes: 60, // Default to 1 hour
-            timeSlots: [{
-                start_time: bookingState.slot.time,
-                end_time: calculateEndTime(bookingState.slot.time),
-                price: bookingState.slot.price
+        const locationState = {
+            venueId: bookingState.venue.id,
+            venueName: bookingState.venue.name || bookingState.venue.court_name,
+            venueImage: bookingState.venue.image_url || bookingState.venue.photos?.[0],
+            date: bookingState.date,
+            selectedSlots: [{
+                time: bookingState.slot.time,
+                display_time: bookingState.slot.display_time,
+                price: bookingState.slot.price,
+                court_id: bookingState.slot.court_id,
+                court_name: bookingState.slot.court_name
             }],
-            totalAmount: bookingState.slot.price
+            selectedSport: bookingState.sport || bookingState.venue.game_types?.[0] || 'Multi-Sport',
+            totalPrice: bookingState.slot.price,
+            numPlayers: 1
         };
 
-        const res = await bookingsApi.createBooking(payload);
-        setIsLoading(false);
-
-        if (res.success) {
-            addBotMessage(`🎉 Booking Confirmed! Your booking ID is ${res.data.booking_display_id || res.data.id}. You can view it in "My Bookings".`);
-            setBookingState({ step: 'idle' });
-        } else {
-            addBotMessage('Something went wrong with the booking. Please try again or use the main booking page.', 'options', [
-                { label: 'Try Again', value: 'start_booking', action: 'start_booking' }
-            ]);
-        }
-    };
-
-    const calculateEndTime = (startTime: string) => {
-        // Simple helper to add 1 hour
-        const [hours, minutes] = startTime.split(':').map(Number);
-        const endHour = hours + 1;
-        return `${endHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        navigate('/booking/summary', { state: locationState });
+        setIsOpen(false);
+        setBookingState({ step: 'idle' });
     };
 
     const handleSendMessage = async (e?: React.FormEvent) => {
@@ -210,119 +197,59 @@ export const Chatbot: React.FC = () => {
         setInputText('');
         setIsLoading(true);
 
-        // 🧠 ENHANCED AI INTEGRATION with conversation history
         const conversationHistory = messages.map(msg => ({
             text: msg.text,
             sender: msg.sender
         }));
 
-        const aiResponse = await getGeminiResponse(userText, conversationHistory);
-        setIsLoading(false);
+        try {
+            const aiResponse = await getGeminiResponse(userText, conversationHistory);
+            setIsLoading(false);
 
-        // Add bot response
-        addBotMessage(aiResponse.response);
+            // 1. Send text response
+            addBotMessage(aiResponse.response);
 
-        // Process based on action type
-        if (aiResponse.action?.type === 'search' && aiResponse.searchResults) {
-            // Display search results as venues
-            if (aiResponse.searchResults.length > 0) {
-                const searchParams = aiResponse.action.parameters;
-                setBookingState({
-                    step: 'showing_venues',
-                    city: searchParams.city,
-                    sport: searchParams.sport
-                });
-
-                addBotMessage(`Found ${aiResponse.searchResults.length} venues:`, 'venues', undefined, {
-                    venues: aiResponse.searchResults,
-                    selectedCity: searchParams.city,
-                    selectedSport: searchParams.sport
-                });
-            } else {
-                addBotMessage('No venues found matching your criteria. Try adjusting your filters.');
-            }
-        }
-
-        // Handle venue details request
-        if (aiResponse.venueDetails) {
-            const venue = aiResponse.venueDetails;
-            const detailsMessage = `
-**${venue.name}**
-📍 ${venue.area}, ${venue.city}
-📞 ${venue.phone}
-
-**Sports:** ${venue.game_types.map((g: any) => g.name).join(', ')}
-**Amenities:** ${venue.amenities.map((a: any) => a.name).join(', ')}
-**Price Range:** ₹${venue.price_range.min} - ₹${venue.price_range.max}/hour
-
-${venue.overview || ''}
-            `.trim();
-
-            addBotMessage(detailsMessage);
-
-            // Offer to book
-            addBotMessage('Would you like to book a slot here?', 'options', [
-                { label: 'Yes, show me slots', value: 'book_venue', action: 'book_venue', data: { venueId: venue.id } },
-                { label: 'Search for other venues', value: 'search_more', action: 'start_booking' }
-            ]);
-        }
-
-        // Handle venue details request
-        if (aiResponse.venueDetails) {
-            const venue = aiResponse.venueDetails;
-
-            // Add venue detail card message
-            addBotMessage('Here are the details for ' + venue.name, 'venue_detail', undefined, { venue });
-
-            // Offer to book
-            addBotMessage('Would you like to book a slot here?', 'options', [
-                { label: 'Yes, show me slots', value: 'book_venue', action: 'book_venue', data: { venueId: venue.id } },
-                { label: 'Search for other venues', value: 'search_more', action: 'start_booking' }
-            ]);
-        }
-
-        // Handle suggestions
-        if (aiResponse.suggestions && aiResponse.suggestions.length > 0) {
-            const suggestionOptions = aiResponse.suggestions.map((suggestion: string) => {
-                // Map suggestion text to actions
-                let action = 'general_query';
-
-                if (suggestion.toLowerCase().includes('book')) {
-                    action = 'start_booking';
-                } else if (suggestion.toLowerCase().includes('view') || suggestion.toLowerCase().includes('booking')) {
-                    action = 'view_bookings';
-                } else if (suggestion.toLowerCase().includes('search') || suggestion.toLowerCase().includes('venue')) {
-                    action = 'start_booking';
+            // 2. Handle Search Action
+            if (aiResponse.action?.type === 'search' && aiResponse.searchResults) {
+                if (aiResponse.searchResults.length > 0) {
+                    const params = aiResponse.action.parameters;
+                    setBookingState({
+                        step: 'showing_venues',
+                        city: params.city,
+                        sport: params.sport
+                    });
+                    addBotMessage(`Found ${aiResponse.searchResults.length} options:`, 'venues', undefined, aiResponse.searchResults);
+                } else {
+                    addBotMessage('I couldn\'t find any venues matching that search. Try something else?');
                 }
+            }
 
-                return {
-                    label: suggestion,
-                    value: suggestion.toLowerCase().replace(/\s+/g, '_'),
-                    action
-                };
-            });
+            // 3. Handle Venue Details
+            if (aiResponse.venueDetails) {
+                addBotMessage('Here are the details:', 'venue_detail', undefined, { venue: aiResponse.venueDetails });
+                addBotMessage('Would you like to book a slot here?', 'options', [
+                    { label: 'Yes, book now', value: 'book_now', action: 'book_venue', data: { venueId: aiResponse.venueDetails.id } },
+                    { label: 'Search others', value: 'search_more', action: 'start_booking' }
+                ]);
+            }
 
-            addBotMessage('', 'options', suggestionOptions);
-        }
+            // 4. Handle Navigation/Intent
+            if (aiResponse.intent === 'view_bookings') {
+                navigate('/bookings');
+                setIsOpen(false);
+            }
 
-        // Legacy booking intent handled naturally by Gemini response now.
-        // if (aiResponse.intent === 'book_court' && aiResponse.action?.type === 'book') { ... }
-
-        // Handle view bookings
-        if (aiResponse.intent === 'view_bookings') {
-            navigate('/bookings');
-            setIsOpen(false);
+        } catch (error) {
+            console.error("Chat Error:", error);
+            setIsLoading(false);
+            addBotMessage("Sorry, I'm having trouble connecting right now. Please try again in a moment.");
         }
     };
 
-    // If chatbot is disabled, don't render anything
-    if (!featureFlags.enableChatbot) {
-        return null;
-    }
+    if (!featureFlags.enableChatbot) return null;
 
     return (
         <>
-            {/* Chat Window */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -346,84 +273,51 @@ ${venue.overview || ''}
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                                    title="Minimize"
-                                >
-                                    <FaMinus size={14} />
-                                </button>
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                                    title="Close"
-                                >
-                                    <FaTimes size={14} />
-                                </button>
+                                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><FaMinus size={14} /></button>
+                                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><FaTimes size={14} /></button>
                             </div>
                         </div>
 
-                        {/* Messages Area */}
+                        {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
                             {messages.map((msg) => (
                                 <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                                    <div
-                                        className={`max-w-[85%] p-3 rounded-2xl mb-1 ${msg.sender === 'user'
-                                            ? 'bg-primary text-white rounded-br-none'
-                                            : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none shadow-sm'
-                                            }`}
-                                    >
+                                    <div className={`max-w-[85%] p-3 rounded-2xl mb-1 ${msg.sender === 'user' ? 'bg-primary text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none shadow-sm'}`}>
                                         <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                                     </div>
 
-                                    {/* Quick Replies / Options */}
                                     {msg.type === 'options' && msg.options && (
                                         <div className="flex flex-wrap gap-2 mt-2">
                                             {msg.options.map((opt, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => handleOptionClick(opt)}
-                                                    className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-3 py-2 rounded-full hover:bg-primary hover:text-white transition-colors"
-                                                >
+                                                <button key={idx} onClick={() => handleOptionClick(opt)} className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-3 py-2 rounded-full hover:bg-primary hover:text-white transition-colors">
                                                     {opt.label}
                                                 </button>
                                             ))}
                                         </div>
                                     )}
 
-                                    {/* Venues Carousel */}
                                     {msg.type === 'venues' && msg.data && (
                                         <div className="flex gap-4 overflow-x-auto w-full pb-4 pt-2 -mx-2 px-2 snap-x">
                                             {msg.data.map((venue: any) => (
                                                 <div key={venue.id} className="min-w-[200px] w-[200px] bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden snap-center flex-shrink-0">
                                                     <div className="h-24 bg-gray-200 relative">
-                                                        <img src={venue.photos?.[0]} alt={venue.court_name} className="w-full h-full object-cover" />
-                                                        <span className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full">{venue.game_type}</span>
+                                                        <img src={venue.image_url || venue.photos?.[0]} alt={venue.name} className="w-full h-full object-cover" />
+                                                        <span className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full">{venue.game_types?.[0] || venue.game_type}</span>
                                                     </div>
                                                     <div className="p-3">
-                                                        <h4 className="font-bold text-sm truncate">{venue.court_name}</h4>
-                                                        <p className="text-xs text-gray-500 mb-2 truncate">📍 {venue.location}</p>
-                                                        <button
-                                                            onClick={() => handleVenueSelection(venue)}
-                                                            className="w-full bg-primary text-white text-xs font-bold py-2 rounded-lg hover:bg-primary/90"
-                                                        >
-                                                            Select Venue
-                                                        </button>
+                                                        <h4 className="font-bold text-sm truncate">{venue.name || venue.court_name}</h4>
+                                                        <p className="text-xs text-gray-500 mb-2 truncate">📍 {venue.area}, {venue.city}</p>
+                                                        <button onClick={() => handleVenueSelection(venue)} className="w-full bg-primary text-white text-xs font-bold py-2 rounded-lg hover:bg-primary/90 transition-all active:scale-95">Select Venue</button>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
 
-                                    {/* Slots Grid */}
                                     {msg.type === 'slots' && msg.data && (
                                         <div className="grid grid-cols-3 gap-2 mt-2 w-full max-w-[280px]">
                                             {msg.data.map((slot: any) => (
-                                                <button
-                                                    key={slot.time}
-                                                    onClick={() => handleSlotSelection(slot)}
-                                                    className="bg-white border border-gray-200 rounded-lg p-2 text-center hover:border-primary hover:bg-primary/5 transition-colors"
-                                                >
+                                                <button key={slot.time} onClick={() => handleSlotSelection(slot)} className="bg-white border border-gray-200 rounded-lg p-2 text-center hover:border-primary hover:bg-primary/5 transition-colors">
                                                     <div className="text-xs font-bold text-gray-800">{slot.display_time}</div>
                                                     <div className="text-[10px] text-gray-500">₹{slot.price}</div>
                                                 </button>
@@ -431,46 +325,22 @@ ${venue.overview || ''}
                                         </div>
                                     )}
 
-                                    {/* Venue Detail Card */}
                                     {msg.type === 'venue_detail' && msg.data?.venue && (
-                                        <div className="mt-2 w-full flex justify-start">
-                                            <VenueDetailCard
-                                                venue={msg.data.venue}
-                                                onBookClick={() => {
-                                                    setBookingState(prev => ({ ...prev, venue: msg.data.venue, step: 'selecting_date' }));
-                                                    addBotMessage(`Great choice! When would you like to play at ${msg.data.venue.name}?`, 'date-picker');
-                                                }}
-                                            />
-                                        </div>
+                                        <VenueDetailCard
+                                            venue={msg.data.venue}
+                                            onBookClick={() => handleVenueSelection(msg.data.venue)}
+                                        />
                                     )}
 
-                                    {/* Booking Summary */}
                                     {msg.type === 'summary' && msg.data && (
                                         <div className="bg-white rounded-xl border border-gray-200 p-4 mt-2 w-full max-w-[280px] shadow-sm">
                                             <h4 className="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-2">Booking Summary</h4>
                                             <div className="space-y-2 text-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <FaMapMarkerAlt className="text-primary text-xs" />
-                                                    <span className="font-medium">{msg.data.venue.court_name}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <FaCalendarAlt className="text-primary text-xs" />
-                                                    <span>{new Date(msg.data.date).toLocaleDateString()}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <FaClock className="text-primary text-xs" />
-                                                    <span>{msg.data.slot.display_time}</span>
-                                                </div>
-                                                <div className="flex justify-between font-bold pt-2 border-t border-gray-100 mt-2">
-                                                    <span>Total Amount</span>
-                                                    <span className="text-primary">₹{msg.data.slot.price}</span>
-                                                </div>
-                                                <button
-                                                    onClick={confirmBooking}
-                                                    className="w-full bg-black text-white font-bold py-2 rounded-lg mt-2 hover:bg-gray-800"
-                                                >
-                                                    Confirm Booking
-                                                </button>
+                                                <div className="flex items-center gap-2"><FaMapMarkerAlt className="text-primary text-xs" /><span className="font-medium">{msg.data.venue.name || msg.data.venue.court_name}</span></div>
+                                                <div className="flex items-center gap-2"><FaCalendarAlt className="text-primary text-xs" /><span>{new Date(msg.data.date).toLocaleDateString()}</span></div>
+                                                <div className="flex items-center gap-2"><FaClock className="text-primary text-xs" /><span>{msg.data.slot.display_time}</span></div>
+                                                <div className="flex justify-between font-bold pt-2 border-t border-gray-100 mt-2"><span>Total</span><span className="text-primary">₹{msg.data.slot.price}</span></div>
+                                                <button onClick={confirmBooking} className="w-full bg-black text-white font-bold py-2 rounded-lg mt-2 hover:bg-gray-800 transition-all active:scale-95">Confirm Booking</button>
                                             </div>
                                         </div>
                                     )}
@@ -479,48 +349,31 @@ ${venue.overview || ''}
                             {isLoading && (
                                 <div className="flex justify-start">
                                     <div className="bg-white p-3 rounded-2xl rounded-bl-none shadow-sm flex gap-1">
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></span>
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></span>
+                                        <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"></span>
+                                        <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                                        <span className="w-1.5 h-1.5 bg-primary/80 rounded-full animate-bounce [animation-delay:0.4s]"></span>
                                     </div>
                                 </div>
                             )}
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input Area */}
+                        {/* Input */}
                         <div className="p-4 bg-white border-t border-gray-100">
-                            <form
-                                onSubmit={handleSendMessage}
-                                className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all"
-                            >
-                                <input
-                                    type="text"
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    placeholder="Type a message..."
-                                    className="flex-1 bg-transparent border-none outline-none text-sm py-2"
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={!inputText.trim() || isLoading}
-                                    className={`p-2 rounded-full transition-all ${inputText.trim()
-                                        ? 'bg-primary text-white shadow-md hover:scale-105 active:scale-95'
-                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                        }`}
-                                >
-                                    <FaPaperPlane size={14} />
-                                </button>
+                            <form onSubmit={handleSendMessage} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-4 py-1 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+                                <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Ask anything about venues..." className="flex-1 bg-transparent border-none outline-none text-sm py-3" />
+                                <button type="submit" disabled={!inputText.trim() || isLoading} className={`p-2.5 rounded-full transition-all ${inputText.trim() ? 'bg-primary text-white shadow-md hover:scale-105 active:scale-95' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}><FaPaperPlane size={14} /></button>
                             </form>
-                            <div className="text-center mt-2">
-                                <p className="text-[10px] text-gray-400">Powered by MyRush AI</p>
+                            <div className="text-center mt-2 flex items-center justify-center gap-1.5">
+                                <FaRobot className="text-primary/50" size={10} />
+                                <p className="text-[10px] text-gray-400 font-medium">Enhanced by MyRush Gemini AI</p>
                             </div>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Toggle Button */}
+            {/* Toggle */}
             <motion.button
                 className="fixed bottom-6 right-6 z-[9999] bg-primary text-white p-4 rounded-full shadow-lg shadow-primary/30 hover:shadow-xl transition-all flex items-center justify-center group"
                 onClick={() => setIsOpen(!isOpen)}
@@ -528,35 +381,12 @@ ${venue.overview || ''}
                 animate={{ scale: 1, opacity: 1 }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                title={isOpen ? "Close Chat" : "Chat with us"}
             >
                 <AnimatePresence mode="wait">
-                    {isOpen ? (
-                        <motion.div
-                            key="close"
-                            initial={{ rotate: -90, opacity: 0 }}
-                            animate={{ rotate: 0, opacity: 1 }}
-                            exit={{ rotate: 90, opacity: 0 }}
-                        >
-                            <FaTimes size={24} />
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="chat"
-                            initial={{ rotate: 90, opacity: 0 }}
-                            animate={{ rotate: 0, opacity: 1 }}
-                            exit={{ rotate: -90, opacity: 0 }}
-                        >
-                            <FaHeadset size={28} />
-                        </motion.div>
-                    )}
+                    {isOpen ? <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}><FaTimes size={24} /></motion.div>
+                        : <motion.div key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}><FaHeadset size={28} /></motion.div>}
                 </AnimatePresence>
-
-                {!isOpen && (
-                    <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-500 ease-in-out font-bold ml-0 group-hover:ml-2">
-                        Chat with AI
-                    </span>
-                )}
+                {!isOpen && <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-500 ease-in-out font-bold ml-0 group-hover:ml-2">Chat with AI</span>}
             </motion.button>
         </>
     );

@@ -65,13 +65,13 @@ export const Pickleball: React.FC = () => {
                 </div>
 
                 <div className="relative z-10 text-center max-w-5xl mx-auto px-6">
-                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white font-montserrat uppercase leading-tight mb-8">
+                    <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold text-white font-outfit uppercase leading-tight mb-8">
                         Join the <span className="text-primary">Pickleball Revolution</span> at<br />Rush Arenas
                     </h1>
                     <Button
                         variant="primary"
                         size="lg"
-                        className="bg-primary text-black hover:bg-primary-hover text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                        className="bg-primary text-black hover:bg-primary-hover text-lg px-12 py-5 uppercase tracking-wider font-outfit font-extrabold shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
                         onClick={() => document.getElementById('locations')?.scrollIntoView({ behavior: 'smooth' })}
                     >
                         Book A Court
@@ -82,7 +82,7 @@ export const Pickleball: React.FC = () => {
             {/* Locations Section */}
             <section id="locations" className="py-12 md:py-16 bg-white">
                 <div className="max-w-7xl mx-auto px-6">
-                    <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-12 text-center">
+                    <h2 className="text-2xl md:text-4xl font-extrabold text-black font-outfit uppercase leading-tight mb-12 text-center">
                         Our Locations
                     </h2>
 
@@ -109,7 +109,7 @@ export const Pickleball: React.FC = () => {
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
 
-                                    <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full">
+                                    <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
                                         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold text-lg">
                                             ↗
                                         </div>
@@ -118,7 +118,7 @@ export const Pickleball: React.FC = () => {
 
                                 <div className="p-8 flex flex-col flex-grow relative">
                                     <div className="mb-6">
-                                        <h3 className="text-2xl font-black text-black uppercase font-montserrat leading-tight mb-4 group-hover:text-primary transition-colors duration-300">
+                                        <h3 className="text-2xl font-extrabold text-black uppercase font-outfit leading-tight mb-4 group-hover:text-primary transition-colors duration-300">
                                             {loc.name}
                                         </h3>
                                         <div className="w-12 h-1 bg-gray-100 rounded-full mb-6 group-hover:bg-primary group-hover:w-20 transition-all duration-300" />
@@ -148,7 +148,7 @@ export const Pickleball: React.FC = () => {
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
 
                 <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-12">
+                    <h2 className="text-2xl md:text-4xl font-extrabold text-black font-outfit uppercase leading-tight mb-12">
                         FAQs
                     </h2>
 
@@ -162,7 +162,7 @@ export const Pickleball: React.FC = () => {
                                 transition={{ delay: idx * 0.1 }}
                                 className="mb-6"
                             >
-                                <h3 className="text-xl font-black text-black font-montserrat mb-3">
+                                <h3 className="text-xl font-extrabold text-black font-outfit mb-3">
                                     {faq.question}
                                 </h3>
                                 <p className="text-black/80 font-medium leading-relaxed">
@@ -182,7 +182,7 @@ export const Pickleball: React.FC = () => {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                     >
-                        <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase mb-8">
+                        <h2 className="text-2xl md:text-4xl font-extrabold text-black font-outfit uppercase mb-8">
                             Get in touch.
                         </h2>
                         <p className="text-gray-600 text-lg mb-12 max-w-4xl mx-auto">
@@ -233,7 +233,7 @@ export const Pickleball: React.FC = () => {
                                     <Button
                                         variant="primary"
                                         size="lg"
-                                        className="w-full py-4 uppercase font-black tracking-widest bg-black text-white hover:bg-primary hover:text-black transition-all duration-300"
+                                        className="w-full py-4 uppercase font-extrabold tracking-widest bg-black text-white hover:bg-primary hover:text-black transition-all duration-300 font-outfit"
                                         onClick={(e) => {
                                             e.preventDefault();
                                             alert('Form submitted successfully!');

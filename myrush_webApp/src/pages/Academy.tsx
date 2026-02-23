@@ -82,7 +82,7 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
                     <div className="inline-block px-4 py-1.5 rounded-full bg-black/5 backdrop-blur-md border border-black/10 text-primary text-xs font-bold uppercase tracking-widest mb-6 shadow-sm">
                         Complete Your Profile
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-black font-montserrat uppercase mb-6 text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-black to-gray-700">
+                    <h1 className="text-4xl md:text-5xl font-extrabold font-outfit uppercase mb-6 text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-black to-gray-700">
                         Join the <span className="text-primary italic">Academy</span>
                     </h1>
                     <p className="text-gray-600 text-lg mb-12 max-w-2xl mx-auto font-medium">
@@ -151,7 +151,7 @@ const AcademyPendingView: React.FC<{ onUpgrade: () => void }> = ({ onUpgrade }) 
                     <div className="w-24 h-24 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center text-4xl mb-8 animate-pulse shadow-inner">
                         <FaClock />
                     </div>
-                    <h2 className="text-3xl font-black font-montserrat uppercase mb-4 text-gray-900">Application Pending</h2>
+                    <h2 className="text-3xl font-extrabold font-outfit uppercase mb-4 text-gray-900">Application Pending</h2>
                     <p className="text-gray-500 mb-8 max-w-md mx-auto font-medium">
                         Our coaches are reviewing your profile. You will be assigned a batch shortly.
                     </p>
@@ -199,7 +199,7 @@ const AcademyDashboard: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="text-5xl md:text-7xl font-black font-montserrat uppercase leading-none text-white mb-6"
+                        className="text-2xl md:text-4xl lg:text-5xl font-extrabold font-outfit uppercase leading-tight text-white mb-8"
                     >
                         My <span className="text-primary italic">Academy</span>
                     </motion.h1>
@@ -297,43 +297,50 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
             name: 'Rajajinagar',
             address: 'Rush Arena, Rajajinagar',
             days: 'Tue, Thu & Sat',
-            timings: '5PM to 7PM'
+            timings: '5PM to 7PM',
+            mapUrl: 'https://www.google.com/maps/search/?api=1&query=Rush+Arena+Rajajinagar+Bangalore'
         },
         {
             name: 'Kasavanahalli (Owners Court)',
             address: 'Rush Arena, Kasavanahalli',
             days: 'Mon, Wed & Fri',
-            timings: '5PM to 7PM'
+            timings: '5PM to 7PM',
+            mapUrl: 'https://www.google.com/maps/search/?api=1&query=Rush+Arena+Kasavanahalli+Bangalore'
         },
         {
             name: 'Vijaynagar @ GT World Mall',
             address: 'Rush Arena GT Mall',
             days: 'Sat & Sunday',
-            timings: '8.30AM to 9.30AM'
+            timings: '8.30AM to 9.30AM',
+            mapUrl: 'https://www.google.com/maps/search/?api=1&query=Rush+Arena+GT+World+Mall+Bangalore'
         },
         {
             name: 'Hesarghatta Main Road',
             address: 'Rush Arena Hesargatta Main Road',
             days: 'Mon, Wed & Fri',
-            timings: '5PM to 7PM'
+            timings: '5PM to 7PM',
+            mapUrl: 'https://www.google.com/maps/search/?api=1&query=Rush+Arena+Hesargatta+Main+Road+Bangalore'
         },
         {
             name: 'Cooke Town',
             address: 'Rush Arena, Cooke Town',
             days: 'Mon, Wed, Fri',
-            timings: '5PM to 6PM'
+            timings: '5PM to 6PM',
+            mapUrl: 'https://www.google.com/maps/search/?api=1&query=Rush+Arena+Cooke+Town+Bangalore'
         },
         {
             name: 'Vidyaranyapura',
             address: 'ToughX Arena',
             days: 'Mon, Wed & Fri',
-            timings: '5PM to 7PM'
+            timings: '5PM to 7PM',
+            mapUrl: 'https://www.google.com/maps/search/?api=1&query=ToughX+Arena+Vidyaranyapura+Bangalore'
         },
         {
             name: 'Old Airport Road',
             address: 'Rush Arena, Old Airport Road',
             days: 'Mon, Wed & Fri',
-            timings: '5PM to 6PM'
+            timings: '5PM to 6PM',
+            mapUrl: 'https://www.google.com/maps/search/?api=1&query=Rush+Arena+Old+Airport+Road+Bangalore'
         }
     ];
 
@@ -357,7 +364,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-screen flex items-center justify-center md:justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
+            <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center md:justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
                 {/* Background Image with Deep Gradient Overlay */}
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
@@ -372,7 +379,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                 </div>
 
                 <motion.div
-                    className="relative z-20 text-center md:text-left w-full max-w-7xl"
+                    className="relative z-20 text-center md:text-left w-full max-w-7xl md:max-w-[50%]"
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
@@ -385,15 +392,15 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                         className="inline-flex items-center gap-3 mb-10 px-5 py-2.5 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto md:mx-0"
                     >
                         <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        <span className="text-lg md:text-xl font-bold text-primary uppercase tracking-[0.3em]">
+                        <span className="text-xs md:text-sm font-bold font-outfit text-primary uppercase tracking-wider">
                             Speak to us, now - +91-8548946999
                         </span>
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-black text-white mb-10 leading-[0.9] tracking-[-0.05em]">
-                        Unlock Your Football Potential with <br />
-                        <span className="text-primary italic">Rush Academy.</span>
+                    <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold font-outfit text-white mb-10 leading-tight uppercase">
+                        Unlock Your Football Potential <br />
+                        with <span className="text-primary italic">Rush Academy.</span>
                     </h1>
 
                     {/* CTA Section */}
@@ -401,7 +408,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-lg px-12 py-5 uppercase tracking-wider font-montserrat font-black shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                            className="bg-primary text-black hover:bg-primary-hover text-lg px-12 py-5 uppercase tracking-wider font-outfit font-extrabold shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
                             onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Book A Free Trial Class
@@ -411,7 +418,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
 
                 {/* Vertical Indicator */}
                 <div className="absolute bottom-12 right-12 hidden lg:flex flex-col items-center gap-6 z-20">
-                    <span className="text-[10px] font-black text-white/20 rotate-90 uppercase tracking-[0.5em] mb-12">Scroll</span>
+                    <span className="text-[10px] font-extrabold font-outfit text-white/20 rotate-90 uppercase tracking-[0.5em] mb-12">Scroll</span>
                     <div className="w-[1px] h-20 bg-gradient-to-b from-primary to-transparent" />
                 </div>
             </section>
@@ -422,7 +429,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
             <section id="why-rush" className="py-12 md:py-16 bg-white w-full">
                 <div className="w-full max-w-7xl mx-auto px-6">
                     <div className="mb-12">
-                        <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight">
+                        <h2 className="text-3xl md:text-5xl font-extrabold font-outfit uppercase leading-tight text-black">
                             Why Rush Academy?
                         </h2>
                     </div>
@@ -513,6 +520,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                             <motion.div
                                 key={index}
                                 className="bg-white/5 backdrop-blur-sm rounded-3xl p-8 border border-white/10 hover:border-primary/50 hover:bg-white/10 transition-all duration-300 group cursor-pointer flex flex-col h-full relative overflow-hidden"
+                                onClick={() => window.open(location.mapUrl, '_blank')}
                                 initial={{ opacity: 0, y: 20 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
@@ -520,16 +528,15 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                             >
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/30 transition-colors" />
 
-                                <div className="flex items-start justify-between mb-6 relative z-10">
-                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/10 group-hover:scale-110 transition-transform duration-300">
-                                        <span className="text-2xl">📍</span>
-                                    </div>
-                                    <div className="px-3 py-1 rounded-full border border-white/10 bg-white/5 text-[10px] font-bold uppercase tracking-widest text-white/60">
-                                        Open
+                                <div className="flex justify-between items-start mb-6 relative z-10">
+                                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg ml-auto">
+                                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold text-lg">
+                                            ↗
+                                        </div>
                                     </div>
                                 </div>
 
-                                <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-wide group-hover:text-primary transition-colors">
+                                <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-wide group-hover:text-primary transition-colors relative z-10">
                                     {location.name}
                                 </h3>
                                 <p className="text-sm text-gray-400 mb-8 font-medium line-clamp-2">
@@ -587,9 +594,6 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                                         className="w-full h-full object-cover grayscale transition-all duration-1000 group-hover:grayscale-0 group-hover:scale-110"
                                     />
                                     <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                                    <div className="absolute bottom-6 right-6 w-10 h-10 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-premium">
-                                        <span className="text-primary text-xl">★</span>
-                                    </div>
                                 </div>
                                 <h3 className="text-h6 text-black mb-3 uppercase tracking-tighter group-hover:text-primary transition-colors text-center w-full">
                                     {member.name}
