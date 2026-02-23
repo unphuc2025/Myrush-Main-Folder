@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginAdmin } from '../services/authApi.js';
 import { adminsApi } from '../services/adminApi.js';
-import { Lock, Phone, ArrowRight, Loader2, Save } from 'lucide-react';
+import { Lock, Phone, ArrowRight, Loader2, Save, Eye, EyeOff } from 'lucide-react';
 import logo from '../assets/myrushlogo.png';
 
 function AdminLogin() {
   const navigate = useNavigate();
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -40,10 +41,30 @@ function AdminLogin() {
     localStorage.removeItem('admin_info');
   };
 
+  const handleMobileChange = (e) => {
+    let val = e.target.value;
+    if (val.startsWith('+91')) {
+      val = val.slice(3);
+    }
+    // Remove non-digit characters
+    val = val.replace(/\D/g, '');
+    // Limit to 10 digits
+    if (val.length > 10) {
+      val = val.slice(0, 10);
+    }
+    setMobile(val);
+  };
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    if (mobile.length !== 10) {
+      setError("Please enter a valid 10-digit mobile number");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -66,7 +87,8 @@ function AdminLogin() {
           }, 1000);
         }
       } else {
-        setError(data.message || 'Login failed');
+        const errMsg = data.message || 'Login failed';
+        setError(errMsg.toLowerCase() === 'login failed' || errMsg.toLowerCase().includes('password') || errMsg.toLowerCase().includes('credentials') ? 'Invalid password' : errMsg);
         setIsLoading(false);
       }
     } catch (err) {
@@ -170,7 +192,7 @@ function AdminLogin() {
                   <input
                     type="text"
                     value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
+                    onChange={handleMobileChange}
                     placeholder="Enter mobile number"
                     required
                     className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-sm outline-none transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
@@ -183,13 +205,21 @@ function AdminLogin() {
                 <div className="relative">
                   <Lock className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter password"
                     required
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-sm outline-none transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                    maxLength={128}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-12 py-2.5 text-sm outline-none transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
 
@@ -223,6 +253,7 @@ function AdminLogin() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Enter new password"
                     required
+                    maxLength={128}
                     className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-sm outline-none transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
                   />
                 </div>
@@ -238,6 +269,7 @@ function AdminLogin() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"
                     required
+                    maxLength={128}
                     className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-sm outline-none transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
                   />
                 </div>

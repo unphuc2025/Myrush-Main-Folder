@@ -12,10 +12,14 @@ import { featureFlags } from '../config/featureFlags';
 
 export const Chatbot: React.FC = () => {
     const navigate = useNavigate();
+    const generateId = () => {
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    };
+
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         {
-            id: crypto.randomUUID(),
+            id: generateId(),
             text: "Hello! I'm from the Rush Support Team. How can I help you today?",
             sender: 'bot',
             timestamp: new Date(),
@@ -37,7 +41,7 @@ export const Chatbot: React.FC = () => {
 
     const addBotMessage = (text: string, type: Message['type'] = 'text', options?: QuickReply[], data?: any) => {
         const newMessage: Message = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             text,
             sender: 'bot',
             timestamp: new Date(),
@@ -50,7 +54,7 @@ export const Chatbot: React.FC = () => {
 
     const addUserMessage = (text: string) => {
         const newMessage: Message = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             text,
             sender: 'user',
             timestamp: new Date()

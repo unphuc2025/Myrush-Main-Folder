@@ -7,12 +7,12 @@ sys.path.append(os.getcwd())
 
 # Mock the environment variable BEFORE importing the module if it reads at top level, 
 # but email_sender reads inside the function, so we are good.
-os.environ["ACADEMY_ADMIN_EMAIL"] = "apparao@vriksha.ai"
+os.environ["ACADEMY_ADMIN_EMAIL"] = "harsha@vriksha.ai"
 
 from utils.email_sender import send_academy_application_email
 
 def test_email():
-    print("Attempting to send test email to apparao@vriksha.ai...")
+    print("Attempting to send test email to harsha@vriksha.ai...")
     
     test_data = {
         "athlete_name": "Test Athlete",

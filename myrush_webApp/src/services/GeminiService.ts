@@ -2,8 +2,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { fetchKnowledgeBase, buildChatbotContext, searchVenues, getVenueDetails } from './ChatbotContext';
 
 // Enhanced Gemini response with context enrichment
-export const getGeminiResponse = async (userMessage: string, conversationHistory: any[] = []) => {
+export const getGeminiResponse = async (userMessage: string, conversationHistory: any[] = []): Promise<any> => {
   try {
+    if (conversationHistory.length) { console.debug("Chat history included"); }
     console.error("Gemini API is currently disabled due to API key issues");
     return {
       intent: "error",
