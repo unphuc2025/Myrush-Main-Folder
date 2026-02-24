@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TopNav } from '../components/TopNav';
-import { Footer } from '../components/Footer';
 import { PublicNav } from '../components/PublicNav';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,7 +12,7 @@ export const TermsCondition: React.FC = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-black text-white font-inter flex flex-col">
+        <div className="min-h-screen bg-black text-white font-sans flex flex-col">
             {isAuthenticated ? <TopNav /> : <PublicNav />}
 
             <main className="flex-grow pt-24 pb-16 px-6">

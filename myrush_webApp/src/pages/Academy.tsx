@@ -69,7 +69,7 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
     };
 
     return (
-        <div className="min-h-screen font-inter relative overflow-hidden">
+        <div className="min-h-screen font-sans relative overflow-hidden">
             {/* Global Atmosphere */}
             <div className="fixed inset-0 z-0 mesh-bg opacity-30 pointer-events-none"></div>
 
@@ -82,7 +82,7 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
                     <div className="inline-block px-4 py-1.5 rounded-full bg-black/5 backdrop-blur-md border border-black/10 text-primary text-xs font-bold uppercase tracking-widest mb-6 shadow-sm">
                         Complete Your Profile
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-extrabold font-outfit uppercase mb-6 text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-black to-gray-700">
+                    <h1 className="text-3xl md:text-5xl font-extrabold font-heading uppercase mb-6 text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-black to-gray-700">
                         Join the <span className="text-primary italic">Academy</span>
                     </h1>
                     <p className="text-gray-600 text-lg mb-12 max-w-2xl mx-auto font-medium">
@@ -137,7 +137,7 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
 // --- LOGGED IN: PENDING VIEW ---
 const AcademyPendingView: React.FC<{ onUpgrade: () => void }> = ({ onUpgrade }) => {
     return (
-        <div className="min-h-screen font-inter relative overflow-hidden">
+        <div className="min-h-screen font-sans relative overflow-hidden">
             {/* Global Atmosphere */}
             <div className="fixed inset-0 z-0 mesh-bg opacity-30 pointer-events-none"></div>
 
@@ -151,7 +151,7 @@ const AcademyPendingView: React.FC<{ onUpgrade: () => void }> = ({ onUpgrade }) 
                     <div className="w-24 h-24 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center text-4xl mb-8 animate-pulse shadow-inner">
                         <FaClock />
                     </div>
-                    <h2 className="text-3xl font-extrabold font-outfit uppercase mb-4 text-gray-900">Application Pending</h2>
+                    <h2 className="text-3xl font-extrabold font-heading uppercase mb-4 text-gray-900">Application Pending</h2>
                     <p className="text-gray-500 mb-8 max-w-md mx-auto font-medium">
                         Our coaches are reviewing your profile. You will be assigned a batch shortly.
                     </p>
@@ -172,12 +172,12 @@ const AcademyPendingView: React.FC<{ onUpgrade: () => void }> = ({ onUpgrade }) 
 // --- LOGGED IN VIEW: STUDENT DASHBOARD (Existing) ---
 const AcademyDashboard: React.FC = () => {
     return (
-        <div className="min-h-screen font-inter relative">
+        <div className="min-h-screen font-sans relative">
             <div className="fixed inset-0 z-0 mesh-bg opacity-20 pointer-events-none"></div>
             <TopNav />
 
             {/* Academy Hero */}
-            <section className="relative h-[50vh] flex items-center justify-center overflow-hidden bg-black">
+            <section className="relative h-[40vh] md:h-[50vh] flex items-center justify-center overflow-hidden bg-black">
                 <div className="absolute inset-0 z-0">
                     <img
                         src="https://images.unsplash.com/photo-1624880357913-a8539238245b?q=80&w=2070"
@@ -199,7 +199,7 @@ const AcademyDashboard: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="text-2xl md:text-4xl lg:text-5xl font-extrabold font-outfit uppercase leading-tight text-white mb-8"
+                        className="text-2xl md:text-4xl lg:text-5xl font-extrabold font-heading uppercase leading-tight text-white mb-8"
                     >
                         My <span className="text-primary italic">Academy</span>
                     </motion.h1>
@@ -261,7 +261,7 @@ const AcademyDashboard: React.FC = () => {
                 </div>
 
                 {/* Upcoming Classes */}
-                <h2 className="text-2xl font-black font-montserrat uppercase mb-6 drop-shadow-sm">Upcoming Sessions</h2>
+                <h2 className="text-2xl font-black font-heading uppercase mb-6 drop-shadow-sm">Upcoming Sessions</h2>
                 <div className="glass-card rounded-3xl overflow-hidden shadow-sm">
                     {[
                         { date: 'Today', time: '5:00 PM - 7:00 PM', topic: 'Technical Drills: Passing', status: 'Upcoming' },
@@ -290,7 +290,7 @@ const AcademyDashboard: React.FC = () => {
 };
 
 // --- GUEST VIEW: LANDING PAGE ---
-const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
+const AcademyLanding: React.FC = () => {
 
     const locations = [
         {
@@ -357,14 +357,14 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
     ];
 
     return (
-        <div className="min-h-screen bg-white font-inter relative selection:bg-primary selection:text-black">
+        <div className="min-h-screen bg-white font-sans relative selection:bg-primary selection:text-black">
             <div className="fixed inset-0 z-0 mesh-bg opacity-10 pointer-events-none"></div>
             {/* Sticky Navigation */}
             {/* Sticky Navigation */}
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center md:justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
+            <section className="relative h-[60vh] md:h-[80vh] min-h-[500px] md:min-h-[600px] flex items-center justify-center md:justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
                 {/* Background Image with Deep Gradient Overlay */}
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
@@ -389,26 +389,26 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5, duration: 0.8 }}
-                        className="inline-flex items-center gap-3 mb-10 px-5 py-2.5 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto md:mx-0"
+                        className="inline-flex items-center gap-3 mb-6 px-5 py-2.5 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto md:mx-0"
                     >
                         <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        <span className="text-xs md:text-sm font-bold font-outfit text-primary uppercase tracking-wider">
+                        <span className="text-xs md:text-sm font-bold font-heading text-primary uppercase tracking-wider">
                             Speak to us, now - +91-8548946999
                         </span>
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold font-outfit text-white mb-10 leading-tight uppercase">
+                    <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold font-heading text-white mb-8 md:mb-12 leading-[1.1] uppercase">
                         Unlock Your Football Potential <br />
                         with <span className="text-primary italic">Rush Academy.</span>
                     </h1>
 
                     {/* CTA Section */}
-                    <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-8">
+                    <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 md:gap-6">
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-lg px-12 py-5 uppercase tracking-wider font-outfit font-extrabold shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                            className="bg-primary text-black hover:bg-primary-hover text-base px-8 md:px-10 py-4 md:py-4.5 uppercase tracking-wider font-heading font-bold shadow-[0_0_20px_rgba(0,210,106,0.3)] hover:shadow-[0_0_30px_rgba(0,210,106,0.4)]"
                             onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Book A Free Trial Class
@@ -418,7 +418,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
 
                 {/* Vertical Indicator */}
                 <div className="absolute bottom-12 right-12 hidden lg:flex flex-col items-center gap-6 z-20">
-                    <span className="text-[10px] font-extrabold font-outfit text-white/20 rotate-90 uppercase tracking-[0.5em] mb-12">Scroll</span>
+                    <span className="text-[10px] font-extrabold font-heading text-white/20 rotate-90 uppercase tracking-[0.5em] mb-12">Scroll</span>
                     <div className="w-[1px] h-20 bg-gradient-to-b from-primary to-transparent" />
                 </div>
             </section>
@@ -427,9 +427,9 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
 
             {/* Why Rush Academy Section */}
             <section id="why-rush" className="py-12 md:py-16 bg-white w-full">
-                <div className="w-full max-w-7xl mx-auto px-6">
+                <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
                     <div className="mb-12">
-                        <h2 className="text-3xl md:text-5xl font-extrabold font-outfit uppercase leading-tight text-black">
+                        <h2 className="text-3xl md:text-5xl font-extrabold font-heading uppercase leading-tight text-black">
                             Why Rush Academy?
                         </h2>
                     </div>
@@ -502,7 +502,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                 <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-3xl md:text-5xl font-black text-white font-montserrat uppercase leading-tight mb-6">
+                            <h2 className="text-3xl md:text-5xl font-black text-white font-heading uppercase leading-tight mb-6">
                                 Our <span className="text-primary italic">Centers</span>
                             </h2>
                             <p className="text-body-lg text-white/40 font-light uppercase tracking-[0.2em]">
@@ -567,7 +567,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                 <div className="w-full max-w-7xl mx-auto px-6">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
+                            <h2 className="text-3xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-6">
                                 Meet the <span className="text-primary italic">Academy Team</span>
                             </h2>
                         </div>
@@ -577,7 +577,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-12 gap-y-24 lg:gap-x-20 lg:gap-y-32">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16 lg:gap-x-20 lg:gap-y-32">
                         {team.map((member, index) => (
                             <motion.div
                                 key={index}
@@ -612,7 +612,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                 <div className="w-full max-w-7xl mx-auto px-6">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-3xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
+                            <h2 className="text-3xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-6">
                                 Choose your <span className="text-primary italic">plan:</span>
                             </h2>
                         </div>
@@ -622,7 +622,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
                         {/* Quarterly Plan */}
                         <motion.div
                             className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover"
@@ -653,7 +653,7 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
 
                         {/* Semi-annually Plan */}
                         <motion.div
-                            className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover scale-105 z-10"
+                            className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover md:scale-105 z-10"
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
@@ -716,41 +716,30 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
             </section>
 
             {/* Enrollment Section */}
-            <section id="enroll-section" className="py-12 md:py-16 bg-black relative overflow-hidden px-6">
-                <div className="absolute inset-0 bg-dark-gradient opacity-100 z-0" />
-                <div className="absolute -top-1/4 -right-1/4 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+            <section id="enroll-section" className="relative bg-black overflow-hidden py-24 md:py-32 border-t border-white/10">
+                {/* Background Glows */}
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
+                    <div className="absolute top-1/4 -left-1/4 w-[150%] h-[150%] bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent rounded-full blur-[120px]" />
+                </div>
 
                 <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
-                    <div className="flex flex-col lg:flex-row items-start justify-between gap-12 lg:gap-20">
+                    <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-24 text-white">
                         <div className="w-full lg:w-5/12 relative z-20">
                             <motion.div
                                 initial={{ opacity: 0, x: -30 }}
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
                             >
-                                <h2 className="text-5xl md:text-7xl font-black text-white mb-8 leading-none tracking-tight font-montserrat uppercase">
-                                    Start Your <br />
-                                    <span className="text-primary italic">Journey</span>
-                                </h2>
-                                <p className="text-lg text-white/60 font-medium mb-12 leading-relaxed max-w-lg">
-                                    Secure your spot for a free assessment session. Our coaches will evaluate your technical skills and recommend the best pathway.
-                                </p>
-                                <div className="space-y-8">
-                                    {[
-                                        { label: 'Trial Session', text: 'Evaluation with UEFA-Pro coaches' },
-                                        { label: 'Equipment', text: 'Full training kit provided on site' }
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex gap-6 items-start">
-                                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                                                <span className="text-primary font-black text-lg">0{i + 1}</span>
-                                            </div>
-                                            <div>
-                                                <h4 className="text-white font-black uppercase tracking-wider text-sm mb-1">{item.label}</h4>
-                                                <p className="text-white/50 text-sm font-medium">{item.text}</p>
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase">
+                                    Join The Elite
                                 </div>
+                                <h2 className="text-6xl md:text-7xl lg:text-8xl font-black font-heading leading-none mb-10 tracking-tighter uppercase italic">
+                                    Book a Free <br />
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Trial Class</span>
+                                </h2>
+                                <p className="text-lg text-white/60 font-medium mb-10 leading-relaxed max-w-lg">
+                                    Give your child a taste of excellence with Rush Academy's free trial. Fill out the form below to secure a spot in our dynamic training sessions led by experienced coaches.
+                                </p>
                             </motion.div>
                         </div>
 
@@ -758,58 +747,124 @@ const AcademyLanding: React.FC<{ navigate: any }> = ({ navigate }) => {
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            className="bg-white/[0.03] backdrop-blur-2xl p-8 md:p-12 rounded-[2.5rem] border border-white/10 shadow-2xl w-full lg:w-6/12 relative z-20"
+                            className="w-full lg:w-6/12 relative z-20"
                         >
-                            <form className="space-y-10" onSubmit={async (e) => {
+                            <form className="space-y-6" onSubmit={async (e) => {
                                 e.preventDefault();
                                 const form = e.target as HTMLFormElement;
+                                // Simple extraction based on order for now
                                 const data = {
-                                    athlete_name: (form.elements[0] as HTMLInputElement).value,
-                                    age_group: (form.elements[1] as HTMLSelectElement).value,
-                                    contact_email: (form.elements[2] as HTMLInputElement).value,
-                                    phone_number: (form.elements[3] as HTMLInputElement).value,
-                                    preferred_sport: 'Any', // Default for this landing form
+                                    kid_first_name: (form.elements[0] as HTMLInputElement).value,
+                                    kid_last_name: (form.elements[1] as HTMLInputElement).value,
+                                    parent_email: (form.elements[2] as HTMLInputElement).value,
+                                    parent_mobile: (form.elements[3] as HTMLInputElement).value,
+                                    location: (form.elements[4] as HTMLSelectElement).value,
+                                    preferred_date: (form.elements[5] as HTMLInputElement).value,
+                                    preferred_sport: 'Any',
                                 };
 
                                 try {
-                                    const response = await apiClient.post('/academy/register', data);
+                                    const response = await apiClient.post('/academy/register', {
+                                        athlete_name: `${data.kid_first_name} ${data.kid_last_name}`,
+                                        age_group: "N/A",
+                                        contact_email: data.parent_email,
+                                        phone_number: data.parent_mobile,
+                                        preferred_sport: data.preferred_sport,
+                                        preferred_location: data.location,
+                                        preferred_date: data.preferred_date
+                                    });
                                     if (response.data.success) alert('Registration Successful! We will contact you shortly.');
                                     else alert('Registration failed. Please try again.');
                                 } catch (err) {
                                     alert('Error submitting registration.');
                                 }
                             }}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] ml-8">Athlete Name</label>
-                                        <input type="text" required className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-6 text-white outline-none focus:border-primary/50 transition-colors" placeholder="Full Name" />
+                                <div className="space-y-8">
+                                    {/* Kid's Name */}
+                                    <div className="space-y-3">
+                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Kid's Name</label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <input
+                                                    type="text"
+                                                    placeholder="First Name (required)"
+                                                    required
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Last Name (required)"
+                                                    required
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] ml-8">Age Group</label>
-                                        <select className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-6 text-white outline-none focus:border-primary/50 transition-colors appearance-none">
-                                            <option className="bg-black">U-10</option>
-                                            <option className="bg-black">U-14</option>
-                                            <option className="bg-black">U-18</option>
-                                            <option className="bg-black">Senior</option>
-                                        </select>
+
+                                    {/* Parent's Email ID */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Parent's Email ID</label>
+                                        <input
+                                            type="email"
+                                            placeholder="example@email.com"
+                                            required
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                        />
+                                    </div>
+
+                                    {/* Parent's Mobile Number */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Parent's Mobile Number</label>
+                                        <input
+                                            type="tel"
+                                            placeholder="+91 00000 00000"
+                                            required
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                        />
+                                    </div>
+
+                                    {/* Preferred Location */}
+                                    <div className="space-y-1 relative">
+                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Preferred Location</label>
+                                        <div className="relative">
+                                            <select
+                                                required
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm appearance-none cursor-pointer [&>option]:bg-black [&>option]:text-white"
+                                            >
+                                                <option value="" disabled selected>Select a location</option>
+                                                <option value="Rajajinagar">Rajajinagar</option>
+                                                <option value="Kasavanahalli">Kasavanahalli ( Off Sarjapur Road)</option>
+                                                <option value="Vijaynagar">Vijaynagar @ GT World Mall</option>
+                                                <option value="Hesarghatta">Hesarghatta Main Road</option>
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Date */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Date</label>
+                                        <input
+                                            type="date"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm [color-scheme:dark]"
+                                        />
+                                    </div>
+
+                                    <div className="pt-8">
+                                        <button
+                                            type="submit"
+                                            className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-full uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95"
+                                        >
+                                            Send Application →
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] ml-8">Contact Email</label>
-                                    <input type="email" required className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-6 text-white outline-none focus:border-primary/50 transition-colors" placeholder="your@email.com" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] ml-8">Phone Number</label>
-                                    <input type="tel" required className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-6 text-white outline-none focus:border-primary/50 transition-colors" placeholder="+91 00000 00000" />
-                                </div>
-                                <div className="flex justify-center">
-                                    <Button variant="primary" className="max-w-sm h-16 shadow-glow-strong">
-                                        Submit Registration
-                                    </Button>
-                                </div>
-                                <p className="text-center text-[10px] text-white/30 uppercase tracking-[0.2em] font-light">
-                                    No credit card required for first eval.
-                                </p>
                             </form>
                         </motion.div>
                     </div>

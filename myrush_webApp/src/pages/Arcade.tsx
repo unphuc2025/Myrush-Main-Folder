@@ -263,7 +263,7 @@ export const Arcade: React.FC = () => {
 
 
     return (
-        <div className="min-h-screen bg-black font-inter text-white overflow-hidden relative">
+        <div className="min-h-screen bg-black font-sans text-white overflow-hidden relative">
             {/* Global Atmosphere */}
             <div className="fixed inset-0 z-0 mesh-bg opacity-20 pointer-events-none mix-blend-screen"></div>
 
@@ -281,12 +281,12 @@ export const Arcade: React.FC = () => {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="relative z-10 text-center mb-16"
+                        className="relative z-10 text-center mb-8 md:mb-16"
                     >
-                        <h1 className="text-6xl md:text-8xl font-black font-montserrat uppercase tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-purple-500 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                        <h1 className="text-4xl md:text-8xl font-black font-heading uppercase tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-purple-500 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
                             Rush <br /> Arcade
                         </h1>
-                        <p className="text-gray-400 text-xl tracking-wide uppercase font-bold drop-shadow-md">Train Hard. Play Hard.</p>
+                        <p className="text-gray-400 text-base md:text-xl tracking-wide uppercase font-bold drop-shadow-md">Train Hard. Play Hard.</p>
                     </motion.div>
 
                     <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
@@ -294,26 +294,26 @@ export const Arcade: React.FC = () => {
                             whileHover={{ scale: 1.05, translateY: -10 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => setGameState('reaction')}
-                            className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl group hover:border-primary/50 transition-all text-left"
+                            className="bg-zinc-900 border border-zinc-800 p-6 md:p-8 rounded-2xl md:rounded-3xl group hover:border-primary/50 transition-all text-left"
                         >
-                            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-3xl mb-6 text-primary group-hover:scale-110 transition-transform">
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl mb-4 md:mb-6 text-primary group-hover:scale-110 transition-transform">
                                 <FaBolt />
                             </div>
-                            <h3 className="text-3xl font-black uppercase font-montserrat mb-2">Net Reflexes</h3>
-                            <p className="text-gray-500 font-medium">Test your reaction speed. Wait for Green!</p>
+                            <h3 className="text-2xl md:text-3xl font-black uppercase font-heading mb-2">Net Reflexes</h3>
+                            <p className="text-gray-500 text-sm md:text-base font-medium">Test your reaction speed. Wait for Green!</p>
                         </motion.button>
 
                         <motion.button
                             whileHover={{ scale: 1.05, translateY: -10 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => { setGameState('rally'); setRallyState('idle'); }}
-                            className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl group hover:border-yellow-500/50 transition-all text-left"
+                            className="bg-zinc-900 border border-zinc-800 p-6 md:p-8 rounded-2xl md:rounded-3xl group hover:border-yellow-500/50 transition-all text-left"
                         >
-                            <div className="w-16 h-16 bg-yellow-500/10 rounded-2xl flex items-center justify-center text-3xl mb-6 text-yellow-500 group-hover:scale-110 transition-transform">
-                                <span className="text-2xl">🏓</span>
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-yellow-500/10 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl mb-4 md:mb-6 text-yellow-500 group-hover:scale-110 transition-transform">
+                                <span className="text-xl md:text-2xl">🏓</span>
                             </div>
-                            <h3 className="text-3xl font-black uppercase font-montserrat mb-2">Wall Rally</h3>
-                            <p className="text-gray-500 font-medium">Wall drills simulation. Keep the ball alive!</p>
+                            <h3 className="text-2xl md:text-3xl font-black uppercase font-heading mb-2">Wall Rally</h3>
+                            <p className="text-gray-500 text-sm md:text-base font-medium">Wall drills simulation. Keep the ball alive!</p>
                         </motion.button>
                     </div>
                 </div>
@@ -331,7 +331,7 @@ export const Arcade: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-gray-400 text-sm font-bold uppercase">Rally</span>
-                            <span className="text-3xl font-black font-montserrat text-primary">{rallyScore}</span>
+                            <span className="text-3xl font-black font-heading text-primary">{rallyScore}</span>
                         </div>
                     </div>
 
@@ -344,11 +344,11 @@ export const Arcade: React.FC = () => {
                         />
 
                         {rallyState === 'idle' && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-10 pointer-events-none">
-                                <h1 className="text-5xl font-black font-montserrat uppercase translate-y-[-20px] text-yellow-400">Wall Rally</h1>
-                                <p className="text-gray-400 mb-8 font-bold">Use Mouse or Arrow Keys</p>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-10 pointer-events-none p-6 text-center">
+                                <h1 className="text-3xl md:text-5xl font-black font-heading uppercase translate-y-[-20px] text-yellow-400">Wall Rally</h1>
+                                <p className="text-gray-400 mb-8 font-bold text-sm md:text-base">Use Mouse, Touch or Arrow Keys</p>
                                 <Button
-                                    className="bg-yellow-500 hover:bg-yellow-400 text-black px-12 py-4 rounded-full font-black uppercase shadow-glow pointer-events-auto"
+                                    className="bg-yellow-500 hover:bg-yellow-400 text-black px-8 md:px-12 py-3 md:py-4 rounded-full font-black uppercase shadow-glow pointer-events-auto"
                                     onClick={initRallyGame}
                                 >
                                     Start Drill
@@ -358,7 +358,7 @@ export const Arcade: React.FC = () => {
 
                         {rallyState === 'gameover' && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-10 pointer-events-none">
-                                <h1 className="text-5xl font-black font-montserrat uppercase text-red-500 mb-2">Drill Over</h1>
+                                <h1 className="text-5xl font-black font-heading uppercase text-red-500 mb-2">Drill Over</h1>
                                 <p className="text-white text-xl font-bold uppercase mb-8">Score: {rallyScore}</p>
                                 <div className="flex gap-4 pointer-events-auto">
                                     <Button
@@ -396,11 +396,11 @@ export const Arcade: React.FC = () => {
                                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                 className="text-center"
                             >
-                                <FaBolt className="text-6xl text-primary mx-auto mb-6 animate-pulse" />
-                                <h2 className="text-4xl font-black font-montserrat uppercase mb-4">Net Reflexes</h2>
-                                <p className="text-gray-400 mb-8 max-w-md mx-auto">When the screen turns <span className="text-red-500 font-bold">RED</span>, wait.<br />When it turns <span className="text-green-500 font-bold">GREEN</span>, click!</p>
+                                <FaBolt className="text-4xl md:text-6xl text-primary mx-auto mb-6 animate-pulse" />
+                                <h2 className="text-3xl md:text-4xl font-black font-heading uppercase mb-4">Net Reflexes</h2>
+                                <p className="text-gray-400 mb-8 max-w-md mx-auto text-sm md:text-base">When the screen turns <span className="text-red-500 font-bold">RED</span>, wait.<br />When it turns <span className="text-green-500 font-bold">GREEN</span>, click!</p>
                                 <Button
-                                    className="bg-primary hover:bg-primary-hover text-black font-black text-xl px-12 py-6 rounded-full uppercase tracking-widest shadow-[0_0_30px_rgba(255,255,0,0.3)] transition-all transform hover:scale-105"
+                                    className="bg-primary hover:bg-primary-hover text-black font-black text-lg md:text-xl px-10 md:px-12 py-4 md:py-6 rounded-full uppercase tracking-widest shadow-[0_0_30px_rgba(255,255,0,0.3)] transition-all transform hover:scale-105"
                                     onClick={(e) => { e.stopPropagation(); startReactionGame(); }}
                                 >
                                     Start
@@ -420,7 +420,7 @@ export const Arcade: React.FC = () => {
                                 initial={{ scale: 0.8 }} animate={{ scale: 1 }}
                                 className="text-center"
                             >
-                                <h2 className="text-6xl font-black font-montserrat uppercase text-black/50 tracking-widest">Wait...</h2>
+                                <h2 className="text-6xl font-black font-heading uppercase text-black/50 tracking-widest">Wait...</h2>
                             </motion.div>
                         )}
 
@@ -430,7 +430,7 @@ export const Arcade: React.FC = () => {
                                 initial={{ scale: 1.5 }} animate={{ scale: 1 }}
                                 className="text-center"
                             >
-                                <h2 className="text-8xl font-black font-montserrat uppercase text-white drop-shadow-xl">CLICK!</h2>
+                                <h2 className="text-8xl font-black font-heading uppercase text-white drop-shadow-xl">CLICK!</h2>
                             </motion.div>
                         )}
 
@@ -441,7 +441,7 @@ export const Arcade: React.FC = () => {
                                 className="text-center p-12 bg-black/80 backdrop-blur-xl rounded-[3rem] border border-white/10"
                             >
                                 <p className="text-gray-400 font-bold uppercase tracking-widest mb-2">Reaction Time</p>
-                                <h2 className="text-8xl font-black font-montserrat text-primary mb-6">{score} <span className="text-2xl text-gray-500">ms</span></h2>
+                                <h2 className="text-8xl font-black font-heading text-primary mb-6">{score} <span className="text-2xl text-gray-500">ms</span></h2>
 
                                 <div className="flex gap-4 justify-center">
                                     <Button
@@ -466,7 +466,7 @@ export const Arcade: React.FC = () => {
                                 initial={{ x: -20 }} animate={{ x: 0 }}
                                 className="text-center"
                             >
-                                <h2 className="text-4xl font-black font-montserrat uppercase text-red-500 mb-4">Too Soon!</h2>
+                                <h2 className="text-4xl font-black font-heading uppercase text-red-500 mb-4">Too Soon!</h2>
                                 <p className="text-gray-400 mb-8">Relax, wait for the green.</p>
                                 <Button
                                     className="bg-white/10 text-white px-8 py-3 rounded-full font-bold uppercase hover:bg-white/20"

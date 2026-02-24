@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { PublicNav } from '../components/PublicNav';
+import pickleballHero from '../assets/image copy.png';
 
 export const Pickleball: React.FC = () => {
 
@@ -50,28 +51,28 @@ export const Pickleball: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-white selection:bg-primary selection:text-black">
+        <div className="min-h-screen bg-white font-sans selection:bg-primary selection:text-black">
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center overflow-hidden">
+            <section className="relative h-[60vh] md:h-[80vh] min-h-[500px] md:min-h-[600px] flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 z-0">
                     <img
-                        src="https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070"
+                        src={pickleballHero}
                         alt="Pickleball Action"
                         className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/40" />
                 </div>
 
-                <div className="relative z-10 text-center max-w-5xl mx-auto px-6">
-                    <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold text-white font-outfit uppercase leading-tight mb-8">
-                        Join the <span className="text-primary">Pickleball Revolution</span> at<br />Rush Arenas
+                <div className="relative z-10 text-center max-w-5xl mx-auto px-4 md:px-6">
+                    <h1 className="text-2xl md:text-5xl font-extrabold text-white font-heading uppercase leading-[1.1] mb-8 md:mb-12">
+                        Join the <span className="text-primary italic">Pickleball Revolution</span> at<br className="hidden md:block" />Rush Arenas
                     </h1>
                     <Button
                         variant="primary"
                         size="lg"
-                        className="bg-primary text-black hover:bg-primary-hover text-lg px-12 py-5 uppercase tracking-wider font-outfit font-extrabold shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                        className="bg-primary text-black hover:bg-primary-hover text-base px-8 md:px-10 py-4 md:py-4.5 uppercase tracking-wider font-heading font-bold shadow-[0_0_20px_rgba(0,210,106,0.3)] hover:shadow-[0_0_30px_rgba(0,210,106,0.4)] rounded-xl"
                         onClick={() => document.getElementById('locations')?.scrollIntoView({ behavior: 'smooth' })}
                     >
                         Book A Court
@@ -82,7 +83,7 @@ export const Pickleball: React.FC = () => {
             {/* Locations Section */}
             <section id="locations" className="py-12 md:py-16 bg-white">
                 <div className="max-w-7xl mx-auto px-6">
-                    <h2 className="text-2xl md:text-4xl font-extrabold text-black font-outfit uppercase leading-tight mb-12 text-center">
+                    <h2 className="text-2xl md:text-4xl font-extrabold text-black font-heading uppercase leading-tight mb-12 text-center">
                         Our Locations
                     </h2>
 
@@ -118,7 +119,7 @@ export const Pickleball: React.FC = () => {
 
                                 <div className="p-8 flex flex-col flex-grow relative">
                                     <div className="mb-6">
-                                        <h3 className="text-2xl font-extrabold text-black uppercase font-outfit leading-tight mb-4 group-hover:text-primary transition-colors duration-300">
+                                        <h3 className="text-2xl font-extrabold text-black uppercase font-heading leading-tight mb-4 group-hover:text-primary transition-colors duration-300">
                                             {loc.name}
                                         </h3>
                                         <div className="w-12 h-1 bg-gray-100 rounded-full mb-6 group-hover:bg-primary group-hover:w-20 transition-all duration-300" />
@@ -148,11 +149,11 @@ export const Pickleball: React.FC = () => {
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
 
                 <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <h2 className="text-2xl md:text-4xl font-extrabold text-black font-outfit uppercase leading-tight mb-12">
+                    <h2 className="text-2xl md:text-4xl font-extrabold text-black font-heading uppercase leading-tight mb-12">
                         FAQs
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 md:gap-y-8">
                         {faqs.map((faq, idx) => (
                             <motion.div
                                 key={idx}
@@ -162,7 +163,7 @@ export const Pickleball: React.FC = () => {
                                 transition={{ delay: idx * 0.1 }}
                                 className="mb-6"
                             >
-                                <h3 className="text-xl font-extrabold text-black font-outfit mb-3">
+                                <h3 className="text-xl font-extrabold text-black font-heading mb-3">
                                     {faq.question}
                                 </h3>
                                 <p className="text-black/80 font-medium leading-relaxed">
@@ -182,7 +183,7 @@ export const Pickleball: React.FC = () => {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                     >
-                        <h2 className="text-2xl md:text-4xl font-extrabold text-black font-outfit uppercase mb-8">
+                        <h2 className="text-2xl md:text-4xl font-extrabold text-black font-heading uppercase mb-8">
                             Get in touch.
                         </h2>
                         <p className="text-gray-600 text-lg mb-12 max-w-4xl mx-auto">
@@ -233,7 +234,7 @@ export const Pickleball: React.FC = () => {
                                     <Button
                                         variant="primary"
                                         size="lg"
-                                        className="w-full py-4 uppercase font-extrabold tracking-widest bg-black text-white hover:bg-primary hover:text-black transition-all duration-300 font-outfit"
+                                        className="w-full py-4 uppercase font-extrabold tracking-widest bg-black text-white hover:bg-primary hover:text-black transition-all duration-300 font-heading"
                                         onClick={(e) => {
                                             e.preventDefault();
                                             alert('Form submitted successfully!');

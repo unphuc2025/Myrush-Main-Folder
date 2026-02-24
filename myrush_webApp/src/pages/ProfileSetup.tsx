@@ -149,18 +149,18 @@ export const ProfileSetup: React.FC = () => {
             <div className="w-full max-w-xl mx-auto">
 
                 {/* Header */}
-                <div className="text-center mb-8">
+                <div className="text-center mb-6 md:mb-8">
                     <div className="inline-block px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-3">
-                        <span className="text-xs font-black text-primary tracking-widest">MYRUSH SPORTS</span>
+                        <span className="text-[10px] md:text-xs font-black text-primary tracking-widest">MYRUSH SPORTS</span>
                     </div>
-                    <h1 className="text-3xl font-black text-gray-900 font-montserrat uppercase tracking-tight mb-2">
+                    <h1 className="text-2xl md:text-3xl font-black text-gray-900 font-heading uppercase tracking-tight mb-2">
                         Complete Your<span className="text-primary">.</span><br />Profile
                     </h1>
-                    <p className="text-gray-500 text-sm max-w-xs mx-auto">Tell us about yourself to get personalized recommendations.</p>
+                    <p className="text-gray-500 text-xs md:text-sm max-w-[280px] md:max-w-xs mx-auto">Tell us about yourself to get personalized recommendations.</p>
                 </div>
 
                 {/* Card */}
-                <div className="bg-white rounded-3xl shadow-lg shadow-gray-200/50 border border-gray-100 p-8 mb-6">
+                <div className="bg-white rounded-2xl md:rounded-3xl shadow-lg shadow-gray-200/50 border border-gray-100 p-6 md:p-8 mb-6">
 
                     {/* Phone */}
                     <div className="mb-6">
@@ -273,11 +273,11 @@ export const ProfileSetup: React.FC = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-4 mb-8">
+                <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-8">
                     <button
                         type="button"
                         onClick={() => navigate(-1)}
-                        className="flex-1 h-14 rounded-2xl bg-white border border-gray-200 text-gray-700 font-bold text-sm uppercase tracking-wider hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                        className="w-full md:flex-1 h-12 md:h-14 rounded-xl md:rounded-2xl bg-white border border-gray-200 text-gray-700 font-bold text-sm uppercase tracking-wider hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm order-2 md:order-1"
                     >
                         Back
                     </button>
@@ -285,7 +285,7 @@ export const ProfileSetup: React.FC = () => {
                         type="button"
                         onClick={handleContinue}
                         disabled={isSaving}
-                        className="flex-[2] h-14 rounded-2xl bg-black text-white font-black text-sm uppercase tracking-wider hover:bg-gray-900 transition-all disabled:opacity-70 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                        className="w-full md:flex-[2] h-12 md:h-14 rounded-xl md:rounded-2xl bg-black text-white font-black text-sm uppercase tracking-wider hover:bg-gray-900 transition-all disabled:opacity-70 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-0.5 order-1 md:order-2"
                     >
                         {isSaving ? (
                             <>

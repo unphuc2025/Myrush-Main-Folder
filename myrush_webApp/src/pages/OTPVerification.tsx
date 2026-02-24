@@ -131,7 +131,7 @@ export const OTPVerification: React.FC = () => {
                         <div className="inline-block px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
                             <span className="text-xl font-black text-primary tracking-widest">VERIFY</span>
                         </div>
-                        <h1 className="text-3xl md:text-4xl font-black text-white mb-2 font-montserrat">
+                        <h1 className="text-3xl md:text-4xl font-black text-white mb-2 font-heading">
                             Enter Code
                         </h1>
                         <p className="text-white/60 text-sm">

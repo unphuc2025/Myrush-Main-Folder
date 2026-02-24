@@ -57,7 +57,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                     ].filter((item): item is { label: string; path: string } => Boolean(item)).map((item) => (
                         <button
                             key={item.path}
-                            className={`relative text-sm font-bold uppercase tracking-wider transition-colors ${isActive(item.path) || (item.path === '/' && location.pathname === '/dashboard')
+                            className={`relative text-sm font-semibold font-heading uppercase tracking-wider transition-colors ${isActive(item.path) || (item.path === '/' && location.pathname === '/dashboard')
                                 ? 'text-primary'
                                 : 'text-black hover:text-primary'
                                 }`}

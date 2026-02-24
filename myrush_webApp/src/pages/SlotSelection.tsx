@@ -103,7 +103,7 @@ export const SlotSelection: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter relative text-gray-900">
+        <div className="min-h-screen bg-gray-50 font-sans relative text-gray-900">
             <header className="relative z-10 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto">
                 <button
                     onClick={() => navigate(-1)}
@@ -153,10 +153,10 @@ export const SlotSelection: React.FC = () => {
                                 <button
                                     key={day}
                                     className={`flex-shrink-0 w-14 h-14 rounded-2xl font-bold text-lg transition-all flex items-center justify-center ${active
-                                            ? 'bg-black text-white scale-110 shadow-lg'
-                                            : disabled
-                                                ? 'text-gray-300 cursor-not-allowed bg-transparent'
-                                                : 'bg-gray-50 hover:bg-gray-100 text-gray-600'
+                                        ? 'bg-black text-white scale-110 shadow-lg'
+                                        : disabled
+                                            ? 'text-gray-300 cursor-not-allowed bg-transparent'
+                                            : 'bg-gray-50 hover:bg-gray-100 text-gray-600'
                                         }`}
                                     onClick={() => !disabled && setSelectedDate(day)}
                                     disabled={disabled}
@@ -200,8 +200,8 @@ export const SlotSelection: React.FC = () => {
                                         key={slot.display_time}
                                         onClick={() => handleSlotClick(slot)}
                                         className={`relative p-4 rounded-xl border transition-all text-center group ${isSelected
-                                                ? 'bg-primary/10 border-primary text-primary shadow-md'
-                                                : 'bg-white border-gray-100 hover:bg-gray-50 text-gray-900 hover:border-gray-200'
+                                            ? 'bg-primary/10 border-primary text-primary shadow-md'
+                                            : 'bg-white border-gray-100 hover:bg-gray-50 text-gray-900 hover:border-gray-200'
                                             }`}
                                     >
                                         <div className="text-lg font-bold mb-1">{slot.display_time}</div>

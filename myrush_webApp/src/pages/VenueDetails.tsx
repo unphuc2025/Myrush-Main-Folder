@@ -182,7 +182,7 @@ export const VenueDetailsPage: React.FC = () => {
     const totalPrice = basePrice * numPlayers;
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter text-gray-900 pb-20">
+        <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
             <TopNav />
 
             <div className="max-w-[90%] 2xl:max-w-[1700px] mx-auto px-4 md:px-8 py-8 pt-10 md:pt-6">
@@ -197,14 +197,14 @@ export const VenueDetailsPage: React.FC = () => {
                     <span className="text-sm font-medium" style={{ fontFamily: '"Inter", sans-serif' }}>Back to Venues</span>
                 </button>
 
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-32">
+                <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 lg:gap-32">
 
                     {/* LEFT COLUMN - Venue Info */}
                     <div className="lg:col-span-3 space-y-8">
 
                         {/* Title Section (Moved Above Grid) */}
                         <div className="mb-6">
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-montserrat text-gray-900 mb-2 uppercase tracking-tight leading-none">
+                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-heading text-gray-900 mb-2 uppercase tracking-tight leading-none">
                                 {venue.court_name}
                             </h1>
                             <p className="text-gray-500 flex items-center gap-2 text-sm font-medium">
@@ -388,7 +388,7 @@ export const VenueDetailsPage: React.FC = () => {
                             <div className="p-8">
                                 <div className="flex justify-between items-start mb-10">
                                     <div>
-                                        <h2 className="text-2xl font-bold text-gray-900 font-inter mb-4">Reviews And Ratings</h2>
+                                        <h2 className="text-2xl font-bold text-gray-900 font-sans mb-4">Reviews And Ratings</h2>
                                         <div className="flex items-center gap-4">
                                             <span className="text-6xl font-black text-gray-900 leading-none">
                                                 {(venue.rating || ratings?.average_rating || 0).toFixed(0)}
@@ -456,22 +456,23 @@ export const VenueDetailsPage: React.FC = () => {
 
                     </div>
 
-                    <div className="lg:col-span-2 mt-8 lg:mt-0">
-                        <div className="static lg:sticky lg:top-24">
+                    {/* RIGHT COLUMN - Booking Widget (Sticky on Desktop, top-order on mobile via CSS) */}
+                    <div className="lg:col-span-2 order-first lg:order-last">
+                        <div className="sticky top-28 space-y-6 lg:top-24">
                             <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-400"></div>
 
                                 <div className="text-center mb-8 pt-2">
-                                    <h2 className="text-2xl font-bold text-gray-900 uppercase font-montserrat leading-none mb-1">
+                                    <h2 className="text-2xl font-bold text-gray-900 uppercase font-heading leading-none mb-1">
                                         Book Your Slot
                                     </h2>
-                                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest font-inter">Select date, time & confirm</p>
+                                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest font-sans">Select date, time & confirm</p>
                                 </div>
 
                                 {/* Game Type Selector */}
                                 {venue?.game_type && (
                                     <div className="mb-6">
-                                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest block mb-3 font-inter">Select Sport</span>
+                                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest block mb-3 font-sans">Select Sport</span>
                                         <div className="flex flex-wrap gap-2">
                                             {venue.game_type.split(',').map((sport, idx) => {
                                                 const s = sport.trim();
@@ -497,7 +498,7 @@ export const VenueDetailsPage: React.FC = () => {
                                 {/* Date Selector (Horizontal) */}
                                 <div className="mb-8">
                                     <div className="flex justify-between items-center mb-4">
-                                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-inter">Select Date</span>
+                                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-sans">Select Date</span>
                                         <div className="flex items-center gap-3">
                                             <button
                                                 onClick={() => {
@@ -511,7 +512,7 @@ export const VenueDetailsPage: React.FC = () => {
                                             >
                                                 <FaChevronLeft className="text-[10px]" />
                                             </button>
-                                            <span className="text-xs font-semibold text-gray-900 uppercase tracking-wide min-w-[120px] text-center font-inter">
+                                            <span className="text-xs font-semibold text-gray-900 uppercase tracking-wide min-w-[120px] text-center font-sans">
                                                 {scrollerBaseDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                                             </span>
                                             <button
@@ -554,10 +555,10 @@ export const VenueDetailsPage: React.FC = () => {
                                                         : 'bg-white border-gray-200 text-gray-600 hover:border-primary/30 hover:bg-primary/5'
                                                         }`}
                                                 >
-                                                    <span className={`text-[10px] font-medium uppercase mb-1 font-inter ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                                                    <span className={`text-[10px] font-medium uppercase mb-1 font-sans ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
                                                         {dayName}
                                                     </span>
-                                                    <span className={`text-lg font-semibold font-inter ${isSelected ? 'text-white' : 'text-gray-800'}`}>
+                                                    <span className={`text-lg font-semibold font-sans ${isSelected ? 'text-white' : 'text-gray-800'}`}>
                                                         {dayNumber}
                                                     </span>
                                                 </button>
@@ -568,7 +569,7 @@ export const VenueDetailsPage: React.FC = () => {
 
                                 {/* Slots */}
                                 <div className="mb-8">
-                                    <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4 font-inter">Available Slots</span>
+                                    <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4 font-sans">Available Slots</span>
                                     {loadingSlots ? (
                                         <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
                                     ) : availableSlots.length === 0 ? (
@@ -596,7 +597,7 @@ export const VenueDetailsPage: React.FC = () => {
                                                                 </svg>
                                                             </div>
                                                         )}
-                                                        <span className={`text-sm font-medium font-inter ${isSel ? 'text-white' : 'text-gray-900'}`}>
+                                                        <span className={`text-sm font-medium font-sans ${isSel ? 'text-white' : 'text-gray-900'}`}>
                                                             {slot.display_time}
                                                         </span>
                                                     </button>
@@ -609,15 +610,15 @@ export const VenueDetailsPage: React.FC = () => {
                                 {/* Inputs */}
                                 <div className="grid grid-cols-2 gap-4 mb-8">
                                     <div>
-                                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 font-inter">Players</label>
+                                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 font-sans">Players</label>
                                         <div className="flex items-center justify-between bg-white border border-gray-200 rounded-md px-3 h-9">
                                             <button onClick={() => setNumPlayers(Math.max(1, numPlayers - 1))} className="text-gray-400 hover:text-primary transition-colors text-lg font-semibold">-</button>
-                                            <span className="text-sm font-bold text-gray-900 font-inter">{numPlayers}</span>
+                                            <span className="text-sm font-bold text-gray-900 font-sans">{numPlayers}</span>
                                             <button onClick={() => setNumPlayers(numPlayers + 1)} className="text-gray-400 hover:text-primary transition-colors text-lg font-semibold">+</button>
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 font-inter">Team Name</label>
+                                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 font-sans">Team Name</label>
                                         <input
                                             type="text"
                                             placeholder="Optional"
@@ -630,7 +631,7 @@ export const VenueDetailsPage: React.FC = () => {
 
                                 {/* Booking Summary */}
                                 <div className="bg-white border border-gray-100 rounded-lg p-5 mb-6">
-                                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4 font-inter">Booking Summary</h3>
+                                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4 font-sans">Booking Summary</h3>
 
                                     {/* Selected Details */}
                                     <div className="space-y-3 mb-4">
@@ -669,7 +670,7 @@ export const VenueDetailsPage: React.FC = () => {
                                             <div className="space-y-1.5">
                                                 {selectedSlots.map((slot, idx) => (
                                                     <div key={idx} className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                                                        <span className="text-sm font-medium text-gray-700 font-inter">{slot.display_time}</span>
+                                                        <span className="text-sm font-medium text-gray-700 font-sans">{slot.display_time}</span>
                                                         <span className="text-sm font-semibold text-gray-900">₹{slot.price}</span>
                                                     </div>
                                                 ))}

@@ -175,10 +175,10 @@ export const EditProfile: React.FC = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-center mb-8"
+                    className="text-center mb-6 md:mb-8"
                 >
-                    <h1 className="text-3xl font-black text-gray-900 mb-2">Edit Profile</h1>
-                    <p className="text-gray-600">Personalize your player profile</p>
+                    <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2">Edit Profile</h1>
+                    <p className="text-gray-600 text-sm md:text-base">Personalize your player profile</p>
                 </motion.div>
 
                 <form onSubmit={handleSave} className="space-y-8">
@@ -187,13 +187,13 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8"
+                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                                 <FaUser className="text-primary" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900">Basic Information</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Basic Information</h2>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -300,13 +300,13 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8"
+                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                                 <FaVenusMars className="text-primary" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900">Gender</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Gender</h2>
                         </div>
 
                         <div className="flex flex-wrap gap-3">
@@ -319,13 +319,13 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8"
+                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                                 <FaHandPaper className="text-primary" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900">Handedness</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Handedness</h2>
                         </div>
 
                         <div className="flex flex-wrap gap-3">
@@ -338,13 +338,13 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
-                        className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8"
+                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                                 <FaTrophy className="text-primary" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900">Skill Level</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Skill Level</h2>
                         </div>
 
                         <div className="flex flex-wrap gap-3">
@@ -357,13 +357,13 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
-                        className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8"
+                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                                 <FaHeartbeat className="text-primary" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900">Favorite Sports</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Favorite Sports</h2>
                         </div>
 
                         <div className="space-y-4">
@@ -414,13 +414,13 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6 }}
-                        className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8"
+                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                                 <FaGamepad className="text-primary" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900">Playing Style</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Playing Style</h2>
                         </div>
 
                         <div className="flex flex-wrap gap-3">
