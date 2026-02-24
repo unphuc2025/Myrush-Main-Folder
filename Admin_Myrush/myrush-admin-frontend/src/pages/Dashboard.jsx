@@ -228,7 +228,7 @@ function Dashboard() {
                   <Users className="h-6 w-6" />
                 </div>
               </div>
-              <div className="mt-4 flex items-center text-sm text-slate-400">
+              <div className="mt-4 flex items-center text-sm font-medium text-slate-600">
                 <span>Total user base</span>
               </div>
             </div>
@@ -244,7 +244,7 @@ function Dashboard() {
               </div>
               <div className="h-80 w-full overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData}>
+                  <AreaChart data={revenueData} style={{ outline: 'none' }}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
@@ -266,7 +266,8 @@ function Dashboard() {
                       tickFormatter={(value) => `₹${value}`}
                     />
                     <Tooltip
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                      cursor={{ stroke: '#10b981', strokeWidth: 1, strokeDasharray: '3 3' }}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', color: '#0f172a', fontWeight: 'bold' }}
                       formatter={(value) => [`₹${value}`, 'Revenue']}
                     />
                     <Area
@@ -276,6 +277,7 @@ function Dashboard() {
                       strokeWidth={3}
                       fillOpacity={1}
                       fill="url(#colorRevenue)"
+                      activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -334,24 +336,24 @@ function Dashboard() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr>
-                    <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100">Booking ID</th>
-                    <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100">Date</th>
-                    <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100">Amount</th>
-                    <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100">Status</th>
+                    <th className="py-3 px-4 text-xs font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">Booking ID</th>
+                    <th className="py-3 px-4 text-xs font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">Date</th>
+                    <th className="py-3 px-4 text-xs font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">Amount</th>
+                    <th className="py-3 px-4 text-xs font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100">
                   {recentBookings.map((booking) => (
                     <tr key={booking.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-4 text-sm font-medium text-slate-900">#{booking.id}</td>
-                      <td className="py-3 px-4 text-sm text-slate-600">
+                      <td className="py-4 px-4 text-sm font-semibold text-slate-900">#{booking.id}</td>
+                      <td className="py-4 px-4 text-sm font-medium text-slate-700">
                         {new Date(booking.booking_date).toLocaleDateString()}
                       </td>
-                      <td className="py-3 px-4 text-sm font-bold text-slate-900">
+                      <td className="py-4 px-4 text-sm font-bold text-slate-900">
                         {formatCurrency(parseFloat(String(booking.total_amount || booking.price || '0').replace(/[^0-9.]/g, '')) || 0)}
                       </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                      <td className="py-4 px-4">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold capitalize
                                             ${booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
                             booking.status === 'cancelled' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
                           {booking.status}
@@ -361,7 +363,7 @@ function Dashboard() {
                   ))}
                   {recentBookings.length === 0 && (
                     <tr>
-                      <td colSpan="4" className="py-8 text-center text-slate-500 text-sm">
+                      <td colSpan="4" className="py-8 text-center text-slate-500 text-sm font-medium">
                         No recent bookings found.
                       </td>
                     </tr>

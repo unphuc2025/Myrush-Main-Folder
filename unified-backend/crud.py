@@ -10,7 +10,7 @@ import random
 import json
 from sqlalchemy import and_
 
-from typing import Optional
+from typing import List, Optional, Any, Dict
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
