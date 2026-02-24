@@ -74,7 +74,7 @@ export const OpenPlay: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter text-black relative">
+        <div className="min-h-screen bg-gray-50 font-sans text-black relative">
             <TopNav />
             {/* Global Atmosphere */}
             <div className="fixed inset-0 z-0 mesh-bg opacity-30 pointer-events-none"></div>
@@ -104,7 +104,7 @@ export const OpenPlay: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="text-6xl md:text-8xl font-black font-montserrat uppercase tracking-tighter text-white mb-6 leading-[0.9] drop-shadow-lg"
+                        className="text-4xl md:text-8xl font-black font-heading uppercase tracking-tighter text-white mb-6 leading-tight md:leading-[0.9] drop-shadow-lg"
                     >
                         Find Your <br /> <span className="text-primary italic">Squad.</span>
                     </motion.h1>
@@ -135,9 +135,9 @@ export const OpenPlay: React.FC = () => {
             </section>
 
             <div className="py-20 px-6 max-w-7xl mx-auto relative z-10">
-                <div className="flex items-end justify-between mb-12">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-4">
                     <div>
-                        <h2 className="text-3xl font-black font-montserrat uppercase text-black">Live <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-600">Games</span></h2>
+                        <h2 className="text-2xl md:text-3xl font-black font-heading uppercase text-black">Live <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-600">Games</span></h2>
                     </div>
                 </div>
 
@@ -160,7 +160,7 @@ export const OpenPlay: React.FC = () => {
                                     </div>
                                     <div className="absolute bottom-4 left-4">
                                         <span className="text-[10px] font-black uppercase tracking-widest bg-primary text-black px-2 py-0.5 rounded mb-1 inline-block shadow-glow">{game.level}</span>
-                                        <h3 className="text-xl font-bold font-montserrat uppercase text-white drop-shadow-md">{game.title}</h3>
+                                        <h3 className="text-xl font-bold font-heading uppercase text-white drop-shadow-md">{game.title}</h3>
                                     </div>
                                 </div>
                                 <div className="p-6">
@@ -211,8 +211,8 @@ export const OpenPlay: React.FC = () => {
                                 <FaTimes size={24} />
                             </button>
 
-                            <h2 className="text-3xl font-black font-montserrat uppercase mb-2 bg-clip-text text-transparent bg-gradient-to-r from-black to-gray-600">Host a Game</h2>
-                            <p className="text-gray-500 mb-8 font-medium">Create a lobby and invite others to join.</p>
+                            <h2 className="text-2xl md:text-3xl font-black font-heading uppercase mb-2 bg-clip-text text-transparent bg-gradient-to-r from-black to-gray-600">Host a Game</h2>
+                            <p className="text-gray-500 mb-6 md:mb-8 text-sm md:text-base font-medium">Create a lobby and invite others to join.</p>
 
                             <form onSubmit={handleCreateGame} className="space-y-6">
                                 <div>

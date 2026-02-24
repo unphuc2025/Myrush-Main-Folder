@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, type Variants, useScroll, useTransform } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { FaArrowRight, FaCalendarCheck } from 'react-icons/fa';
-// import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
-// import { Card } from '../components/ui/Card';
+import { ContactSection } from '../components/ContactSection';
 
 const fadeInUp: Variants = {
     hidden: { opacity: 0, y: 30 },
@@ -76,13 +75,13 @@ export const LandingPage: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter overflow-x-hidden selection:bg-primary selection:text-black">
+        <div className="min-h-screen bg-gray-50 font-sans overflow-x-hidden selection:bg-primary selection:text-black">
             {/* Sticky Navigation */}
             {/* Sticky Navigation */}
             <PublicNav />
 
             {/* HERO SECTION */}
-            <section className="relative h-[80vh] flex items-center justify-center overflow-hidden bg-black">
+            <section className="relative h-[70vh] md:h-[80vh] flex items-center justify-center overflow-hidden bg-black">
                 <motion.div style={{ y: heroY }} className="absolute inset-0 z-0">
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
                     <img
@@ -103,7 +102,7 @@ export const LandingPage: React.FC = () => {
                     </motion.div>
 
                     <motion.h1
-                        className="text-2xl md:text-4xl lg:text-6xl font-extrabold font-outfit tracking-tighter text-white mb-8 uppercase leading-none"
+                        className="text-2xl md:text-3xl lg:text-6xl font-extrabold font-heading tracking-tighter text-white mb-8 md:mb-12 uppercase leading-[1.1]"
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.2 }}
@@ -116,14 +115,14 @@ export const LandingPage: React.FC = () => {
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.4 }}
-                        className="flex flex-col md:flex-row items-center justify-center gap-6"
+                        className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6"
                     >
                         <Button
                             variant="primary"
                             size="lg"
                             onClick={() => navigate('/venues')}
                             icon={<FaCalendarCheck />}
-                            className="text-lg px-8 py-5 min-w-[220px] uppercase tracking-wider font-montserrat font-black rounded-full transition-all duration-300 shadow-glow hover:shadow-glow-strong"
+                            className="w-full sm:w-auto text-sm md:text-base px-8 py-3.5 md:py-4 min-w-[180px] md:min-w-[200px] uppercase tracking-wider font-heading font-bold rounded-full transition-all duration-300 shadow-glow hover:shadow-glow-strong"
                         >
                             Book a Court
                         </Button>
@@ -132,7 +131,7 @@ export const LandingPage: React.FC = () => {
                             size="lg"
                             onClick={() => navigate('/arena')}
                             icon={<FaArrowRight className="group-hover:translate-x-1 transition-transform" />}
-                            className="border-white text-white hover:border-primary text-lg px-8 py-5 min-w-[220px] uppercase tracking-wider font-montserrat font-black rounded-xl transition-all duration-300 group shadow-glow hover:shadow-glow-strong"
+                            className="w-full sm:w-auto border-white text-white hover:border-primary text-sm md:text-base px-8 py-3.5 md:py-4 min-w-[180px] md:min-w-[200px] uppercase tracking-wider font-heading font-bold rounded-xl transition-all duration-300 group shadow-glow hover:shadow-glow-strong"
                         >
                             Explore Venues
                         </Button>
@@ -149,7 +148,7 @@ export const LandingPage: React.FC = () => {
                 >
                     {/* Duplicate set for seamless loop */}
                     {[...Array(20)].map((_, i) => (
-                        <span key={i} className="text-black font-bold text-3xl mx-8 uppercase font-outfit italic tracking-tighter flex items-center gap-4">
+                        <span key={i} className="text-black font-bold text-3xl mx-8 uppercase font-heading italic tracking-tighter flex items-center gap-4">
                             RUSH ARENA • ACADEMY • TOURNAMENTS • CORPORATE •
                         </span>
                     ))}
@@ -160,7 +159,7 @@ export const LandingPage: React.FC = () => {
             <section className="py-12 md:py-16 bg-white">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="mb-16 text-center">
-                        <h2 className="text-2xl md:text-4xl font-extrabold font-outfit text-white uppercase leading-tight">
+                        <h2 className="text-2xl md:text-4xl font-extrabold font-heading text-white uppercase leading-tight">
                             Our <span className="text-primary italic">Services</span>
                         </h2>
                         <p className="text-gray-600 text-lg max-w-2xl mx-auto">
@@ -212,7 +211,7 @@ export const LandingPage: React.FC = () => {
                                     </div>
 
                                     <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                                        <h3 className="text-xl md:text-2xl font-extrabold text-white font-outfit uppercase italic mb-3 leading-tight">
+                                        <h3 className="text-xl md:text-2xl font-extrabold text-white font-heading uppercase italic mb-3 leading-tight">
                                             {service.title}
                                         </h3>
                                         <p className="text-white text-base font-medium leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
@@ -227,7 +226,7 @@ export const LandingPage: React.FC = () => {
                     <div className="text-center mt-12">
                         <button
                             onClick={() => navigate('/venues')}
-                            className="bg-primary text-black hover:bg-primary-hover text-lg px-8 py-4 uppercase tracking-wider font-outfit font-extrabold shadow-glow hover:shadow-glow-strong"
+                            className="bg-primary text-black hover:bg-primary-hover text-lg px-8 py-4 uppercase tracking-wider font-heading font-extrabold shadow-glow hover:shadow-glow-strong"
                         >
                             View All Facilities
                             <span className="transition-transform group-hover:translate-x-1">→</span>
@@ -245,7 +244,7 @@ export const LandingPage: React.FC = () => {
                         transition={{ duration: 0.6 }}
                         className="flex flex-col items-center"
                     >
-                        <h3 className="text-2xl md:text-4xl font-black text-black font-montserrat uppercase tracking-tight mb-4">
+                        <h3 className="text-2xl md:text-4xl font-black text-black font-heading uppercase tracking-tight mb-4">
                             Trusted by <span className="text-primary">Industry Leaders</span>
                         </h3>
                         <p className="text-gray-600 text-base md:text-lg max-w-2xl mx-auto">
@@ -295,7 +294,7 @@ export const LandingPage: React.FC = () => {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[150px] pointer-events-none" />
                 <div className="relative z-10 max-w-6xl mx-auto flex flex-col items-center">
                     <motion.h2
-                        className="text-4xl md:text-9xl font-black text-white font-montserrat italic mb-8 leading-none"
+                        className="text-5xl sm:text-7xl md:text-9xl font-black text-white font-heading italic mb-8 leading-none"
                         initial={{ opacity: 0, scale: 0.8 }}
                         whileInView={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.8 }}
@@ -316,8 +315,10 @@ export const LandingPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* FOOTER */}
+            {/* CONTACT SECTION */}
+            <ContactSection />
 
+            {/* FOOTER */}
         </div>
     );
 };

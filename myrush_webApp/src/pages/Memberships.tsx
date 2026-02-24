@@ -55,7 +55,7 @@ export const Memberships: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter">
+        <div className="min-h-screen bg-gray-50 font-sans">
             <TopNav />
 
             {/* Hero */}
@@ -79,7 +79,7 @@ export const Memberships: React.FC = () => {
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-5xl md:text-7xl font-black font-montserrat uppercase text-white mb-6"
+                        className="text-5xl md:text-7xl font-black font-heading uppercase text-white mb-6"
                     >
                         Rush <span className="text-primary italic">Pro</span>
                     </motion.h1>
@@ -112,7 +112,7 @@ export const Memberships: React.FC = () => {
                                 {plan.name === 'Pro Athlete' && <FaBolt />}
                             </div>
 
-                            <h3 className="text-2xl font-black uppercase font-montserrat mb-2">{plan.name}</h3>
+                            <h3 className="text-2xl font-black uppercase font-heading mb-2">{plan.name}</h3>
                             <div className="flex items-baseline mb-8">
                                 <span className={`text-4xl font-black ${plan.name === 'Pro Athlete' ? 'text-white' : 'text-black'}`}>{plan.price}</span>
                                 <span className="text-gray-500 font-bold ml-2">{plan.period}</span>

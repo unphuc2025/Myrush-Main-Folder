@@ -257,7 +257,7 @@ export const Chatbot: React.FC = () => {
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="fixed bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[80vh] bg-white rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden border border-gray-100 font-inter"
+                        className="fixed bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[80vh] bg-white rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden border border-gray-100 font-sans"
                     >
                         {/* Header */}
                         <div className="bg-primary p-4 flex justify-between items-center text-white shadow-md">
@@ -359,10 +359,18 @@ export const Chatbot: React.FC = () => {
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input */}
                         <div className="p-4 bg-white border-t border-gray-100">
-                            <form onSubmit={handleSendMessage} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-4 py-1 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
-                                <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Ask anything about venues..." className="flex-1 bg-transparent border-none outline-none text-sm py-3" />
+                            <form
+                                onSubmit={handleSendMessage}
+                                className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-4 py-1 focus-within:border-primary transition-all shadow-sm focus-within:shadow-md"
+                            >
+                                <input
+                                    type="text"
+                                    value={inputText}
+                                    onChange={(e) => setInputText(e.target.value)}
+                                    placeholder="Ask anything about venues..."
+                                    className="flex-1 bg-transparent border-none focus:ring-0 !outline-none text-sm py-3 placeholder:text-gray-400"
+                                />
                                 <button type="submit" disabled={!inputText.trim() || isLoading} className={`p-2.5 rounded-full transition-all ${inputText.trim() ? 'bg-primary text-white shadow-md hover:scale-105 active:scale-95' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}><FaPaperPlane size={14} /></button>
                             </form>
                             <div className="text-center mt-2 flex items-center justify-center gap-1.5">

@@ -39,18 +39,18 @@ export const PublicNav: React.FC = () => {
             {/* Nav Content — sits on top of background layer */}
             <div
                 style={{ position: 'relative', zIndex: 1 }}
-                className="w-full px-4 md:px-6 h-14 md:h-16 flex items-center justify-between"
+                className="w-full px-4 md:px-12 h-16 md:h-20 flex items-center justify-between"
             >
                 {/* Logo */}
                 <div
-                    className="flex items-center gap-2 cursor-pointer"
+                    className="flex items-center gap-2 cursor-pointer h-full"
                     onClick={() => {
                         navigate('/');
                         setIsMobileMenuOpen(false);
                         window.scrollTo(0, 0);
                     }}
                 >
-                    <img src="/Rush-logo.webp" alt="Rush" className="h-16 md:h-28 w-auto" />
+                    <img src="/Rush-logo.webp" alt="Rush" className="h-[50px] md:h-28 w-auto object-contain" />
                 </div>
 
                 {/* Desktop Nav Items */}
@@ -61,7 +61,7 @@ export const PublicNav: React.FC = () => {
                             <button
                                 key={item.label}
                                 onClick={() => navigate(item.path)}
-                                className={`relative text-sm font-bold uppercase tracking-wider transition-all ${isActive ? 'text-primary' : 'text-black hover:text-primary hover:scale-105'
+                                className={`relative text-sm font-semibold font-heading uppercase tracking-wider transition-all ${isActive ? 'text-primary' : 'text-black hover:text-primary hover:scale-105'
                                     }`}
                             >
                                 {item.label}
@@ -102,7 +102,7 @@ export const PublicNav: React.FC = () => {
 
                     {/* Mobile Toggle */}
                     <button
-                        className="md:hidden p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10 text-black hover:bg-black/5"
+                        className="md:hidden p-2 rounded-xl transition-all flex items-center justify-center w-10 h-10 text-black hover:bg-black/5 active:scale-90"
                         onClick={() => setIsMobileMenuOpen(prev => !prev)}
                     >
                         {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
@@ -131,7 +131,7 @@ export const PublicNav: React.FC = () => {
                                     navigate(item.path);
                                     setIsMobileMenuOpen(false);
                                 }}
-                                className={`text-2xl font-bold uppercase tracking-widest ${location.pathname === item.path ? 'text-primary' : 'text-white'
+                                className={`text-2xl font-semibold font-heading uppercase tracking-widest ${location.pathname === item.path ? 'text-primary' : 'text-white'
                                     }`}
                             >
                                 {item.label}

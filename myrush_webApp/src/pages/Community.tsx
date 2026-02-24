@@ -53,36 +53,36 @@ export const Community: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter text-gray-900">
+        <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
             <TopNav />
 
             {/* Hero Section */}
-            <div className="pt-28 pb-10 px-6 bg-black text-white rounded-b-[3rem] shadow-2xl relative overflow-hidden">
+            <div className="pt-24 md:pt-28 pb-8 md:pb-10 px-4 md:px-6 bg-black text-white rounded-b-3xl md:rounded-b-[3rem] shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[80px] pointer-events-none" />
                 <div className="max-w-4xl mx-auto text-center relative z-10">
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                        <h1 className="text-4xl md:text-6xl font-black font-montserrat uppercase mb-2">
+                        <h1 className="text-3xl md:text-6xl font-black font-heading uppercase mb-2">
                             Community <span className="text-primary italic">Hub</span>
                         </h1>
-                        <p className="text-gray-400 text-lg mb-6">Connect, Compete, and Climb the Ranks.</p>
+                        <p className="text-gray-400 text-base md:text-lg mb-6">Connect, Compete, and Climb the Ranks.</p>
 
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => navigate('/arcade')}
-                            className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-full font-black uppercase tracking-widest flex items-center gap-2 mx-auto shadow-lg shadow-purple-600/30 transition-all border border-purple-400/50"
+                            className="bg-purple-600 hover:bg-purple-500 text-white px-6 md:px-8 py-2.5 md:py-3 rounded-full font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-2 mx-auto shadow-lg shadow-purple-600/30 transition-all border border-purple-400/50"
                         >
-                            <FaGamepad className="text-xl" />
+                            <FaGamepad className="text-lg" />
                             Visit Rush Arcade
                         </motion.button>
                     </motion.div>
 
-                    <div className="mt-8 flex justify-center gap-4">
+                    <div className="mt-8 flex flex-wrap justify-center gap-2 md:gap-4 px-2">
                         {['leaderboard', 'feed', 'squads'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
-                                className={`px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs transition-all ${activeTab === tab
+                                className={`px-4 md:px-6 py-2 md:py-3 rounded-full font-bold uppercase tracking-wider text-[10px] md:text-xs transition-all ${activeTab === tab
                                     ? 'bg-primary text-black scale-105 shadow-glow'
                                     : 'bg-white/10 text-gray-400 hover:bg-white/20'
                                     }`}
@@ -177,9 +177,9 @@ export const Community: React.FC = () => {
                                 <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center text-gray-300 text-4xl mx-auto mb-6">
                                     <FaUserFriends />
                                 </div>
-                                <h3 className="text-2xl font-black font-montserrat uppercase mb-2">No Squad Found</h3>
-                                <p className="text-gray-500 mb-8 max-w-sm mx-auto">You haven't joined a squad yet. Create one or join an existing team to compete in leagues.</p>
-                                <div className="flex justify-center gap-4">
+                                <h3 className="text-2xl font-black font-heading uppercase mb-2">No Squad Found</h3>
+                                <p className="text-gray-500 mb-8 max-w-sm mx-auto text-sm md:text-base px-4">You haven't joined a squad yet. Create one or join an existing team to compete in leagues.</p>
+                                <div className="flex flex-col sm:flex-row justify-center gap-4 px-4">
                                     <Button
                                         onClick={() => setShowCreateSquadModal(true)}
                                         className="bg-primary hover:bg-primary/90 text-black px-8 py-3 rounded-xl font-bold border-2 border-primary shadow-lg flex items-center gap-2"
@@ -219,7 +219,7 @@ export const Community: React.FC = () => {
                             <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary text-2xl mx-auto mb-4">
                                 <FaUserFriends />
                             </div>
-                            <h2 className="text-2xl font-black font-montserrat uppercase">Create New Squad</h2>
+                            <h2 className="text-2xl font-black font-heading uppercase">Create New Squad</h2>
                         </div>
 
                         <div className="space-y-4 mb-8">

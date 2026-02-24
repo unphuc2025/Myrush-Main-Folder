@@ -110,13 +110,13 @@ export const Arena: React.FC = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-white font-inter selection:bg-primary selection:text-black">
+        <div className="min-h-screen bg-white font-sans selection:bg-primary selection:text-black">
             {/* Sticky Navigation */}
             {/* Sticky Navigation */}
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-[80vh] min-h-[600px] flex items-center justify-start overflow-hidden bg-black px-6 md:px-12 lg:px-32">
+            <section className="relative h-[60vh] md:h-[80vh] min-h-[500px] md:min-h-[600px] flex items-center justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
                     <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-10" />
@@ -139,7 +139,7 @@ export const Arena: React.FC = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5, duration: 0.8 }}
-                        className="inline-flex items-center gap-3 mb-8 px-5 py-2.5 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl"
+                        className="inline-flex items-center gap-3 mb-6 md:mb-8 px-5 py-2.5 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl"
                     >
                         <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                         <span className="text-caption text-primary uppercase tracking-[0.3em]">
@@ -148,24 +148,24 @@ export const Arena: React.FC = () => {
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold text-white font-outfit uppercase leading-tight mb-8">
+                    <h1 className="text-2xl md:text-3xl lg:text-5xl font-extrabold text-white font-heading uppercase leading-[1.1] mb-8 md:mb-12">
                         play your <br />
                         <span className="text-primary italic">favourite sport</span> <br />
                         at a rush arena near you.
                     </h1>
 
                     {/* CTA Section */}
-                    <div className="flex flex-col sm:flex-row items-start justify-start gap-6 pt-8">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-4 md:gap-6">
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-lg px-8 py-5 min-w-[220px] uppercase tracking-wider font-outfit font-extrabold shadow-[0_0_20px_rgba(0,210,106,0.5)] hover:shadow-[0_0_30px_rgba(0,210,106,0.6)]"
+                            className="bg-primary text-black hover:bg-primary-hover text-sm md:text-base px-8 py-3.5 md:py-4 min-w-[180px] md:min-w-[200px] uppercase tracking-wider font-heading font-bold shadow-glow hover:shadow-glow-strong rounded-xl"
                             onClick={() => navigate('/venues')}
                         >
                             Explore Venues
                         </Button>
                         <button
-                            className="border-white text-white hover:border-primary text-base px-6 py-4 uppercase tracking-wider font-montserrat font-black rounded-xl transition-all duration-300 group shadow-glow hover:shadow-glow-strong flex items-center justify-center gap-3"
+                            className="border-white text-white hover:border-primary text-sm md:text-base px-6 py-3 md:py-4 uppercase tracking-wider font-heading font-black rounded-xl transition-all duration-300 group shadow-glow hover:shadow-glow-strong flex items-center justify-center gap-3"
                             onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             View Facilities
@@ -176,7 +176,7 @@ export const Arena: React.FC = () => {
 
                 {/* Vertical Indicator */}
                 <div className="absolute bottom-12 right-12 hidden lg:flex flex-col items-center gap-6 z-20">
-                    <span className="text-[10px] font-extrabold font-outfit text-white/20 rotate-90 uppercase tracking-[0.5em] mb-12">Scroll</span>
+                    <span className="text-[10px] font-extrabold font-heading text-white/20 rotate-90 uppercase tracking-[0.5em] mb-12">Scroll</span>
                     <div className="w-[1px] h-20 bg-gradient-to-b from-primary to-transparent" />
                 </div>
             </section>
@@ -184,11 +184,11 @@ export const Arena: React.FC = () => {
             {/* Features Section */}
             <section id="features" className="py-12 md:py-16 bg-white w-full">
                 <div className="w-full px-6">
-                    <div className="text-center mb-12">
-                        <h2 className="text-xl md:text-4xl font-extrabold font-outfit text-black uppercase leading-tight mb-6">
+                    <div className="text-center mb-8 md:mb-12">
+                        <h2 className="text-xl md:text-4xl font-extrabold font-heading text-black uppercase leading-tight mb-4 md:mb-6">
                             Elite <span className="text-primary italic">Features</span>
                         </h2>
-                        <p className="text-body-lg text-gray-400 font-light uppercase tracking-[0.2em]">
+                        <p className="text-sm md:text-lg text-gray-400 font-light uppercase tracking-[0.2em] px-4">
                             Everything you need for the perfect game.
                         </p>
                     </div>
@@ -224,7 +224,7 @@ export const Arena: React.FC = () => {
                 <div className="w-full max-w-7xl mx-auto px-6">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-2xl md:text-5xl font-black text-black font-montserrat uppercase leading-tight mb-6">
+                            <h2 className="text-2xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-6">
                                 Our <span className="text-primary italic">Venues</span>
                             </h2>
                             <p className="text-body-lg text-gray-400 font-light uppercase tracking-[0.2em]">
@@ -316,7 +316,7 @@ export const Arena: React.FC = () => {
                 <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-2xl md:text-5xl font-black text-white font-montserrat uppercase leading-tight mb-6">
+                            <h2 className="text-2xl md:text-5xl font-black text-white font-heading uppercase leading-tight mb-6">
                                 Complete <span className="text-primary italic">Amenities</span>
                             </h2>
                             <p className="text-body-lg text-white/40 font-light uppercase tracking-[0.2em]">
@@ -354,40 +354,104 @@ export const Arena: React.FC = () => {
                 </div>
             </section>
 
-            {/* CTA Section */}
-            <section className="py-12 md:py-16 bg-white w-full">
-                <div className="w-full max-w-7xl mx-auto px-6 text-center">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        className="max-w-4xl mx-auto"
-                    >
-                        <h2 className="text-3xl md:text-6xl font-black text-black font-montserrat uppercase leading-tight mb-10">
-                            Ready to <span className="text-primary italic">Play?</span>
-                        </h2>
-                        <p className="text-body-lg text-gray-400 font-light mb-12 max-w-2xl mx-auto">
-                            Book your court now and experience professional-grade facilities at your convenience.
-                        </p>
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                            <Button
-                                variant="primary"
-                                size="lg"
-                                onClick={() => navigate('/venues')}
-                                className="min-w-[200px] h-16 text-lg font-bold uppercase tracking-widest bg-black text-white hover:bg-gray-800 border-none"
+            {/* Contact CTA Section */}
+            <section id="contact-section" className="relative bg-black overflow-hidden py-24 md:py-32 border-t border-white/10">
+                {/* Background Glows */}
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
+                    <div className="absolute top-1/4 -left-1/4 w-[150%] h-[150%] bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent rounded-full blur-[120px]" />
+                </div>
+
+                <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
+                    <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-20">
+                        {/* Left Column: Text */}
+                        <div className="w-full lg:w-5/12 relative z-20">
+                            <motion.div
+                                initial={{ opacity: 0, x: -30 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true }}
                             >
-                                Book Now
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="lg"
-                                onClick={() => navigate('/academy')}
-                                className="min-w-[200px] h-16 text-lg font-bold uppercase tracking-widest border-2 border-black text-black hover:bg-black hover:text-white"
-                            >
-                                Join Academy
-                            </Button>
+                                <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase">
+                                    Reach Us
+                                </div>
+                                <h2 className="text-6xl md:text-7xl lg:text-8xl font-black font-heading leading-none mb-10 tracking-tighter text-white uppercase italic">
+                                    Get in <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">touch.</span>
+                                </h2>
+                                <p className="text-lg text-white/60 font-medium leading-relaxed max-w-lg">
+                                    Get in touch with us at Rush Arena to experience the ultimate sports thrill!
+                                    Whether you want to book a slot, inquire about private events, or have any
+                                    questions, our friendly team is here to assist you.
+                                </p>
+                            </motion.div>
                         </div>
-                    </motion.div>
+
+                        {/* Right Column: Form */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="w-full lg:w-6/12 relative z-20"
+                        >
+                            <form className="space-y-6" onSubmit={(e) => {
+                                e.preventDefault();
+                                alert('Thank you for reaching out! We will get back to you soon.');
+                            }}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">First Name</label>
+                                        <input
+                                            type="text"
+                                            placeholder="First Name (required)"
+                                            required
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Last Name</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Last Name (required)"
+                                            required
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Email Address</label>
+                                    <input
+                                        type="email"
+                                        placeholder="example@email.com"
+                                        required
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Message</label>
+                                    <textarea
+                                        required
+                                        rows={1}
+                                        placeholder="Your message (required)"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm resize-none overflow-hidden"
+                                        onInput={(e) => {
+                                            const target = e.target as HTMLTextAreaElement;
+                                            target.style.height = 'auto';
+                                            target.style.height = target.scrollHeight + 'px';
+                                        }}
+                                    />
+                                </div>
+
+                                <div className="pt-8">
+                                    <button
+                                        type="submit"
+                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-full uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95 text-lg"
+                                    >
+                                        Send Message →
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
                 </div>
             </section>
         </div>

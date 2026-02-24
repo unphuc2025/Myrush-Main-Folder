@@ -142,7 +142,7 @@ const VenueHero: React.FC<{
 
         <div className="relative z-10 max-w-7xl mx-auto text-center">
             <motion.h1
-                className="text-4xl md:text-6xl font-black text-white font-montserrat uppercase tracking-tight mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                className="text-4xl md:text-6xl font-black text-white font-heading uppercase tracking-tight mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
@@ -161,8 +161,8 @@ const VenueHero: React.FC<{
                     <span className="text-gray-400"><IconSearch /></span>
                     <input
                         type="text"
-                        placeholder="Search venues, sports..."
-                        className="bg-transparent border-0 ring-0 outline-none focus:ring-0 focus:outline-none text-gray-900 placeholder-gray-400 w-full font-medium"
+                        placeholder="Search venues..."
+                        className="bg-transparent border-0 ring-0 outline-none focus:ring-0 focus:outline-none text-gray-900 placeholder-gray-400 w-full font-medium text-sm md:text-base"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -176,7 +176,7 @@ const VenueHero: React.FC<{
                     >
                         {cities.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
                     </select>
-                    <span className="flex-1 text-center font-bold text-gray-900 uppercase tracking-wide font-montserrat select-none">
+                    <span className="flex-1 text-center font-bold text-gray-900 uppercase tracking-wide font-heading select-none">
                         {selectedCity}
                     </span>
                     <div className="pointer-events-none text-gray-400 group-hover:text-primary transition-colors">
@@ -203,7 +203,7 @@ const FilterSidebar: React.FC<{
 }> = ({ selectedSport, setSelectedSport, sports, selectedBranch, setSelectedBranch, branches }) => (
     <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100 sticky top-24">
         <div className="flex justify-between items-center mb-8">
-            <h3 className="font-bold text-lg font-montserrat uppercase text-gray-900 tracking-wide">Filters</h3>
+            <h3 className="font-bold text-lg font-heading uppercase text-gray-900 tracking-wide">Filters</h3>
             <button
                 className="text-xs font-bold text-gray-400 hover:text-primary transition-colors tracking-widest uppercase"
                 onClick={() => {
@@ -506,7 +506,7 @@ export const Venues: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50/50 font-inter text-gray-900 relative">
+        <div className="min-h-screen bg-gray-50/50 font-sans text-gray-900 relative">
             {/* Mesh Background */}
             <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px] animate-pulse"></div>
@@ -524,17 +524,19 @@ export const Venues: React.FC = () => {
                 cities={cities}
             />
 
-            <div className="max-w-7xl mx-auto px-6 pb-20 flex flex-col lg:flex-row gap-12 relative z-10">
-                {/* Sidebar */}
+            <div className="w-full max-w-7xl mx-auto px-4 md:px-6 pb-20 flex flex-col lg:flex-row gap-8 md:gap-12 relative z-10">
+                {/* Sidebar - Horizontal on Mobile, Sidebar on Desktop */}
                 <aside className="w-full lg:w-72 shrink-0">
-                    <FilterSidebar
-                        selectedSport={selectedSport}
-                        setSelectedSport={setSelectedSport}
-                        sports={sports}
-                        selectedBranch={selectedBranch}
-                        setSelectedBranch={setSelectedBranch}
-                        branches={branches}
-                    />
+                    <div className="lg:block">
+                        <FilterSidebar
+                            selectedSport={selectedSport}
+                            setSelectedSport={setSelectedSport}
+                            sports={sports}
+                            selectedBranch={selectedBranch}
+                            setSelectedBranch={setSelectedBranch}
+                            branches={branches}
+                        />
+                    </div>
                 </aside>
 
                 {/* Main Content */}
@@ -542,7 +544,7 @@ export const Venues: React.FC = () => {
                     {/* Header */}
                     <div className="flex flex-col gap-6 mb-8">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                            <h2 className="text-3xl font-black text-gray-900 font-montserrat uppercase tracking-tight">
+                            <h2 className="text-3xl font-black text-gray-900 font-heading uppercase tracking-tight">
                                 {filteredVenues.length} Venues in
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-500 ml-2">
                                     {selectedCity}
@@ -560,7 +562,7 @@ export const Venues: React.FC = () => {
                     ) : filteredVenues.length === 0 ? (
                         <div className="text-center py-24 bg-white/50 backdrop-blur-sm border border-dashed border-gray-200">
                             <div className="text-6xl mb-6 opacity-20">🏟️</div>
-                            <h3 className="text-2xl font-black text-gray-900 mb-2 uppercase font-montserrat">No venues found</h3>
+                            <h3 className="text-2xl font-black text-gray-900 mb-2 uppercase font-heading">No venues found</h3>
                             <p className="text-gray-500 font-medium">Try adjusting your filters or search for something else.</p>
                             <Button
                                 className="mt-6 text-primary font-bold hover:underline"

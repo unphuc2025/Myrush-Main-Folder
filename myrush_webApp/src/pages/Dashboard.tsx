@@ -33,7 +33,7 @@ export const Dashboard: React.FC = () => {
     const timeOfDay = new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening';
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter pb-24 md:pb-12">
+        <div className="min-h-screen bg-gray-50 font-sans pb-24 md:pb-12">
             <TopNav userName={displayName} />
 
             <div className="pt-20 md:pt-24 px-4 md:px-8 max-w-7xl mx-auto">
@@ -44,8 +44,8 @@ export const Dashboard: React.FC = () => {
                     className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4"
                 >
                     <div>
-                        <p className="text-gray-500 font-bold uppercase tracking-wider text-sm mb-1">Good {timeOfDay},</p>
-                        <h1 className="text-4xl md:text-5xl font-black text-black font-montserrat uppercase tracking-tight">
+                        <p className="text-gray-500 font-bold uppercase tracking-wider text-[10px] md:text-sm mb-1">Good {timeOfDay},</p>
+                        <h1 className="text-3xl md:text-5xl font-black text-black font-heading uppercase tracking-tight">
                             <span className="text-gray-900">{displayName}</span>
                             <span className="text-primary">.</span>
                         </h1>
@@ -70,13 +70,13 @@ export const Dashboard: React.FC = () => {
                     >
                         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1552667466-07770ae110d0?q=80&w=2070')] bg-cover bg-center opacity-70 group-hover:scale-105 transition-transform duration-700"></div>
                         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent"></div>
-                        <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-12 z-10">
-                            <h3 className="text-4xl md:text-6xl font-black text-white font-montserrat uppercase italic mb-4 drop-shadow-xl leading-none">
+                        <div className="absolute inset-0 flex flex-col justify-center px-6 md:px-12 z-10">
+                            <h3 className="text-3xl md:text-6xl font-black text-white font-heading uppercase italic mb-4 drop-shadow-xl leading-none">
                                 Book<br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-white">Your Court</span>
                             </h3>
-                            <button className="bg-white text-black font-bold uppercase tracking-widest text-sm px-8 py-4 rounded-full w-fit hover:bg-black hover:text-white transition-all shadow-glow flex items-center gap-2">
-                                Find Venues <FaRunning className="text-lg" />
+                            <button className="bg-white text-black font-bold uppercase tracking-widest text-[10px] md:text-sm px-6 md:px-8 py-3 md:py-4 rounded-full w-fit hover:bg-black hover:text-white transition-all shadow-glow flex items-center gap-2">
+                                Find Venues <FaRunning className="text-base md:text-lg" />
                             </button>
                         </div>
                     </motion.div>

@@ -69,7 +69,7 @@ export const Login: React.FC = () => {
                         <div className="inline-block px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
                             <span className="text-xl font-black text-primary tracking-widest">SPORTS</span>
                         </div>
-                        <h1 className="text-2xl md:text-3xl font-black text-white mb-2 font-montserrat uppercase">
+                        <h1 className="text-2xl md:text-3xl font-black text-white mb-2 font-heading uppercase">
                             Login / Signup
                         </h1>
                         <p className="text-white/60 text-sm leading-relaxed">

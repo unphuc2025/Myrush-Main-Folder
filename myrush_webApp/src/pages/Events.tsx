@@ -83,7 +83,7 @@ export const Events: React.FC = () => {
     const statuses = ['All', 'Upcoming', 'Live', 'Completed'];
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter">
+        <div className="min-h-screen bg-gray-50 font-sans">
             <TopNav />
 
             {/* Hero Section */}
@@ -110,7 +110,7 @@ export const Events: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.1 }}
-                        className="text-6xl md:text-8xl font-black text-white font-montserrat uppercase tracking-tighter mb-6 leading-[0.9]"
+                        className="text-4xl md:text-8xl font-black text-white font-heading uppercase tracking-tighter mb-6 leading-tight md:leading-[0.9]"
                     >
                         Rise To <br /> <span className="text-primary italic">Glory.</span>
                     </motion.h1>
@@ -128,8 +128,8 @@ export const Events: React.FC = () => {
             {/* Filters */}
             <section className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 py-4 px-6 md:px-12">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-hide">
-                        <span className="text-gray-400 mr-2 flex items-center gap-1 text-sm font-bold uppercase tracking-wider"><FaFilter /> Filter:</span>
+                    <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-4 md:pb-0 scrollbar-hide px-2">
+                        <span className="text-gray-400 mr-2 flex items-center gap-1 text-[10px] md:text-sm font-bold uppercase tracking-wider"><FaFilter /> Filter:</span>
                         {categories.map(cat => (
                             <button
                                 key={cat}
@@ -190,7 +190,7 @@ export const Events: React.FC = () => {
                                     </span>
                                 </div>
                                 <div className="absolute bottom-4 left-4">
-                                    <h3 className="text-white text-2xl font-black font-montserrat uppercase leading-none drop-shadow-md">
+                                    <h3 className="text-white text-2xl font-black font-heading uppercase leading-none drop-shadow-md">
                                         {event.title}
                                     </h3>
                                 </div>

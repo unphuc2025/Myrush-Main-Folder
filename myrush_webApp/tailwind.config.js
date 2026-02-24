@@ -7,9 +7,11 @@ export default {
     darkMode: 'class',
     theme: {
         fontFamily: {
-            satoshi: ['Satoshi', 'sans-serif'],
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            heading: ['Outfit', 'Montserrat', 'sans-serif'],
+            // Legacy for transition
             inter: ['Inter', 'sans-serif'],
-            montserrat: ['Montserrat', 'sans-serif'], // Added for headings
+            montserrat: ['Montserrat', 'sans-serif'],
         },
         extend: {
             colors: {

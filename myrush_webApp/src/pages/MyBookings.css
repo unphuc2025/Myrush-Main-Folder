@@ -554,23 +554,129 @@
 /* Responsive */
 @media (max-width: 768px) {
     .bookings-container {
-        padding: 20px 16px;
+        padding: 20px 12px;
+    }
+
+    .bookings-header {
+        margin-bottom: 24px;
+        text-align: left;
     }
 
     .bookings-header h1 {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
+    }
+
+    .bookings-header p {
+        font-size: 0.85rem;
     }
 
     .bookings-grid {
         grid-template-columns: 1fr;
+        gap: 16px;
     }
 
     .tabs-modern {
         overflow-x: auto;
         flex-wrap: nowrap;
+        padding: 8px;
+        gap: 8px;
+        margin-bottom: 20px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        /* Firefox */
+    }
+
+    .tabs-modern::-webkit-scrollbar {
+        display: none;
+        /* Chrome, Safari, Edge */
     }
 
     .tab-btn-modern {
         white-space: nowrap;
+        padding: 10px 16px;
+        font-size: 0.85rem;
+        min-width: auto;
+    }
+
+    .booking-card-modern {
+        padding: 16px;
+    }
+
+    .date-badge {
+        padding: 8px 10px;
+        min-width: 50px;
+    }
+
+    .date-badge .day {
+        font-size: 1.4rem;
+    }
+
+    .venue-name {
+        font-size: 1.1rem;
+    }
+
+    .booking-details {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px 0;
+    }
+
+    .detail-item {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .detail-item .value {
+        font-size: 0.9rem;
+    }
+
+    .booking-id-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .view-details-btn {
+        width: 100%;
+        text-align: center;
+        padding: 10px;
+    }
+
+    .expanded-details {
+        padding: 16px;
+    }
+
+    .detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 8px 0;
+    }
+
+    .detail-value {
+        text-align: left;
+    }
+
+    .rating-modal {
+        padding: 20px;
+    }
+
+    .modal-actions {
+        flex-direction: column-reverse;
+    }
+}
+
+@media (max-width: 480px) {
+    .date-badge {
+        display: none;
+        /* Hide date badge on very small screens if it takes too much space, or resize it */
+    }
+
+    /* Alternatively, make it horizontal on very small screens */
+    /* .card-header-modern { flex-direction: column; } */
+
+    .status-badge-modern {
+        margin-left: auto;
     }
 }

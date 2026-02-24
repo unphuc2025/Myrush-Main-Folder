@@ -12,14 +12,14 @@ export const Services: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter">
+        <div className="min-h-screen bg-gray-50 font-sans">
             <TopNav />
             <div className="pt-32 pb-12 px-6 max-w-7xl mx-auto">
-                <div className="text-center mb-16">
-                    <h1 className="text-5xl font-black font-montserrat uppercase tracking-tight mb-4">
+                <div className="text-center mb-12 md:16">
+                    <h1 className="text-3xl md:text-5xl font-black font-heading uppercase tracking-tight mb-4">
                         Our <span className="text-primary italic">Services</span>
                     </h1>
-                    <p className="text-gray-500 font-medium">Beyond the field. Elevate your game.</p>
+                    <p className="text-gray-500 font-medium text-sm md:text-base">Beyond the field. Elevate your game.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -29,7 +29,7 @@ export const Services: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: i * 0.1 }}
-                            className="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition-all border border-gray-100 flex items-start gap-6"
+                            className="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl transition-all border border-gray-100 flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6"
                         >
                             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-3xl shrink-0">
                                 {service.icon}

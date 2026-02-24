@@ -202,7 +202,7 @@ export const BookingSummary: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter text-gray-900 pb-20">
+        <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
             <TopNav />
 
             <div className="pt-10 max-w-7xl mx-auto px-4 md:px-8">

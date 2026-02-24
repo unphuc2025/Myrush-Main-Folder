@@ -261,10 +261,10 @@ export const Profile: React.FC = () => {
                     initial={{ x: -100, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.6 }}
-                    className="relative lg:fixed lg:left-0 lg:top-20 w-full lg:w-80 bg-white border-b lg:border-r border-gray-200 h-auto lg:h-[calc(100vh-5rem)] p-4 lg:p-6 lg:overflow-y-auto z-10"
+                    className="relative lg:fixed lg:left-0 lg:top-20 w-full lg:w-80 bg-white border-b lg:border-r border-gray-200 h-auto lg:h-[calc(100vh-5rem)] p-4 md:p-6 lg:overflow-y-auto z-10"
                 >
                     <div className="space-y-4">
-                        <h2 className="text-xl font-bold text-gray-900 mb-6">Account Settings</h2>
+                        <h2 className="text-lg lg:text-xl font-bold text-gray-900 mb-4 lg:mb-6">Account Settings</h2>
 
                         {/* Profile Overview */}
                         <motion.div
@@ -287,37 +287,37 @@ export const Profile: React.FC = () => {
                             <motion.button
                                 whileHover={{ backgroundColor: '#f3f4f6' }}
                                 onClick={() => setCurrentView('profile')}
-                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-semibold flex items-center gap-3 ${currentView === 'profile'
+                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-semibold flex items-center gap-3 transition-colors ${currentView === 'profile'
                                     ? 'border-primary bg-primary/5 text-primary'
                                     : 'border-gray-200 hover:border-gray-300 text-gray-700'
                                     }`}
                             >
-                                <FaUser className="text-lg" />
-                                Profile Information
+                                <FaUser className="text-base lg:text-lg" />
+                                <span className="text-sm lg:text-base">Profile Information</span>
                             </motion.button>
 
                             <motion.button
                                 whileHover={{ backgroundColor: '#f3f4f6' }}
                                 onClick={() => setCurrentView('bookings')}
-                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-medium flex items-center gap-3 ${currentView === 'bookings'
+                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-medium flex items-center gap-3 transition-colors ${currentView === 'bookings'
                                     ? 'border-primary bg-primary/5 text-primary'
                                     : 'border-gray-200 hover:border-gray-300 text-gray-700'
                                     }`}
                             >
-                                <span className="text-lg">📅</span>
-                                My Bookings
+                                <span className="text-base lg:text-lg">📅</span>
+                                <span className="text-sm lg:text-base">My Bookings</span>
                             </motion.button>
 
                             <motion.button
                                 whileHover={{ backgroundColor: '#f3f4f6' }}
                                 onClick={() => setCurrentView('reviews')}
-                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-medium flex items-center gap-3 ${currentView === 'reviews'
+                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-medium flex items-center gap-3 transition-colors ${currentView === 'reviews'
                                     ? 'border-primary bg-primary/5 text-primary'
                                     : 'border-gray-200 hover:border-gray-300 text-gray-700'
                                     }`}
                             >
-                                <FaStar className="text-lg" />
-                                Rating & Reviews
+                                <FaStar className="text-base lg:text-lg" />
+                                <span className="text-sm lg:text-base">Rating & Reviews</span>
                             </motion.button>
 
                             <hr className="my-4 border-gray-200" />
@@ -325,10 +325,10 @@ export const Profile: React.FC = () => {
                             <motion.button
                                 whileHover={{ backgroundColor: '#fee2e2' }}
                                 onClick={handleLogout}
-                                className="w-full text-left px-4 py-3 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50 font-medium flex items-center gap-3"
+                                className="w-full text-left px-4 py-3 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50 font-medium flex items-center gap-3 transition-colors"
                             >
-                                <span className="text-lg">🚪</span>
-                                Logout
+                                <span className="text-base lg:text-lg">🚪</span>
+                                <span className="text-sm lg:text-base">Logout</span>
                             </motion.button>
                         </div>
                     </div>
@@ -348,8 +348,8 @@ export const Profile: React.FC = () => {
                                 {/* Profile Header */}
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                                     <div>
-                                        <h1 className="text-2xl lg:text-4xl font-black text-gray-900 mb-1 lg:mb-2 tracking-tight">Profile <span className="text-primary">Settings</span></h1>
-                                        <p className="text-gray-500 lg:text-gray-600 text-sm lg:text-lg">Manage your account details and preferences</p>
+                                        <h1 className="text-2xl lg:text-4xl font-black text-gray-900 mb-1 lg:mb-2 tracking-tight">Profile <span className="text-primary italic">Settings</span></h1>
+                                        <p className="text-gray-500 lg:text-gray-600 text-xs md:text-sm lg:text-lg">Manage your account details and preferences</p>
                                     </div>
                                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
                                         <Button
@@ -369,7 +369,7 @@ export const Profile: React.FC = () => {
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.4, duration: 0.6 }}
-                                        className="glass-card rounded-3xl p-8 relative overflow-hidden group"
+                                        className="bg-white rounded-3xl p-6 md:p-8 border-2 border-gray-100 relative overflow-hidden group shadow-sm hover:shadow-md transition-all"
                                     >
                                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                                             <FaUser size={120} />
@@ -414,7 +414,7 @@ export const Profile: React.FC = () => {
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.5, duration: 0.6 }}
-                                        className="glass-card rounded-3xl p-8 relative overflow-hidden group"
+                                        className="bg-white rounded-3xl p-6 md:p-8 border-2 border-gray-100 relative overflow-hidden group shadow-sm hover:shadow-md transition-all"
                                     >
                                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                                             <FaTrophy size={120} />

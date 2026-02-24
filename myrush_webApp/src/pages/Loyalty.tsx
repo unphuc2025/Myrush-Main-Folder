@@ -27,7 +27,7 @@ export const Loyalty: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 font-inter">
+        <div className="min-h-screen bg-gray-50 font-sans">
             <TopNav />
 
             {/* Loyalty Hero Card */}
@@ -36,7 +36,7 @@ export const Loyalty: React.FC = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-black rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden shadow-2xl"
+                        className="bg-black rounded-3xl md:rounded-[2.5rem] p-6 md:p-12 relative overflow-hidden shadow-2xl"
                     >
                         {/* Abstract Background */}
                         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
@@ -48,12 +48,12 @@ export const Loyalty: React.FC = () => {
                                     <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center text-black text-xl shadow-lg shadow-yellow-400/50">
                                         <FaCrown />
                                     </div>
-                                    <span className="text-yellow-400 font-black uppercase tracking-widest text-sm">{currentTier} Member</span>
+                                    <span className="text-yellow-400 font-black uppercase tracking-widest text-[10px] md:text-sm">{currentTier} Member</span>
                                 </div>
-                                <h1 className="text-5xl md:text-7xl font-black text-white font-montserrat mb-2">
+                                <h1 className="text-4xl md:text-7xl font-black text-white font-heading mb-2">
                                     {userPoints.toLocaleString()}
                                 </h1>
-                                <p className="text-gray-400 text-sm font-bold uppercase tracking-wider">Rush Points Balance</p>
+                                <p className="text-gray-400 text-[10px] md:text-sm font-bold uppercase tracking-wider">Rush Points Balance</p>
                             </div>
 
                             <div className="w-full md:w-64 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
@@ -74,8 +74,8 @@ export const Loyalty: React.FC = () => {
             </div>
 
             {/* Tabs */}
-            <div className="max-w-4xl mx-auto px-6 mb-8">
-                <div className="flex gap-8 border-b border-gray-200">
+            <div className="max-w-4xl mx-auto px-6 mb-8 overflow-x-auto scrollbar-hide">
+                <div className="flex gap-4 md:gap-8 border-b border-gray-200 min-w-max">
                     <button
                         onClick={() => setActiveTab('rewards')}
                         className={`pb-4 text-sm font-bold uppercase tracking-wider transition-all relative ${activeTab === 'rewards' ? 'text-black' : 'text-gray-400 hover:text-gray-600'
@@ -104,22 +104,22 @@ export const Loyalty: React.FC = () => {
                         className="grid grid-cols-1 md:grid-cols-2 gap-6"
                     >
                         {rewards.map((item) => (
-                            <div key={item.id} className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex gap-4 hover:shadow-lg transition-shadow">
-                                <div className="w-24 h-24 rounded-2xl bg-gray-100 overflow-hidden flex-shrink-0">
+                            <div key={item.id} className="bg-white p-4 rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm flex items-center md:items-start gap-4 hover:shadow-lg transition-shadow">
+                                <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl md:rounded-2xl bg-gray-100 overflow-hidden flex-shrink-0">
                                     <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                                 </div>
-                                <div className="flex flex-col justify-between flex-grow">
+                                <div className="flex flex-col justify-between flex-grow h-full py-1">
                                     <div>
-                                        <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider mb-1 block">{item.type}</span>
-                                        <h3 className="font-bold text-gray-900 leading-tight mb-2">{item.title}</h3>
+                                        <span className="text-[9px] md:text-[10px] font-black uppercase text-gray-400 tracking-wider mb-1 block">{item.type}</span>
+                                        <h3 className="font-bold text-gray-900 leading-tight mb-2 text-sm md:text-base">{item.title}</h3>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-1 text-primary font-black">
-                                            <FaStar className="text-xs" />
+                                        <div className="flex items-center gap-1 text-primary font-black text-sm">
+                                            <FaStar className="text-[10px]" />
                                             <span>{item.cost}</span>
                                         </div>
                                         <button
-                                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors ${userPoints >= item.cost
+                                            className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-colors ${userPoints >= item.cost
                                                 ? 'bg-black text-white hover:bg-gray-800'
                                                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                 }`}

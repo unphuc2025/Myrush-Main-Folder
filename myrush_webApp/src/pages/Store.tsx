@@ -36,7 +36,7 @@ export const Store: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-white font-inter">
+        <div className="min-h-screen bg-white font-sans">
             <TopNav />
             {/* Hero Section */}
             <section className="relative h-[60vh] flex items-center justify-center overflow-hidden bg-black">
@@ -63,7 +63,7 @@ export const Store: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="text-5xl md:text-7xl font-black font-montserrat uppercase tracking-tighter text-white mb-6 leading-[0.9]"
+                        className="text-5xl md:text-7xl font-black font-heading uppercase tracking-tighter text-white mb-6 leading-[0.9]"
                     >
                         Equip Your <br /> <span className="text-primary italic">Game.</span>
                     </motion.h1>
@@ -82,7 +82,7 @@ export const Store: React.FC = () => {
             <div className="py-20 px-6 max-w-7xl mx-auto">
                 <div className="flex items-end justify-between mb-12">
                     <div>
-                        <h2 className="text-3xl font-black font-montserrat uppercase text-black">New <span className="text-primary">Arrivals</span></h2>
+                        <h2 className="text-3xl font-black font-heading uppercase text-black">New <span className="text-primary">Arrivals</span></h2>
                     </div>
                 </div>
 
