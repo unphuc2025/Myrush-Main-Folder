@@ -61,7 +61,7 @@ export const PublicNav: React.FC = () => {
                             <button
                                 key={item.label}
                                 onClick={() => navigate(item.path)}
-                                className={`relative text-sm font-semibold font-heading uppercase tracking-wider transition-all ${isActive ? 'text-primary' : 'text-black hover:text-primary hover:scale-105'
+                                className={`relative text-sm font-semibold font-heading uppercase tracking-wider transition-all nav-hover-underline ${isActive ? 'text-primary' : 'text-black hover:text-primary'
                                     }`}
                             >
                                 {item.label}

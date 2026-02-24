@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { apiClient } from '../api/client'; // Import API client
 import { Button } from '../components/ui/Button';
@@ -10,14 +9,15 @@ import { FaCalendarAlt, FaChartLine, FaCheckCircle, FaUserGraduate, FaClock } fr
 
 export const Academy: React.FC = () => {
     const { isAuthenticated } = useAuth();
-    const navigate = useNavigate();
+
 
     // Mock state to simulate user journey: 'marketing' | 'pending' | 'student'
     const [academyState, setAcademyState] = useState<'marketing' | 'pending' | 'student'>('marketing');
 
     if (!isAuthenticated) {
-        return <AcademyLanding navigate={navigate} />;
+        return <AcademyLanding />;
     }
+
 
     // In a real app, this would come from an API based on the user's data
     if (academyState === 'marketing') {

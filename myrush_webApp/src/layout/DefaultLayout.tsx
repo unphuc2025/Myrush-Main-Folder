@@ -2,6 +2,8 @@ import React, { useState, type ReactNode } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 
+
+
 interface DefaultLayoutProps {
     children: ReactNode;
 }
@@ -35,7 +37,9 @@ const DefaultLayout: React.FC<DefaultLayoutProps> = ({ children }) => {
             </div>
             {/* <!-- ===== Page Wrapper End ===== --> */}
         </div>
+
     );
 };
+
 
 export default DefaultLayout;
