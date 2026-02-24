@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TopNav } from '../components/TopNav';
-import { Footer } from '../components/Footer';
 import { PublicNav } from '../components/PublicNav';
 import { useAuth } from '../context/AuthContext';
 
