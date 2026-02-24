@@ -391,9 +391,46 @@ export const Arena: React.FC = () => {
                             viewport={{ once: true }}
                             className="w-full lg:w-6/12 relative z-20"
                         >
-                            <form className="space-y-6" onSubmit={(e) => {
+                            <form className="space-y-6" onSubmit={async (e) => {
                                 e.preventDefault();
-                                alert('Thank you for reaching out! We will get back to you soon.');
+                                const form = e.target as HTMLFormElement;
+                                const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+                                if (submitBtn) {
+                                    submitBtn.disabled = true;
+                                    submitBtn.innerText = 'SENDING...';
+                                }
+
+                                const data = {
+                                    first_name: (form.elements[0] as HTMLInputElement).value,
+                                    last_name: (form.elements[1] as HTMLInputElement).value,
+                                    email: (form.elements[2] as HTMLInputElement).value,
+                                    message: (form.elements[3] as HTMLTextAreaElement).value,
+                                };
+
+                                try {
+                                    const { apiClient } = await import('../api/client');
+                                    const response = await apiClient.post('/user/contact/submit', {
+                                        form_type: 'arena',
+                                        name: `${data.first_name} ${data.last_name}`,
+                                        email: data.email,
+                                        phone: 'N/A', // Arena form doesn't have phone, but backend requires it
+                                        message: data.message
+                                    });
+                                    if (response.data.success) {
+                                        alert(response.data.message);
+                                        form.reset();
+                                    } else {
+                                        alert('Message failed to send. Please try again.');
+                                    }
+                                } catch (err) {
+                                    alert('Error sending message. Please try again.');
+                                } finally {
+                                    if (submitBtn) {
+                                        submitBtn.disabled = false;
+                                        submitBtn.innerText = 'SEND MESSAGE →';
+                                    }
+                                }
                             }}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1">

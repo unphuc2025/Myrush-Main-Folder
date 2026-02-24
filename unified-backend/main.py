@@ -215,7 +215,8 @@ from routers.user import (
     academy,
     favorites,
     faq as user_faq,
-    policies as user_policies
+    policies as user_policies,
+    contact
 )
 
 # Import chatbot router
@@ -236,6 +237,7 @@ app.include_router(academy.router, prefix="/api/user/academy", tags=["User Acade
 app.include_router(favorites.router, prefix="/api/user", tags=["User Favorites"])
 app.include_router(user_faq.router, prefix="/api/user", tags=["User FAQ"])
 app.include_router(user_policies.router, prefix="/api/user", tags=["User Policies"])
+app.include_router(contact.router, prefix="/api/user/contact", tags=["User Contact"])
 
 # Include chatbot knowledge API
 app.include_router(chatbot.router, tags=["Chatbot Knowledge"])

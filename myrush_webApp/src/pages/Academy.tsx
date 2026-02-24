@@ -751,7 +751,13 @@ const AcademyLanding: React.FC = () => {
                             <form className="space-y-6" onSubmit={async (e) => {
                                 e.preventDefault();
                                 const form = e.target as HTMLFormElement;
-                                // Simple extraction based on order for now
+                                const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+                                if (submitBtn) {
+                                    submitBtn.disabled = true;
+                                    submitBtn.innerText = 'SENDING...';
+                                }
+
                                 const data = {
                                     kid_first_name: (form.elements[0] as HTMLInputElement).value,
                                     kid_last_name: (form.elements[1] as HTMLInputElement).value,
@@ -763,19 +769,31 @@ const AcademyLanding: React.FC = () => {
                                 };
 
                                 try {
-                                    const response = await apiClient.post('/academy/register', {
-                                        athlete_name: `${data.kid_first_name} ${data.kid_last_name}`,
-                                        age_group: "N/A",
-                                        contact_email: data.parent_email,
-                                        phone_number: data.parent_mobile,
-                                        preferred_sport: data.preferred_sport,
-                                        preferred_location: data.location,
-                                        preferred_date: data.preferred_date
+                                    const { apiClient } = await import('../api/client');
+                                    const response = await apiClient.post('/user/contact/submit', {
+                                        form_type: 'academy_trial',
+                                        name: `Athlete: ${data.kid_first_name} ${data.kid_last_name}`,
+                                        email: data.parent_email,
+                                        phone: data.parent_mobile,
+                                        sport: data.preferred_sport,
+                                        location: data.location,
+                                        preferred_date: data.preferred_date,
+                                        message: "Trial Registration Application"
                                     });
-                                    if (response.data.success) alert('Registration Successful! We will contact you shortly.');
-                                    else alert('Registration failed. Please try again.');
+                                    if (response.data.success) {
+                                        alert(response.data.message);
+                                        form.reset();
+                                    } else {
+                                        alert('Registration failed. Please try again.');
+                                    }
                                 } catch (err) {
-                                    alert('Error submitting registration.');
+                                    console.error(err);
+                                    alert('Error submitting registration. Please try again.');
+                                } finally {
+                                    if (submitBtn) {
+                                        submitBtn.disabled = false;
+                                        submitBtn.innerText = 'SEND APPLICATION →';
+                                    }
                                 }
                             }}>
                                 <div className="space-y-8">

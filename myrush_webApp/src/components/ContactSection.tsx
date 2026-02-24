@@ -12,10 +12,32 @@ export const ContactSection: React.FC = () => {
         service: 'Academy'
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Form submitted:', formData);
-        alert('Thank you for reaching out! We will get back to you soon.');
+        setIsSubmitting(true);
+        try {
+            const { apiClient } = await import('../api/client');
+            const response = await apiClient.post('/user/contact/submit', {
+                form_type: 'landing',
+                name: `${formData.firstName} ${formData.lastName}`,
+                email: formData.email,
+                phone: formData.phone,
+                message: `Interested Service: ${formData.service}`
+            });
+            if (response.data.success) {
+                alert(response.data.message);
+                setFormData({ firstName: '', lastName: '', email: '', phone: '', service: 'Academy' });
+            } else {
+                alert('An error occurred. Please try again.');
+            }
+        } catch (error) {
+            console.error('Submission error:', error);
+            alert('Failed to send message. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const inputClasses = "w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm";
@@ -126,11 +148,12 @@ export const ContactSection: React.FC = () => {
                             <Button
                                 type="submit"
                                 variant="primary"
+                                disabled={isSubmitting}
                                 size="lg"
                                 icon={<span className="ml-2">→</span>}
                                 className="w-full md:w-auto px-12 py-5 rounded-full uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong"
                             >
-                                Send Message
+                                {isSubmitting ? 'Sending...' : 'Send Message'}
                             </Button>
                         </div>
                     </form>

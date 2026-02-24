@@ -197,6 +197,7 @@ export const Pickleball: React.FC = () => {
                                         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">First Name</label>
                                         <input
                                             type="text"
+                                            id="pb-firstname"
                                             placeholder="e.g. Arjun"
                                             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
                                             required
@@ -206,6 +207,7 @@ export const Pickleball: React.FC = () => {
                                         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Last Name</label>
                                         <input
                                             type="text"
+                                            id="pb-lastname"
                                             placeholder="e.g. Sharma"
                                             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
                                             required
@@ -216,6 +218,7 @@ export const Pickleball: React.FC = () => {
                                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Email</label>
                                     <input
                                         type="email"
+                                        id="pb-email"
                                         placeholder="you@example.com"
                                         className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
                                         required
@@ -225,6 +228,7 @@ export const Pickleball: React.FC = () => {
                                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Message</label>
                                     <textarea
                                         rows={5}
+                                        id="pb-message"
                                         placeholder="Tell us about your query, booking request, or anything else..."
                                         className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-300"
                                         required
@@ -234,10 +238,53 @@ export const Pickleball: React.FC = () => {
                                     <Button
                                         variant="primary"
                                         size="lg"
+                                        id="pb-submit"
                                         className="w-full py-4 uppercase font-extrabold tracking-widest bg-black text-white hover:bg-primary hover:text-black transition-all duration-300 font-heading"
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                             e.preventDefault();
-                                            alert('Form submitted successfully!');
+                                            const btn = document.getElementById('pb-submit') as HTMLButtonElement;
+
+                                            const getVal = (id: string) => (document.getElementById(id) as HTMLInputElement)?.value || '';
+                                            const fname = getVal('pb-firstname');
+                                            const lname = getVal('pb-lastname');
+                                            const email = getVal('pb-email');
+                                            const message = getVal('pb-message');
+
+                                            if (!fname || !lname || !email || !message) {
+                                                alert('Please fill out all required fields.');
+                                                return;
+                                            }
+
+                                            if (btn) {
+                                                btn.disabled = true;
+                                                btn.innerText = 'SENDING...';
+                                            }
+
+                                            try {
+                                                const { apiClient } = await import('../api/client');
+                                                const response = await apiClient.post('/user/contact/submit', {
+                                                    form_type: 'pickleball',
+                                                    name: `${fname} ${lname}`,
+                                                    email: email,
+                                                    phone: 'N/A', // Defaulting as no field exists in the new UI
+                                                    message: message
+                                                });
+
+                                                if (response.data.success) {
+                                                    alert(response.data.message);
+                                                    const form = btn.closest('form');
+                                                    if (form) form.reset();
+                                                } else {
+                                                    alert('Error sending message. Please try again.');
+                                                }
+                                            } catch (err) {
+                                                alert('Error sending message. Please try again.');
+                                            } finally {
+                                                if (btn) {
+                                                    btn.disabled = false;
+                                                    btn.innerText = 'SEND MESSAGE';
+                                                }
+                                            }
                                         }}
                                     >
                                         Send Message

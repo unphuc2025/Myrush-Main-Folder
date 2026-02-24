@@ -1240,5 +1240,16 @@ class AcademyRegistration(BaseModel):
     preferred_sport: Optional[str] = None
     experience_level: Optional[str] = None
 
+class ContactFormSubmission(BaseModel):
+    form_type: str
+    name: str
+    email: Optional[EmailStr] = None
+    phone: str
+    message: Optional[str] = None
+    company_name: Optional[str] = None
+    sport: Optional[str] = None
+    location: Optional[str] = None
+    preferred_date: Optional[str] = None
+
 # Resolve forward references
 User.update_forward_refs()
