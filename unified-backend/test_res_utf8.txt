@@ -1,0 +1,915 @@
+﻿python : 
+......C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\da
+tabase.py:43: 
+MovedIn20Warning: 
+The ``declarative_bas
+e()`` function is 
+now available as sqla
+lchemy.orm.declarativ
+e_base(). 
+(deprecated since: 
+2.0) (Background on 
+SQLAlchemy 2.0 at: ht
+tps://sqlalche.me/e/b
+8d9)
+At line:1 char:1
++ python 
+test_slot_logic.py > 
+test_res.txt 2>&1; 
+type test_res.txt
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (......C   
+ :\Users\...lche.    
+me/e/b8d9):Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  Base = 
+declarative_base()
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:56: Pydantic
+DeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class 
+City(CityBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:77: Pydantic
+DeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class 
+Area(AreaBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:101: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class GameType(Game
+TypeBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:128: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class 
+Amenity(AmenityBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:172: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class 
+Branch(BranchBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:212: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class 
+Court(CourtBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:260: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class 
+Coupon(CouponBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:303: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class AdminPolicy(A
+dminPolicyBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:331: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class RoleResponse(
+RoleBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:361: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class 
+Admin(AdminBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:402: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class GlobalPriceCo
+ndition(GlobalPriceCo
+nditionBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:429: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class AdminVenue(Ad
+minVenueBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:474: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class UserResponse(
+BaseModel):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:486: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class 
+User(UserBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:528: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class CMSPageRespon
+se(CMSPageBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:551: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class SiteSettingRe
+sponse(SiteSettingBas
+e):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:586: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class 
+FAQResponse(FAQBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:601: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class FAQListRespon
+se(BaseModel):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:612: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class ProfileRespon
+se(ProfileBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:636: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class PaymentMethod
+Response(PaymentMetho
+dBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:644: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class TopPlayerResp
+onse(BaseModel):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:696: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class BookingRespon
+se(BaseModel):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:747: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class 
+Booking(BaseModel):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:775: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class AdminBooking(
+BaseModel):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:823: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class ReviewRespons
+e(BaseModel):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:845: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class 
+Review(ReviewBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:938: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class TournamentRes
+ponse(TournamentBase)
+:
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:962: Pydanti
+cDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class PushTokenResp
+onse(PushTokenBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:1017: Pydant
+icDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class VenueResponse
+(VenueBase):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:1029: Pydant
+icDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class CityResponse(
+BaseModel):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:1038: Pydant
+icDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class GameTypeRespo
+nse(BaseModel):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:1052: Pydant
+icDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class BranchRespons
+e(BaseModel):
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:1063: Pydant
+icDeprecatedSince20: 
+Support for 
+class-based `config` 
+is deprecated, use 
+ConfigDict instead. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  class AdminCourtRes
+ponse(BaseModel):
+C:\Users\Z BOOK\AppDa
+ta\Local\Programs\Pyt
+hon\Python314\Lib\sit
+e-packages\pydantic\_
+internal\_generate_sc
+hema.py:319: Pydantic
+DeprecatedSince20: 
+`json_encoders` is 
+deprecated. See https
+://docs.pydantic.dev/
+2.12/concepts/seriali
+zation/#custom-serial
+izers for 
+alternatives. 
+Deprecated in 
+Pydantic V2.0 to be 
+removed in V3.0. See 
+Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  warnings.warn(
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\sc
+hemas.py:1236: Pydant
+icDeprecatedSince20: 
+The `update_forward_r
+efs` method is 
+deprecated; use 
+`model_rebuild` 
+instead. Deprecated 
+in Pydantic V2.0 to 
+be removed in V3.0. 
+See Pydantic V2 
+Migration Guide at ht
+tps://errors.pydantic
+.dev/2.12/migration/
+  User.update_forward
+_refs()
+C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\ut
+ils\booking_utils.py:
+10: 
+DeprecationWarning: d
+atetime.datetime.utcn
+ow() is deprecated 
+and scheduled for 
+removal in a future 
+version. Use 
+timezone-aware 
+objects to represent 
+datetimes in UTC: dat
+etime.datetime.now(da
+tetime.UTC).
+  return 
+datetime.utcnow() + 
+timedelta(hours=5, 
+minutes=30)
+EE
+=====================
+=====================
+=====================
+=======
+ERROR: test_validate_
+booking_rules_overlap
+ (__main__.TestSlotLo
+gic.test_validate_boo
+king_rules_overlap)
+---------------------
+---------------------
+---------------------
+-------
+Traceback (most 
+recent call last):
+  File "C:\Users\Z BO
+OK\AppData\Local\Prog
+rams\Python\Python314
+\Lib\unittest\mock.py
+", line 1432, in 
+patched
+    return 
+func(*newargs, 
+**newkeywargs)
+  File "C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\te
+st_slot_logic.py", 
+line 105, in test_val
+idate_booking_rules_o
+verlap
+    validate_booking_
+rules(mock_db, 'c1', 
+date(2026, 2, 23), 
+time(10, 0), 
+time(11, 0), 'u1')
+    ~~~~~~~~~~~~~~~~~
+~~~~~^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^
+  File "C:\Users\Z 
+BOOK\Downloads\New fo
+lder\Myrush-Main-Fold
+er\unified-backend\cr
+ud.py", line 227, in 
+validate_booking_rule
+s
+    raise HTTPExcepti
+on(status_code=409, 
+detail="This slot is 
+already booked. 
+Please choose 
+another time.")
+          
+^^^^^^^^^^^^^
+NameError: name 
+'HTTPException' is 
+not defined. Did you 
+mean: 
+'BaseException'?
+
+=====================
+=====================
+=====================
+=======
+ERROR: test_validate_
+booking_rules_past_sl
+ot (__main__.TestSlot
+Logic.test_validate_b
+ooking_rules_past_slo
+t)
+---------------------
+---------------------
+---------------------
+-------
+Traceback (most 
+recent call last):
+  File "C:\Users\Z BO
+OK\AppData\Local\Prog
+rams\Python\Python314
+\Lib\unittest\mock.py
+", line 1429, in 
+patched
+    with self.decorat
+ion_helper(patched,
+         ~~~~~~~~~~~~
+~~~~~~~~~~^^^^^^^^^
+                     
+           args,
+                     
+           ^^^^^
+                     
+           keywargs) 
+as (newargs, 
+newkeywargs):
+                     
+           ^^^^^^^^^
+  File "C:\Users\Z BO
+OK\AppData\Local\Prog
+rams\Python\Python314
+\Lib\contextlib.py", 
+line 141, in 
+__enter__
+    return 
+next(self.gen)
+  File "C:\Users\Z BO
+OK\AppData\Local\Prog
+rams\Python\Python314
+\Lib\unittest\mock.py
+", line 1411, in 
+decoration_helper
+    arg = exit_stack.
+enter_context(patchin
+g)
+  File "C:\Users\Z BO
+OK\AppData\Local\Prog
+rams\Python\Python314
+\Lib\contextlib.py", 
+line 530, in 
+enter_context
+    result = 
+_enter(cm)
+  File "C:\Users\Z BO
+OK\AppData\Local\Prog
+rams\Python\Python314
+\Lib\unittest\mock.py
+", line 1503, in 
+__enter__
+    original, local 
+= self.get_original()
+                     
+ ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Z BO
+OK\AppData\Local\Prog
+rams\Python\Python314
+\Lib\unittest\mock.py
+", line 1473, in 
+get_original
+    raise 
+AttributeError(
+        "%s does not 
+have the attribute 
+%r" % (target, name)
+    )
+AttributeError: 
+<module 'crud' from 
+'C:\\Users\\Z 
+BOOK\\Downloads\\New 
+folder\\Myrush-Main-F
+older\\unified-backen
+d\\crud.py'> does 
+not have the 
+attribute 
+'get_now_ist'
+
+---------------------
+---------------------
+---------------------
+-------
+Ran 8 tests in 2.111s
+
+FAILED (errors=2)
+[SLOT ENGINE] Day Config for monday: {'isActive': True, 'startTime': '00:00', 'endTime': '00:00'}
+[SLOT ENGINE] Day Config for monday: {'isActive': True, 'startTime': '12:00 AM', 'endTime': '12:00 AM'}
+[SLOT ENGINE] Day Config for monday: {'isActive': True}
+[SLOT ENGINE] Day Config for monday: {'isActive': True, 'startTime': '08:00', 'endTime': '22:00'}
+[SLOT ENGINE] Day Config for tuesday: {'isActive': True, 'startTime': '06:00', 'endTime': '23:00'}
+[SLOT ENGINE] Day Config for wednesday: {'isActive': False}
+[SLOT ENGINE] Venue is EXPLICITLY CLOSED for wednesday.
+[SLOT ENGINE] Day Config for monday: {'day': 'monday', 'isActive': True, 'startTime': '09:00', 'endTime': '18:00'}
+[SLOT ENGINE] Day Config for monday: {'isActive': True, 'startTime': None, 'endTime': None}
+[SLOT ENGINE] Day Config for monday: {'isActive': 'false'}
+[SLOT ENGINE] Venue is EXPLICITLY CLOSED for monday.
+[DB] Loaded DATABASE_URL: postgresql:****@db.vqglejkydwtopmllymuf.supabase.co:5432/MYRUSH?sslmode=require
+[RULES CHECK] Validating rules: user=u1, court=c1, date=2026-02-23, time=10:00:00 to 11:00:00
+[RULES CHECK] Server Now (IST): 2026-02-21 22:36:36.150346
+[BOOKING UTILS] Processing 1 active bookings...
+  Booking <MagicMock name='mock.booking_display_id' id='2274246635408'>: Slot 10:00 -> Hour 10
+[BOOKING UTILS] Final booked hours: [10]
+[RULES CHECK FAIL] Conflict at Hour 10: Slot already booked.
+

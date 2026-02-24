@@ -30,7 +30,10 @@ import ScrollToTop from './components/ScrollToTop';
 import { Footer } from './components/Footer';
 // import { WhatsAppButton } from './components/WhatsAppButton'; // Kept for reference
 import { Chatbot } from './components/Chatbot';
+import { CustomCursor } from './components/CustomCursor';
+import ScrollIndicator from './components/ScrollIndicator';
 import './App.css';
+
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -53,6 +56,9 @@ const AppContent = () => {
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden">
+      {/* Custom Cursor */}
+      <CustomCursor />
+
       {/* Global Background */}
       <div className="fixed inset-0 z-[-1] mesh-bg opacity-40"></div>
 
@@ -90,7 +96,9 @@ const AppContent = () => {
       {!shouldHideFooter && <Footer />}
       {/* <WhatsAppButton /> */}
       <Chatbot />
+      <ScrollIndicator />
     </div>
+
   );
 };
 

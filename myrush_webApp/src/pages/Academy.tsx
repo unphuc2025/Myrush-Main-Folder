@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { apiClient } from '../api/client'; // Import API client
 import { Button } from '../components/ui/Button';
@@ -16,6 +16,7 @@ export const Academy: React.FC = () => {
     if (!isAuthenticated) {
         return <AcademyLanding />;
     }
+
 
     // In a real app, this would come from an API based on the user's data
     if (academyState === 'marketing') {
