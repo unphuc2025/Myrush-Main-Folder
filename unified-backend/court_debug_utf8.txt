@@ -1,0 +1,15 @@
+﻿[DB] Loaded DATABASE_URL: postgresql:****@db.vqglejkydwtopmllymuf.supabase.co:5432/MYRUSH?sslmode=require
+Testing with User ID: bb93f856-3c1f-4e74-acea-02369aed20c0, Court ID: cdd873c0-331a-4ccd-ae9e-6d4e63200718
+Court Name: 6 A Side Football Turf 1
+Price Conditions: [{'id': '2026-02-21-09:00-10:00-cda8c5', 'type': 'date', 'dates': ['2026-02-21'], 'price': '3434', 'slotTo': '10:00', 'slotFrom': '09:00'}, {'id': '2026-02-22-09:00-10:00-ff877e', 'type': 'date', 'dates': ['2026-02-22'], 'price': '33333', 'slotTo': '10:00', 'slotFrom': '09:00'}]
+Unavailability: []
+Base Price: 1000.00
+Court base price: 1000.00
+
+Calling crud.create_booking...
+[CRUD BOOKING] Starting booking creation for user: bb93f856-3c1f-4e74-acea-02369aed20c0
+[CRUD BOOKING] Processing multi-slot booking with 1 slots
+[CRUD BOOKING] ERROR: Exception during booking creation: 400: Slot starting at 10:00 is not available/valid for this court on this date.
+
+FAILED with error:
+400: Slot starting at 10:00 is not available/valid for this court on this date.

@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200&display=swap');
+
+.scroll-indicator-container {
+    position: fixed;
+    right: 40px;
+    bottom: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    animation: scrollLoop 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.scroll-text {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 200;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    transform: rotate(0deg);
+    white-space: nowrap;
+}
+
+.scroll-line {
+    width: 1px;
+    height: 40px;
+    background: #00FF00;
+    /* Bright Green */
+    transform-origin: top;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+@keyframes scrollLoop {
+    0% {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    50% {
+        transform: translateY(0px);
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-60px);
+        opacity: 0;
+    }
+}
+
+/* Optional: Adding a slight scale effect to the line as it moves */
+.scroll-indicator-container .scroll-line {
+    animation: lineHeightGrow 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes lineHeightGrow {
+    0% {
+        height: 30px;
+    }
+
+    50% {
+        height: 60px;
+    }
+
+    100% {
+        height: 40px;
+    }
+}

@@ -10,7 +10,6 @@ import { FaCalendarAlt, FaChartLine, FaCheckCircle, FaUserGraduate, FaClock } fr
 export const Academy: React.FC = () => {
     const { isAuthenticated } = useAuth();
 
-
     // Mock state to simulate user journey: 'marketing' | 'pending' | 'student'
     const [academyState, setAcademyState] = useState<'marketing' | 'pending' | 'student'>('marketing');
 
