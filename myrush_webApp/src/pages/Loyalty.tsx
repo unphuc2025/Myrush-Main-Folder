@@ -36,7 +36,7 @@ export const Loyalty: React.FC = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-black rounded-3xl md:rounded-[2.5rem] p-6 md:p-12 relative overflow-hidden shadow-2xl"
+                        className="bg-black rounded-xl p-6 md:p-12 relative overflow-hidden shadow-2xl"
                     >
                         {/* Abstract Background */}
                         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
@@ -56,7 +56,7 @@ export const Loyalty: React.FC = () => {
                                 <p className="text-gray-400 text-[10px] md:text-sm font-bold uppercase tracking-wider">Rush Points Balance</p>
                             </div>
 
-                            <div className="w-full md:w-64 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+                            <div className="w-full md:w-64 bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/10">
                                 <div className="flex justify-between text-xs font-bold text-white mb-2">
                                     <span>{currentTier}</span>
                                     <span>{nextTier}</span>
@@ -104,8 +104,8 @@ export const Loyalty: React.FC = () => {
                         className="grid grid-cols-1 md:grid-cols-2 gap-6"
                     >
                         {rewards.map((item) => (
-                            <div key={item.id} className="bg-white p-4 rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm flex items-center md:items-start gap-4 hover:shadow-lg transition-shadow">
-                                <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl md:rounded-2xl bg-gray-100 overflow-hidden flex-shrink-0">
+                            <div key={item.id} className="bg-white p-4 rounded-xl md:rounded-xl border border-gray-100 shadow-sm flex items-center md:items-start gap-4 hover:shadow-lg transition-shadow">
+                                <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl md:rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
                                     <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex flex-col justify-between flex-grow h-full py-1">
@@ -136,7 +136,7 @@ export const Loyalty: React.FC = () => {
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden"
+                        className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
                     >
                         {history.map((item, i) => (
                             <div key={item.id} className={`p-6 flex items-center justify-between ${i !== history.length - 1 ? 'border-b border-gray-100' : ''}`}>

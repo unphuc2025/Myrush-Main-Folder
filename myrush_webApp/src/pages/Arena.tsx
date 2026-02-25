@@ -1,8 +1,10 @@
 import React from 'react';
 import { PublicNav } from '../components/PublicNav';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '../components/ui/Button';
+import { apiClient } from '../api/client';
+import ScrollIndicator from '../components/ScrollIndicator';
 import { FaMapMarkerAlt, FaClock, FaUsers, FaStar } from "react-icons/fa";
 import { venuesApi } from '../api/venues';
 
@@ -109,6 +111,9 @@ export const Arena: React.FC = () => {
         fetchVenues();
     }, []);
 
+    const { scrollY } = useScroll();
+    const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+
     return (
         <div className="min-h-screen bg-white font-sans selection:bg-primary selection:text-black">
             {/* Sticky Navigation */}
@@ -116,7 +121,7 @@ export const Arena: React.FC = () => {
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-[60vh] md:h-[80vh] min-h-[500px] md:min-h-[600px] flex items-center justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
+            <section className="relative h-screen flex items-center justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
                     <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-10" />
@@ -148,7 +153,7 @@ export const Arena: React.FC = () => {
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="!text-4xl md:!text-4xl lg:!text-5xl font-black font-heading text-white mb-8 md:mb-12 leading-[1.1] uppercase text-center md:text-left px-2">
+                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-black font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase text-center md:text-left px-2">
                         play your <br />
                         <span className="text-primary italic">favourite sport</span> <br />
                         at a rush arena near you.
@@ -174,16 +179,14 @@ export const Arena: React.FC = () => {
                     </div>
                 </motion.div>
 
-                {/* Vertical Indicator */}
-                <div className="absolute bottom-12 right-12 hidden lg:flex flex-col items-center gap-6 z-20">
-                    <span className="text-[10px] font-extrabold font-heading text-white/20 rotate-90 uppercase tracking-[0.5em] mb-12">Scroll</span>
-                    <div className="w-[1px] h-20 bg-gradient-to-b from-primary to-transparent" />
-                </div>
+                <motion.div style={{ opacity: indicatorOpacity }}>
+                    <ScrollIndicator />
+                </motion.div>
             </section>
 
             {/* Features Section */}
             <section id="features" className="py-12 md:py-16 bg-white w-full">
-                <div className="w-full px-6">
+                <div className="w-full px-4 md:px-8">
                     <div className="text-center mb-8 md:mb-12">
                         <h2 className="!text-4xl md:text-4xl font-extrabold font-heading text-black uppercase leading-tight mb-4 md:mb-6">
                             Premium <span className="text-primary italic">Facilities</span>
@@ -193,11 +196,11 @@ export const Arena: React.FC = () => {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full max-w-7xl mx-auto place-items-stretch">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-screen-2xl mx-auto place-items-stretch">
                         {features.map((feature, index) => (
                             <motion.div
                                 key={index}
-                                className="group relative w-full h-full flex flex-col items-center text-center p-12 rounded-[3rem] bg-gray-50 border border-transparent hover:border-gray-100 hover:shadow-premium active:scale-[0.98] active:bg-gray-100 transition-all duration-500 min-h-[300px] justify-center"
+                                className="group relative w-full h-full flex flex-col items-center text-center p-12 rounded-xl bg-gray-50 border border-transparent hover:border-gray-100 hover:shadow-premium active:scale-[0.98] active:bg-gray-100 transition-all duration-500 min-h-[300px] justify-center"
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
@@ -221,7 +224,7 @@ export const Arena: React.FC = () => {
 
             {/* Venues Showcase */}
             <section className="py-12 md:py-16 bg-gray-50 w-full">
-                <div className="w-full max-w-7xl mx-auto px-6">
+                <div className="w-full max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
                             <h2 className="!text-4xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-6">
@@ -237,7 +240,7 @@ export const Arena: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                         {loading ? (
                             // Loading state skeleton
                             [1, 2, 3].map((i) => (
@@ -252,7 +255,7 @@ export const Arena: React.FC = () => {
 
                                 <motion.div
                                     key={venue.id}
-                                    className="bg-white overflow-hidden rounded-2xl shadow-premium hover:shadow-premium-hover transition-all duration-500 group cursor-pointer flex flex-col h-full"
+                                    className="bg-white overflow-hidden rounded-xl shadow-premium hover:shadow-premium-hover transition-all duration-500 group cursor-pointer flex flex-col h-full"
                                     initial={{ opacity: 0, y: 30 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
@@ -308,7 +311,7 @@ export const Arena: React.FC = () => {
                 <div className="absolute inset-0 bg-dark-gradient opacity-100 z-0" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(0,210,106,0.15),transparent)] pointer-events-none z-0" />
 
-                <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
+                <div className="w-full max-w-screen-2xl mx-auto relative z-10 px-4 md:px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
                             <h2 className="!text-4xl md:text-5xl font-black text-white font-heading uppercase leading-tight mb-6">
@@ -328,7 +331,7 @@ export const Arena: React.FC = () => {
                         {amenities.map((amenity, index) => (
                             <motion.div
                                 key={index}
-                                className="bg-white/[0.03] backdrop-blur-xl rounded-2xl p-4 md:p-8 border border-white/10 hover:bg-white/[0.05] hover:border-primary/30 active:bg-white/10 active:scale-[0.98] transition-all duration-500 group cursor-pointer text-center flex flex-col items-center h-full"
+                                className="bg-white/[0.03] backdrop-blur-xl rounded-xl p-4 md:p-8 border border-white/10 hover:bg-white/[0.05] hover:border-primary/30 active:bg-white/10 active:scale-[0.98] transition-all duration-500 group cursor-pointer text-center flex flex-col items-center h-full"
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
@@ -356,7 +359,7 @@ export const Arena: React.FC = () => {
                     <div className="absolute top-1/4 -left-1/4 w-[150%] h-[150%] bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent rounded-full blur-[120px]" />
                 </div>
 
-                <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
+                <div className="w-full max-w-screen-2xl mx-auto relative z-10 px-4 md:px-8">
                     <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-20">
                         {/* Left Column: Text */}
                         <div className="w-full lg:w-5/12 relative z-20">
@@ -405,7 +408,7 @@ export const Arena: React.FC = () => {
 
                                 try {
                                     const { apiClient } = await import('../api/client');
-                                    const response = await apiClient.post('/user/contact/submit', {
+                                    const response = await apiClient.post('/contact/submit', {
                                         form_type: 'arena',
                                         name: `${data.first_name} ${data.last_name}`,
                                         email: data.email,
@@ -476,7 +479,7 @@ export const Arena: React.FC = () => {
                                 <div className="pt-8">
                                     <button
                                         type="submit"
-                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-full uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95 text-lg"
+                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95 text-lg"
                                     >
                                         Send Message →
                                     </button>

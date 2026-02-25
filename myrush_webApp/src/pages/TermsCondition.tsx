@@ -1,11 +1,14 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { TopNav } from '../components/TopNav';
 import { PublicNav } from '../components/PublicNav';
 import { useAuth } from '../context/AuthContext';
+import { FaChevronLeft } from 'react-icons/fa';
 
 export const TermsCondition: React.FC = () => {
     const { isAuthenticated } = useAuth();
+    const navigate = useNavigate();
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -15,14 +18,24 @@ export const TermsCondition: React.FC = () => {
         <div className="min-h-screen bg-black text-white font-sans flex flex-col">
             {isAuthenticated ? <TopNav /> : <PublicNav />}
 
-            <main className="flex-grow pt-24 pb-16 px-6">
+            <main className="flex-grow pt-24 pb-16 px-4">
                 <div className="max-w-4xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
                     >
-                        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-primary">Terms & Conditions</h1>
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="group flex items-center gap-3 text-xs font-bold text-gray-400 hover:text-primary transition-all uppercase tracking-widest mb-8"
+                        >
+                            <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/5 transition-all shadow-sm group-active:scale-95">
+                                <FaChevronLeft className="text-[10px] group-hover:-translate-x-0.5 transition-transform" />
+                            </div>
+                            Go Back
+                        </button>
+
+                        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-primary">Terms &amp; Conditions</h1>
 
                         <div className="space-y-8 text-gray-300 leading-relaxed">
 

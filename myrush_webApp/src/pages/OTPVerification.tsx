@@ -107,11 +107,11 @@ export const OTPVerification: React.FC = () => {
     return (
         <div className="fixed inset-0 z-[200] w-screen h-screen bg-black flex items-center justify-center p-4 overflow-hidden top-0 left-0 m-0">
             <div className="absolute inset-0 z-0">
-                <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/90 to-black z-10" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/60 z-10" />
                 <img
                     src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2035"
                     alt="Background"
-                    className="w-full h-full object-cover opacity-40"
+                    className="w-full h-full object-cover opacity-70"
                 />
             </div>
 

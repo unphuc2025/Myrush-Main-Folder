@@ -1,0 +1,12 @@
+ID: f4de87f7-dd91-4a74-beeb-8eeb9fb3f564 | Name: Rush Arena - Kengeri | Active: True
+ID: cfc0df1c-07c9-486f-960e-6b15bb9e3bf5 | Name: Rush Arena BCU  | Active: True
+ID: 5a28925c-c412-4115-8e9d-657fb44fc04a | Name: Rush Arena Cooke Town | Active: True
+ID: bbdec863-c298-481a-a29b-b889207cf65d | Name: Rush Arena Railways | Active: False
+ID: a55d225c-3818-4a8d-82b5-605033040353 | Name: Rush Arena - Gateway Office parks Chennai | Active: True
+ID: 2e85dcd9-fa65-4e1d-917f-739f84785e91 | Name: Rush Arena X KheloMore GT Mall | Active: True
+ID: 040c9924-32c0-44eb-9d7f-ac7888d057e5 | Name: Rush Arena x Grid Game | Active: True
+ID: 06abcc0b-97ba-43ae-ab01-746f5b7fe527 | Name: Rush Arena Malleshwaram | Active: True
+ID: 761bf3d3-7878-4080-be38-d4be3fecc52d | Name: Rush Arena - Rajajinagar  | Active: True
+ID: 69b46e52-ca4e-4712-b02c-76c6ba4d4beb | Name: Rush Arena x Hotfut - South United GVH | Active: True
+ID: f349e9f2-2678-442f-8c21-6e49cb097d4e | Name: Rush Arena - Kasavanahalli | Active: True
+ID: f239005b-9f52-4ef8-8289-ccc25756d0e3 | Name: Rush Arena - Gunjur | Active: True

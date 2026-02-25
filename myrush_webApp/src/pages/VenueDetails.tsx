@@ -185,7 +185,7 @@ export const VenueDetailsPage: React.FC = () => {
         <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
             <TopNav />
 
-            <div className="max-w-[90%] 2xl:max-w-[1700px] mx-auto px-4 md:px-8 py-8 pt-10 md:pt-6">
+            <div className="max-w-[95%] 2xl:max-w-[1700px] mx-auto px-4 md:px-6 py-8 pt-10 md:pt-6">
                 {/* Back Button */}
                 <button
                     onClick={() => navigate('/venues')}
@@ -197,7 +197,7 @@ export const VenueDetailsPage: React.FC = () => {
                     <span className="text-sm font-medium" style={{ fontFamily: '"Inter", sans-serif' }}>Back to Venues</span>
                 </button>
 
-                <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 lg:gap-32">
+                <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 lg:gap-12">
 
                     {/* LEFT COLUMN - Venue Info */}
                     <div className="lg:col-span-3 space-y-8">
@@ -253,7 +253,7 @@ export const VenueDetailsPage: React.FC = () => {
                         )}
 
                         {/* Single flat content panel — all sections flow together */}
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
 
                             {/* About */}
                             <div className="p-8">
@@ -413,7 +413,7 @@ export const VenueDetailsPage: React.FC = () => {
                                 <div className="space-y-4 max-w-2xl">
                                     {reviews.length > 0 ? (
                                         reviews.map((review) => (
-                                            <div key={review.id} className="bg-white border border-gray-100 rounded-[28px] p-6 shadow-sm">
+                                            <div key={review.id} className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
                                                 <div className="flex justify-between items-start mb-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-11 h-11 rounded-full bg-[#EBF5FF] flex items-center justify-center text-[8px] font-bold text-[#A5C8FF] text-center px-1 leading-tight">
@@ -440,7 +440,7 @@ export const VenueDetailsPage: React.FC = () => {
                                             </div>
                                         ))
                                     ) : (
-                                        <div className="py-10 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                        <div className="py-10 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
                                             <p className="text-sm text-gray-400 font-medium">No reviews yet for this venue.</p>
                                         </div>
                                     )}

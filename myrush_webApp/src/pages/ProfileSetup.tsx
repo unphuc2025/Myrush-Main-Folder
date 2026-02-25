@@ -160,7 +160,7 @@ export const ProfileSetup: React.FC = () => {
                 </div>
 
                 {/* Card */}
-                <div className="bg-white rounded-2xl md:rounded-3xl shadow-lg shadow-gray-200/50 border border-gray-100 p-6 md:p-8 mb-6">
+                <div className="bg-white rounded-xl md:rounded-xl shadow-lg shadow-gray-200/50 border border-gray-100 p-6 md:p-8 mb-6">
 
                     {/* Phone */}
                     <div className="mb-6">
@@ -277,7 +277,7 @@ export const ProfileSetup: React.FC = () => {
                     <button
                         type="button"
                         onClick={() => navigate(-1)}
-                        className="w-full md:flex-1 h-12 md:h-14 rounded-xl md:rounded-2xl bg-white border border-gray-200 text-gray-700 font-bold text-sm uppercase tracking-wider hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm order-2 md:order-1"
+                        className="w-full md:flex-1 h-12 md:h-14 rounded-xl md:rounded-xl bg-white border border-gray-200 text-gray-700 font-bold text-sm uppercase tracking-wider hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm order-2 md:order-1"
                     >
                         Back
                     </button>
@@ -285,7 +285,7 @@ export const ProfileSetup: React.FC = () => {
                         type="button"
                         onClick={handleContinue}
                         disabled={isSaving}
-                        className="w-full md:flex-[2] h-12 md:h-14 rounded-xl md:rounded-2xl bg-black text-white font-black text-sm uppercase tracking-wider hover:bg-gray-900 transition-all disabled:opacity-70 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-0.5 order-1 md:order-2"
+                        className="w-full md:flex-[2] h-12 md:h-14 rounded-xl md:rounded-xl bg-black text-white font-black text-sm uppercase tracking-wider hover:bg-gray-900 transition-all disabled:opacity-70 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-0.5 order-1 md:order-2"
                     >
                         {isSaving ? (
                             <>

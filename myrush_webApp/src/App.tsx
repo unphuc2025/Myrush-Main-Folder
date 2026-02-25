@@ -31,6 +31,7 @@ import { Footer } from './components/Footer';
 // import { WhatsAppButton } from './components/WhatsAppButton'; // Kept for reference
 import { Chatbot } from './components/Chatbot';
 import { CustomCursor } from './components/CustomCursor';
+import { MobileNav } from './components/MobileNav';
 import './App.css';
 
 
@@ -54,12 +55,12 @@ const AppContent = () => {
     location.pathname === '/setup-profile';
 
   return (
-    <div className="flex flex-col min-h-screen relative overflow-hidden">
+    <div className="flex flex-col min-h-screen relative">
       {/* Custom Cursor */}
       <CustomCursor />
 
       {/* Global Background */}
-      <div className="fixed inset-0 z-[-1] mesh-bg opacity-40"></div>
+      <div className="fixed inset-0 z-[-1] mesh-bg opacity-40 pointer-events-none"></div>
 
       <ScrollToTop />
       <div className="flex-1 transition-all duration-300">
@@ -93,6 +94,7 @@ const AppContent = () => {
         </Routes>
       </div>
       {!shouldHideFooter && <Footer />}
+      <MobileNav />
       {/* <WhatsAppButton /> */}
       <Chatbot />
     </div>

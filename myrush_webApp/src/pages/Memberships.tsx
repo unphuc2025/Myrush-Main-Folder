@@ -98,7 +98,7 @@ export const Memberships: React.FC = () => {
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className={`p-8 rounded-3xl shadow-xl flex flex-col relative overflow-hidden ${plan.name === 'Pro Athlete' ? 'bg-black text-white border border-gray-800' : 'bg-white text-black'}`}
+                            className={`p-8 rounded-xl shadow-xl flex flex-col relative overflow-hidden ${plan.name === 'Pro Athlete' ? 'bg-black text-white border border-gray-800' : 'bg-white text-black'}`}
                         >
                             {plan.recommended && (
                                 <div className="absolute top-0 right-0 bg-primary text-black text-xs font-bold px-4 py-1 rounded-bl-xl uppercase tracking-wider">
@@ -106,7 +106,7 @@ export const Memberships: React.FC = () => {
                                 </div>
                             )}
 
-                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-6 ${plan.color} ${plan.textColor}`}>
+                            <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl mb-6 ${plan.color} ${plan.textColor}`}>
                                 {plan.name === 'Silver' && <FaStar />}
                                 {plan.name === 'Gold' && <FaCrown />}
                                 {plan.name === 'Pro Athlete' && <FaBolt />}

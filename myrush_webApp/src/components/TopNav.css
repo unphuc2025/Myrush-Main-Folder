@@ -78,13 +78,15 @@
 }
 
 .nav-link:hover {
-    background: rgba(0, 210, 106, 0.08);
+    background: transparent;
     color: var(--primary);
 }
 
 .nav-link.active {
-    background: var(--primary);
-    color: white;
+    background: transparent;
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+    border-radius: 0;
 }
 
 .nav-user-section {

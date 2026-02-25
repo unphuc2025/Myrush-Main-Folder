@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { apiClient } from '../api/client'; // Import API client
 import { Button } from '../components/ui/Button';
+import ScrollIndicator from '../components/ScrollIndicator';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { TopNav } from '../components/TopNav';
@@ -73,7 +74,7 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
             <div className="fixed inset-0 z-0 mesh-bg opacity-30 pointer-events-none"></div>
 
             <TopNav />
-            <div className="pt-32 pb-20 px-6 max-w-4xl mx-auto text-center relative z-10">
+            <div className="pt-32 pb-20 px-4 max-w-4xl mx-auto text-center relative z-10">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -88,7 +89,7 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
                         You're logged in but haven't enrolled yet. Submit your application to getting assigned a coach and batch.
                     </p>
 
-                    <div className="glass-card p-10 rounded-[2.5rem] shadow-xl max-w-xl mx-auto text-left">
+                    <div className="glass-card p-10 rounded-xl shadow-xl max-w-xl mx-auto text-left">
                         <form className="space-y-6" onSubmit={handleSubmit}>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-2">Preferred Sport</label>
@@ -141,11 +142,11 @@ const AcademyPendingView: React.FC<{ onUpgrade: () => void }> = ({ onUpgrade }) 
             <div className="fixed inset-0 z-0 mesh-bg opacity-30 pointer-events-none"></div>
 
             <TopNav />
-            <div className="pt-32 pb-20 px-6 max-w-3xl mx-auto text-center relative z-10">
+            <div className="pt-32 pb-20 px-4 max-w-3xl mx-auto text-center relative z-10">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="glass-card p-12 rounded-[3rem] shadow-xl flex flex-col items-center"
+                    className="glass-card p-12 rounded-xl shadow-xl flex flex-col items-center"
                 >
                     <div className="w-24 h-24 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center text-4xl mb-8 animate-pulse shadow-inner">
                         <FaClock />
@@ -205,7 +206,7 @@ const AcademyDashboard: React.FC = () => {
                 </div>
             </section>
 
-            <div className="-mt-20 relative z-20 px-6 max-w-7xl mx-auto pb-20">
+            <div className="-mt-20 relative z-20 px-4 md:px-8 max-w-screen-2xl mx-auto pb-20">
 
                 {/* Info Cards */}
                 {/* Info Cards */}
@@ -214,7 +215,7 @@ const AcademyDashboard: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="glass-card p-8 rounded-3xl shadow-sm flex items-start gap-4 hover:shadow-glow transition-all"
+                        className="glass-card p-8 rounded-xl shadow-sm flex items-start gap-4 hover:shadow-glow transition-all"
                     >
                         <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-sm">
                             <FaUserGraduate />
@@ -230,7 +231,7 @@ const AcademyDashboard: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="glass-card p-8 rounded-3xl shadow-sm flex items-start gap-4 hover:shadow-glow transition-all"
+                        className="glass-card p-8 rounded-xl shadow-sm flex items-start gap-4 hover:shadow-glow transition-all"
                     >
                         <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-xl shadow-sm">
                             <FaCheckCircle />
@@ -246,7 +247,7 @@ const AcademyDashboard: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="glass-card p-8 rounded-3xl shadow-sm flex items-start gap-4 hover:shadow-glow transition-all"
+                        className="glass-card p-8 rounded-xl shadow-sm flex items-start gap-4 hover:shadow-glow transition-all"
                     >
                         <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shadow-sm">
                             <FaChartLine />
@@ -261,7 +262,7 @@ const AcademyDashboard: React.FC = () => {
 
                 {/* Upcoming Classes */}
                 <h2 className="text-2xl font-black font-heading uppercase mb-6 drop-shadow-sm">Upcoming Sessions</h2>
-                <div className="glass-card rounded-3xl overflow-hidden shadow-sm">
+                <div className="glass-card rounded-xl overflow-hidden shadow-sm">
                     {[
                         { date: 'Today', time: '5:00 PM - 7:00 PM', topic: 'Technical Drills: Passing', status: 'Upcoming' },
                         { date: 'Friday, Oct 27', time: '5:00 PM - 7:00 PM', topic: 'Practice Match', status: 'Scheduled' },
@@ -290,6 +291,8 @@ const AcademyDashboard: React.FC = () => {
 
 // --- GUEST VIEW: LANDING PAGE ---
 const AcademyLanding: React.FC = () => {
+    const { scrollY } = useScroll();
+    const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
 
     const locations = [
         {
@@ -363,7 +366,7 @@ const AcademyLanding: React.FC = () => {
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-[60vh] md:h-[80vh] min-h-[500px] md:min-h-[600px] flex items-center justify-center md:justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
+            <section className="relative h-screen flex items-center justify-center md:justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
                 {/* Background Image with Deep Gradient Overlay */}
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
@@ -397,7 +400,7 @@ const AcademyLanding: React.FC = () => {
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="!text-3xl md:!text-4xl lg:!text-5xl font-extrabold font-heading text-white mb-8 md:mb-12 leading-[1.1] uppercase text-center md:text-left px-2">
+                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-extrabold font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase text-center md:text-left px-2">
                         Unlock Your Football Potential <br className="hidden md:block" />
                         with <span className="text-primary italic">Rush Academy.</span>
                     </h1>
@@ -407,7 +410,7 @@ const AcademyLanding: React.FC = () => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-sm md:text-base px-8 md:px-10 py-4 md:py-4.5 uppercase tracking-wider font-heading font-bold shadow-[0_0_20px_rgba(0,210,106,0.3)] hover:shadow-[0_0_30px_rgba(0,210,106,0.4)] w-auto"
+                            className="bg-primary text-black hover:bg-primary-hover text-sm md:text-base px-8 md:px-10 py-4 md:py-4.5 uppercase tracking-wider font-heading font-extrabold shadow-[0_0_20px_rgba(0,210,106,0.3)] hover:shadow-[0_0_30px_rgba(0,210,106,0.4)] w-auto"
                             onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Book A Free Trial Class
@@ -415,18 +418,16 @@ const AcademyLanding: React.FC = () => {
                     </div>
                 </motion.div>
 
-                {/* Vertical Indicator */}
-                <div className="absolute bottom-12 right-12 hidden lg:flex flex-col items-center gap-6 z-20">
-                    <span className="text-[10px] font-extrabold font-heading text-white/20 rotate-90 uppercase tracking-[0.5em] mb-12">Scroll</span>
-                    <div className="w-[1px] h-20 bg-gradient-to-b from-primary to-transparent" />
-                </div>
+                <motion.div style={{ opacity: indicatorOpacity }}>
+                    <ScrollIndicator />
+                </motion.div>
             </section>
 
 
 
             {/* Why Rush Academy Section */}
             <section id="why-rush" className="py-12 md:py-16 bg-white w-full">
-                <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
+                <div className="w-full max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="mb-12">
                         <h2 className="text-3xl md:text-5xl font-extrabold font-heading uppercase leading-tight text-black">
                             Why Rush Academy?
@@ -498,7 +499,7 @@ const AcademyLanding: React.FC = () => {
                 <div className="absolute inset-0 bg-dark-gradient opacity-100 z-0" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(0,210,106,0.15),transparent)] pointer-events-none z-0" />
 
-                <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
+                <div className="w-full max-w-screen-2xl mx-auto relative z-10 px-4 md:px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
                             <h2 className="!text-4xl md:text-5xl font-black text-white font-heading uppercase leading-tight mb-6">
@@ -518,7 +519,7 @@ const AcademyLanding: React.FC = () => {
                         {locations.map((location, index) => (
                             <motion.div
                                 key={index}
-                                className="bg-white/5 backdrop-blur-sm rounded-3xl p-8 border border-white/10 hover:border-primary/50 hover:bg-white/10 transition-all duration-300 group cursor-pointer flex flex-col h-full relative overflow-hidden"
+                                className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10 hover:border-primary/50 hover:bg-white/10 hover:shadow-glow hover:-translate-y-1 transition-all duration-300 group cursor-pointer flex flex-col h-full relative overflow-hidden"
                                 onClick={() => window.open(location.mapUrl, '_blank')}
                                 initial={{ opacity: 0, y: 20 }}
                                 whileInView={{ opacity: 1, y: 0 }}
@@ -528,17 +529,17 @@ const AcademyLanding: React.FC = () => {
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/30 transition-colors" />
 
                                 <div className="flex justify-between items-start mb-6 relative z-10">
-                                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg ml-auto">
+                                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full transition-all duration-300 shadow-lg ml-auto">
                                         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold text-lg">
                                             ↗
                                         </div>
                                     </div>
                                 </div>
 
-                                <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-wide group-hover:text-primary transition-colors relative z-10">
+                                <h3 className="text-2xl font-black text-primary mb-2 uppercase tracking-wide group-hover:text-primary transition-colors relative z-10">
                                     {location.name}
                                 </h3>
-                                <p className="text-sm text-gray-400 mb-8 font-medium line-clamp-2">
+                                <p className="text-sm text-white/90 mb-8 font-medium line-clamp-2">
                                     {location.address}
                                 </p>
 
@@ -563,7 +564,7 @@ const AcademyLanding: React.FC = () => {
 
             {/* The Coaches */}
             <section id="meet-the-team" className="py-12 md:py-16 bg-gray-50 w-full">
-                <div className="w-full max-w-7xl mx-auto px-6">
+                <div className="w-full max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
                             <h2 className="text-3xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-6">
@@ -576,7 +577,7 @@ const AcademyLanding: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16 lg:gap-x-20 lg:gap-y-32">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12 lg:gap-x-12 lg:gap-y-16">
                         {team.map((member, index) => (
                             <motion.div
                                 key={index}
@@ -586,7 +587,7 @@ const AcademyLanding: React.FC = () => {
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.05 }}
                             >
-                                <div className="relative mb-10 w-full aspect-square max-w-[280px] overflow-hidden rounded-3xl bg-gray-200 shadow-premium group-hover:shadow-premium-hover transition-all duration-500">
+                                <div className="relative mb-10 w-full aspect-square max-w-[280px] overflow-hidden rounded-xl bg-gray-200 shadow-premium group-hover:shadow-premium-hover transition-all duration-500">
                                     <img
                                         src={member.image}
                                         alt={member.name}
@@ -608,7 +609,7 @@ const AcademyLanding: React.FC = () => {
 
             {/* Pricing Section */}
             <section id="pricing" className="py-12 md:py-16 bg-white w-full">
-                <div className="w-full max-w-7xl mx-auto px-6">
+                <div className="w-full max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
                             <h2 className="!text-4xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-6">
@@ -621,7 +622,7 @@ const AcademyLanding: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                         {/* Quarterly Plan */}
                         <motion.div
                             className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover"
@@ -641,7 +642,7 @@ const AcademyLanding: React.FC = () => {
                                 <div className="mt-auto w-full">
                                     <Button
                                         variant="primary"
-                                        className="w-full h-14 bg-black text-white hover:bg-gray-800 font-bold uppercase tracking-widest text-sm rounded-lg"
+                                        className="w-full h-14 bg-black text-white hover:bg-gray-800 font-extrabold uppercase tracking-widest text-sm rounded-lg"
                                         onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                                     >
                                         Free Trial
@@ -674,7 +675,7 @@ const AcademyLanding: React.FC = () => {
                                 <div className="mt-auto w-full">
                                     <Button
                                         variant="primary"
-                                        className="w-full h-14 bg-black text-white hover:bg-gray-800 font-bold uppercase tracking-widest text-sm rounded-lg"
+                                        className="w-full h-14 bg-black text-white hover:bg-gray-800 font-extrabold uppercase tracking-widest text-sm rounded-lg"
                                         onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                                     >
                                         Free Trial
@@ -702,7 +703,7 @@ const AcademyLanding: React.FC = () => {
                                 <div className="mt-auto w-full">
                                     <Button
                                         variant="primary"
-                                        className="w-full h-14 bg-black text-white hover:bg-gray-800 font-bold uppercase tracking-widest text-sm rounded-lg"
+                                        className="w-full h-14 bg-black text-white hover:bg-gray-800 font-extrabold uppercase tracking-widest text-sm rounded-lg"
                                         onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                                     >
                                         Free Trial
@@ -721,7 +722,7 @@ const AcademyLanding: React.FC = () => {
                     <div className="absolute top-1/4 -left-1/4 w-[150%] h-[150%] bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent rounded-full blur-[120px]" />
                 </div>
 
-                <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
+                <div className="w-full max-w-screen-2xl mx-auto relative z-10 px-4 md:px-8">
                     <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-24 text-white">
                         <div className="w-full lg:w-5/12 relative z-20">
                             <motion.div
@@ -732,7 +733,7 @@ const AcademyLanding: React.FC = () => {
                                 <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase">
                                     Join The Elite
                                 </div>
-                                <h2 className="!text-5xl md:text-7xl lg:text-8xl font-black font-heading leading-tight mb-10 tracking-tighter uppercase italic">
+                                <h2 className="!text-5xl md:text-7xl lg:text-8xl font-extrabold font-heading leading-tight mb-10 tracking-tight uppercase">
                                     Book a Free <br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Trial Class</span>
                                 </h2>
@@ -770,7 +771,7 @@ const AcademyLanding: React.FC = () => {
 
                                 try {
                                     const { apiClient } = await import('../api/client');
-                                    const response = await apiClient.post('/user/contact/submit', {
+                                    const response = await apiClient.post('/contact/submit', {
                                         form_type: 'academy_trial',
                                         name: `Athlete: ${data.kid_first_name} ${data.kid_last_name}`,
                                         email: data.parent_email,
@@ -876,7 +877,7 @@ const AcademyLanding: React.FC = () => {
                                     <div className="pt-8">
                                         <button
                                             type="submit"
-                                            className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-full uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95"
+                                            className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95"
                                         >
                                             Send Application →
                                         </button>

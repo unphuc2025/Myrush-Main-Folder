@@ -17,10 +17,7 @@ html {
   /* Prevents font scaling on mobile */
   -moz-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-behavior: smooth;
-  overscroll-behavior-y: none;
-  height: 100%;
-  overflow-x: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -32,19 +29,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  padding-top: 4rem;
-  /* Account for fixed header (h-16 = 64px) */
-  overscroll-behavior-y: none;
-  height: 100%;
+  overflow-x: hidden;
 }
 
-/* Adjust padding for mobile header */
-@media (max-width: 767px) {
-  body {
-    padding-top: 3.5rem;
-    /* 56px for mobile header (h-14) */
-  }
-}
+/* overscroll-behavior removed — was blocking mobile scroll on iOS */
+
 
 /* Prevent font scaling and layout shifts */
 @media screen and (max-width: 768px) {
@@ -262,8 +251,8 @@ iframe {
 
   @media (min-width: 1024px) {
     .container-max {
-      padding-left: var(--space-4xl);
-      padding-right: var(--space-4xl);
+      padding-left: var(--space-3xl);
+      padding-right: var(--space-3xl);
     }
   }
 
@@ -315,7 +304,7 @@ iframe {
 
 @layer components {
   .container-full {
-    @apply w-full px-6 md:px-12 lg:px-24;
+    @apply w-full px-4 md:px-8 lg:px-12;
   }
 
   /* --- Premium Glassmorphism --- */
@@ -526,19 +515,22 @@ html {
   background: rgba(0, 0, 0, 0.3);
 }
 
-/* Prevent content jumping on scrollbar appearance */
-html {
-  overflow-x: hidden;
-}
-
-body {
-  overflow-x: hidden;
-  width: 100%;
-  position: relative;
-}
-
-/* Consistent focus styles */
+/* Consistent focus styles - Improved for accessibility without intrusive box for mouse users */
 *:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Specifically ensure buttons don't show focus outline unless using keyboard */
+button:focus {
+  outline: none;
+}
+
+button:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
@@ -564,15 +556,15 @@ body {
   }
 
   h1 {
-    font-size: var(--font-size-4xl) !important;
+    font-size: var(--font-size-6xl);
   }
 
   h2 {
-    font-size: var(--font-size-3xl) !important;
+    font-size: var(--font-size-4xl);
   }
 
   h3 {
-    font-size: var(--font-size-2xl) !important;
+    font-size: var(--font-size-3xl);
   }
 }
 
@@ -591,15 +583,15 @@ body {
   }
 
   h1 {
-    font-size: var(--font-size-3xl) !important;
+    font-size: var(--font-size-5xl);
   }
 
   h2 {
-    font-size: var(--font-size-2xl) !important;
+    font-size: var(--font-size-3xl);
   }
 
   h3 {
-    font-size: var(--font-size-xl) !important;
+    font-size: var(--font-size-2xl);
   }
 }
 
@@ -613,8 +605,8 @@ body {
 
   .container-max,
   .container-full {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
   }
 }
 

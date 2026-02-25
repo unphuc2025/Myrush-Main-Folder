@@ -6,13 +6,12 @@ import { featureFlags } from '../config/featureFlags';
 import { Button } from './ui/Button';
 
 interface TopNavProps {
-    userName?: string;
     onLogout?: () => void;
     showBackButton?: boolean;
     homeLabel?: string;
 }
 
-export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButton = false, homeLabel = 'Home' }) => {
+export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false, homeLabel = 'Home' }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const { isAuthenticated, logout } = useAuth();
@@ -21,7 +20,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
 
     return (
         <motion.nav
-            className="fixed top-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all duration-300 h-16 md:h-20"
+            className="fixed top-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all duration-300 h-20 md:h-26"
             initial={{ y: -100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -39,7 +38,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                     </button>
                 ) : (
                     <div className="cursor-pointer" onClick={() => navigate('/')}>
-                        <img src="/Rush-logo.webp" alt="MyRush" className="h-12 md:h-14 w-auto" />
+                        <img src="/Rush-logo.webp" alt="MyRush" className="h-[75px] md:h-[95px] w-auto" />
                     </div>
                 )}
 
@@ -77,25 +76,9 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                 <div className="flex items-center gap-4">
                     {isAuthenticated ? (
                         // Profile icon for authenticated users
-                        <div className="flex items-center gap-4">
-                            {/* Loyalty Points Badge */}
-                            {/* Loyalty Points Badge - Feature Flagged */}
-                            {featureFlags.enableLoyalty && (
-                                <button
-                                    onClick={() => navigate('/loyalty')}
-                                    className="hidden md:flex items-center gap-2 bg-yellow-400/10 hover:bg-yellow-400/20 px-3 py-1.5 rounded-full border border-yellow-400/30 transition-all group"
-                                >
-                                    <span className="text-yellow-600 text-sm font-black">👑 2450</span>
-                                    <span className="text-[10px] uppercase font-bold text-gray-500 group-hover:text-black">Pts</span>
-                                </button>
-                            )}
-                            {userName && (
-                                <span className="hidden md:block text-sm font-semibold text-black">
-                                    Hello, <span className="text-primary">{userName}</span>
-                                </span>
-                            )}
+                        <div className="flex items-center gap-3">
                             <button
-                                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all hover:shadow-md"
+                                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all hover:shadow-md border border-gray-100"
                                 onClick={() => navigate('/profile')}
                                 title="Go to Profile"
                             >
@@ -105,7 +88,7 @@ export const TopNav: React.FC<TopNavProps> = ({ userName, onLogout, showBackButt
                                 </svg>
                             </button>
                             <button
-                                className="bg-gray-100 hover:bg-gray-200 text-black px-4 py-2 rounded-full text-sm font-bold transition-all hover:shadow-md"
+                                className="hidden md:block bg-gray-100 hover:bg-gray-200 text-black px-4 py-2 rounded-[7.5px] text-sm font-bold transition-all hover:shadow-md"
                                 onClick={onLogout || logout}
                             >
                                 Logout

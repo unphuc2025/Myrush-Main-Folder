@@ -3,11 +3,11 @@ import { FaInstagram, FaYoutube, FaLinkedin } from 'react-icons/fa';
 
 export const Footer: React.FC = () => {
     return (
-        <footer className="bg-zinc-900 border-t border-white/10 py-3 md:py-4 w-full px-6">
-            <div className="max-w-7xl mx-auto">
+        <footer className="bg-zinc-900 border-t border-white/10 py-8 md:py-12 w-full">
+            <div className="w-full px-6 md:px-12 lg:px-24">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3 text-white text-sm">
                     <div className="col-span-1 md:col-span-2">
-                        <img src="/Rush-logo.webp" alt="Rush" className="h-24 mb-3 object-contain" />
+                        <img src="/Rush-logo.webp" alt="Rush" className="h-32 mb-4 object-contain" />
                         <p className="max-w-xl mb-4 text-sm leading-relaxed text-gray-400">
                             The premier destination for sports enthusiasts. Book world-class venues, join elite academies, and compete in high-stakes tournaments.
                         </p>

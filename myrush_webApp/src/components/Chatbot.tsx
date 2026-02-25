@@ -257,7 +257,7 @@ export const Chatbot: React.FC = () => {
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="fixed bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[80vh] bg-white rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden border border-gray-100 font-sans"
+                        className="fixed bottom-[120px] md:bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[80vh] bg-white rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden border border-gray-100 font-sans"
                     >
                         {/* Header */}
                         <div className="bg-primary p-4 flex justify-between items-center text-white shadow-md">
@@ -384,7 +384,7 @@ export const Chatbot: React.FC = () => {
 
             {/* Toggle */}
             <motion.button
-                className="fixed bottom-6 right-6 z-[9999] bg-primary text-white p-4 rounded-full shadow-lg shadow-primary/30 hover:shadow-xl transition-all flex items-center justify-center group"
+                className="fixed bottom-28 md:bottom-6 right-6 z-[9999] bg-primary text-white p-4 rounded-full shadow-lg shadow-primary/30 hover:shadow-xl transition-all flex items-center justify-center group"
                 onClick={() => setIsOpen(!isOpen)}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}

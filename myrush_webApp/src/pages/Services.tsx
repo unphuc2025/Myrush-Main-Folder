@@ -29,9 +29,9 @@ export const Services: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: i * 0.1 }}
-                            className="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl transition-all border border-gray-100 flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6"
+                            className="bg-white p-6 md:p-8 rounded-xl md:rounded-xl shadow-sm hover:shadow-xl transition-all border border-gray-100 flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6"
                         >
-                            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-3xl shrink-0">
+                            <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center text-3xl shrink-0">
                                 {service.icon}
                             </div>
                             <div>

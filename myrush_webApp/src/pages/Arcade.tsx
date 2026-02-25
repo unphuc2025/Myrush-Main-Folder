@@ -294,9 +294,9 @@ export const Arcade: React.FC = () => {
                             whileHover={{ scale: 1.05, translateY: -10 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => setGameState('reaction')}
-                            className="bg-zinc-900 border border-zinc-800 p-6 md:p-8 rounded-2xl md:rounded-3xl group hover:border-primary/50 transition-all text-left"
+                            className="bg-zinc-900 border border-zinc-800 p-6 md:p-8 rounded-xl md:rounded-xl group hover:border-primary/50 transition-all text-left"
                         >
-                            <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl mb-4 md:mb-6 text-primary group-hover:scale-110 transition-transform">
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-xl flex items-center justify-center text-2xl md:text-3xl mb-4 md:mb-6 text-primary group-hover:scale-110 transition-transform">
                                 <FaBolt />
                             </div>
                             <h3 className="text-2xl md:text-3xl font-black uppercase font-heading mb-2">Net Reflexes</h3>
@@ -307,9 +307,9 @@ export const Arcade: React.FC = () => {
                             whileHover={{ scale: 1.05, translateY: -10 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => { setGameState('rally'); setRallyState('idle'); }}
-                            className="bg-zinc-900 border border-zinc-800 p-6 md:p-8 rounded-2xl md:rounded-3xl group hover:border-yellow-500/50 transition-all text-left"
+                            className="bg-zinc-900 border border-zinc-800 p-6 md:p-8 rounded-xl md:rounded-xl group hover:border-yellow-500/50 transition-all text-left"
                         >
-                            <div className="w-12 h-12 md:w-16 md:h-16 bg-yellow-500/10 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl mb-4 md:mb-6 text-yellow-500 group-hover:scale-110 transition-transform">
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-yellow-500/10 rounded-xl flex items-center justify-center text-2xl md:text-3xl mb-4 md:mb-6 text-yellow-500 group-hover:scale-110 transition-transform">
                                 <span className="text-xl md:text-2xl">🏓</span>
                             </div>
                             <h3 className="text-2xl md:text-3xl font-black uppercase font-heading mb-2">Wall Rally</h3>
@@ -438,7 +438,7 @@ export const Arcade: React.FC = () => {
                             <motion.div
                                 key="result"
                                 initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }}
-                                className="text-center p-12 bg-black/80 backdrop-blur-xl rounded-[3rem] border border-white/10"
+                                className="text-center p-12 bg-black/80 backdrop-blur-xl rounded-xl border border-white/10"
                             >
                                 <p className="text-gray-400 font-bold uppercase tracking-widest mb-2">Reaction Time</p>
                                 <h2 className="text-8xl font-black font-heading text-primary mb-6">{score} <span className="text-2xl text-gray-500">ms</span></h2>

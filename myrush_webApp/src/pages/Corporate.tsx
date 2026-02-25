@@ -1,7 +1,9 @@
 import React from 'react';
 import { PublicNav } from '../components/PublicNav';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '../components/ui/Button';
+import { apiClient } from '../api/client';
+import ScrollIndicator from '../components/ScrollIndicator';
 
 
 export const Corporate: React.FC = () => {
@@ -45,24 +47,27 @@ export const Corporate: React.FC = () => {
         'https://www.youtube.com/embed/7Q3SCKcmtSI'
     ];
 
+    const { scrollY } = useScroll();
+    const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+
     return (
         <div className="min-h-screen bg-white font-sans selection:bg-primary selection:text-black">
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-[65vh] md:h-[75vh] min-h-[500px] md:min-h-[600px] flex items-center justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
+            <section className="relative h-screen flex items-center justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
                 <div className="absolute inset-0 z-0">
                     <div className="absolute inset-0 bg-gradient-to-r from-black via-black/60 to-transparent z-10" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
                     <img
-                        src="/Cooredinatepage.png"
-                        alt="Corporate Events"
-                        className="w-full h-full object-cover opacity-70 scale-100"
+                        src="https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/205f2470-1857-443f-bd1f-f3d0f64de382/CBAF3FB3-63F5-4A4C-B207-0BA78B372072.jpeg"
+                        alt="Corporate Sports Excellence"
+                        className="w-full h-full object-cover opacity-60 scale-105"
                     />
                 </div>
 
                 <motion.div
-                    className="relative z-20 text-left w-full max-w-5xl py-32"
+                    className="relative z-20 text-left w-full max-w-5xl pt-40 pb-32"
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
@@ -84,15 +89,15 @@ export const Corporate: React.FC = () => {
                         Through Sports
                     </h1>
 
-                    <p className="text-white/70 text-base md:text-xl max-w-2xl mb-12 leading-relaxed font-light">
+                    <p className="text-white/70 text-sm md:text-xl max-w-2xl mb-12 leading-relaxed font-light">
                         Elevate productivity, foster collaboration, and build lasting bonds with our bespoke corporate sports engagement solutions.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-4 md:gap-6">
+                    <div className="flex flex-col sm:flex-row items-start justify-start gap-4 md:gap-6">
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-base px-8 md:px-10 py-4 md:py-4.5 uppercase tracking-wider font-heading font-bold shadow-glow hover:shadow-glow-strong rounded-xl"
+                            className="bg-primary text-black hover:bg-primary-hover text-sm md:text-base px-6 md:px-10 py-3 md:py-4.5 uppercase tracking-wider font-heading font-bold shadow-glow hover:shadow-glow-strong rounded-xl w-1/2 sm:w-auto"
                             onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Enquire Now
@@ -100,15 +105,14 @@ export const Corporate: React.FC = () => {
                     </div>
                 </motion.div>
 
-                <div className="absolute bottom-12 right-12 hidden lg:flex flex-col items-center gap-6 z-20">
-                    <span className="text-[10px] font-extrabold font-heading text-white/20 rotate-90 uppercase tracking-[0.5em] mb-12">Scroll</span>
-                    <div className="w-[1px] h-20 bg-gradient-to-b from-primary to-transparent" />
-                </div>
+                <motion.div style={{ opacity: indicatorOpacity }}>
+                    <ScrollIndicator />
+                </motion.div>
             </section>
 
             {/* Benefits Section */}
             <section className="py-20 md:py-32 bg-gray-50">
-                <div className="max-w-7xl mx-auto px-6">
+                <div className="max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
                         <div className="max-w-3xl">
                             <motion.span
@@ -127,11 +131,11 @@ export const Corporate: React.FC = () => {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {benefits.map((benefit, index) => (
                             <motion.div
                                 key={index}
-                                className="group relative overflow-hidden bg-white rounded-[2rem] shadow-premium hover:shadow-premium-hover transition-all duration-500 flex flex-col h-full border border-gray-100"
+                                className="group relative overflow-hidden bg-white rounded-xl shadow-premium hover:shadow-premium-hover transition-all duration-500 flex flex-col h-full border border-gray-100"
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
@@ -162,7 +166,7 @@ export const Corporate: React.FC = () => {
 
             {/* Video Section */}
             <section className="py-24 md:py-32 bg-white">
-                <div className="max-w-7xl mx-auto px-6">
+                <div className="max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="text-center mb-20">
                         <motion.span
                             initial={{ opacity: 0 }}
@@ -175,11 +179,11 @@ export const Corporate: React.FC = () => {
                             In Action: <span className="text-primary italic">Watch Our Videos</span>
                         </h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                         {videos.map((video, idx) => (
                             <motion.div
                                 key={idx}
-                                className="aspect-video bg-black rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-premium hover:shadow-premium-hover transition-all duration-500 relative group"
+                                className="aspect-video bg-black rounded-xl md:rounded-xl overflow-hidden shadow-premium hover:shadow-premium-hover transition-all duration-500 relative group"
                                 initial={{ opacity: 0, y: 20 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
@@ -206,7 +210,7 @@ export const Corporate: React.FC = () => {
                     <div className="absolute top-1/4 -right-1/4 w-[120%] h-[120%] bg-gradient-to-bl from-primary/20 via-primary/5 to-transparent rounded-full blur-[120px]" />
                 </div>
 
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
+                <div className="max-w-screen-2xl mx-auto px-4 md:px-8 relative z-10">
                     <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-20">
                         {/* Left Column: Text */}
                         <div className="w-full lg:w-5/12 relative z-20 text-white">
@@ -254,8 +258,7 @@ export const Corporate: React.FC = () => {
                                 };
 
                                 try {
-                                    const { apiClient } = await import('../api/client');
-                                    const response = await apiClient.post('/user/contact/submit', {
+                                    const response = await apiClient.post('/contact/submit', {
                                         form_type: 'corporate',
                                         name: `${data.first_name} ${data.last_name}`,
                                         email: data.email,
@@ -349,11 +352,11 @@ export const Corporate: React.FC = () => {
                                     />
                                 </div>
 
-                                <div className="pt-8">
+                                <div className="pt-8 flex justify-start">
                                     <Button
                                         variant="primary"
                                         type="submit"
-                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-full uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95 text-lg"
+                                        className="w-1/2 md:w-auto px-8 md:px-12 py-3 md:py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95 text-base md:text-lg"
                                     >
                                         Send Message →
                                     </Button>
@@ -363,6 +366,6 @@ export const Corporate: React.FC = () => {
                     </div>
                 </div>
             </section>
-        </div>
+        </div >
     );
 };

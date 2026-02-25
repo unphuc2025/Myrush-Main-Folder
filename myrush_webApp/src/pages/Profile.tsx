@@ -269,7 +269,7 @@ export const Profile: React.FC = () => {
                         {/* Profile Overview */}
                         <motion.div
                             whileHover={{ scale: 1.02 }}
-                            className="bg-gradient-to-r from-primary to-blue-500 rounded-2xl p-4 text-white mb-4 lg:mb-6"
+                            className="bg-gradient-to-r from-primary to-blue-500 rounded-xl p-4 text-white mb-4 lg:mb-6"
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 rounded-full flex items-center justify-center text-lg font-bold">
@@ -369,13 +369,13 @@ export const Profile: React.FC = () => {
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.4, duration: 0.6 }}
-                                        className="bg-white rounded-3xl p-6 md:p-8 border-2 border-gray-100 relative overflow-hidden group shadow-sm hover:shadow-md transition-all"
+                                        className="bg-white rounded-xl p-6 md:p-8 border-2 border-gray-100 relative overflow-hidden group shadow-sm hover:shadow-md transition-all"
                                     >
                                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                                             <FaUser size={120} />
                                         </div>
                                         <div className="flex items-center gap-4 mb-8 relative z-10">
-                                            <div className="w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg text-white text-xl">
+                                            <div className="w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-xl flex items-center justify-center shadow-lg text-white text-xl">
                                                 <FaUser />
                                             </div>
                                             <h2 className="text-2xl font-bold text-gray-900">Personal Info</h2>
@@ -414,13 +414,13 @@ export const Profile: React.FC = () => {
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.5, duration: 0.6 }}
-                                        className="bg-white rounded-3xl p-6 md:p-8 border-2 border-gray-100 relative overflow-hidden group shadow-sm hover:shadow-md transition-all"
+                                        className="bg-white rounded-xl p-6 md:p-8 border-2 border-gray-100 relative overflow-hidden group shadow-sm hover:shadow-md transition-all"
                                     >
                                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                                             <FaTrophy size={120} />
                                         </div>
                                         <div className="flex items-center gap-4 mb-8 relative z-10">
-                                            <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center shadow-lg text-white text-xl">
+                                            <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center shadow-lg text-white text-xl">
                                                 <FaTrophy />
                                             </div>
                                             <h2 className="text-2xl font-bold text-gray-900">Sports Profile</h2>
@@ -480,7 +480,7 @@ export const Profile: React.FC = () => {
                                     </h2>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                        <div className="glass-card rounded-2xl p-6 hover:shadow-glow transition-all cursor-default">
+                                        <div className="glass-card rounded-xl p-6 hover:shadow-glow transition-all cursor-default">
                                             <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Bookings</p>
                                             <div className="flex justify-between items-end">
                                                 <p className="text-4xl font-black text-gray-900">{stats.bookings}</p>
@@ -488,7 +488,7 @@ export const Profile: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <div className="glass-card rounded-2xl p-6 hover:shadow-glow transition-all cursor-default">
+                                        <div className="glass-card rounded-xl p-6 hover:shadow-glow transition-all cursor-default">
                                             <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Games Played</p>
                                             <div className="flex justify-between items-end">
                                                 <p className="text-4xl font-black text-gray-900">{stats.gamesPlayed}</p>
@@ -563,7 +563,7 @@ export const Profile: React.FC = () => {
                                             <motion.div
                                                 initial={{ opacity: 0, y: 20 }}
                                                 animate={{ opacity: 1, y: 0 }}
-                                                className="bg-white rounded-2xl border-2 border-gray-200 p-12 text-center"
+                                                className="bg-white rounded-xl border-2 border-gray-200 p-12 text-center"
                                             >
                                                 <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                                                     <FaStar className="text-4xl text-gray-400" />
@@ -585,7 +585,7 @@ export const Profile: React.FC = () => {
                                                         initial={{ opacity: 0, y: 20 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ delay: index * 0.1, duration: 0.6 }}
-                                                        className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                                                        className="bg-white rounded-xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow"
                                                     >
                                                         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                                                             <div className="flex-1">
@@ -669,7 +669,7 @@ export const Profile: React.FC = () => {
                                                         initial={{ opacity: 0, y: 20 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ delay: index * 0.1, duration: 0.6 }}
-                                                        className="bg-white rounded-2xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                                                        className="bg-white rounded-xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow"
                                                     >
                                                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                                                             <div className="flex-1">
@@ -873,7 +873,7 @@ export const Profile: React.FC = () => {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3 }}
-                        className="bg-white rounded-2xl border-2 border-gray-200 p-6 max-w-md w-full"
+                        className="bg-white rounded-xl border-2 border-gray-200 p-6 max-w-md w-full"
                     >
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">

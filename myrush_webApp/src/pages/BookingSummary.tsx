@@ -205,7 +205,7 @@ export const BookingSummary: React.FC = () => {
         <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
             <TopNav />
 
-            <div className="pt-10 max-w-7xl mx-auto px-4 md:px-8">
+            <div className="pt-10 max-w-screen-2xl mx-auto px-4 md:px-8">
                 <header className="mb-8 text-center lg:text-left">
                     <button
                         onClick={() => navigate(-1)}
@@ -222,7 +222,7 @@ export const BookingSummary: React.FC = () => {
                     <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-2">Re-verify your booking details below</p>
                 </header>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                     {/* LEFT COLUMN: Verification Details */}
                     <div className="lg:col-span-2 space-y-8">
                         {/* Main Spotlight Card */}
@@ -272,7 +272,7 @@ export const BookingSummary: React.FC = () => {
                         </div>
 
                         {/* Slot and Player Verification */}
-                        <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-gray-100">
+                        <div className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-gray-100">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 border-b border-gray-100 pb-8">
                                 <div>
                                     <h3 className="text-lg font-bold uppercase tracking-tight">Booking Details</h3>
@@ -318,7 +318,7 @@ export const BookingSummary: React.FC = () => {
                     {/* RIGHT COLUMN: Financial Summary */}
                     <div className="lg:col-span-1">
                         <div className="static lg:sticky lg:top-28 space-y-6">
-                            <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-xl border border-gray-100 relative overflow-hidden">
+                            <div className="bg-white rounded-xl p-5 sm:p-8 shadow-xl border border-gray-100 relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-400"></div>
                                 <h3 className="text-lg font-semibold uppercase mb-8 flex items-center gap-2 text-gray-800">
                                     Reservation Summary <span className="text-xs font-medium text-gray-400">({state.selectedSlots.length} Slots)</span>
@@ -410,7 +410,7 @@ export const BookingSummary: React.FC = () => {
                                                                     setTimeout(() => handleApplyCoupon(), 100);
                                                                 }
                                                             }}
-                                                            className={`group relative overflow-hidden bg-white border rounded-2xl p-4 transition-all cursor-pointer hover:shadow-md ${isApplied
+                                                            className={`group relative overflow-hidden bg-white border rounded-xl p-4 transition-all cursor-pointer hover:shadow-md ${isApplied
                                                                 ? 'border-primary ring-1 ring-primary/20 bg-primary/[0.02]'
                                                                 : 'border-gray-100'}`}
                                                         >
@@ -462,14 +462,14 @@ export const BookingSummary: React.FC = () => {
                                     )}
 
                                     {loadingCoupons && (
-                                        <div className="mt-8 flex flex-col items-center justify-center py-6 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                                        <div className="mt-8 flex flex-col items-center justify-center py-6 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
                                             <div className="w-6 h-6 border-3 border-primary border-t-transparent rounded-full animate-spin mb-3"></div>
                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Finding the best offers...</p>
                                         </div>
                                     )}
 
                                     {!loadingCoupons && availableCoupons.length === 0 && (
-                                        <div className="mt-8 p-6 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+                                        <div className="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-100 text-center">
                                             <FaTicketAlt className="mx-auto text-gray-200 text-2xl mb-2 opacity-50" />
                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No active coupons available</p>
                                         </div>

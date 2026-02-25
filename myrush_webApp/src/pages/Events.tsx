@@ -126,7 +126,7 @@ export const Events: React.FC = () => {
             </section>
 
             {/* Filters */}
-            <section className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 py-4 px-6 md:px-12">
+            <section className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 py-4 px-4 md:px-6">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-4 md:pb-0 scrollbar-hide px-2">
                         <span className="text-gray-400 mr-2 flex items-center gap-1 text-[10px] md:text-sm font-bold uppercase tracking-wider"><FaFilter /> Filter:</span>
@@ -160,7 +160,7 @@ export const Events: React.FC = () => {
             </section>
 
             {/* Events Grid */}
-            <section className="py-12 px-6 md:px-12 max-w-7xl mx-auto">
+            <section className="py-12 px-4 md:px-6 max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {filteredEvents.map((event, i) => (
                         <motion.div
@@ -168,7 +168,7 @@ export const Events: React.FC = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.1 }}
-                            className="bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group border border-gray-100"
+                            className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group border border-gray-100"
                         >
                             {/* Image & Overlay */}
                             <div className="relative h-60 overflow-hidden">

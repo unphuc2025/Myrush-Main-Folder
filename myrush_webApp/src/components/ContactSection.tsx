@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from './ui/Button';
+import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../api/client';
 import rushEventImg from '../assets/Rush-Event.jpg';
 
 export const ContactSection: React.FC = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -18,8 +21,7 @@ export const ContactSection: React.FC = () => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            const { apiClient } = await import('../api/client');
-            const response = await apiClient.post('/user/contact/submit', {
+            const response = await apiClient.post('/contact/submit', {
                 form_type: 'landing',
                 name: `${formData.firstName} ${formData.lastName}`,
                 email: formData.email,
@@ -44,130 +46,166 @@ export const ContactSection: React.FC = () => {
     const labelClasses = "block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2";
 
     return (
-        <section className="relative bg-black overflow-hidden min-h-screen flex flex-col md:flex-row border-t border-white/10 pb-20 md:pb-0">
-            {/* Left Column: Form Section */}
-            <div className="flex-1 relative z-10 px-6 py-16 md:py-24 md:px-16 lg:px-24 flex flex-col justify-center">
+        <section className="relative bg-black overflow-hidden flex flex-col pt-24">
+            {/* UNCOUCH CTA INTEGRATION */}
+            <div className="relative z-10 max-w-screen-2xl mx-auto flex flex-col items-center text-center px-4 md:px-8 mb-24">
+                <motion.h2
+                    className="text-5xl sm:text-7xl md:text-9xl font-black text-white font-heading italic mb-8 leading-none"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.8 }}
+                >
+                    UNCOUCH.
+                </motion.h2>
 
-                {/* Background Glow */}
-                <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-                    <div className="absolute top-1/4 -left-1/4 w-[150%] h-[150%] bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent rounded-full blur-[120px]" />
-                </div>
-
-                <div className="relative z-10">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.8 }}
-                        className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-[10px] font-bold text-primary tracking-[0.2em] uppercase"
+                <motion.div
+                    className="w-full max-w-4xl mx-auto mb-12 rounded-2xl overflow-hidden shadow-glow border border-white/10"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                >
+                    <video
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        className="w-full h-full object-cover"
                     >
-                        Get In Touch
-                    </motion.div>
+                        <source src="/venue-assets/Rush Video.mp4" type="video/mp4" />
+                        Your browser does not support the video tag.
+                    </video>
+                </motion.div>
 
-                    <motion.h2
-                        className="text-5xl md:text-6xl lg:text-8xl font-black font-heading leading-none mb-12 tracking-tighter text-white uppercase italic"
-                        initial={{ opacity: 0, x: -50 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.8 }}
-                    >
-                        CONTACT <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">US</span>
-                    </motion.h2>
-
-                    <form onSubmit={handleSubmit} className="space-y-6 max-w-xl">
-                        {/* Name Field */}
-                        <div className="space-y-2">
-                            <label className={labelClasses}>Full Name</label>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <input
-                                    type="text"
-                                    placeholder="First Name"
-                                    required
-                                    className={inputClasses}
-                                    value={formData.firstName}
-                                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="Last Name"
-                                    required
-                                    className={inputClasses}
-                                    value={formData.lastName}
-                                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Email Field */}
-                        <div className="space-y-2">
-                            <label className={labelClasses}>Email Address</label>
-                            <input
-                                type="email"
-                                placeholder="example@email.com"
-                                required
-                                className={inputClasses}
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            />
-                        </div>
-
-                        {/* Phone Field */}
-                        <div className="space-y-2">
-                            <label className={labelClasses}>Phone Number</label>
-                            <input
-                                type="tel"
-                                placeholder="+91 00000 00000"
-                                className={inputClasses}
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            />
-                        </div>
-
-                        {/* Service Interest Field */}
-                        <div className="space-y-2 relative">
-                            <label className={labelClasses}>Service Interest</label>
-                            <div className="relative">
-                                <select
-                                    className={`${inputClasses} appearance-none cursor-pointer [&>option]:bg-black [&>option]:text-white`}
-                                    value={formData.service}
-                                    onChange={(e) => setFormData({ ...formData, service: e.target.value })}
-                                >
-                                    <option value="Academy">Rush Academy</option>
-                                    <option value="Arena">Rush Arena</option>
-                                    <option value="Corporate">Corporate Events</option>
-                                    <option value="Events">Private Events</option>
-                                    <option value="Tournaments">Tournaments</option>
-                                </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="pt-8">
-                            <Button
-                                type="submit"
-                                variant="primary"
-                                disabled={isSubmitting}
-                                size="lg"
-                                icon={<span className="ml-2">→</span>}
-                                className="w-full md:w-auto px-12 py-5 rounded-full uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong"
-                            >
-                                {isSubmitting ? 'Sending...' : 'Send Message'}
-                            </Button>
-                        </div>
-                    </form>
-                </div>
+                <p className="text-gray-400 text-lg md:text-3xl mb-12 font-light max-w-4xl mx-auto leading-relaxed text-center">
+                    <span className="text-white font-medium">Start playing today. Join thousands of players in the Rush community today.</span>
+                </p>
             </div>
 
-            {/* Right Column: Image */}
-            <div className="hidden md:block flex-1 relative min-h-full">
-                <div className="absolute inset-0 bg-gradient-to-r from-black via-black/20 to-transparent z-10" />
-                <img
-                    src={rushEventImg}
-                    alt="Rush Event"
-                    className="absolute inset-0 w-full h-full object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-700"
-                />
+            <div className="flex flex-col md:flex-row pb-20 md:pb-0 relative z-10 border-t border-white/5">
+                {/* Left Column: Form Section */}
+                <div className="flex-1 relative z-10 px-4 py-16 md:py-24 md:px-8 lg:px-12 flex flex-col justify-center">
+
+                    {/* Background Glow */}
+                    <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
+                        <div className="absolute top-1/4 -left-1/4 w-[150%] h-[150%] bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent rounded-full blur-[120px]" />
+                    </div>
+
+                    <div className="relative z-10">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.8 }}
+                            className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-[10px] font-bold text-primary tracking-[0.2em] uppercase"
+                        >
+                            Get In Touch
+                        </motion.div>
+
+                        <motion.h2
+                            className="text-5xl md:text-6xl lg:text-8xl font-extrabold font-heading leading-none mb-12 tracking-tight text-white uppercase pr-4"
+                            initial={{ opacity: 0, x: -50 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.8 }}
+                        >
+                            CONTACT <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">US</span>
+                        </motion.h2>
+
+                        <form onSubmit={handleSubmit} className="space-y-6 max-w-xl">
+                            {/* Name Field */}
+                            <div className="space-y-2">
+                                <label className={labelClasses}>Full Name</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <input
+                                        type="text"
+                                        placeholder="First Name"
+                                        required
+                                        className={inputClasses}
+                                        value={formData.firstName}
+                                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Last Name"
+                                        required
+                                        className={inputClasses}
+                                        value={formData.lastName}
+                                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Email Field */}
+                            <div className="space-y-2">
+                                <label className={labelClasses}>Email Address</label>
+                                <input
+                                    type="email"
+                                    placeholder="example@email.com"
+                                    required
+                                    className={inputClasses}
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Phone Field */}
+                            <div className="space-y-2">
+                                <label className={labelClasses}>Phone Number</label>
+                                <input
+                                    type="tel"
+                                    placeholder="+91 00000 00000"
+                                    className={inputClasses}
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Service Interest Field */}
+                            <div className="space-y-2 relative">
+                                <label className={labelClasses}>Service Interest</label>
+                                <div className="relative">
+                                    <select
+                                        className={`${inputClasses} appearance-none cursor-pointer [&>option]:bg-black [&>option]:text-white`}
+                                        value={formData.service}
+                                        onChange={(e) => setFormData({ ...formData, service: e.target.value })}
+                                    >
+                                        <option value="Academy">Rush Academy</option>
+                                        <option value="Arena">Rush Arena</option>
+                                        <option value="Corporate">Corporate Events</option>
+                                        <option value="Events">Private Events</option>
+                                        <option value="Tournaments">Tournaments</option>
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-8">
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    disabled={isSubmitting}
+                                    size="lg"
+                                    icon={<span className="ml-2">→</span>}
+                                    className="w-full md:w-auto px-12 py-5 rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong"
+                                >
+                                    {isSubmitting ? 'Sending...' : 'Send Message'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                {/* Right Column: Image */}
+                <div className="hidden md:block flex-1 relative min-h-full">
+                    <div className="absolute inset-0 bg-gradient-to-r from-black via-black/20 to-transparent z-10" />
+                    <img
+                        src={rushEventImg}
+                        alt="Rush Event"
+                        className="absolute inset-0 w-full h-full object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-700"
+                    />
+                </div>
             </div>
         </section>
     );

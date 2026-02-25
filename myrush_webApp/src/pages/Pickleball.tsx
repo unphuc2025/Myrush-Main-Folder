@@ -1,29 +1,36 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../api/client';
 import { Button } from '../components/ui/Button';
 import { PublicNav } from '../components/PublicNav';
+import ScrollIndicator from '../components/ScrollIndicator';
 import pickleballHero from '../assets/image copy.png';
 
 export const Pickleball: React.FC = () => {
+    const navigate = useNavigate();
 
     const locations = [
         {
             name: 'Rush Arena, Cooke Town',
-            image: '/venue-assets/cooke-town.webp', // Placeholder, using what I can or generic
+            image: '/venue-assets/cooke-town.webp',
             description: "Located at the heart of East Bengaluru, our facility at Rush Arena Cooke Town is excited to introduce four state-of-the-art pickleball courts, launching in September '24. Designed with top-quality surfaces and professional lighting, our courts provide the perfect setting for both casual play and competitive matches. Whether you're a seasoned player or new to the sport, our dedicated pickleball area offers a premier experience for all enthusiasts. Join us from 6 AM to 11 PM and enjoy the thrill of the game in a welcoming and vibrant environment.",
-            link: '/venues/cooke-town'
+            link: '/venues/cooke-town',
+            mapUrl: 'https://maps.app.goo.gl/4e8L2MFg7EXm6Hh38'
         },
         {
             name: 'Rush Arena, Divyasree Omega, Kondapur, Hyderabad',
-            image: '/venue-assets/gachibowli.webp', // Placeholder
+            image: '/venue-assets/gachibowli.webp',
             description: "Located in the bustling area of Kondapur, Rush Arena Divyasree Omega is proud to offer top-tier pickleball courts designed for enthusiasts of all levels. Our facility boasts high-quality surfaces and professional lighting, ensuring an exceptional playing experience whether you're here for a casual game or competitive play. With a welcoming atmosphere and modern amenities, Rush Arena Divyasree Omega is the perfect destination for pickleball enthusiasts in Hyderabad. Join us to experience the excitement and camaraderie of this fast-growing sport in a state-of-the-art environment.",
-            link: '/venues/gachibowli'
+            link: '/venues/gachibowli',
+            mapUrl: 'https://maps.app.goo.gl/vNDSnKjxMYzu3WL2A'
         },
         {
             name: 'Rush Arena Tambaram, Chennai',
-            image: '/venue-assets/whitefield.webp', // Placeholder
+            image: '/venue-assets/whitefield.webp',
             description: "Located in the lively neighborhood of Tambaram, Chennai, Rush Arena offers a premier pickleball experience. Our facility features state-of-the-art pickleball courts with top-quality surfaces and professional lighting, providing an ideal setting for players of all skill levels. Whether you're looking to enjoy a casual game or engage in competitive play, our courts are designed to deliver an exceptional experience. Rush Arena Tambaram is a welcoming and vibrant space, perfect for pickleball enthusiasts in Chennai. Join us and be part of the exciting pickleball community in the city.",
-            link: '/venues/whitefield'
+            link: '/venues/whitefield',
+            mapUrl: 'https://www.google.com/maps/search/?api=1&query=Rush+Arena+Tambaram+Chennai'
         }
     ];
 
@@ -50,12 +57,15 @@ export const Pickleball: React.FC = () => {
         }
     ];
 
+    const { scrollY } = useScroll();
+    const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+
     return (
         <div className="min-h-screen bg-white font-sans selection:bg-primary selection:text-black">
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-[60vh] md:h-[80vh] min-h-[500px] md:min-h-[600px] flex items-center justify-center overflow-hidden">
+            <section className="relative h-screen flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 z-0">
                     <img
                         src={pickleballHero}
@@ -66,28 +76,34 @@ export const Pickleball: React.FC = () => {
                 </div>
 
                 <div className="relative z-10 text-center max-w-5xl mx-auto px-4 md:px-6">
-                    <h1 className="text-2xl md:text-5xl font-extrabold text-white font-heading uppercase leading-[1.1] mb-8 md:mb-12">
-                        Join the <span className="text-primary italic">Pickleball Revolution</span> at<br className="hidden md:block" />Rush Arenas
+                    <h1 className="!text-[48px] md:!text-5xl lg:!text-7xl text-white font-extrabold font-heading uppercase leading-[1.05] tracking-tighter mb-8 md:mb-12">
+                        Join the <br className="block md:hidden" />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Pickleball Revolution</span>
+                        <br className="block md:hidden" /> at <br className="hidden md:block" />Rush Arenas
                     </h1>
                     <Button
                         variant="primary"
                         size="lg"
                         className="bg-primary text-black hover:bg-primary-hover text-base px-8 md:px-10 py-4 md:py-4.5 uppercase tracking-wider font-heading font-bold shadow-[0_0_20px_rgba(0,210,106,0.3)] hover:shadow-[0_0_30px_rgba(0,210,106,0.4)] rounded-xl"
-                        onClick={() => document.getElementById('locations')?.scrollIntoView({ behavior: 'smooth' })}
+                        onClick={() => navigate('/venues?sport=Pickleball')}
                     >
                         Book A Court
                     </Button>
                 </div>
+
+                <motion.div style={{ opacity: indicatorOpacity }}>
+                    <ScrollIndicator />
+                </motion.div>
             </section>
 
             {/* Locations Section */}
             <section id="locations" className="py-12 md:py-16 bg-white">
-                <div className="max-w-7xl mx-auto px-6">
+                <div className="max-w-screen-2xl mx-auto px-4 md:px-8">
                     <h2 className="text-2xl md:text-4xl font-extrabold text-black font-heading uppercase leading-tight mb-12 text-center">
                         Our Locations
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {locations.map((loc, idx) => (
                             <motion.div
                                 key={idx}
@@ -95,7 +111,7 @@ export const Pickleball: React.FC = () => {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: idx * 0.1 }}
-                                className="group relative flex flex-col bg-white rounded-[2rem] shadow-premium hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100"
+                                className="group relative flex flex-col bg-white rounded-xl shadow-premium hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100"
                             >
                                 <div className="h-72 overflow-hidden relative">
                                     <div className="absolute inset-0 bg-gray-200 animate-pulse" />
@@ -110,7 +126,13 @@ export const Pickleball: React.FC = () => {
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
 
-                                    <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
+                                    <div
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (loc.mapUrl) window.open(loc.mapUrl, '_blank');
+                                        }}
+                                        className="absolute top-4 right-4 bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg cursor-pointer hover:bg-white/20"
+                                    >
                                         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold text-lg">
                                             ↗
                                         </div>
@@ -132,6 +154,7 @@ export const Pickleball: React.FC = () => {
                                         <Button
                                             variant="primary"
                                             className="w-full h-14 bg-black text-white hover:bg-primary hover:text-black font-bold uppercase tracking-widest text-sm rounded-xl shadow-lg hover:shadow-primary/50 transition-all duration-300 transform group-hover:-translate-y-1"
+                                            onClick={() => navigate('/venues?sport=Pickleball')}
                                         >
                                             Book This Venue
                                         </Button>
@@ -148,12 +171,12 @@ export const Pickleball: React.FC = () => {
                 {/* Wavy Background Pattern - simplified with CSS/SVG or just color for now */}
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
 
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
+                <div className="max-w-screen-2xl mx-auto px-4 md:px-8 relative z-10">
                     <h2 className="text-2xl md:text-4xl font-extrabold text-black font-heading uppercase leading-tight mb-12">
                         FAQs
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 md:gap-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4 md:gap-y-8">
                         {faqs.map((faq, idx) => (
                             <motion.div
                                 key={idx}
@@ -177,7 +200,7 @@ export const Pickleball: React.FC = () => {
 
             {/* Contact Section */}
             <section id="contact" className="py-12 md:py-16 bg-white">
-                <div className="max-w-4xl mx-auto px-6 text-center">
+                <div className="max-w-screen-2xl mx-auto px-4 md:px-8 text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -190,7 +213,7 @@ export const Pickleball: React.FC = () => {
                             Got questions? We'd love to hear from you. Fill out the form below and we'll get back to you shortly.
                         </p>
 
-                        <div className="max-w-4xl mx-auto bg-gray-50 p-10 rounded-3xl shadow-sm border border-gray-100">
+                        <div className="max-w-4xl mx-auto bg-gray-50 p-10 rounded-xl shadow-sm border border-gray-100">
                             <form className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="text-left">
@@ -239,7 +262,7 @@ export const Pickleball: React.FC = () => {
                                         variant="primary"
                                         size="lg"
                                         id="pb-submit"
-                                        className="w-full py-4 uppercase font-extrabold tracking-widest bg-black text-white hover:bg-primary hover:text-black transition-all duration-300 font-heading"
+                                        className="w-full py-4 uppercase font-extrabold tracking-widest bg-black text-white hover:bg-primary hover:text-black transition-all duration-300 font-heading rounded-xl"
                                         onClick={async (e) => {
                                             e.preventDefault();
                                             const btn = document.getElementById('pb-submit') as HTMLButtonElement;
@@ -261,8 +284,7 @@ export const Pickleball: React.FC = () => {
                                             }
 
                                             try {
-                                                const { apiClient } = await import('../api/client');
-                                                const response = await apiClient.post('/user/contact/submit', {
+                                                const response = await apiClient.post('/contact/submit', {
                                                     form_type: 'pickleball',
                                                     name: `${fname} ${lname}`,
                                                     email: email,

@@ -187,7 +187,7 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
+                        className="bg-white rounded-xl md:rounded-xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -300,7 +300,7 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
+                        className="bg-white rounded-xl md:rounded-xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -319,7 +319,7 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
+                        className="bg-white rounded-xl md:rounded-xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -338,7 +338,7 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
-                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
+                        className="bg-white rounded-xl md:rounded-xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -357,7 +357,7 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
-                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
+                        className="bg-white rounded-xl md:rounded-xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -414,7 +414,7 @@ export const EditProfile: React.FC = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6 }}
-                        className="bg-white rounded-2xl md:rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8"
+                        className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 md:p-8"
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">

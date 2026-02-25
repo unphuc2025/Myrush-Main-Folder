@@ -95,7 +95,7 @@ export const Store: React.FC = () => {
                             transition={{ delay: i * 0.1 }}
                             className="group cursor-pointer"
                         >
-                            <div className="relative aspect-square overflow-hidden rounded-3xl bg-gray-100 mb-4">
+                            <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-100 mb-4">
                                 <img
                                     src={product.image}
                                     alt={product.name}

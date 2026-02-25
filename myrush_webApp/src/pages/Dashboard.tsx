@@ -66,7 +66,7 @@ export const Dashboard: React.FC = () => {
                         whileInView={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5 }}
                         onClick={() => navigate('/venues')}
-                        className="relative overflow-hidden rounded-3xl bg-black group cursor-pointer shadow-2xl h-[280px] md:h-[320px] w-full"
+                        className="relative overflow-hidden rounded-xl bg-black group cursor-pointer shadow-2xl h-[280px] md:h-[320px] w-full"
                     >
                         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1552667466-07770ae110d0?q=80&w=2070')] bg-cover bg-center opacity-70 group-hover:scale-105 transition-transform duration-700"></div>
                         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent"></div>
@@ -93,11 +93,11 @@ export const Dashboard: React.FC = () => {
                             whileInView={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.4, delay: 0.1 }}
                             onClick={() => navigate('/bookings')}
-                            className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-6 cursor-pointer group"
+                            className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-6 cursor-pointer group"
                         >
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 text-xl border border-gray-100 group-hover:border-primary/30 group-hover:text-primary transition-all">
+                                    <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 text-xl border border-gray-100 group-hover:border-primary/30 group-hover:text-primary transition-all">
                                         <FaCalendarAlt />
                                     </div>
                                     <div>

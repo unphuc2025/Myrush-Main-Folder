@@ -100,7 +100,7 @@ export const Community: React.FC = () => {
                         {leaderboard.map((player) => (
                             <div
                                 key={player.rank}
-                                className={`flex items-center p-4 rounded-2xl border transition-all hover:scale-[1.02] ${player.name === 'You' ? 'bg-primary/10 border-primary shadow-lg ring-1 ring-primary' : 'bg-white border-gray-100 shadow-sm'
+                                className={`flex items-center p-4 rounded-xl border transition-all hover:scale-[1.02] ${player.name === 'You' ? 'bg-primary/10 border-primary shadow-lg ring-1 ring-primary' : 'bg-white border-gray-100 shadow-sm'
                                     }`}
                             >
                                 <div className={`w-12 h-12 flex items-center justify-center font-black text-xl italic mr-6 ${player.rank === 1 ? 'text-yellow-500' : player.rank === 2 ? 'text-gray-400' : player.rank === 3 ? 'text-orange-500' : 'text-gray-300'
@@ -124,7 +124,7 @@ export const Community: React.FC = () => {
                 {activeTab === 'feed' && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                         {activities.map((activity) => (
-                            <div key={activity.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                            <div key={activity.id} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                                 <div className="flex items-center gap-4 mb-4">
                                     <img src={activity.avatar} alt={activity.user} className="w-12 h-12 rounded-full object-cover" />
                                     <div>
@@ -150,7 +150,7 @@ export const Community: React.FC = () => {
                 {activeTab === 'squads' && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                         {mySquad ? (
-                            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl text-center">
+                            <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-xl text-center">
                                 <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center text-primary text-4xl mx-auto mb-6 border-4 border-primary/30">
                                     <FaUserFriends />
                                 </div>
@@ -206,7 +206,7 @@ export const Community: React.FC = () => {
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative"
+                        className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl relative"
                     >
                         <button
                             onClick={() => setShowCreateSquadModal(false)}
@@ -216,7 +216,7 @@ export const Community: React.FC = () => {
                         </button>
 
                         <div className="text-center mb-6">
-                            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary text-2xl mx-auto mb-4">
+                            <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center text-primary text-2xl mx-auto mb-4">
                                 <FaUserFriends />
                             </div>
                             <h2 className="text-2xl font-black font-heading uppercase">Create New Squad</h2>

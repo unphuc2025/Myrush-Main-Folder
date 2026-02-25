@@ -150,7 +150,7 @@ export const OpenPlay: React.FC = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
                                 transition={{ delay: i * 0.1 }}
-                                className={`glass-card rounded-3xl overflow-hidden group cursor-pointer ${game.isNew ? 'ring-2 ring-primary/50 shadow-glow' : ''}`}
+                                className={`glass-card rounded-xl overflow-hidden group cursor-pointer ${game.isNew ? 'ring-2 ring-primary/50 shadow-glow' : ''}`}
                             >
                                 <div className="relative h-48 overflow-hidden">
                                     <img src={game.image} alt={game.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -202,7 +202,7 @@ export const OpenPlay: React.FC = () => {
                             initial={{ scale: 0.9, y: 20 }}
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.9, y: 20 }}
-                            className="bg-white/90 backdrop-blur-xl border border-white/50 rounded-[2rem] p-8 max-w-lg w-full relative overflow-hidden shadow-2xl"
+                            className="bg-white/90 backdrop-blur-xl border border-white/50 rounded-xl p-8 max-w-lg w-full relative overflow-hidden shadow-2xl"
                         >
                             <button
                                 onClick={() => setIsHostModalOpen(false)}

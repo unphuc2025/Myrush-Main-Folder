@@ -120,7 +120,7 @@ export const SlotSelection: React.FC = () => {
             <main className="relative z-10 max-w-5xl mx-auto px-6 pb-32">
                 {/* Date Selection */}
                 <motion.section
-                    className="bg-white p-6 rounded-3xl mb-8 shadow-sm border border-gray-100"
+                    className="bg-white p-6 rounded-xl mb-8 shadow-sm border border-gray-100"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
@@ -152,7 +152,7 @@ export const SlotSelection: React.FC = () => {
                             return (
                                 <button
                                     key={day}
-                                    className={`flex-shrink-0 w-14 h-14 rounded-2xl font-bold text-lg transition-all flex items-center justify-center ${active
+                                    className={`flex-shrink-0 w-14 h-14 rounded-xl font-bold text-lg transition-all flex items-center justify-center ${active
                                         ? 'bg-black text-white scale-110 shadow-lg'
                                         : disabled
                                             ? 'text-gray-300 cursor-not-allowed bg-transparent'
@@ -170,7 +170,7 @@ export const SlotSelection: React.FC = () => {
 
                 {/* Slots Grid */}
                 <motion.section
-                    className="bg-white p-6 rounded-3xl mb-8 min-h-[300px] shadow-sm border border-gray-100"
+                    className="bg-white p-6 rounded-xl mb-8 min-h-[300px] shadow-sm border border-gray-100"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
