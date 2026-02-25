@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from './ui/Button';
-import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import rushEventImg from '../assets/Rush-Event.jpg';
 
 export const ContactSection: React.FC = () => {
-    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',

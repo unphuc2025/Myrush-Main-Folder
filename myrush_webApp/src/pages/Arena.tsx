@@ -3,7 +3,6 @@ import { PublicNav } from '../components/PublicNav';
 import { useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '../components/ui/Button';
-import { apiClient } from '../api/client';
 import ScrollIndicator from '../components/ScrollIndicator';
 import { FaMapMarkerAlt, FaClock, FaUsers, FaStar } from "react-icons/fa";
 import { venuesApi } from '../api/venues';

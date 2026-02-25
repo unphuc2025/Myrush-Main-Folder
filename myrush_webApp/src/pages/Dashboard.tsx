@@ -34,7 +34,7 @@ export const Dashboard: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans pb-24 md:pb-12">
-            <TopNav userName={displayName} />
+            <TopNav />
 
             <div className="pt-20 md:pt-24 px-4 md:px-8 max-w-7xl mx-auto">
                 {/* 1. PERSONALIZED HEADER */}
