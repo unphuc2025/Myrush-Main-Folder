@@ -378,7 +378,7 @@ const AcademyLanding: React.FC = () => {
                 </div>
 
                 <motion.div
-                    className="relative z-20 text-center md:text-left w-full max-w-7xl md:max-w-[50%]"
+                    className="relative z-20 text-center md:text-left w-full max-w-7xl md:max-w-[55%] flex flex-col items-center md:items-start"
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
@@ -388,26 +388,26 @@ const AcademyLanding: React.FC = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5, duration: 0.8 }}
-                        className="inline-flex items-center gap-3 mb-6 px-5 py-2.5 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto md:mx-0"
+                        className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto md:mx-0 whitespace-nowrap overflow-hidden"
                     >
-                        <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        <span className="text-xs md:text-sm font-bold font-heading text-primary uppercase tracking-wider">
-                            Speak to us, now - +91-8548946999
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0" />
+                        <span className="text-[10px] md:text-sm font-bold font-heading text-primary uppercase tracking-wider">
+                            Speak to us now - +91-8548946999
                         </span>
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold font-heading text-white mb-8 md:mb-12 leading-[1.1] uppercase">
-                        Unlock Your Football Potential <br />
+                    <h1 className="!text-3xl md:!text-4xl lg:!text-5xl font-extrabold font-heading text-white mb-8 md:mb-12 leading-[1.1] uppercase text-center md:text-left px-2">
+                        Unlock Your Football Potential <br className="hidden md:block" />
                         with <span className="text-primary italic">Rush Academy.</span>
                     </h1>
 
                     {/* CTA Section */}
-                    <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 md:gap-6">
+                    <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 md:gap-6 w-auto px-4 md:px-0">
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-base px-8 md:px-10 py-4 md:py-4.5 uppercase tracking-wider font-heading font-bold shadow-[0_0_20px_rgba(0,210,106,0.3)] hover:shadow-[0_0_30px_rgba(0,210,106,0.4)]"
+                            className="bg-primary text-black hover:bg-primary-hover text-sm md:text-base px-8 md:px-10 py-4 md:py-4.5 uppercase tracking-wider font-heading font-bold shadow-[0_0_20px_rgba(0,210,106,0.3)] hover:shadow-[0_0_30px_rgba(0,210,106,0.4)] w-auto"
                             onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Book A Free Trial Class
@@ -501,7 +501,7 @@ const AcademyLanding: React.FC = () => {
                 <div className="w-full max-w-7xl mx-auto relative z-10 px-6">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-3xl md:text-5xl font-black text-white font-heading uppercase leading-tight mb-6">
+                            <h2 className="!text-4xl md:text-5xl font-black text-white font-heading uppercase leading-tight mb-6">
                                 Our <span className="text-primary italic">Centers</span>
                             </h2>
                             <p className="text-body-lg text-white/40 font-light uppercase tracking-[0.2em]">
@@ -611,7 +611,7 @@ const AcademyLanding: React.FC = () => {
                 <div className="w-full max-w-7xl mx-auto px-6">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-3xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-6">
+                            <h2 className="!text-4xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-6">
                                 Choose your <span className="text-primary italic">plan:</span>
                             </h2>
                         </div>
@@ -732,7 +732,7 @@ const AcademyLanding: React.FC = () => {
                                 <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase">
                                     Join The Elite
                                 </div>
-                                <h2 className="text-6xl md:text-7xl lg:text-8xl font-black font-heading leading-none mb-10 tracking-tighter uppercase italic">
+                                <h2 className="!text-5xl md:text-7xl lg:text-8xl font-black font-heading leading-tight mb-10 tracking-tighter uppercase italic">
                                     Book a Free <br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Trial Class</span>
                                 </h2>

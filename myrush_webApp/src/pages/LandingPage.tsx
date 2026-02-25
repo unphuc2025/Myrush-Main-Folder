@@ -1,10 +1,105 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, type Variants, useScroll, useTransform } from 'framer-motion';
+import { motion, type Variants, useScroll, useTransform, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { FaArrowRight, FaCalendarCheck } from 'react-icons/fa';
 import { PublicNav } from '../components/PublicNav';
 import { ContactSection } from '../components/ContactSection';
+import ScrollIndicator from '../components/ScrollIndicator';
+
+const DynamicHeroBackground: React.FC<{ scrollY: any }> = ({ scrollY }) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isMobile, setIsMobile] = useState(false);
+    const mouseX = useMotionValue(0);
+    const mouseY = useMotionValue(0);
+
+    const springConfig = { damping: 50, stiffness: 300 };
+    const smoothMouseX = useSpring(mouseX, springConfig);
+    const smoothMouseY = useSpring(mouseY, springConfig);
+
+    const translateX = useTransform(smoothMouseX, [-500, 500], [-20, 20]);
+    const translateY = useTransform(smoothMouseY, [-250, 250], [-10, 10]);
+    const heroScrollY = useTransform(scrollY, [0, 500], [0, 150]); // Renamed to avoid conflict and clarify purpose
+
+    const images = [
+        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2093', // Football stadium lights
+        'https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=2067', // Cricket stadium
+        'https://images.unsplash.com/photo-1599586120429-48281b6f0ece?q=80&w=2070', // Soccer action
+        'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070', // Multi-sport facility
+    ];
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+
+        const timer = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % images.length);
+        }, 8000);
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const { clientX, clientY } = e;
+            const moveX = clientX - window.innerWidth / 2;
+            const moveY = clientY - window.innerHeight / 2;
+            mouseX.set(moveX);
+            mouseY.set(moveY);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => {
+            clearInterval(timer);
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('resize', checkMobile);
+        };
+    }, [images.length, mouseX, mouseY]);
+
+    return (
+        <div className="absolute inset-0 z-0 overflow-hidden bg-black">
+            {/* Cinematic Gradient Overlays */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60 z-10" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)] z-10" />
+
+            <motion.div
+                style={{ y: isMobile ? 0 : heroScrollY }}
+                className="absolute inset-0 z-0"
+            >
+                <motion.div
+                    style={{ x: translateX, y: translateY, scale: 1.1 }}
+                    className="absolute inset-0"
+                >
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={currentIndex}
+                            initial={{ opacity: 0, scale: 1.1 }}
+                            animate={{
+                                opacity: 0.6,
+                                scale: [1.1, 1.15, 1.1],
+                            }}
+                            exit={{ opacity: 0 }}
+                            transition={{
+                                opacity: { duration: 2 },
+                                scale: { duration: 15, repeat: Infinity, ease: "easeInOut" }
+                            }}
+                            className="absolute inset-0"
+                        >
+                            <img
+                                src={images[currentIndex]}
+                                alt="Sports Background"
+                                className="w-full h-full object-cover"
+                            />
+                        </motion.div>
+                    </AnimatePresence>
+                </motion.div>
+            </motion.div>
+
+            {/* Subtle drifting particles or motion effect can be added here */}
+            <div className="absolute inset-0 z-[5] opacity-20 pointer-events-none">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay" />
+            </div>
+        </div>
+    );
+};
 
 const fadeInUp: Variants = {
     hidden: { opacity: 0, y: 30 },
@@ -36,7 +131,7 @@ export const LandingPage: React.FC = () => {
     const navigate = useNavigate();
     const { scrollY } = useScroll();
     // const headersOpacity = useTransform(scrollY, [0, 100], [0, 1]);
-    const heroY = useTransform(scrollY, [0, 500], [0, 150]);
+    const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
 
     const services = [
         {
@@ -82,27 +177,20 @@ export const LandingPage: React.FC = () => {
 
             {/* HERO SECTION */}
             <section className="relative h-[70vh] md:h-[80vh] flex items-center justify-center overflow-hidden bg-black">
-                <motion.div style={{ y: heroY }} className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
-                    <img
-                        src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2035"
-                        alt="Hero"
-                        className="w-full h-full object-cover opacity-60"
-                    />
-                </motion.div>
+                <DynamicHeroBackground scrollY={scrollY} />
 
                 <div className="relative z-20 text-center px-4 max-w-5xl mx-auto mt-20">
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 1 }}
-                        className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase"
+                        className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-[9px] sm:text-xs font-bold text-primary tracking-[0.2em] uppercase"
                     >
                         The Ultimate Sports Platform
                     </motion.div>
 
                     <motion.h1
-                        className="text-2xl md:text-3xl lg:text-6xl font-extrabold font-heading tracking-tighter text-white mb-8 md:mb-12 uppercase leading-[1.1]"
+                        className="!text-6xl md:!text-5xl lg:!text-7xl font-extrabold font-heading tracking-tighter text-white mb-8 md:mb-12 uppercase leading-[1.05]"
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.2 }}
@@ -115,14 +203,14 @@ export const LandingPage: React.FC = () => {
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.4 }}
-                        className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6"
+                        className="flex flex-row items-center justify-center gap-3 md:gap-6 px-2"
                     >
                         <Button
                             variant="primary"
                             size="lg"
                             onClick={() => navigate('/venues')}
-                            icon={<FaCalendarCheck />}
-                            className="w-full sm:w-auto text-sm md:text-base px-8 py-3.5 md:py-4 min-w-[180px] md:min-w-[200px] uppercase tracking-wider font-heading font-bold rounded-full transition-all duration-300 shadow-glow hover:shadow-glow-strong"
+                            icon={<FaCalendarCheck className="hidden sm:inline" />}
+                            className="flex-1 sm:flex-none text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold rounded-full transition-all duration-300 shadow-glow hover:shadow-glow-strong whitespace-nowrap"
                         >
                             Book a Court
                         </Button>
@@ -130,13 +218,18 @@ export const LandingPage: React.FC = () => {
                             variant="outline"
                             size="lg"
                             onClick={() => navigate('/arena')}
-                            icon={<FaArrowRight className="group-hover:translate-x-1 transition-transform" />}
-                            className="w-full sm:w-auto border-white text-white hover:border-primary text-sm md:text-base px-8 py-3.5 md:py-4 min-w-[180px] md:min-w-[200px] uppercase tracking-wider font-heading font-bold rounded-xl transition-all duration-300 group shadow-glow hover:shadow-glow-strong"
+                            icon={<FaArrowRight className="hidden sm:inline group-hover:translate-x-1 transition-transform" />}
+                            className="flex-1 sm:flex-none border-white text-white hover:border-primary text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold rounded-xl transition-all duration-300 group shadow-glow hover:shadow-glow-strong whitespace-nowrap"
                         >
                             Explore Venues
                         </Button>
                     </motion.div>
                 </div>
+
+                {/* Scoped Scroll Indicator */}
+                <motion.div className="hidden md:block" style={{ opacity: indicatorOpacity }}>
+                    <ScrollIndicator />
+                </motion.div>
             </section>
 
             {/* MARQUEE STRIP */}

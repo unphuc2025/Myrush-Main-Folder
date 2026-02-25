@@ -31,7 +31,6 @@ import { Footer } from './components/Footer';
 // import { WhatsAppButton } from './components/WhatsAppButton'; // Kept for reference
 import { Chatbot } from './components/Chatbot';
 import { CustomCursor } from './components/CustomCursor';
-import ScrollIndicator from './components/ScrollIndicator';
 import './App.css';
 
 
@@ -96,7 +95,6 @@ const AppContent = () => {
       {!shouldHideFooter && <Footer />}
       {/* <WhatsAppButton /> */}
       <Chatbot />
-      <ScrollIndicator />
     </div>
 
   );
