@@ -1,7 +1,7 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
+import { getSportIcon } from '../utils/sportIcons';
 import { venuesApi } from '../api/venues';
 import type { Venue } from '../api/venues';
 import { courtsApi } from '../api/courts';
@@ -37,7 +37,12 @@ export const VenueDetailsPage: React.FC = () => {
     // Slot Selection State
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(currentDate.getDate());
-    const [scrollerBaseDate, setScrollerBaseDate] = useState(new Date());
+
+    // Set base date to today
+    const [scrollerBaseDate] = useState(new Date());
+
+    const [displayMonth, setDisplayMonth] = useState(new Date());
+    const scrollerRef = useRef<HTMLDivElement>(null);
     const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
     const [selectedSlots, setSelectedSlots] = useState<Slot[]>([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
@@ -48,6 +53,7 @@ export const VenueDetailsPage: React.FC = () => {
     // Booking Summary State
     const [numPlayers, setNumPlayers] = useState(2);
     const [teamName, setTeamName] = useState('');
+
 
 
 
@@ -95,6 +101,39 @@ export const VenueDetailsPage: React.FC = () => {
             if (reviewsRes.success) setReviews(reviewsRes.data.reviews);
         } catch (error) { console.error(error); }
         finally { setLoadingVenue(false); }
+    };
+
+
+    const handleDateScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const scroller = e.currentTarget;
+        const itemWidth = 67; // 55px width + 12px gap
+        const index = Math.round(scroller.scrollLeft / itemWidth);
+        const date = new Date(scrollerBaseDate);
+        date.setDate(scrollerBaseDate.getDate() + index);
+
+        if (date.getMonth() !== displayMonth.getMonth() || date.getFullYear() !== displayMonth.getFullYear()) {
+            setDisplayMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+        }
+    };
+
+    const scrollToMonth = (direction: 'prev' | 'next') => {
+        if (!scrollerRef.current) return;
+
+        const nextMonth = new Date(displayMonth);
+        nextMonth.setMonth(displayMonth.getMonth() + (direction === 'next' ? 1 : -1));
+
+        const today = new Date();
+        const firstOfTodayMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        if (nextMonth < firstOfTodayMonth) return;
+
+        const diffTime = nextMonth.getTime() - scrollerBaseDate.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        const itemWidth = 67;
+        scrollerRef.current.scrollTo({
+            left: diffDays * itemWidth,
+            behavior: 'smooth'
+        });
     };
 
     const fetchSlots = async (venueId: string) => {
@@ -185,16 +224,16 @@ export const VenueDetailsPage: React.FC = () => {
         <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
             <TopNav />
 
-            <div className="max-w-[95%] 2xl:max-w-[1700px] mx-auto px-4 md:px-6 py-8 pt-10 md:pt-6">
+            <div className="max-w-[95%] 2xl:max-w-[1700px] mx-auto px-4 md:px-6 py-8 pt-20 md:pt-26">
                 {/* Back Button */}
                 <button
                     onClick={() => navigate('/venues')}
-                    className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors mb-6 group"
+                    className="flex items-center mb-2 group"
+                    title="Back to Venues"
                 >
-                    <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    <span className="text-sm font-medium" style={{ fontFamily: '"Inter", sans-serif' }}>Back to Venues</span>
+                    <div className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/5 transition-all shadow-sm group-active:scale-95 text-gray-600 group-hover:text-primary">
+                        <FaChevronLeft className="text-[12px] group-hover:-translate-x-0.5 transition-transform" />
+                    </div>
                 </button>
 
                 <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 lg:gap-12">
@@ -204,11 +243,11 @@ export const VenueDetailsPage: React.FC = () => {
 
                         {/* Title Section (Moved Above Grid) */}
                         <div className="mb-6">
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-heading text-gray-900 mb-2 uppercase tracking-tight leading-none">
+                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-heading text-gray-900 mb-2 uppercase leading-[1.2] py-3 break-words w-full whitespace-normal">
                                 {venue.court_name}
                             </h1>
-                            <p className="text-gray-500 flex items-center gap-2 text-sm font-medium">
-                                <FaMapMarkerAlt className="text-primary" />
+                            <p className="text-gray-500 flex items-center gap-2.5 text-sm font-medium">
+                                <FaMapMarkerAlt className="text-primary text-base shrink-0" />
                                 {venue.location}
                             </p>
                         </div>
@@ -223,17 +262,11 @@ export const VenueDetailsPage: React.FC = () => {
                         {/* Available Sports */}
                         {venue.game_type && (
                             <div>
-                                <h2 className="text-lg font-bold text-gray-900 mb-3">Available Sports</h2>
+                                <h2 className="text-xl font-bold font-heading text-gray-900 uppercase tracking-tight mb-3">Available Sports</h2>
                                 <div className="flex flex-wrap gap-2">
                                     {venue.game_type.split(',').map((sport, idx) => {
                                         const s = sport.trim();
                                         if (!s) return null;
-                                        const sportIcons: Record<string, string> = {
-                                            football: '⚽', cricket: '🏏', badminton: '🏸',
-                                            tennis: '🎾', basketball: '🏀', volleyball: '🏐',
-                                            hockey: '🏑', swimming: '🏊', boxing: '🥊',
-                                        };
-                                        const icon = sportIcons[s.toLowerCase()] || '🏅';
                                         const isSelected = selectedSport === s;
                                         return (
                                             <button
@@ -244,7 +277,8 @@ export const VenueDetailsPage: React.FC = () => {
                                                     : 'bg-white border-gray-200 text-gray-700 shadow-sm hover:border-primary/50'
                                                     }`}
                                             >
-                                                <span>{icon}</span> {s}
+                                                {getSportIcon(s, "w-4 h-4")}
+                                                <span>{s}</span>
                                             </button>
                                         );
                                     })}
@@ -257,7 +291,7 @@ export const VenueDetailsPage: React.FC = () => {
 
                             {/* About */}
                             <div className="p-8">
-                                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Ground Overview</h2>
+                                <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Ground Overview</h2>
                                 <p className="text-sm text-gray-600 leading-relaxed">
                                     {venue.description || "Experience world-class sporting action at this premier venue. Our premium facilities are designed for competitive matches and casual play alike."}
                                 </p>
@@ -339,9 +373,9 @@ export const VenueDetailsPage: React.FC = () => {
                                     </a>
                                 </div>
                                 {/* Full Address */}
-                                <div className="mt-3 flex items-start gap-2 text-sm text-gray-500">
-                                    <FaMapMarkerAlt className="text-primary mt-0.5 shrink-0" />
-                                    <span>
+                                <div className="mt-4 flex items-start gap-3 text-sm text-gray-600 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <FaMapMarkerAlt className="text-primary mt-0.5 text-lg shrink-0" />
+                                    <span className="leading-relaxed">
                                         {[venue.location, venue.city_name].filter(Boolean).join(', ')}
                                     </span>
                                 </div>
@@ -391,12 +425,12 @@ export const VenueDetailsPage: React.FC = () => {
                                         <h2 className="text-2xl font-bold text-gray-900 font-sans mb-4">Reviews And Ratings</h2>
                                         <div className="flex items-center gap-4">
                                             <span className="text-6xl font-black text-gray-900 leading-none">
-                                                {(venue.rating || ratings?.average_rating || 0).toFixed(0)}
+                                                {(venue.rating && venue.rating > 0 ? venue.rating : (ratings?.average_rating && ratings.average_rating > 0 ? ratings.average_rating : 5.0)).toFixed(1)}
                                             </span>
                                             <div className="flex flex-col">
                                                 <div className="flex text-yellow-500 text-xl gap-0.5 mb-1">
                                                     {[...Array(5)].map((_, i) => (
-                                                        <FaStar key={i} className={i < Math.floor(venue.rating || ratings?.average_rating || 0) ? 'fill-current' : 'text-gray-200'} />
+                                                        <FaStar key={i} className={i < Math.floor(venue.rating && venue.rating > 0 ? venue.rating : (ratings?.average_rating && ratings.average_rating > 0 ? ratings.average_rating : 5.0)) ? 'fill-current' : 'text-gray-200'} />
                                                     ))}
                                                 </div>
                                                 <span className="text-sm font-medium text-gray-500">
@@ -405,9 +439,6 @@ export const VenueDetailsPage: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <button className="px-6 py-2.5 bg-white border border-gray-900 text-gray-900 text-sm font-semibold rounded-md hover:bg-gray-50 transition-colors mt-12">
-                                        Add Your Rating
-                                    </button>
                                 </div>
 
                                 <div className="space-y-4 max-w-2xl">
@@ -463,16 +494,19 @@ export const VenueDetailsPage: React.FC = () => {
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-400"></div>
 
                                 <div className="text-center mb-8 pt-2">
-                                    <h2 className="text-2xl font-bold text-gray-900 uppercase font-heading leading-none mb-1">
+                                    <h2 className="text-2xl font-bold text-gray-900 leading-none mb-1">
                                         Book Your Slot
                                     </h2>
-                                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest font-sans">Select date, time & confirm</p>
+                                    <p className="text-sm text-gray-400 font-semibold">Select date, time & confirm</p>
                                 </div>
 
                                 {/* Game Type Selector */}
                                 {venue?.game_type && (
                                     <div className="mb-6">
-                                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest block mb-3 font-sans">Select Sport</span>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-0.5 h-4 bg-primary rounded-full"></div>
+                                            <span className="text-base font-bold text-gray-800 leading-none">Select Sport</span>
+                                        </div>
                                         <div className="flex flex-wrap gap-2">
                                             {venue.game_type.split(',').map((sport, idx) => {
                                                 const s = sport.trim();
@@ -482,12 +516,13 @@ export const VenueDetailsPage: React.FC = () => {
                                                     <button
                                                         key={`${s}-${idx}`}
                                                         onClick={() => setSelectedSport(s)}
-                                                        className={`px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider transition-all border ${isSelected
+                                                        className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold transition-all border ${isSelected
                                                             ? 'bg-primary text-white border-primary shadow-sm scale-102'
                                                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                             }`}
                                                     >
-                                                        {s}
+                                                        {getSportIcon(s, "w-3 h-3")}
+                                                        <span>{s}</span>
                                                     </button>
                                                 );
                                             })}
@@ -498,29 +533,22 @@ export const VenueDetailsPage: React.FC = () => {
                                 {/* Date Selector (Horizontal) */}
                                 <div className="mb-8">
                                     <div className="flex justify-between items-center mb-4">
-                                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-sans">Select Date</span>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-0.5 h-4 bg-primary rounded-full"></div>
+                                            <span className="text-base font-bold text-gray-800 leading-none">Select Date</span>
+                                        </div>
                                         <div className="flex items-center gap-3">
                                             <button
-                                                onClick={() => {
-                                                    const prev = new Date(scrollerBaseDate);
-                                                    prev.setMonth(prev.getMonth() - 1);
-                                                    // Don't go before today's month
-                                                    if (prev < new Date(new Date().getFullYear(), new Date().getMonth(), 1)) return;
-                                                    setScrollerBaseDate(prev);
-                                                }}
+                                                onClick={() => scrollToMonth('prev')}
                                                 className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-900 transition-colors"
                                             >
                                                 <FaChevronLeft className="text-[10px]" />
                                             </button>
-                                            <span className="text-xs font-semibold text-gray-900 uppercase tracking-wide min-w-[120px] text-center font-sans">
-                                                {scrollerBaseDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                            <span className="text-base font-semibold text-gray-900 min-w-[120px] text-center">
+                                                {displayMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                                             </span>
                                             <button
-                                                onClick={() => {
-                                                    const next = new Date(scrollerBaseDate);
-                                                    next.setMonth(next.getMonth() + 1);
-                                                    setScrollerBaseDate(next);
-                                                }}
+                                                onClick={() => scrollToMonth('next')}
                                                 className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-900 transition-colors"
                                             >
                                                 <FaChevronRight className="text-[10px]" />
@@ -528,8 +556,12 @@ export const VenueDetailsPage: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="flex overflow-x-auto pb-4 gap-3 no-scrollbar -mx-2 px-2 scroll-smooth">
-                                        {Array.from({ length: 30 }).map((_, i) => {
+                                    <div
+                                        ref={scrollerRef}
+                                        onScroll={handleDateScroll}
+                                        className="flex overflow-x-auto pb-4 gap-3 no-scrollbar -mx-2 px-2 scroll-smooth"
+                                    >
+                                        {Array.from({ length: 120 }).map((_, i) => {
                                             const date = new Date(scrollerBaseDate);
                                             date.setDate(scrollerBaseDate.getDate() + i);
 
@@ -555,10 +587,10 @@ export const VenueDetailsPage: React.FC = () => {
                                                         : 'bg-white border-gray-200 text-gray-600 hover:border-primary/30 hover:bg-primary/5'
                                                         }`}
                                                 >
-                                                    <span className={`text-[10px] font-medium uppercase mb-1 font-sans ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                                                    <span className={`text-sm font-medium mb-1 ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
                                                         {dayName}
                                                     </span>
-                                                    <span className={`text-lg font-semibold font-sans ${isSelected ? 'text-white' : 'text-gray-800'}`}>
+                                                    <span className={`text-lg font-semibold ${isSelected ? 'text-white' : 'text-gray-800'}`}>
                                                         {dayNumber}
                                                     </span>
                                                 </button>
@@ -569,7 +601,10 @@ export const VenueDetailsPage: React.FC = () => {
 
                                 {/* Slots */}
                                 <div className="mb-8">
-                                    <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4 font-sans">Available Slots</span>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-0.5 h-4 bg-primary rounded-full"></div>
+                                        <span className="block text-sm font-bold text-gray-800 leading-none">Available Slots</span>
+                                    </div>
                                     {loadingSlots ? (
                                         <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
                                     ) : availableSlots.length === 0 ? (
@@ -597,7 +632,7 @@ export const VenueDetailsPage: React.FC = () => {
                                                                 </svg>
                                                             </div>
                                                         )}
-                                                        <span className={`text-sm font-medium font-sans ${isSel ? 'text-white' : 'text-gray-900'}`}>
+                                                        <span className={`text-sm font-medium ${isSel ? 'text-white' : 'text-gray-900'}`}>
                                                             {slot.display_time}
                                                         </span>
                                                     </button>
@@ -610,15 +645,21 @@ export const VenueDetailsPage: React.FC = () => {
                                 {/* Inputs */}
                                 <div className="grid grid-cols-2 gap-4 mb-8">
                                     <div>
-                                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 font-sans">Players</label>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="w-0.5 h-3 bg-primary rounded-full"></div>
+                                            <label className="block text-sm font-bold text-gray-800 leading-none">Players</label>
+                                        </div>
                                         <div className="flex items-center justify-between bg-white border border-gray-200 rounded-md px-3 h-9">
                                             <button onClick={() => setNumPlayers(Math.max(1, numPlayers - 1))} className="text-gray-400 hover:text-primary transition-colors text-lg font-semibold">-</button>
-                                            <span className="text-sm font-bold text-gray-900 font-sans">{numPlayers}</span>
+                                            <span className="text-sm font-bold text-gray-900">{numPlayers}</span>
                                             <button onClick={() => setNumPlayers(numPlayers + 1)} className="text-gray-400 hover:text-primary transition-colors text-lg font-semibold">+</button>
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 font-sans">Team Name</label>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="w-0.5 h-3 bg-primary rounded-full"></div>
+                                            <label className="block text-sm font-bold text-gray-800 leading-none">Team Name</label>
+                                        </div>
                                         <input
                                             type="text"
                                             placeholder="Optional"
@@ -631,7 +672,10 @@ export const VenueDetailsPage: React.FC = () => {
 
                                 {/* Booking Summary */}
                                 <div className="bg-white border border-gray-100 rounded-lg p-5 mb-6">
-                                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4 font-sans">Booking Summary</h3>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-0.5 h-3 bg-primary rounded-full"></div>
+                                        <h3 className="text-base font-bold text-gray-800 leading-none">Booking Summary</h3>
+                                    </div>
 
                                     {/* Selected Details */}
                                     <div className="space-y-3 mb-4">
@@ -670,7 +714,7 @@ export const VenueDetailsPage: React.FC = () => {
                                             <div className="space-y-1.5">
                                                 {selectedSlots.map((slot, idx) => (
                                                     <div key={idx} className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                                                        <span className="text-sm font-medium text-gray-700 font-sans">{slot.display_time}</span>
+                                                        <span className="text-sm font-medium text-gray-700">{slot.display_time}</span>
                                                         <span className="text-sm font-semibold text-gray-900">₹{slot.price}</span>
                                                     </div>
                                                 ))}
@@ -692,7 +736,7 @@ export const VenueDetailsPage: React.FC = () => {
                                             <span>₹0</span>
                                         </div>
                                         <div className="flex justify-between items-center pt-2">
-                                            <span className="text-sm font-bold text-gray-900 uppercase">Total</span>
+                                            <span className="text-sm font-bold text-gray-900">Total</span>
                                             <span className="text-lg font-bold text-primary">₹{totalPrice}</span>
                                         </div>
                                     </div>
@@ -700,7 +744,7 @@ export const VenueDetailsPage: React.FC = () => {
 
                                 <Button
                                     variant="primary"
-                                    className="w-full py-4 text-xs font-bold uppercase tracking-widest rounded-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all active:scale-[0.98]"
+                                    className="w-full py-4 text-base font-bold rounded-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all active:scale-[0.98]"
                                     onClick={handleBooking}
                                     disabled={selectedSlots.length === 0}
                                 >
@@ -715,6 +759,7 @@ export const VenueDetailsPage: React.FC = () => {
 
                 </div>
             </div>
+
         </div>
     );
 };

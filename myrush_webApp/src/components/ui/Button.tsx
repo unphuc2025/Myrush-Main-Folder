@@ -33,9 +33,11 @@ export const Button: React.FC<ButtonProps> = ({
         lg: "text-sm px-12 py-5.5",
     };
 
+    const isMobile = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
     return (
         <motion.button
-            whileHover={{ y: -3, scale: 1.02 }}
+            whileHover={!isMobile ? { y: -3, scale: 1.02 } : {}}
             whileTap={{ scale: 0.98 }}
             className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
             disabled={isLoading || props.disabled}

@@ -205,18 +205,18 @@ export const BookingSummary: React.FC = () => {
         <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
             <TopNav />
 
-            <div className="pt-10 max-w-screen-2xl mx-auto px-4 md:px-8">
-                <header className="mb-8 text-center lg:text-left">
+            <div className="pt-20 md:pt-26 max-w-screen-2xl mx-auto px-4 md:px-8">
+                <header className="mb-4 text-left">
                     <button
                         onClick={() => navigate(-1)}
-                        className="group flex items-center gap-3 text-xs font-bold text-gray-400 hover:text-primary transition-all uppercase tracking-widest mb-8 mx-auto lg:mx-0"
+                        className="group flex items-center mb-2"
+                        title="Back"
                     >
-                        <div className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/5 transition-all shadow-sm group-active:scale-95">
-                            <FaChevronLeft className="text-[10px] group-hover:-translate-x-0.5 transition-transform" />
+                        <div className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/5 transition-all shadow-sm group-active:scale-95 text-gray-400 group-hover:text-primary">
+                            <FaChevronLeft className="text-[12px] group-hover:-translate-x-0.5 transition-transform" />
                         </div>
-                        Revise Selection
                     </button>
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold uppercase tracking-tight leading-none">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-heading uppercase tracking-tight leading-none">
                         Final <span className="text-primary italic">Summary</span>
                     </h1>
                     <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-2">Re-verify your booking details below</p>
@@ -240,8 +240,8 @@ export const BookingSummary: React.FC = () => {
                                 </div>
                                 <div className="p-5 sm:p-8 flex flex-col justify-center md:col-span-3">
                                     <div className="mb-6">
-                                        <div className="text-[10px] font-medium text-primary uppercase tracking-[0.2em] mb-1">SELECTED ARENA</div>
-                                        <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-tight leading-loose">{state.venueName || venue?.court_name}</h2>
+                                        <div className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-1">SELECTED ARENA</div>
+                                        <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-tight leading-tight">{state.venueName || venue?.court_name}</h2>
                                         <p className="flex items-start gap-2 text-gray-500 font-medium text-xs mt-1">
                                             <FaMapMarkerAlt className="text-primary mt-0.5 shrink-0" /> {venue?.location || state.venueName}
                                         </p>
@@ -249,19 +249,19 @@ export const BookingSummary: React.FC = () => {
 
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                                         <div className="space-y-1">
-                                            <div className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">SPORT</div>
-                                            <div className="text-sm font-semibold text-gray-900 truncate">
+                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">SPORT</div>
+                                            <div className="text-sm font-semibold text-gray-900">
                                                 {state.selectedSport}
                                             </div>
                                         </div>
                                         <div className="space-y-1">
-                                            <div className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">COURT</div>
-                                            <div className="text-sm font-semibold text-gray-900 truncate">
+                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">COURT</div>
+                                            <div className="text-sm font-semibold text-gray-900">
                                                 {state.selectedSlots[0]?.court_name || 'Standard Arena'}
                                             </div>
                                         </div>
                                         <div className="space-y-1">
-                                            <div className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">DATE</div>
+                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">DATE</div>
                                             <div className="text-sm font-semibold text-gray-900">
                                                 {new Date(state.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </div>
@@ -279,7 +279,7 @@ export const BookingSummary: React.FC = () => {
                                     <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Timeslots & Personnel</p>
                                 </div>
                                 <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-xl border border-gray-200">
-                                    <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest ml-2 pr-2 border-r border-gray-200">Players</span>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-2 pr-2 border-r border-gray-200">Players</span>
                                     <button onClick={() => setNumPlayers(Math.max(1, numPlayers - 1))} className="w-8 h-8 flex items-center justify-center font-bold hover:bg-white rounded-lg transition-colors">-</button>
                                     <span className="font-bold w-6 text-center text-sm">{numPlayers}</span>
                                     <button onClick={() => setNumPlayers(numPlayers + 1)} className="w-8 h-8 flex items-center justify-center font-bold hover:bg-white rounded-lg transition-colors">+</button>
@@ -302,7 +302,7 @@ export const BookingSummary: React.FC = () => {
                                 </div>
 
                                 <div className="mt-8 pt-4">
-                                    <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-3">Team Name <span className="text-gray-300">(Optional)</span></label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Team Name <span className="text-gray-300 font-medium">(Optional)</span></label>
                                     <input
                                         type="text"
                                         value={teamName}
@@ -320,8 +320,8 @@ export const BookingSummary: React.FC = () => {
                         <div className="static lg:sticky lg:top-28 space-y-6">
                             <div className="bg-white rounded-xl p-5 sm:p-8 shadow-xl border border-gray-100 relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-400"></div>
-                                <h3 className="text-lg font-semibold uppercase mb-8 flex items-center gap-2 text-gray-800">
-                                    Reservation Summary <span className="text-xs font-medium text-gray-400">({state.selectedSlots.length} Slots)</span>
+                                <h3 className="text-xl font-bold font-heading uppercase mb-8 flex items-center gap-2 text-gray-800 tracking-tight">
+                                    Reservation Summary <span className="text-[10px] font-bold text-gray-400">({state.selectedSlots.length} Slots)</span>
                                 </h3>
 
                                 <div className="space-y-4 mb-8">
@@ -486,17 +486,8 @@ export const BookingSummary: React.FC = () => {
                                 {submitting ? 'GENERATING ORDER...' : `CONFIRM & PAY ₹${totalAmount}`}
                             </Button>
 
-                            <div className="mt-6 pt-6 border-t border-gray-50 flex items-center justify-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest">Secure TLS 1.3 Encryption</p>
-                            </div>
                         </div>
 
-                        <div className="text-center px-4">
-                            <p className="text-[10px] text-gray-400 font-medium leading-relaxed">
-                                By proceeding, you agree to our <span className="text-gray-900 font-bold border-b border-gray-300">Terms of Service</span> and <span className="text-gray-900 font-bold border-b border-gray-300">Cancellation Policy</span>.
-                            </p>
-                        </div>
                     </div>
                 </div>
             </div>

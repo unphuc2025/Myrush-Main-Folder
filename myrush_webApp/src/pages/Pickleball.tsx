@@ -60,6 +60,62 @@ export const Pickleball: React.FC = () => {
     const { scrollY } = useScroll();
     const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
 
+    // Form State
+    const [formData, setFormData] = React.useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        message: ''
+    });
+    const [formErrors, setFormErrors] = React.useState<Record<string, string>>({});
+    const [isSubmittingForm, setIsSubmittingForm] = React.useState(false);
+
+    const validateForm = () => {
+        const errors: Record<string, string> = {};
+        if (!formData.firstName.trim()) errors.firstName = 'First name is required';
+        if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!formData.email.trim()) {
+            errors.email = 'Email is required';
+        } else if (!emailRegex.test(formData.email)) {
+            errors.email = 'Invalid email address';
+        }
+
+        if (!formData.message.trim()) errors.message = 'Message is required';
+
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validateForm()) return;
+        setIsSubmittingForm(true);
+
+        try {
+            const response = await apiClient.post('/contact/submit', {
+                form_type: 'pickleball',
+                name: `${formData.firstName} ${formData.lastName}`,
+                email: formData.email,
+                phone: 'N/A',
+                message: formData.message
+            });
+
+            if (response.data.success) {
+                alert(response.data.message);
+                setFormData({ firstName: '', lastName: '', email: '', message: '' });
+                setFormErrors({});
+            } else {
+                alert('Error sending message. Please try again.');
+            }
+        } catch (err) {
+            alert('Error sending message. Please try again.');
+        } finally {
+            setIsSubmittingForm(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-white font-sans selection:bg-primary selection:text-black">
             <PublicNav />
@@ -214,102 +270,78 @@ export const Pickleball: React.FC = () => {
                         </p>
 
                         <div className="max-w-4xl mx-auto bg-gray-50 p-10 rounded-xl shadow-sm border border-gray-100">
-                            <form className="space-y-6">
+                            <form className="space-y-6" onSubmit={handleFormSubmit}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="text-left">
                                         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">First Name</label>
                                         <input
                                             type="text"
-                                            id="pb-firstname"
                                             placeholder="e.g. Arjun"
-                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
-                                            required
+                                            value={formData.firstName}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, firstName: e.target.value });
+                                                if (formErrors.firstName) setFormErrors({ ...formErrors, firstName: '' });
+                                            }}
+                                            className={`w-full px-4 py-3 bg-white border ${formErrors.firstName ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300`}
                                         />
+                                        {formErrors.firstName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.firstName}</span>}
                                     </div>
                                     <div className="text-left">
                                         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Last Name</label>
                                         <input
                                             type="text"
-                                            id="pb-lastname"
                                             placeholder="e.g. Sharma"
-                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
-                                            required
+                                            value={formData.lastName}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, lastName: e.target.value });
+                                                if (formErrors.lastName) setFormErrors({ ...formErrors, lastName: '' });
+                                            }}
+                                            className={`w-full px-4 py-3 bg-white border ${formErrors.lastName ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300`}
                                         />
+                                        {formErrors.lastName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.lastName}</span>}
                                     </div>
                                 </div>
                                 <div className="text-left">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Email</label>
                                     <input
                                         type="email"
-                                        id="pb-email"
                                         placeholder="you@example.com"
-                                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
-                                        required
+                                        value={formData.email}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, email: e.target.value });
+                                            if (formErrors.email) setFormErrors({ ...formErrors, email: '' });
+                                        }}
+                                        className={`w-full px-4 py-3 bg-white border ${formErrors.email ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300`}
                                     />
+                                    {formErrors.email && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.email}</span>}
                                 </div>
                                 <div className="text-left">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Message</label>
                                     <textarea
                                         rows={5}
-                                        id="pb-message"
                                         placeholder="Tell us about your query, booking request, or anything else..."
-                                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-300"
-                                        required
+                                        value={formData.message}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, message: e.target.value });
+                                            if (formErrors.message) setFormErrors({ ...formErrors, message: '' });
+                                        }}
+                                        className={`w-full px-4 py-3 bg-white border ${formErrors.message ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-300`}
                                     />
+                                    {formErrors.message && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.message}</span>}
                                 </div>
                                 <div className="text-center pt-2">
                                     <Button
                                         variant="primary"
                                         size="lg"
-                                        id="pb-submit"
-                                        className="w-full py-4 uppercase font-extrabold tracking-widest bg-black text-white hover:bg-primary hover:text-black transition-all duration-300 font-heading rounded-xl"
-                                        onClick={async (e) => {
-                                            e.preventDefault();
-                                            const btn = document.getElementById('pb-submit') as HTMLButtonElement;
-
-                                            const getVal = (id: string) => (document.getElementById(id) as HTMLInputElement)?.value || '';
-                                            const fname = getVal('pb-firstname');
-                                            const lname = getVal('pb-lastname');
-                                            const email = getVal('pb-email');
-                                            const message = getVal('pb-message');
-
-                                            if (!fname || !lname || !email || !message) {
-                                                alert('Please fill out all required fields.');
-                                                return;
-                                            }
-
-                                            if (btn) {
-                                                btn.disabled = true;
-                                                btn.innerText = 'SENDING...';
-                                            }
-
-                                            try {
-                                                const response = await apiClient.post('/contact/submit', {
-                                                    form_type: 'pickleball',
-                                                    name: `${fname} ${lname}`,
-                                                    email: email,
-                                                    phone: 'N/A', // Defaulting as no field exists in the new UI
-                                                    message: message
-                                                });
-
-                                                if (response.data.success) {
-                                                    alert(response.data.message);
-                                                    const form = btn.closest('form');
-                                                    if (form) form.reset();
-                                                } else {
-                                                    alert('Error sending message. Please try again.');
-                                                }
-                                            } catch (err) {
-                                                alert('Error sending message. Please try again.');
-                                            } finally {
-                                                if (btn) {
-                                                    btn.disabled = false;
-                                                    btn.innerText = 'SEND MESSAGE';
-                                                }
-                                            }
-                                        }}
+                                        type="submit"
+                                        disabled={isSubmittingForm}
+                                        className="w-full py-4 uppercase font-extrabold tracking-widest bg-black text-white hover:bg-primary hover:text-black transition-all duration-300 font-heading rounded-xl flex items-center justify-center min-w-[200px]"
                                     >
-                                        Send Message
+                                        {isSubmittingForm ? (
+                                            <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                        ) : (
+                                            'Send Message'
+                                        )}
                                     </Button>
                                 </div>
                             </form>

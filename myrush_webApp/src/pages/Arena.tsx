@@ -3,6 +3,7 @@ import { PublicNav } from '../components/PublicNav';
 import { useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '../components/ui/Button';
+import { PhoneInput } from '../components/ui/PhoneInput';
 import ScrollIndicator from '../components/ScrollIndicator';
 import { FaMapMarkerAlt, FaClock, FaUsers, FaStar } from "react-icons/fa";
 import { venuesApi } from '../api/venues';
@@ -110,6 +111,72 @@ export const Arena: React.FC = () => {
         fetchVenues();
     }, []);
 
+    const [formData, setFormData] = React.useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        countryCode: '+91',
+        phone: '',
+        message: ''
+    });
+    const [formErrors, setFormErrors] = React.useState<Record<string, string>>({});
+    const [isSubmittingForm, setIsSubmittingForm] = React.useState(false);
+
+    const validateForm = () => {
+        const errors: Record<string, string> = {};
+        if (!formData.firstName.trim()) errors.firstName = 'First name is required';
+        if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!formData.email.trim()) {
+            errors.email = 'Email is required';
+        } else if (!emailRegex.test(formData.email)) {
+            errors.email = 'Invalid email address';
+        }
+
+        const isIndia = formData.countryCode === '+91';
+        if (!formData.phone.trim()) {
+            errors.phone = 'Phone number is required';
+        } else if (isIndia && !/^[6-9]\d{9}$/.test(formData.phone)) {
+            errors.phone = 'Invalid Indian phone number (10 digits)';
+        } else if (formData.phone.length < 7) {
+            errors.phone = 'Invalid phone number (too short)';
+        }
+
+        if (!formData.message.trim()) errors.message = 'Message is required';
+
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validateForm()) return;
+        setIsSubmittingForm(true);
+
+        try {
+            const { apiClient } = await import('../api/client');
+            const response = await apiClient.post('/contact/submit', {
+                form_type: 'arena',
+                name: `${formData.firstName} ${formData.lastName}`,
+                email: formData.email,
+                phone: `${formData.countryCode}${formData.phone}`,
+                message: formData.message
+            });
+            if (response.data.success) {
+                alert(response.data.message);
+                setFormData({ firstName: '', lastName: '', email: '', countryCode: '+91', phone: '', message: '' });
+                setFormErrors({});
+            } else {
+                alert('Message failed to send. Please try again.');
+            }
+        } catch (err) {
+            alert('Error sending message. Please try again.');
+        } finally {
+            setIsSubmittingForm(false);
+        }
+    };
+
     const { scrollY } = useScroll();
     const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
 
@@ -120,10 +187,11 @@ export const Arena: React.FC = () => {
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-screen flex items-center justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
+            <section className="relative h-screen flex items-center justify-center md:justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-10 hidden md:block" />
+                    <div className="absolute inset-0 bg-black/60 md:hidden z-10" />
                     <div className="absolute inset-0 bg-dark-gradient z-10" />
                     <img
                         src="https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=2070"
@@ -133,7 +201,7 @@ export const Arena: React.FC = () => {
                 </div>
 
                 <motion.div
-                    className="relative z-20 text-left w-full max-w-7xl py-32"
+                    className="relative z-20 text-center md:text-left w-full max-w-7xl py-32"
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
@@ -163,13 +231,13 @@ export const Arena: React.FC = () => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-[10px] md:text-base px-2 md:px-10 py-3.5 md:py-4 flex-1 md:flex-none min-w-0 md:min-w-[200px] uppercase tracking-wider font-heading font-bold shadow-glow hover:shadow-glow-strong rounded-xl"
+                            className="bg-primary text-black hover:bg-primary-hover text-[10px] md:text-base h-12 md:h-14 px-4 md:px-10 flex-1 md:flex-none min-w-0 md:min-w-[200px] uppercase tracking-wider font-heading font-bold shadow-glow hover:shadow-glow-strong rounded-xl flex items-center justify-center"
                             onClick={() => navigate('/venues')}
                         >
                             Explore Venues
                         </Button>
                         <button
-                            className="border border-white text-white hover:border-primary text-[10px] md:text-base px-2 md:px-6 py-3 md:py-4 flex-1 md:flex-none min-w-0 uppercase tracking-wider font-heading font-black rounded-xl transition-all duration-300 group shadow-glow hover:shadow-glow-strong flex items-center justify-center gap-1.5 md:gap-3"
+                            className="border border-white text-white hover:border-primary text-[10px] md:text-base h-12 md:h-14 px-4 md:px-10 flex-1 md:flex-none min-w-0 md:min-w-[200px] uppercase tracking-wider font-heading font-black rounded-xl transition-all duration-300 group shadow-glow hover:shadow-glow-strong flex items-center justify-center gap-1.5 md:gap-3"
                             onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             View Facilities
@@ -388,65 +456,35 @@ export const Arena: React.FC = () => {
                             viewport={{ once: true }}
                             className="w-full lg:w-6/12 relative z-20"
                         >
-                            <form className="space-y-6" onSubmit={async (e) => {
-                                e.preventDefault();
-                                const form = e.target as HTMLFormElement;
-                                const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-
-                                if (submitBtn) {
-                                    submitBtn.disabled = true;
-                                    submitBtn.innerText = 'SENDING...';
-                                }
-
-                                const data = {
-                                    first_name: (form.elements[0] as HTMLInputElement).value,
-                                    last_name: (form.elements[1] as HTMLInputElement).value,
-                                    email: (form.elements[2] as HTMLInputElement).value,
-                                    message: (form.elements[3] as HTMLTextAreaElement).value,
-                                };
-
-                                try {
-                                    const { apiClient } = await import('../api/client');
-                                    const response = await apiClient.post('/contact/submit', {
-                                        form_type: 'arena',
-                                        name: `${data.first_name} ${data.last_name}`,
-                                        email: data.email,
-                                        phone: 'N/A', // Arena form doesn't have phone, but backend requires it
-                                        message: data.message
-                                    });
-                                    if (response.data.success) {
-                                        alert(response.data.message);
-                                        form.reset();
-                                    } else {
-                                        alert('Message failed to send. Please try again.');
-                                    }
-                                } catch (err) {
-                                    alert('Error sending message. Please try again.');
-                                } finally {
-                                    if (submitBtn) {
-                                        submitBtn.disabled = false;
-                                        submitBtn.innerText = 'SEND MESSAGE →';
-                                    }
-                                }
-                            }}>
+                            <form className="space-y-6" onSubmit={handleFormSubmit}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1">
                                         <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">First Name</label>
                                         <input
                                             type="text"
-                                            placeholder="First Name (required)"
-                                            required
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                            placeholder="First Name"
+                                            value={formData.firstName}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, firstName: e.target.value });
+                                                if (formErrors.firstName) setFormErrors({ ...formErrors, firstName: '' });
+                                            }}
+                                            className={`w-full bg-white/5 border ${formErrors.firstName ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm`}
                                         />
+                                        {formErrors.firstName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.firstName}</span>}
                                     </div>
                                     <div className="space-y-1">
                                         <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Last Name</label>
                                         <input
                                             type="text"
-                                            placeholder="Last Name (required)"
-                                            required
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                            placeholder="Last Name"
+                                            value={formData.lastName}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, lastName: e.target.value });
+                                                if (formErrors.lastName) setFormErrors({ ...formErrors, lastName: '' });
+                                            }}
+                                            className={`w-full bg-white/5 border ${formErrors.lastName ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm`}
                                         />
+                                        {formErrors.lastName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.lastName}</span>}
                                     </div>
                                 </div>
 
@@ -455,32 +493,61 @@ export const Arena: React.FC = () => {
                                     <input
                                         type="email"
                                         placeholder="example@email.com"
-                                        required
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                        value={formData.email}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, email: e.target.value });
+                                            if (formErrors.email) setFormErrors({ ...formErrors, email: '' });
+                                        }}
+                                        className={`w-full bg-white/5 border ${formErrors.email ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm`}
+                                    />
+                                    {formErrors.email && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.email}</span>}
+                                </div>
+
+                                <div className="space-y-1">
+                                    <PhoneInput
+                                        label="Phone Number"
+                                        countryCode={formData.countryCode}
+                                        phoneNumber={formData.phone}
+                                        onCodeChange={(code) => setFormData({ ...formData, countryCode: code })}
+                                        onNumberChange={(num) => {
+                                            setFormData({ ...formData, phone: num });
+                                            if (formErrors.phone) setFormErrors({ ...formErrors, phone: '' });
+                                        }}
+                                        error={formErrors.phone}
                                     />
                                 </div>
 
                                 <div className="space-y-1">
                                     <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Message</label>
                                     <textarea
-                                        required
                                         rows={1}
-                                        placeholder="Your message (required)"
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm resize-none overflow-hidden"
+                                        placeholder="Your message"
+                                        value={formData.message}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, message: e.target.value });
+                                            if (formErrors.message) setFormErrors({ ...formErrors, message: '' });
+                                        }}
+                                        className={`w-full bg-white/5 border ${formErrors.message ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm resize-none overflow-hidden`}
                                         onInput={(e) => {
                                             const target = e.target as HTMLTextAreaElement;
                                             target.style.height = 'auto';
                                             target.style.height = target.scrollHeight + 'px';
                                         }}
                                     />
+                                    {formErrors.message && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.message}</span>}
                                 </div>
 
                                 <div className="pt-8">
                                     <button
                                         type="submit"
-                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95 text-lg"
+                                        disabled={isSubmittingForm}
+                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95 text-lg flex items-center justify-center min-w-[240px]"
                                     >
-                                        Send Message →
+                                        {isSubmittingForm ? (
+                                            <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                        ) : (
+                                            'Send Message →'
+                                        )}
                                     </button>
                                 </div>
                             </form>

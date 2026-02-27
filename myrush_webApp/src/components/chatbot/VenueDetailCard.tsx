@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FaMapMarkerAlt, FaStar, FaFutbol, FaParking, FaSwimmer, FaCoffee } from 'react-icons/fa';
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/user').replace('/api/user', '');
+
 interface VenueDetailCardProps {
     venue: any;
     onBookClick: (venueId: string) => void;
@@ -17,6 +19,15 @@ const getAmenityIcon = (name: string) => {
 
 export const VenueDetailCard: React.FC<VenueDetailCardProps> = ({ venue, onBookClick }) => {
 
+    const getImageUrl = () => {
+        const url = venue.image_url || (venue.photos && venue.photos[0]) || (venue.images && venue.images[0]) || (venue.photos_urls && venue.photos_urls[0]);
+        if (!url) return null;
+        if (url.startsWith('http')) return url;
+        return `${API_BASE_URL}/${url.startsWith('/') ? url.slice(1) : url}`;
+    };
+
+    const imgUrl = getImageUrl();
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -25,11 +36,14 @@ export const VenueDetailCard: React.FC<VenueDetailCardProps> = ({ venue, onBookC
         >
             {/* Image Section */}
             <div className="relative h-48 bg-gray-200">
-                {venue.images && venue.images.length > 0 ? (
+                {imgUrl ? (
                     <img
-                        src={venue.images[0]}
+                        src={imgUrl}
                         alt={venue.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=2069';
+                        }}
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">

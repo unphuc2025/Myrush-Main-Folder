@@ -2,6 +2,7 @@ import React from 'react';
 import { PublicNav } from '../components/PublicNav';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '../components/ui/Button';
+import { PhoneInput } from '../components/ui/PhoneInput';
 import { apiClient } from '../api/client';
 import ScrollIndicator from '../components/ScrollIndicator';
 
@@ -49,6 +50,82 @@ export const Corporate: React.FC = () => {
 
     const { scrollY } = useScroll();
     const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+
+    // Form State
+    const [formData, setFormData] = React.useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        countryCode: '+91',
+        phone: '',
+        company: '',
+        designation: ''
+    });
+    const [formErrors, setFormErrors] = React.useState<Record<string, string>>({});
+    const [isSubmittingForm, setIsSubmittingForm] = React.useState(false);
+
+    const validateForm = () => {
+        const errors: Record<string, string> = {};
+        if (!formData.firstName.trim()) errors.firstName = 'First name is required';
+        if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!formData.email.trim()) {
+            errors.email = 'Email is required';
+        } else if (!emailRegex.test(formData.email)) {
+            errors.email = 'Invalid email address';
+        }
+
+        const isIndia = formData.countryCode === '+91';
+        if (!formData.phone.trim()) {
+            errors.phone = 'Phone number is required';
+        } else if (isIndia && !/^[6-9]\d{9}$/.test(formData.phone)) {
+            errors.phone = 'Invalid Indian phone number (10 digits)';
+        } else if (formData.phone.length < 7) {
+            errors.phone = 'Invalid phone number (too short)';
+        }
+
+        if (!formData.company) errors.company = 'Please select an option';
+
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validateForm()) return;
+        setIsSubmittingForm(true);
+
+        try {
+            const response = await apiClient.post('/contact/submit', {
+                form_type: 'corporate',
+                name: `${formData.firstName} ${formData.lastName}`,
+                email: formData.email,
+                phone: `${formData.countryCode}${formData.phone}`,
+                company_name: formData.company,
+                message: `Designation: ${formData.designation}`
+            });
+            if (response.data.success) {
+                alert(response.data.message);
+                setFormData({
+                    firstName: '',
+                    lastName: '',
+                    email: '',
+                    countryCode: '+91',
+                    phone: '',
+                    company: '',
+                    designation: ''
+                });
+                setFormErrors({});
+            } else {
+                alert('Message failed to send. Please try again.');
+            }
+        } catch (err) {
+            alert('Error sending message. Please try again.');
+        } finally {
+            setIsSubmittingForm(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-white font-sans selection:bg-primary selection:text-black">
@@ -238,67 +315,35 @@ export const Corporate: React.FC = () => {
                             viewport={{ once: true }}
                             className="w-full lg:w-6/12 relative z-20"
                         >
-                            <form className="space-y-6" onSubmit={async (e) => {
-                                e.preventDefault();
-                                const form = e.target as HTMLFormElement;
-                                const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-
-                                if (submitBtn) {
-                                    submitBtn.disabled = true;
-                                    submitBtn.innerText = 'SENDING...';
-                                }
-
-                                const data = {
-                                    first_name: (form.elements[0] as HTMLInputElement).value,
-                                    last_name: (form.elements[1] as HTMLInputElement).value,
-                                    email: (form.elements[2] as HTMLInputElement).value,
-                                    phone: (form.elements[3] as HTMLInputElement).value,
-                                    company: (form.elements[4] as HTMLSelectElement).value,
-                                    designation: (form.elements[5] as HTMLInputElement).value,
-                                };
-
-                                try {
-                                    const response = await apiClient.post('/contact/submit', {
-                                        form_type: 'corporate',
-                                        name: `${data.first_name} ${data.last_name}`,
-                                        email: data.email,
-                                        phone: data.phone,
-                                        company_name: data.company,
-                                        message: `Designation: ${data.designation}`
-                                    });
-                                    if (response.data.success) {
-                                        alert(response.data.message);
-                                        form.reset();
-                                    } else {
-                                        alert('Message failed to send. Please try again.');
-                                    }
-                                } catch (err) {
-                                    alert('Error sending message. Please try again.');
-                                } finally {
-                                    if (submitBtn) {
-                                        submitBtn.disabled = false;
-                                        submitBtn.innerText = 'SEND MESSAGE →';
-                                    }
-                                }
-                            }}>
+                            <form className="space-y-6" onSubmit={handleFormSubmit}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1">
                                         <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">First Name</label>
                                         <input
                                             type="text"
-                                            placeholder="First Name (required)"
-                                            required
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                            placeholder="First Name"
+                                            value={formData.firstName}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, firstName: e.target.value });
+                                                if (formErrors.firstName) setFormErrors({ ...formErrors, firstName: '' });
+                                            }}
+                                            className={`w-full bg-white/5 border ${formErrors.firstName ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm`}
                                         />
+                                        {formErrors.firstName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.firstName}</span>}
                                     </div>
                                     <div className="space-y-1">
                                         <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Last Name</label>
                                         <input
                                             type="text"
-                                            placeholder="Last Name (required)"
-                                            required
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                            placeholder="Last Name"
+                                            value={formData.lastName}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, lastName: e.target.value });
+                                                if (formErrors.lastName) setFormErrors({ ...formErrors, lastName: '' });
+                                            }}
+                                            className={`w-full bg-white/5 border ${formErrors.lastName ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm`}
                                         />
+                                        {formErrors.lastName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.lastName}</span>}
                                     </div>
                                 </div>
 
@@ -307,18 +352,27 @@ export const Corporate: React.FC = () => {
                                     <input
                                         type="email"
                                         placeholder="example@email.com"
-                                        required
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                        value={formData.email}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, email: e.target.value });
+                                            if (formErrors.email) setFormErrors({ ...formErrors, email: '' });
+                                        }}
+                                        className={`w-full bg-white/5 border ${formErrors.email ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm`}
                                     />
+                                    {formErrors.email && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.email}</span>}
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Phone Number</label>
-                                    <input
-                                        type="tel"
-                                        placeholder="+91 00000 00000"
-                                        required
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                    <PhoneInput
+                                        label="Phone Number"
+                                        countryCode={formData.countryCode}
+                                        phoneNumber={formData.phone}
+                                        onCodeChange={(code) => setFormData({ ...formData, countryCode: code })}
+                                        onNumberChange={(num) => {
+                                            setFormData({ ...formData, phone: num });
+                                            if (formErrors.phone) setFormErrors({ ...formErrors, phone: '' });
+                                        }}
+                                        error={formErrors.phone}
                                     />
                                 </div>
 
@@ -326,10 +380,14 @@ export const Corporate: React.FC = () => {
                                     <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Company Name</label>
                                     <div className="relative">
                                         <select
-                                            required
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm appearance-none cursor-pointer [&>option]:bg-black [&>option]:text-white"
+                                            value={formData.company}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, company: e.target.value });
+                                                if (formErrors.company) setFormErrors({ ...formErrors, company: '' });
+                                            }}
+                                            className={`w-full bg-white/5 border ${formErrors.company ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm appearance-none cursor-pointer [&>option]:bg-black [&>option]:text-white`}
                                         >
-                                            <option value="" disabled selected>Select an option</option>
+                                            <option value="" disabled>Select an option</option>
                                             <option value="Yes">Yes</option>
                                             <option value="No">No</option>
                                             <option value="Still Unsure">Still Unsure</option>
@@ -340,6 +398,7 @@ export const Corporate: React.FC = () => {
                                             </svg>
                                         </div>
                                     </div>
+                                    {formErrors.company && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.company}</span>}
                                 </div>
 
                                 <div className="space-y-1">
@@ -348,6 +407,8 @@ export const Corporate: React.FC = () => {
                                     <input
                                         type="text"
                                         placeholder="e.g. HR Manager"
+                                        value={formData.designation}
+                                        onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
                                     />
                                 </div>
@@ -356,9 +417,14 @@ export const Corporate: React.FC = () => {
                                     <Button
                                         variant="primary"
                                         type="submit"
-                                        className="w-1/2 md:w-auto px-8 md:px-12 py-3 md:py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95 text-base md:text-lg"
+                                        disabled={isSubmittingForm}
+                                        className="w-1/2 md:w-auto px-8 md:px-12 py-3 md:py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95 text-base md:text-lg flex items-center justify-center min-w-[200px]"
                                     >
-                                        Send Message →
+                                        {isSubmittingForm ? (
+                                            <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                        ) : (
+                                            'Send Message →'
+                                        )}
                                     </Button>
                                 </div>
                             </form>

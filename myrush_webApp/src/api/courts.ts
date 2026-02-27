@@ -74,4 +74,25 @@ export const courtsApi = {
             };
         }
     },
+    submitReview: async (courtId: string, rating: number, reviewText?: string) => {
+        try {
+            const payload = {
+                court_id: courtId,
+                rating: rating,
+                review_text: reviewText || ''
+            };
+            const response = await apiClient.post('/reviews/', payload);
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('[COURTS API] Exception submitting review:', error);
+            return {
+                success: false,
+                data: null,
+                error: error.message,
+            };
+        }
+    },
 };

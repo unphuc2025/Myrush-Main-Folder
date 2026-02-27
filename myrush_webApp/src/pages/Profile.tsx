@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '../api/client';
 import { profileApi, type ProfileData } from '../api/profile';
 import { bookingsApi } from '../api/bookings';
 import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye } from 'react-icons/fa';
+import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye, FaChevronRight } from 'react-icons/fa';
 
 export const Profile: React.FC = () => {
     const navigate = useNavigate();
@@ -23,9 +23,31 @@ export const Profile: React.FC = () => {
     const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
     const [reviewStates, setReviewStates] = useState<Record<string, { has_reviewed: boolean; review?: { rating: number; review_text: string } }>>({});
     const [showRatingModal, setShowRatingModal] = useState<string | null>(null);
+    const [activeMobileSection, setActiveMobileSection] = useState<'profile' | 'bookings' | 'reviews' | null>(null);
     const [selectedRating, setSelectedRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
+    const [searchParams] = useSearchParams();
+
+    // Sync activeMobileSection with query parameter
+    useEffect(() => {
+        const view = searchParams.get('view');
+        if (view === 'reviews') {
+            setCurrentView('reviews');
+            setActiveMobileSection('reviews');
+        } else if (view === 'bookings') {
+            setCurrentView('bookings');
+            setActiveMobileSection('bookings');
+        } else if (view === 'profile') {
+            setCurrentView('profile');
+            setActiveMobileSection('profile');
+        }
+    }, [searchParams]);
+
+    const toggleMobileSection = (section: 'profile' | 'bookings' | 'reviews') => {
+        setActiveMobileSection(prev => prev === section ? null : section);
+        setCurrentView(section);
+    };
 
 
 
@@ -256,12 +278,293 @@ export const Profile: React.FC = () => {
             <TopNav />
 
             <div className="flex flex-col lg:flex-row pt-16 lg:pt-20">
-                {/* Left Sidebar - Responsive Options */}
+                <div className="lg:hidden flex-1 p-4 space-y-6 pt-10">
+                    {/* 1. Profile Header (Mobile) */}
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center text-xl font-black shadow-lg shadow-primary/20">
+                                {getInitials(user?.full_name)}
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-black text-gray-900">{user?.full_name || 'MyRush Player'}</h1>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{user?.phone_number || 'Athlete'}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => navigate('/profile/edit')}
+                            className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm text-primary"
+                        >
+                            <FaEdit size={18} />
+                        </button>
+                    </div>
+
+                    {/* 2. Quick Stats Row (Mobile) */}
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase">Bookings</span>
+                            <span className="text-2xl font-black text-gray-900">{stats.bookings}</span>
+                        </div>
+                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase">Played</span>
+                            <span className="text-2xl font-black text-gray-900">{stats.gamesPlayed}</span>
+                        </div>
+                    </div>
+
+                    {/* 3. Accordion Navigation (Mobile) */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 px-1">
+                            <span className="w-1 h-4 bg-primary rounded-full"></span>
+                            <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">Account Details</h2>
+                        </div>
+
+                        {/* Profile Info Accordion (Mobile) */}
+                        <div className="space-y-2">
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => toggleMobileSection('profile')}
+                                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${activeMobileSection === 'profile' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMobileSection === 'profile' ? 'bg-primary text-white' : 'bg-gray-50 text-gray-400'}`}>
+                                        <FaUser size={16} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-gray-900">Personal Information</p>
+                                        <p className="text-[10px] text-gray-500 font-medium">Manage your name, email & city</p>
+                                    </div>
+                                </div>
+                                <FaChevronRight size={12} className={`transition-transform duration-300 ${activeMobileSection === 'profile' ? 'text-primary rotate-90' : 'text-gray-300'}`} />
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {activeMobileSection === 'profile' && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden px-1"
+                                    >
+                                        <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-1 space-y-6 shadow-sm">
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1 block">Full Name</label>
+                                                    <p className="text-base font-bold text-gray-900">{user?.full_name || 'Not provided'}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1 block">Phone Number</label>
+                                                    <p className="text-base font-bold text-gray-900">{user?.phone_number}</p>
+                                                </div>
+                                                {user?.email && (
+                                                    <div>
+                                                        <label className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1 block">Email</label>
+                                                        <p className="text-sm font-semibold text-gray-900 truncate">{user.email}</p>
+                                                    </div>
+                                                )}
+                                                {user?.city && (
+                                                    <div>
+                                                        <label className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1 block">City</label>
+                                                        <p className="text-sm font-semibold text-gray-900">{user.city}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="pt-4 border-t border-gray-50 space-y-4">
+                                                <h3 className="text-xs font-black text-gray-900 uppercase">Sports Profile</h3>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {user?.age && (
+                                                        <div>
+                                                            <label className="text-[9px] uppercase font-bold text-gray-400 block">Age</label>
+                                                            <p className="text-sm font-bold text-gray-900">{user.age}</p>
+                                                        </div>
+                                                    )}
+                                                    {user?.gender && (
+                                                        <div>
+                                                            <label className="text-[9px] uppercase font-bold text-gray-400 block">Gender</label>
+                                                            <p className="text-sm font-bold text-gray-900">{user.gender}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {user?.skill_level && (
+                                                    <div>
+                                                        <label className="text-[9px] uppercase font-bold text-gray-400 mb-2 block">Skill Level</label>
+                                                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-bold border ${getSkillBadgeColor(user.skill_level)}`}>
+                                                            <FaTrophy className="mr-1.5" />
+                                                            {user.skill_level}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* My Bookings Accordion (Mobile) */}
+                        <div className="space-y-2">
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => toggleMobileSection('bookings')}
+                                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${activeMobileSection === 'bookings' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMobileSection === 'bookings' ? 'bg-primary text-white' : 'bg-gray-50 text-gray-400'}`}>
+                                        <FaCalendarCheck size={16} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-gray-900">My Bookings</p>
+                                        <p className="text-[10px] text-gray-500 font-medium">View your court history</p>
+                                    </div>
+                                </div>
+                                <FaChevronRight size={12} className={`transition-transform duration-300 ${activeMobileSection === 'bookings' ? 'text-primary rotate-90' : 'text-gray-300'}`} />
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {activeMobileSection === 'bookings' && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden px-1"
+                                    >
+                                        <div className="bg-white rounded-2xl border border-gray-100 p-2 mt-1 shadow-sm">
+                                            {/* Booking Tabs (Mobile) */}
+                                            <div className="flex gap-1 mb-4 p-1 bg-gray-50 rounded-xl overflow-x-auto no-scrollbar">
+                                                {['all', 'upcoming', 'completed', 'cancelled'].map(tab => (
+                                                    <button
+                                                        key={tab}
+                                                        className={`px-3 py-1.5 font-bold text-[10px] rounded-lg transition-all whitespace-nowrap ${activeTab === tab
+                                                            ? 'bg-white text-primary shadow-sm'
+                                                            : 'text-gray-400'
+                                                            }`}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveTab(tab as any);
+                                                        }}
+                                                    >
+                                                        {tab.toUpperCase()}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {/* Minimal Bookings List */}
+                                            {bookingsLoading ? (
+                                                <div className="py-8 text-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div></div>
+                                            ) : bookings.filter(b => activeTab === 'all' || b.status === activeTab).length === 0 ? (
+                                                <div className="py-10 text-center">
+                                                    <p className="text-xs font-bold text-gray-400 uppercase">No bookings found</p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {bookings
+                                                        .filter(b => activeTab === 'all' || b.status === activeTab)
+                                                        .map((booking, idx) => (
+                                                            <div key={idx} className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <div>
+                                                                        <h4 className="text-xs font-black text-gray-900 line-clamp-1">{booking.venue_name || 'Court Booking'}</h4>
+                                                                        <p className="text-[10px] font-bold text-gray-500">{new Date(booking.booking_date).toLocaleDateString()}</p>
+                                                                    </div>
+                                                                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                                        {booking.status}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="text-[10px] text-gray-600 font-medium">₹{booking.total_amount} • {booking.time_slots?.[0]?.start_time || booking.start_time}</div>
+                                                                    <button
+                                                                        onClick={() => toggleBookingExpansion(booking.id)}
+                                                                        className="text-primary text-[10px] font-black uppercase tracking-wider"
+                                                                    >
+                                                                        {expandedBookingId === booking.id ? 'Hide' : 'Details'}
+                                                                    </button>
+                                                                </div>
+                                                                {expandedBookingId === booking.id && (
+                                                                    <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-[10px]">
+                                                                        <div><span className="text-gray-400 font-bold block">TIME</span><p>{booking.start_time} - {booking.end_time}</p></div>
+                                                                        <div><span className="text-gray-400 font-bold block">BOOKING ID</span><p>{booking.booking_display_id || booking.id}</p></div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))
+                                                    }
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Ratings Accordion (Mobile) */}
+                        <div className="space-y-2">
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => toggleMobileSection('reviews')}
+                                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${activeMobileSection === 'reviews' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMobileSection === 'reviews' ? 'bg-primary text-white' : 'bg-gray-50 text-gray-400'}`}>
+                                        <FaStar size={16} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-gray-900">Rating & Reviews</p>
+                                        <p className="text-[10px] text-gray-500 font-medium">Feedback on your games</p>
+                                    </div>
+                                </div>
+                                <FaChevronRight size={12} className={`transition-transform duration-300 ${activeMobileSection === 'reviews' ? 'text-primary rotate-90' : 'text-gray-300'}`} />
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {activeMobileSection === 'reviews' && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden px-1"
+                                    >
+                                        <div className="bg-white rounded-2xl border border-gray-100 p-3 mt-1 shadow-sm">
+                                            {reviewsLoading ? (
+                                                <div className="py-8 text-center font-bold text-xs text-gray-400 uppercase tracking-widest">Loading...</div>
+                                            ) : reviews.length === 0 ? (
+                                                <div className="py-10 text-center font-bold text-xs text-gray-300 uppercase tracking-widest leading-relaxed">No reviews submitted yet.<br />Complete games to rate them!</div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {reviews.map((rev, i) => (
+                                                        <div key={i} className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <h4 className="text-[11px] font-black text-gray-900">{rev.venue_name}</h4>
+                                                                <div className="flex text-yellow-400 text-[10px]">{'★'.repeat(rev.review.rating)}</div>
+                                                            </div>
+                                                            <p className="text-[10px] text-gray-600 italic leading-relaxed">"{rev.review.review_text}"</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                    </div>
+
+                    {/* Settings Area (Bottom Mobile) */}
+                    <div className="pt-8 pb-32">
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-red-50 text-red-600 font-black text-xs uppercase tracking-widest border border-red-100 shadow-sm"
+                        >
+                            Logout
+                        </button>
+                    </div>
+                </div>
+
+                {/* Desktop Sidebar (Existing Logic) */}
                 <motion.div
                     initial={{ x: -100, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.6 }}
-                    className="relative lg:fixed lg:left-0 lg:top-20 w-full lg:w-80 bg-white border-b lg:border-r border-gray-200 h-auto lg:h-[calc(100vh-5rem)] p-4 md:p-6 lg:overflow-y-auto z-10"
+                    className="hidden lg:flex relative lg:fixed lg:left-0 lg:top-20 w-80 bg-white border-r border-gray-200 h-[calc(100vh-5rem)] p-6 overflow-y-auto z-10"
                 >
                     <div className="space-y-4">
                         <h2 className="text-lg lg:text-xl font-bold text-gray-900 mb-4 lg:mb-6">Account Settings</h2>
@@ -334,13 +637,13 @@ export const Profile: React.FC = () => {
                     </div>
                 </motion.div>
 
-                {/* Right Side - Content (Responsive Scroll) */}
+                {/* Content Area - Offset on desktop, hidden on mobile in favor of accordion */}
                 <motion.div
                     key={currentView}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3, duration: 0.6 }}
-                    className="flex-1 lg:ml-80 p-4 lg:p-8 lg:overflow-y-auto lg:h-[calc(100vh-5rem)]"
+                    className="hidden lg:block flex-1 lg:ml-80 p-8 lg:overflow-y-auto lg:h-[calc(100vh-5rem)]"
                 >
                     <div className="max-w-5xl mx-auto">
                         {currentView === 'profile' ? (

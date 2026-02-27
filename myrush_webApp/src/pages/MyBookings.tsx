@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { bookingsApi } from '../api/bookings';
 import { TopNav } from '../components/TopNav';
 import './MyBookings.css';
@@ -38,7 +38,7 @@ export const MyBookings: React.FC = () => {
     const [showRatingModal, setShowRatingModal] = useState<string | null>(null);
     const [selectedRating, setSelectedRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
-    const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+    const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
     useEffect(() => {
         loadBookings();
@@ -140,17 +140,6 @@ export const MyBookings: React.FC = () => {
         );
     };
 
-    const toggleCardExpansion = (bookingId: string) => {
-        setExpandedCards(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(bookingId)) {
-                newSet.delete(bookingId);
-            } else {
-                newSet.add(bookingId);
-            }
-            return newSet;
-        });
-    };
 
     return (
         <div className="my-bookings-page-modern">
@@ -207,11 +196,11 @@ export const MyBookings: React.FC = () => {
 
                                     <div className="booking-details">
                                         <div className="detail-item">
-                                            <span className="label">Time</span>
+                                            <span className="label">Time:</span>
                                             <span className="value">🕒 {booking.start_time?.slice(0, 5) || 'N/A'} - {booking.end_time?.slice(0, 5) || 'N/A'}</span>
                                         </div>
                                         <div className="detail-item">
-                                            <span className="label">Amount</span>
+                                            <span className="label">Amount:</span>
                                             <span className="value price">₹{booking.total_amount}</span>
                                         </div>
                                     </div>
@@ -220,98 +209,12 @@ export const MyBookings: React.FC = () => {
                                         <span>Booking ID: {booking.booking_display_id || booking.id.slice(0, 8)}</span>
                                         <button
                                             className="view-details-btn"
-                                            onClick={() => toggleCardExpansion(booking.id)}
+                                            onClick={() => setSelectedBooking(booking)}
                                         >
-                                            {expandedCards.has(booking.id) ? '▲ Hide Details' : '▼ View Details'}
+                                            View Details
                                         </button>
                                     </div>
 
-                                    {/* Expanded Details Section */}
-                                    {expandedCards.has(booking.id) && (
-                                        <div className="expanded-details">
-                                            <h4>Complete Booking Information</h4>
-
-                                            <div className="detail-grid">
-                                                <div className="detail-row">
-                                                    <span className="detail-label">🏟️ Court Name:</span>
-                                                    <span className="detail-value">{booking.venue_name}</span>
-                                                </div>
-
-                                                <div className="detail-row">
-                                                    <span className="detail-label">📍 Location:</span>
-                                                    <span className="detail-value">{booking.venue_location}</span>
-                                                </div>
-
-                                                <div className="detail-row">
-                                                    <span className="detail-label">📅 Booking Date:</span>
-                                                    <span className="detail-value">
-                                                        {new Date(booking.booking_date).toLocaleDateString('en-US', {
-                                                            weekday: 'long',
-                                                            year: 'numeric',
-                                                            month: 'long',
-                                                            day: 'numeric'
-                                                        })}
-                                                    </span>
-                                                </div>
-
-                                                <div className="detail-row">
-                                                    <span className="detail-label">🕒 Start Time:</span>
-                                                    <span className="detail-value">{booking.start_time?.slice(0, 5) || 'N/A'}</span>
-                                                </div>
-
-                                                <div className="detail-row">
-                                                    <span className="detail-label">🕐 End Time:</span>
-                                                    <span className="detail-value">{booking.end_time?.slice(0, 5) || 'N/A'}</span>
-                                                </div>
-
-                                                <div className="detail-row">
-                                                    <span className="detail-label">⏱️ Duration:</span>
-                                                    <span className="detail-value">
-                                                        {(() => {
-                                                            if (!booking.start_time || !booking.end_time) return 'N/A';
-                                                            const start = new Date(`2000-01-01T${booking.start_time}`);
-                                                            const end = new Date(`2000-01-01T${booking.end_time}`);
-                                                            const diff = (end.getTime() - start.getTime()) / (1000 * 60);
-                                                            return `${Math.floor(diff / 60)}h ${diff % 60}m`;
-                                                        })()}
-                                                    </span>
-                                                </div>
-
-                                                <div className="detail-row">
-                                                    <span className="detail-label">💰 Price per Hour:</span>
-                                                    <span className="detail-value">₹{booking.price_per_hour}</span>
-                                                </div>
-
-                                                <div className="detail-row">
-                                                    <span className="detail-label">💵 Total Amount:</span>
-                                                    <span className="detail-value highlight">₹{booking.total_amount}</span>
-                                                </div>
-
-                                                <div className="detail-row">
-                                                    <span className="detail-label">🆔 Booking ID:</span>
-                                                    <span className="detail-value">{booking.booking_display_id || booking.id}</span>
-                                                </div>
-
-                                                <div className="detail-row">
-                                                    <span className="detail-label">📊 Status:</span>
-                                                    <span className="detail-value">{getStatusBadge(booking.status)}</span>
-                                                </div>
-
-                                                <div className="detail-row">
-                                                    <span className="detail-label">📝 Created On:</span>
-                                                    <span className="detail-value">
-                                                        {new Date(booking.created_at).toLocaleString('en-US', {
-                                                            year: 'numeric',
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
 
                                     {/* Rating Section for Completed Bookings */}
                                     {booking.status === 'completed' && (
@@ -379,6 +282,88 @@ export const MyBookings: React.FC = () => {
                         ))
                     )}
                 </main>
+
+                {/* Booking Details Modal */}
+                <AnimatePresence>
+                    {selectedBooking && (
+                        <div className="booking-modal-overlay" onClick={() => setSelectedBooking(null)}>
+                            <motion.div
+                                className="booking-modal-content"
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="modal-header">
+                                    <h3>Booking Details</h3>
+                                    <button className="close-modal-btn" onClick={() => setSelectedBooking(null)}>✕</button>
+                                </div>
+
+                                <div className="modal-body">
+                                    <div className="detail-grid-modern">
+                                        <div className="detail-group">
+                                            <span className="detail-label">Venue</span>
+                                            <span className="detail-value font-bold text-lg">{selectedBooking.venue_name}</span>
+                                        </div>
+
+                                        <div className="detail-group">
+                                            <span className="detail-label">Location</span>
+                                            <span className="detail-value">📍 {selectedBooking.venue_location}</span>
+                                        </div>
+
+                                        <div className="modal-divider" />
+
+                                        <div className="detail-row-modern">
+                                            <div className="detail-group">
+                                                <span className="detail-label">Date</span>
+                                                <span className="detail-value">
+                                                    {new Date(selectedBooking.booking_date).toLocaleDateString('en-US', {
+                                                        weekday: 'short',
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        year: 'numeric'
+                                                    })}
+                                                </span>
+                                            </div>
+                                            <div className="detail-group">
+                                                <span className="detail-label">Status</span>
+                                                <span className="detail-value">{getStatusBadge(selectedBooking.status)}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="detail-row-modern">
+                                            <div className="detail-group">
+                                                <span className="detail-label">Start Time</span>
+                                                <span className="detail-value">🕒 {selectedBooking.start_time?.slice(0, 5) || 'N/A'}</span>
+                                            </div>
+                                            <div className="detail-group">
+                                                <span className="detail-label">End Time</span>
+                                                <span className="detail-value">🕒 {selectedBooking.end_time?.slice(0, 5) || 'N/A'}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="modal-divider" />
+
+                                        <div className="detail-row-modern">
+                                            <div className="detail-group">
+                                                <span className="detail-label">Total Amount</span>
+                                                <span className="detail-value price-highlight">₹{selectedBooking.total_amount}</span>
+                                            </div>
+                                            <div className="detail-group">
+                                                <span className="detail-label">Booking ID</span>
+                                                <span className="detail-value text-xs opacity-70">{selectedBooking.booking_display_id || selectedBooking.id}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="modal-footer">
+                                    <button className="done-btn" onClick={() => setSelectedBooking(null)}>Close</button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from './ui/Button';
+import { PhoneInput } from './ui/PhoneInput';
 import { apiClient } from '../api/client';
 import rushEventImg from '../assets/Rush-Event.jpg';
 
@@ -9,26 +10,54 @@ export const ContactSection: React.FC = () => {
         firstName: '',
         lastName: '',
         email: '',
+        countryCode: '+91',
         phone: '',
         service: 'Academy'
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const validate = () => {
+        const newErrors: Record<string, string> = {};
+        if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
+        if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!formData.email.trim()) {
+            newErrors.email = 'Email is required';
+        } else if (!emailRegex.test(formData.email)) {
+            newErrors.email = 'Invalid email address';
+        }
+
+        const isIndia = formData.countryCode === '+91';
+        if (formData.phone.trim()) {
+            if (isIndia && !/^[6-9]\d{9}$/.test(formData.phone)) {
+                newErrors.phone = 'Invalid Indian phone number (10 digits)';
+            } else if (formData.phone.length < 7) {
+                newErrors.phone = 'Invalid phone number (too short)';
+            }
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!validate()) return;
         setIsSubmitting(true);
         try {
             const response = await apiClient.post('/contact/submit', {
                 form_type: 'landing',
                 name: `${formData.firstName} ${formData.lastName}`,
                 email: formData.email,
-                phone: formData.phone,
+                phone: formData.phone ? `${formData.countryCode}${formData.phone}` : '',
                 message: `Interested Service: ${formData.service}`
             });
             if (response.data.success) {
                 alert(response.data.message);
-                setFormData({ firstName: '', lastName: '', email: '', phone: '', service: 'Academy' });
+                setFormData({ firstName: '', lastName: '', email: '', countryCode: '+91', phone: '', service: 'Academy' });
             } else {
                 alert('An error occurred. Please try again.');
             }
@@ -40,7 +69,7 @@ export const ContactSection: React.FC = () => {
         }
     };
 
-    const inputClasses = "w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm";
+    const inputClasses = (name: string) => `w-full bg-white/5 border ${errors[name] ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm`;
     const labelClasses = "block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2";
 
     return (
@@ -112,22 +141,32 @@ export const ContactSection: React.FC = () => {
                             <div className="space-y-2">
                                 <label className={labelClasses}>Full Name</label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <input
-                                        type="text"
-                                        placeholder="First Name"
-                                        required
-                                        className={inputClasses}
-                                        value={formData.firstName}
-                                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Last Name"
-                                        required
-                                        className={inputClasses}
-                                        value={formData.lastName}
-                                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                                    />
+                                    <div className="space-y-1">
+                                        <input
+                                            type="text"
+                                            placeholder="First Name"
+                                            className={inputClasses('firstName')}
+                                            value={formData.firstName}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, firstName: e.target.value });
+                                                if (errors.firstName) setErrors({ ...errors, firstName: '' });
+                                            }}
+                                        />
+                                        {errors.firstName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{errors.firstName}</span>}
+                                    </div>
+                                    <div className="space-y-1">
+                                        <input
+                                            type="text"
+                                            placeholder="Last Name"
+                                            className={inputClasses('lastName')}
+                                            value={formData.lastName}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, lastName: e.target.value });
+                                                if (errors.lastName) setErrors({ ...errors, lastName: '' });
+                                            }}
+                                        />
+                                        {errors.lastName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{errors.lastName}</span>}
+                                    </div>
                                 </div>
                             </div>
 
@@ -137,22 +176,28 @@ export const ContactSection: React.FC = () => {
                                 <input
                                     type="email"
                                     placeholder="example@email.com"
-                                    required
-                                    className={inputClasses}
+                                    className={inputClasses('email')}
                                     value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, email: e.target.value });
+                                        if (errors.email) setErrors({ ...errors, email: '' });
+                                    }}
                                 />
+                                {errors.email && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{errors.email}</span>}
                             </div>
 
                             {/* Phone Field */}
                             <div className="space-y-2">
-                                <label className={labelClasses}>Phone Number</label>
-                                <input
-                                    type="tel"
-                                    placeholder="+91 00000 00000"
-                                    className={inputClasses}
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                <PhoneInput
+                                    label="Phone Number"
+                                    countryCode={formData.countryCode}
+                                    phoneNumber={formData.phone}
+                                    onCodeChange={(code) => setFormData({ ...formData, countryCode: code })}
+                                    onNumberChange={(num) => {
+                                        setFormData({ ...formData, phone: num });
+                                        if (errors.phone) setErrors({ ...errors, phone: '' });
+                                    }}
+                                    error={errors.phone}
                                 />
                             </div>
 
@@ -161,7 +206,7 @@ export const ContactSection: React.FC = () => {
                                 <label className={labelClasses}>Service Interest</label>
                                 <div className="relative">
                                     <select
-                                        className={`${inputClasses} appearance-none cursor-pointer [&>option]:bg-black [&>option]:text-white`}
+                                        className={`${inputClasses('service')} appearance-none cursor-pointer [&>option]:bg-black [&>option]:text-white`}
                                         value={formData.service}
                                         onChange={(e) => setFormData({ ...formData, service: e.target.value })}
                                     >

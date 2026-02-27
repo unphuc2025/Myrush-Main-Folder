@@ -10,6 +10,8 @@ import { getGeminiResponse } from '../services/GeminiService';
 import { featureFlags } from '../config/featureFlags';
 import { generateUUID } from '../utils/uuid';
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/user').replace('/api/user', '');
+
 export const Chatbot: React.FC = () => {
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
@@ -26,6 +28,13 @@ export const Chatbot: React.FC = () => {
     const [bookingState, setBookingState] = useState<BookingState>({ step: 'idle' });
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const getImageUrl = (venue: any) => {
+        const url = venue.image_url || (venue.photos && venue.photos[0]) || (venue.images && venue.images[0]) || (venue.photos_urls && venue.photos_urls[0]);
+        if (!url) return 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=2069'; // Fallback
+        if (url.startsWith('http')) return url;
+        return `${API_BASE_URL}/${url.startsWith('/') ? url.slice(1) : url}`;
+    };
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -302,8 +311,15 @@ export const Chatbot: React.FC = () => {
                                             {msg.data.map((venue: any) => (
                                                 <div key={venue.id} className="min-w-[200px] w-[200px] bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden snap-center flex-shrink-0">
                                                     <div className="h-24 bg-gray-200 relative">
-                                                        <img src={venue.image_url || venue.photos?.[0]} alt={venue.name} className="w-full h-full object-cover" />
-                                                        <span className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full">{venue.game_types?.[0] || venue.game_type}</span>
+                                                        <img
+                                                            src={getImageUrl(venue)}
+                                                            alt={venue.name}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=2069';
+                                                            }}
+                                                        />
+                                                        <span className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full">{venue.game_types?.[0]?.name || venue.game_types?.[0] || venue.game_type}</span>
                                                     </div>
                                                     <div className="p-3">
                                                         <h4 className="font-bold text-sm truncate">{venue.name || venue.court_name}</h4>

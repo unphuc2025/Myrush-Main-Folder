@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaFutbol, FaBasketballBall, FaVolleyballBall } from 'react-icons/fa';
-import { GiCricketBat, GiShuttlecock, GiTennisRacket } from 'react-icons/gi';
 import { venuesApi } from '../api/venues';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
+import { getSportIcon } from '../utils/sportIcons';
 interface Venue {
     id: string;
     court_name: string;
@@ -33,17 +32,6 @@ const IconSearch = () => (
 const IconMapPin = () => (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
 );
-
-const getSportIcon = (sport: string) => {
-    const s = sport.toLowerCase();
-    if (s.includes('cricket')) return <GiCricketBat className="w-4 h-4" />;
-    if (s.includes('badminton')) return <GiShuttlecock className="w-4 h-4" />;
-    if (s.includes('football') || s.includes('soccer')) return <FaFutbol className="w-4 h-4" />;
-    if (s.includes('tennis')) return <GiTennisRacket className="w-4 h-4" />;
-    if (s.includes('basketball')) return <FaBasketballBall className="w-4 h-4" />;
-    if (s.includes('volleyball')) return <FaVolleyballBall className="w-4 h-4" />;
-    return <span className="text-[10px] font-bold">{sport.substring(0, 2)}</span>;
-};
 
 const CustomDropdown: React.FC<{
     label: string,
@@ -142,7 +130,7 @@ const VenueHero: React.FC<{
 
         <div className="relative z-10 max-w-screen-2xl mx-auto text-center">
             <motion.h1
-                className="text-4xl md:text-6xl font-black text-white font-heading uppercase tracking-tight mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                className="text-4xl md:text-6xl font-black text-white font-heading mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
@@ -175,7 +163,7 @@ const VenueHero: React.FC<{
                         onChange={setSelectedCity}
                     />
                 </div>
-                <Button variant="primary" className="py-3 px-6 rounded-xl whitespace-nowrap font-bold uppercase tracking-widest shadow-glow hover:shadow-glow-strong" onClick={() => { }}>
+                <Button variant="primary" className="py-3 px-6 rounded-xl whitespace-nowrap font-bold shadow-glow hover:shadow-glow-strong" onClick={() => { }}>
                     Search
                 </Button>
             </motion.div>
@@ -193,9 +181,9 @@ const FilterSidebar: React.FC<{
 }> = ({ selectedSport, setSelectedSport, sports, selectedBranch, setSelectedBranch, branches }) => (
     <div className="bg-white rounded-xl p-6 shadow-xl border border-gray-100 sticky top-24">
         <div className="flex justify-between items-center mb-8">
-            <h3 className="text-xl font-bold font-heading uppercase text-gray-900 tracking-tight">Filters</h3>
+            <h3 className="text-xl font-bold font-heading text-gray-900 uppercase tracking-tight">Filters</h3>
             <button
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-primary transition-colors"
+                className="text-[10px] font-bold text-gray-400 hover:text-primary transition-colors uppercase tracking-widest"
                 onClick={() => {
                     setSelectedSport('All');
                     setSelectedBranch('All');
@@ -207,7 +195,7 @@ const FilterSidebar: React.FC<{
 
         <div className="space-y-6">
             <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-3">Branch</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Branch</label>
                 <CustomDropdown
                     label="Branch"
                     value={selectedBranch}
@@ -217,7 +205,7 @@ const FilterSidebar: React.FC<{
             </div>
 
             <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-3">Sport</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Sport</label>
                 <CustomDropdown
                     label="Sport"
                     value={selectedSport}
@@ -230,11 +218,7 @@ const FilterSidebar: React.FC<{
 );
 
 const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onClick }) => (
-    <motion.div
-        layout
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
+    <div
         className="group bg-white overflow-hidden rounded-xl shadow-sm hover:shadow-2xl active:shadow-sm active:scale-[0.98] transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100 hover:border-primary/20 active:border-primary/50"
         onClick={onClick}
     >
@@ -258,7 +242,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
 
             {/* Location Overlay */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent p-5 pt-12 md:translate-y-2 md:group-hover:translate-y-0 transition-transform duration-300">
-                <p className="text-white text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 drop-shadow-md">
+                <p className="text-white text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 drop-shadow-md">
                     <span className="text-primary bg-primary/20 p-1 rounded-full"><IconMapPin /></span>
                     <span className="truncate opacity-90">{venue.location}</span>
                 </p>
@@ -268,13 +252,13 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
         <div className="p-6 flex flex-col flex-1 bg-white relative z-10">
             {/* Title & Rating */}
             <div className="flex justify-between items-start mb-4 gap-4">
-                <h3 className="text-xl font-bold font-heading uppercase text-gray-900 leading-tight tracking-tight line-clamp-2 group-hover:text-primary transition-colors">
+                <h3 className="text-xl font-bold font-heading text-gray-900 leading-tight line-clamp-2 group-hover:text-primary transition-colors">
                     {venue.court_name}
                 </h3>
                 <div className="flex items-center gap-1 bg-yellow-400/10 px-2 py-1 rounded-lg border border-yellow-400/20 shrink-0">
                     <span className="text-yellow-500 text-xs">⭐</span>
                     <span className="text-xs font-bold text-gray-900">
-                        {venue.rating ? Number(venue.rating).toFixed(1) : '0'}
+                        {venue.rating && Number(venue.rating) > 0 ? Number(venue.rating).toFixed(1) : '5.0'}
                     </span>
                 </div>
             </div>
@@ -282,7 +266,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
             {/* Price & CTA */}
             <div className="mt-auto pt-6 border-t border-gray-100 flex items-center justify-between gap-4">
                 <div>
-                    <span className="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Starting from</span>
+                    <span className="block text-[10px] font-black text-gray-400 mb-2">Starting from</span>
                     <div className="flex items-baseline gap-1">
                         <span className="text-lg font-black text-gray-900 tracking-tight">₹{venue.prices}</span>
                         <span className="text-xs text-gray-500 font-medium">/hr</span>
@@ -299,7 +283,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
                 </button>
             </div>
         </div>
-    </motion.div>
+    </div>
 );
 
 // --- Main Page ---
@@ -466,7 +450,7 @@ export const Venues: React.FC = () => {
                     description: v.description || '',
                     branch_name: v.branch_name,
                     amenities: v.amenities,
-                    rating: v.rating || 0,
+                    rating: v.rating || 5.0,
                     reviewCount: v.reviews || 0
                 }));
                 setVenues(mappedVenues);
@@ -535,7 +519,7 @@ export const Venues: React.FC = () => {
                     {/* Header */}
                     <div className="flex flex-col gap-6 mb-8">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                            <h2 className="text-3xl font-black text-gray-900 font-heading uppercase tracking-tight">
+                            <h2 className="text-3xl font-black text-gray-900 font-heading">
                                 {filteredVenues.length} Venues in
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-500 ml-2">
                                     {selectedCity}
@@ -553,7 +537,7 @@ export const Venues: React.FC = () => {
                     ) : filteredVenues.length === 0 ? (
                         <div className="text-center py-24 bg-white/50 backdrop-blur-sm border border-dashed border-gray-200">
                             <div className="text-6xl mb-6 opacity-20">🏟️</div>
-                            <h3 className="text-2xl font-black font-heading uppercase tracking-tight text-gray-900 mb-2">No venues found</h3>
+                            <h3 className="text-2xl font-black font-heading text-gray-900 mb-2">No venues found</h3>
                             <p className="text-sm font-medium text-gray-600">Try adjusting your filters or search for something else.</p>
                             <Button
                                 className="mt-6 text-primary font-bold hover:underline"
@@ -568,15 +552,13 @@ export const Venues: React.FC = () => {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                            <AnimatePresence mode='popLayout'>
-                                {filteredVenues.map(venue => (
-                                    <VenueCard
-                                        key={venue.id}
-                                        venue={venue}
-                                        onClick={() => navigate(`/venues/${venue.id}`)}
-                                    />
-                                ))}
-                            </AnimatePresence>
+                            {filteredVenues.map(venue => (
+                                <VenueCard
+                                    key={venue.id}
+                                    venue={venue}
+                                    onClick={() => navigate(`/venues/${venue.id}`)}
+                                />
+                            ))}
                         </div>
                     )}
                 </main>

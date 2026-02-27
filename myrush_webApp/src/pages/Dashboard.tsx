@@ -33,7 +33,7 @@ export const Dashboard: React.FC = () => {
     const timeOfDay = new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening';
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans pb-24 md:pb-12">
+        <div className="min-h-screen bg-gray-50 font-sans pb-6 md:pb-12">
             <TopNav />
 
             <div className="pt-20 md:pt-24 px-4 md:px-8 max-w-7xl mx-auto">
@@ -41,7 +41,7 @@ export const Dashboard: React.FC = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4"
+                    className="flex flex-row justify-between items-start md:items-center mb-6 gap-2"
                 >
                     <div>
                         <p className="text-gray-500 font-bold uppercase tracking-wider text-[10px] md:text-sm mb-1">Good {timeOfDay},</p>
@@ -50,8 +50,8 @@ export const Dashboard: React.FC = () => {
                             <span className="text-primary">.</span>
                         </h1>
                     </div>
-                    <div className="flex gap-3">
-                        <button onClick={() => navigate('/profile/edit')} className="px-5 py-2.5 rounded-xl bg-white/50 backdrop-blur-md border border-gray-200 text-sm font-bold shadow-sm hover:bg-white hover:border-black transition-all">
+                    <div className="flex-shrink-0">
+                        <button onClick={() => navigate('/profile/edit')} className="px-3 md:px-5 py-2 md:py-2.5 rounded-xl bg-white/50 backdrop-blur-md border border-gray-200 text-[10px] md:text-sm font-bold shadow-sm hover:bg-white hover:border-black transition-all whitespace-nowrap">
                             Edit Profile
                         </button>
                     </div>
@@ -71,7 +71,7 @@ export const Dashboard: React.FC = () => {
                         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1552667466-07770ae110d0?q=80&w=2070')] bg-cover bg-center opacity-70 group-hover:scale-105 transition-transform duration-700"></div>
                         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent"></div>
                         <div className="absolute inset-0 flex flex-col justify-center px-6 md:px-12 z-10">
-                            <h3 className="text-3xl md:text-6xl font-black text-white font-heading uppercase italic mb-4 drop-shadow-xl leading-none">
+                            <h3 className="text-3xl md:text-6xl font-black text-white font-heading uppercase mb-4 drop-shadow-xl leading-none">
                                 Book<br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-white">Your Court</span>
                             </h3>

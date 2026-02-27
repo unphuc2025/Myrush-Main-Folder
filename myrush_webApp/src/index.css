@@ -281,11 +281,13 @@ iframe {
     cursor: pointer;
   }
 
-  .btn-primary:hover {
-    background-color: white;
-    color: var(--primary);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-lg);
+  @media (hover: hover) {
+    .btn-primary:hover {
+      background-color: white;
+      color: var(--primary);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg);
+    }
   }
 
   /* Consistent card styling */

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { apiClient } from '../api/client'; // Import API client
 import { Button } from '../components/ui/Button';
+import { PhoneInput } from '../components/ui/PhoneInput';
 import ScrollIndicator from '../components/ScrollIndicator';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
@@ -41,6 +42,13 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Basic validation
+        if (!sport || !experience) {
+            alert('Please select both sport and experience level');
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
@@ -293,6 +301,85 @@ const AcademyDashboard: React.FC = () => {
 const AcademyLanding: React.FC = () => {
     const { scrollY } = useScroll();
     const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+
+    // Trial Form State
+    const [trialData, setTrialData] = React.useState({
+        kidFirstName: '',
+        kidLastName: '',
+        parentEmail: '',
+        countryCode: '+91',
+        parentMobile: '',
+        location: '',
+        preferredDate: ''
+    });
+    const [trialErrors, setTrialErrors] = React.useState<Record<string, string>>({});
+    const [isSubmittingTrial, setIsSubmittingTrial] = React.useState(false);
+
+    const validateTrialForm = () => {
+        const errors: Record<string, string> = {};
+        if (!trialData.kidFirstName.trim()) errors.kidFirstName = 'Kid\'s first name is required';
+        if (!trialData.kidLastName.trim()) errors.kidLastName = 'Kid\'s last name is required';
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!trialData.parentEmail.trim()) {
+            errors.parentEmail = 'Email is required';
+        } else if (!emailRegex.test(trialData.parentEmail)) {
+            errors.parentEmail = 'Invalid email address';
+        }
+
+        const isIndia = trialData.countryCode === '+91';
+        if (!trialData.parentMobile.trim()) {
+            errors.parentMobile = 'Phone number is required';
+        } else if (isIndia && !/^[6-9]\d{9}$/.test(trialData.parentMobile)) {
+            errors.parentMobile = 'Invalid Indian phone number (10 digits)';
+        } else if (trialData.parentMobile.length < 7) {
+            errors.parentMobile = 'Invalid phone number (too short)';
+        }
+
+        if (!trialData.location) errors.location = 'Please select a location';
+        if (!trialData.preferredDate) errors.preferredDate = 'Please select a date';
+
+        setTrialErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const handleTrialSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validateTrialForm()) return;
+        setIsSubmittingTrial(true);
+
+        try {
+            const response = await apiClient.post('/contact/submit', {
+                form_type: 'academy_trial',
+                name: `Athlete: ${trialData.kidFirstName} ${trialData.kidLastName}`,
+                email: trialData.parentEmail,
+                phone: `${trialData.countryCode}${trialData.parentMobile}`,
+                sport: 'Any',
+                location: trialData.location,
+                preferred_date: trialData.preferredDate,
+                message: "Trial Registration Application"
+            });
+            if (response.data.success) {
+                alert(response.data.message);
+                setTrialData({
+                    kidFirstName: '',
+                    kidLastName: '',
+                    parentEmail: '',
+                    countryCode: '+91',
+                    parentMobile: '',
+                    location: '',
+                    preferredDate: ''
+                });
+                setTrialErrors({});
+            } else {
+                alert('Registration failed. Please try again.');
+            }
+        } catch (err) {
+            alert('Error submitting registration. Please try again.');
+        } finally {
+            setIsSubmittingTrial(false);
+        }
+    };
 
     const locations = [
         {
@@ -749,138 +836,111 @@ const AcademyLanding: React.FC = () => {
                             viewport={{ once: true }}
                             className="w-full lg:w-6/12 relative z-20"
                         >
-                            <form className="space-y-6" onSubmit={async (e) => {
-                                e.preventDefault();
-                                const form = e.target as HTMLFormElement;
-                                const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-
-                                if (submitBtn) {
-                                    submitBtn.disabled = true;
-                                    submitBtn.innerText = 'SENDING...';
-                                }
-
-                                const data = {
-                                    kid_first_name: (form.elements[0] as HTMLInputElement).value,
-                                    kid_last_name: (form.elements[1] as HTMLInputElement).value,
-                                    parent_email: (form.elements[2] as HTMLInputElement).value,
-                                    parent_mobile: (form.elements[3] as HTMLInputElement).value,
-                                    location: (form.elements[4] as HTMLSelectElement).value,
-                                    preferred_date: (form.elements[5] as HTMLInputElement).value,
-                                    preferred_sport: 'Any',
-                                };
-
-                                try {
-                                    const { apiClient } = await import('../api/client');
-                                    const response = await apiClient.post('/contact/submit', {
-                                        form_type: 'academy_trial',
-                                        name: `Athlete: ${data.kid_first_name} ${data.kid_last_name}`,
-                                        email: data.parent_email,
-                                        phone: data.parent_mobile,
-                                        sport: data.preferred_sport,
-                                        location: data.location,
-                                        preferred_date: data.preferred_date,
-                                        message: "Trial Registration Application"
-                                    });
-                                    if (response.data.success) {
-                                        alert(response.data.message);
-                                        form.reset();
-                                    } else {
-                                        alert('Registration failed. Please try again.');
-                                    }
-                                } catch (err) {
-                                    console.error(err);
-                                    alert('Error submitting registration. Please try again.');
-                                } finally {
-                                    if (submitBtn) {
-                                        submitBtn.disabled = false;
-                                        submitBtn.innerText = 'SEND APPLICATION →';
-                                    }
-                                }
-                            }}>
+                            <form className="space-y-6" onSubmit={handleTrialSubmit}>
                                 <div className="space-y-8">
-                                    {/* Kid's Name */}
-                                    <div className="space-y-3">
-                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Kid's Name</label>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <input
-                                                    type="text"
-                                                    placeholder="First Name (required)"
-                                                    required
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Last Name (required)"
-                                                    required
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
-                                                />
-                                            </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-widest text-primary/70 ml-1">Kid's First Name</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Leo"
+                                                value={trialData.kidFirstName}
+                                                onChange={(e) => {
+                                                    setTrialData({ ...trialData, kidFirstName: e.target.value });
+                                                    if (trialErrors.kidFirstName) setTrialErrors({ ...trialErrors, kidFirstName: '' });
+                                                }}
+                                                className={`w-full bg-white/5 border ${trialErrors.kidFirstName ? 'border-red-500' : 'border-white/10'} rounded-xl px-6 py-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm shadow-inner`}
+                                            />
+                                            {trialErrors.kidFirstName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{trialErrors.kidFirstName}</span>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-widest text-primary/70 ml-1">Kid's Last Name</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Messi"
+                                                value={trialData.kidLastName}
+                                                onChange={(e) => {
+                                                    setTrialData({ ...trialData, kidLastName: e.target.value });
+                                                    if (trialErrors.kidLastName) setTrialErrors({ ...trialErrors, kidLastName: '' });
+                                                }}
+                                                className={`w-full bg-white/5 border ${trialErrors.kidLastName ? 'border-red-500' : 'border-white/10'} rounded-xl px-6 py-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm shadow-inner`}
+                                            />
+                                            {trialErrors.kidLastName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{trialErrors.kidLastName}</span>}
                                         </div>
                                     </div>
 
-                                    {/* Parent's Email ID */}
-                                    <div className="space-y-1">
-                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Parent's Email ID</label>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-primary/70 ml-1">Parent's Email</label>
                                         <input
                                             type="email"
-                                            placeholder="example@email.com"
-                                            required
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
+                                            placeholder="parent@email.com"
+                                            value={trialData.parentEmail}
+                                            onChange={(e) => {
+                                                setTrialData({ ...trialData, parentEmail: e.target.value });
+                                                if (trialErrors.parentEmail) setTrialErrors({ ...trialErrors, parentEmail: '' });
+                                            }}
+                                            className={`w-full bg-white/5 border ${trialErrors.parentEmail ? 'border-red-500' : 'border-white/10'} rounded-xl px-6 py-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm shadow-inner`}
+                                        />
+                                        {trialErrors.parentEmail && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{trialErrors.parentEmail}</span>}
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                        <PhoneInput
+                                            label="Parent/Guardian Mobile Number"
+                                            countryCode={trialData.countryCode}
+                                            phoneNumber={trialData.parentMobile}
+                                            onCodeChange={(code) => setTrialData({ ...trialData, countryCode: code })}
+                                            onNumberChange={(num) => setTrialData({ ...trialData, parentMobile: num })}
+                                            error={trialErrors.parentMobile}
                                         />
                                     </div>
 
-                                    {/* Parent's Mobile Number */}
-                                    <div className="space-y-1">
-                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Parent's Mobile Number</label>
-                                        <input
-                                            type="tel"
-                                            placeholder="+91 00000 00000"
-                                            required
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm"
-                                        />
-                                    </div>
-
-                                    {/* Preferred Location */}
-                                    <div className="space-y-1 relative">
-                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Preferred Location</label>
-                                        <div className="relative">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-widest text-primary/70 ml-1">Preferred Center</label>
                                             <select
-                                                required
-                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm appearance-none cursor-pointer [&>option]:bg-black [&>option]:text-white"
+                                                value={trialData.location}
+                                                onChange={(e) => {
+                                                    setTrialData({ ...trialData, location: e.target.value });
+                                                    if (trialErrors.location) setTrialErrors({ ...trialErrors, location: '' });
+                                                }}
+                                                className={`w-full bg-white/5 border ${trialErrors.location ? 'border-red-500' : 'border-white/10'} rounded-xl px-6 py-4 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm cursor-pointer appearance-none [&>option]:bg-black [&>option]:text-white`}
                                             >
-                                                <option value="" disabled selected>Select a location</option>
-                                                <option value="Rajajinagar">Rajajinagar</option>
-                                                <option value="Kasavanahalli">Kasavanahalli ( Off Sarjapur Road)</option>
-                                                <option value="Vijaynagar">Vijaynagar @ GT World Mall</option>
-                                                <option value="Hesarghatta">Hesarghatta Main Road</option>
+                                                <option value="" disabled>Select Center</option>
+                                                {locations.map((loc, i) => (
+                                                    <option key={i} value={loc.name}>{loc.name}</option>
+                                                ))}
                                             </select>
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </div>
+                                            {trialErrors.location && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{trialErrors.location}</span>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-widest text-primary/70 ml-1">Preferred Date</label>
+                                            <input
+                                                type="date"
+                                                value={trialData.preferredDate}
+                                                onChange={(e) => {
+                                                    setTrialData({ ...trialData, preferredDate: e.target.value });
+                                                    if (trialErrors.preferredDate) setTrialErrors({ ...trialErrors, preferredDate: '' });
+                                                }}
+                                                className={`w-full bg-white/5 border ${trialErrors.preferredDate ? 'border-red-500' : 'border-white/10'} rounded-xl px-6 py-4 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm cursor-pointer [color-scheme:dark]`}
+                                            />
+                                            {trialErrors.preferredDate && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{trialErrors.preferredDate}</span>}
                                         </div>
                                     </div>
 
-                                    {/* Date */}
-                                    <div className="space-y-1">
-                                        <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2">Date</label>
-                                        <input
-                                            type="date"
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm [color-scheme:dark]"
-                                        />
-                                    </div>
-
-                                    <div className="pt-8">
-                                        <button
+                                    <div className="pt-6">
+                                        <Button
+                                            variant="primary"
                                             type="submit"
-                                            className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95"
+                                            disabled={isSubmittingTrial}
+                                            className="w-full h-16 md:h-20 bg-primary text-black rounded-xl uppercase tracking-[0.3em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-[0.98] text-lg md:text-xl flex items-center justify-center"
                                         >
-                                            Send Application →
-                                        </button>
+                                            {isSubmittingTrial ? (
+                                                <div className="w-8 h-8 border-3 border-black border-t-transparent rounded-full animate-spin"></div>
+                                            ) : (
+                                                'Send Application →'
+                                            )}
+                                        </Button>
                                     </div>
                                 </div>
                             </form>
