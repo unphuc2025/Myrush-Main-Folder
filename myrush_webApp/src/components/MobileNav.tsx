@@ -56,7 +56,7 @@ export const MobileNav: React.FC = () => {
     }
 
     return (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] px-4 pb-4 pointer-events-none">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] px-4 pb-4 pointer-events-none">
             <nav className="bg-white/80 backdrop-blur-xl border border-gray-200/50 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-3xl p-2 flex items-center justify-around pointer-events-auto max-w-md mx-auto relative overflow-hidden">
                 {/* Background active pill tracker */}
                 {navItems.map((item, index) => {

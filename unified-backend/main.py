@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
         Base.metadata.create_all(bind=engine)
         print("[DB] Database tables created/verified successfully")
         
-        print("[STARTUP] ✅ Server ready!")
+        print("[STARTUP] Server ready!")
         print("[STARTUP] Admin API: http://localhost:8000/api/admin")
         print("[STARTUP] User API: http://localhost:8000/api/user")
         
@@ -76,6 +76,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://localhost:5175",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://65.0.195.149",

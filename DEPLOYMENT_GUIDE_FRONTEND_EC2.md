@@ -4,7 +4,7 @@ This guide walks you through deploying the `Admin_Myrush` frontend to the same E
 
 **Target Server:** `65.0.195.149`
 **User:** `ec2-user`
-**Key File:** `C:\Users\ajayp\Downloads\host\dev_ec2`
+**Key File:** `C:\Users\Z BOOK\Downloads\host\dev_ec2`
 
 ---
 
@@ -22,8 +22,8 @@ I have created a script that automates the cleanup (deleting old frontend), uplo
 2.  **Verify Nginx Configuration (If needed)**
     If the script runs but the site is still wrong, you might need to fix the Nginx config. I created a file `c:\myrush-Main-folder\nginx.conf` with the correct settings. You can copy it to the server:
     ```powershell
-    scp -i "C:\Users\ajayp\Downloads\host\dev_ec2" "c:\myrush-Main-folder\nginx.conf" ec2-user@65.0.195.149:/home/ec2-user/nginx.conf
-    ssh -i "C:\Users\ajayp\Downloads\host\dev_ec2" ec2-user@65.0.195.149 "sudo mv /home/ec2-user/nginx.conf /etc/nginx/nginx.conf && sudo systemctl restart nginx"
+    scp -i "C:\Users\Z BOOK\Downloads\host\dev_ec2" "c:\myrush-Main-folder\nginx.conf" ec2-user@65.0.195.149:/home/ec2-user/nginx.conf
+    ssh -i "C:\Users\Z BOOK\Downloads\host\dev_ec2" ec2-user@65.0.195.149 "sudo mv /home/ec2-user/nginx.conf /etc/nginx/nginx.conf && sudo systemctl restart nginx"
     ```
 
 ---
@@ -59,7 +59,7 @@ We will upload the `dist` folder to the server.
 1.  **Run this SCP command** (from the same PowerShell window):
 
     ```powershell
-    scp -i "C:\Users\ajayp\Downloads\host\dev_ec2" -r "C:\myrush-Main-folder\Admin_Myrush\myrush-admin-frontend\dist" ec2-user@65.0.195.149:/home/ec2-user/myrush-frontend
+    scp -i "C:\Users\Z BOOK\Downloads\host\dev_ec2" -r "C:\myrush-Main-folder\Admin_Myrush\myrush-admin-frontend\dist" ec2-user@65.0.195.149:/home/ec2-user/myrush-frontend
     ```
 
     *Note: This renames `dist` to `myrush-frontend` on the server.*
@@ -71,7 +71,7 @@ We will upload the `dist` folder to the server.
 1.  **SSH into the server**:
 
     ```powershell
-    ssh -i "C:\Users\ajayp\Downloads\host\dev_ec2" ec2-user@65.0.195.149
+    ssh -i "C:\Users\Z BOOK\Downloads\host\dev_ec2" ec2-user@65.0.195.149
     ```
 
 2.  **Move the frontend to a standard location** (optional but recommended, or just keep in home):

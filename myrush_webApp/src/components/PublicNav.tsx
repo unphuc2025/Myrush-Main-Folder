@@ -73,7 +73,7 @@ export const PublicNav: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+                    <div className="hidden lg:flex flex-1 justify-center items-center gap-8">
                         {navItems.map((item) => (
                             <button
                                 key={item.label}
@@ -129,7 +129,7 @@ export const PublicNav: React.FC = () => {
                         )}
 
                         <button
-                            className={`md:hidden p-2 rounded-xl transition-all ${scrolled ? 'text-black hover:bg-black/5' : 'text-white hover:bg-white/5'
+                            className={`lg:hidden p-2 rounded-xl transition-all ${scrolled ? 'text-black hover:bg-black/5' : 'text-white hover:bg-white/5'
                                 }`}
                             onClick={() => setIsMobileMenuOpen(prev => !prev)}
                         >
@@ -146,7 +146,7 @@ export const PublicNav: React.FC = () => {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed inset-0 z-[10000] bg-black/95 flex flex-col items-center justify-start pt-24 pb-12 gap-6 md:hidden overflow-y-auto backdrop-blur-sm"
+                        className="fixed inset-0 z-[10000] bg-black/95 flex flex-col items-center justify-start pt-24 pb-12 gap-6 lg:hidden overflow-y-auto backdrop-blur-sm"
                     >
                         <button className="absolute top-6 right-6 text-white p-2" onClick={() => setIsMobileMenuOpen(false)}>
                             <FaTimes size={24} />
