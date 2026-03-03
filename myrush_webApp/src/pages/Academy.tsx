@@ -457,18 +457,15 @@ const AcademyLanding: React.FC = () => {
                 {/* Background Image with Deep Gradient Overlay */}
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-black/40 md:hidden z-10" /> {/* Mobile Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-10 hidden md:block" /> {/* Desktop Gradient */}
-                    <div className="absolute inset-0 bg-dark-gradient z-10 opacity-60 md:opacity-100" />
                     <img
                         src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076&auto=format&fit=crop"
                         alt="Football training"
-                        className="w-full h-full object-cover object-center opacity-60 md:opacity-50 scale-105"
+                        className="w-full h-full object-cover object-center opacity-70 scale-105"
                     />
                 </div>
 
                 <motion.div
-                    className="relative z-20 text-center md:text-left w-full max-w-7xl md:max-w-[55%] flex flex-col items-center md:items-start"
+                    className="relative z-20 text-center md:text-left w-full max-w-7xl py-32 flex flex-col items-center md:items-start"
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
@@ -478,26 +475,27 @@ const AcademyLanding: React.FC = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5, duration: 0.8 }}
-                        className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto md:mx-0 whitespace-nowrap overflow-hidden"
+                        className="inline-flex items-center gap-3 mb-6 md:mb-8 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto md:mx-0 whitespace-nowrap overflow-hidden"
                     >
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0" />
-                        <span className="text-[10px] md:text-sm font-bold font-heading text-primary uppercase tracking-wider">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        <span className="text-[10px] md:text-sm font-bold font-heading text-primary uppercase tracking-[0.2em] whitespace-nowrap">
                             Speak to us now - +91-8548946999
                         </span>
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-extrabold font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase text-center md:text-left px-2">
-                        Unlock Your Football Potential <br className="hidden md:block" />
-                        with <span className="text-primary italic">Rush Academy.</span>
+                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-black font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase text-center md:text-left px-2">
+                        Unlock Your <br className="hidden md:block" />
+                        <span className="text-primary italic">Football Potential</span> <br />
+                        with Rush Academy.
                     </h1>
 
                     {/* CTA Section */}
-                    <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 md:gap-6 w-auto px-4 md:px-0">
+                    <div className="flex flex-row items-center justify-center md:justify-start gap-3 md:gap-6 px-4 md:px-0">
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-sm md:text-base px-8 md:px-10 py-4 md:py-4.5 uppercase tracking-wider font-heading font-extrabold shadow-[0_0_20px_rgba(0,210,106,0.3)] hover:shadow-[0_0_30px_rgba(0,210,106,0.4)] w-auto"
+                            className="bg-primary text-black hover:bg-primary-hover text-[10px] md:text-base h-12 md:h-14 px-4 md:px-10 flex-1 md:flex-none min-w-0 md:min-w-[200px] uppercase tracking-wider font-heading font-bold shadow-glow hover:shadow-glow-strong rounded-xl flex items-center justify-center"
                             onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Book A Free Trial Class
@@ -846,8 +844,11 @@ const AcademyLanding: React.FC = () => {
                                                 placeholder="e.g. Leo"
                                                 value={trialData.kidFirstName}
                                                 onChange={(e) => {
-                                                    setTrialData({ ...trialData, kidFirstName: e.target.value });
-                                                    if (trialErrors.kidFirstName) setTrialErrors({ ...trialErrors, kidFirstName: '' });
+                                                    const value = e.target.value;
+                                                    if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                                        setTrialData({ ...trialData, kidFirstName: value });
+                                                        if (trialErrors.kidFirstName) setTrialErrors({ ...trialErrors, kidFirstName: '' });
+                                                    }
                                                 }}
                                                 className={`w-full bg-white/5 border ${trialErrors.kidFirstName ? 'border-red-500' : 'border-white/10'} rounded-xl px-6 py-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm shadow-inner`}
                                             />
@@ -860,8 +861,11 @@ const AcademyLanding: React.FC = () => {
                                                 placeholder="e.g. Messi"
                                                 value={trialData.kidLastName}
                                                 onChange={(e) => {
-                                                    setTrialData({ ...trialData, kidLastName: e.target.value });
-                                                    if (trialErrors.kidLastName) setTrialErrors({ ...trialErrors, kidLastName: '' });
+                                                    const value = e.target.value;
+                                                    if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                                        setTrialData({ ...trialData, kidLastName: value });
+                                                        if (trialErrors.kidLastName) setTrialErrors({ ...trialErrors, kidLastName: '' });
+                                                    }
                                                 }}
                                                 className={`w-full bg-white/5 border ${trialErrors.kidLastName ? 'border-red-500' : 'border-white/10'} rounded-xl px-6 py-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm shadow-inner`}
                                             />

@@ -190,13 +190,10 @@ export const Arena: React.FC = () => {
             <section className="relative h-screen flex items-center justify-center md:justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-10 hidden md:block" />
-                    <div className="absolute inset-0 bg-black/60 md:hidden z-10" />
-                    <div className="absolute inset-0 bg-dark-gradient z-10" />
                     <img
                         src="https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=2070"
                         alt="Rush Arena"
-                        className="w-full h-full object-cover opacity-60 scale-105"
+                        className="w-full h-full object-cover opacity-70 scale-105"
                     />
                 </div>
 
@@ -465,8 +462,11 @@ export const Arena: React.FC = () => {
                                             placeholder="First Name"
                                             value={formData.firstName}
                                             onChange={(e) => {
-                                                setFormData({ ...formData, firstName: e.target.value });
-                                                if (formErrors.firstName) setFormErrors({ ...formErrors, firstName: '' });
+                                                const value = e.target.value;
+                                                if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                                    setFormData({ ...formData, firstName: value });
+                                                    if (formErrors.firstName) setFormErrors({ ...formErrors, firstName: '' });
+                                                }
                                             }}
                                             className={`w-full bg-white/5 border ${formErrors.firstName ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm`}
                                         />
@@ -479,8 +479,11 @@ export const Arena: React.FC = () => {
                                             placeholder="Last Name"
                                             value={formData.lastName}
                                             onChange={(e) => {
-                                                setFormData({ ...formData, lastName: e.target.value });
-                                                if (formErrors.lastName) setFormErrors({ ...formErrors, lastName: '' });
+                                                const value = e.target.value;
+                                                if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                                    setFormData({ ...formData, lastName: value });
+                                                    if (formErrors.lastName) setFormErrors({ ...formErrors, lastName: '' });
+                                                }
                                             }}
                                             className={`w-full bg-white/5 border ${formErrors.lastName ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm`}
                                         />

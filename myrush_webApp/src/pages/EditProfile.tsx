@@ -225,7 +225,12 @@ export const EditProfile: React.FC = () => {
                                 <input
                                     type="text"
                                     value={fullName}
-                                    onChange={(e) => setFullName(e.target.value)}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                            setFullName(value);
+                                        }
+                                    }}
                                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
                                     placeholder="Enter your full name"
                                     required
