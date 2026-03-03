@@ -484,7 +484,7 @@ const AcademyLanding: React.FC = () => {
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-white mb-8 md:mb-12">
+                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-black font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase text-center md:text-left px-2">
                         Unlock Your <br className="hidden md:block" />
                         <span className="text-primary italic">Football Potential</span> <br />
                         with Rush Academy.

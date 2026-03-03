@@ -132,7 +132,7 @@ export const Pickleball: React.FC = () => {
                 </div>
 
                 <div className="relative z-10 text-center max-w-5xl mx-auto px-4 md:px-6">
-                    <h1 className="text-white mb-8 md:mb-12">
+                    <h1 className="!text-[48px] md:!text-5xl lg:!text-7xl text-white font-extrabold font-heading uppercase leading-[1.05] tracking-tighter mb-8 md:mb-12">
                         Join the <br className="block md:hidden" />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Pickleball Revolution</span>
                         <br className="block md:hidden" /> at <br className="hidden md:block" />Rush Arenas

@@ -159,7 +159,7 @@ export const Corporate: React.FC = () => {
                         </span>
                     </motion.div>
 
-                    <h1 className="text-white mb-8 md:mb-12">
+                    <h1 className="text-3xl md:text-5xl lg:text-7xl text-white mb-8 md:mb-12 leading-[1.1] md:leading-[1.1] tracking-tight font-extrabold font-heading uppercase">
                         Empower <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Your Team</span><br />
                         Through Sports
                     </h1>

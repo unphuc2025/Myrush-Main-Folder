@@ -162,10 +162,15 @@ export const LandingPage: React.FC = () => {
                         The Ultimate Sports Platform
                     </motion.div>
 
-                    <h1 className="text-white mb-8 md:mb-12">
+                    <motion.h1
+                        className="!text-6xl md:!text-5xl lg:!text-7xl font-extrabold font-heading tracking-normal text-white mb-8 md:mb-12 uppercase leading-[1.05]"
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                    >
                         Play <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Like</span><br />
                         A Pro
-                    </h1>
+                    </motion.h1>
 
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
