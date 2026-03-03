@@ -279,8 +279,11 @@ export const Pickleball: React.FC = () => {
                                             placeholder="e.g. Arjun"
                                             value={formData.firstName}
                                             onChange={(e) => {
-                                                setFormData({ ...formData, firstName: e.target.value });
-                                                if (formErrors.firstName) setFormErrors({ ...formErrors, firstName: '' });
+                                                const value = e.target.value;
+                                                if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                                    setFormData({ ...formData, firstName: value });
+                                                    if (formErrors.firstName) setFormErrors({ ...formErrors, firstName: '' });
+                                                }
                                             }}
                                             className={`w-full px-4 py-3 bg-white border ${formErrors.firstName ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300`}
                                         />
@@ -293,8 +296,11 @@ export const Pickleball: React.FC = () => {
                                             placeholder="e.g. Sharma"
                                             value={formData.lastName}
                                             onChange={(e) => {
-                                                setFormData({ ...formData, lastName: e.target.value });
-                                                if (formErrors.lastName) setFormErrors({ ...formErrors, lastName: '' });
+                                                const value = e.target.value;
+                                                if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                                    setFormData({ ...formData, lastName: value });
+                                                    if (formErrors.lastName) setFormErrors({ ...formErrors, lastName: '' });
+                                                }
                                             }}
                                             className={`w-full px-4 py-3 bg-white border ${formErrors.lastName ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300`}
                                         />

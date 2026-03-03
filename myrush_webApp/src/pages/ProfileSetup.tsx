@@ -178,7 +178,12 @@ export const ProfileSetup: React.FC = () => {
                             type="text"
                             placeholder="Enter your full name"
                             value={fullName}
-                            onChange={e => setFullName(e.target.value)}
+                            onChange={e => {
+                                const value = e.target.value;
+                                if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                    setFullName(value);
+                                }
+                            }}
                             className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all shadow-sm"
                         />
                     </div>

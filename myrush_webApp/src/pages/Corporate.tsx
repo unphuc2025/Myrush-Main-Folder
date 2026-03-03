@@ -134,12 +134,10 @@ export const Corporate: React.FC = () => {
             {/* Hero Section */}
             <section className="relative h-screen flex items-center justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
                 <div className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-gradient-to-r from-black via-black/60 to-transparent z-10" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
                     <img
                         src="https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/205f2470-1857-443f-bd1f-f3d0f64de382/CBAF3FB3-63F5-4A4C-B207-0BA78B372072.jpeg"
                         alt="Corporate Sports Excellence"
-                        className="w-full h-full object-cover opacity-60 scale-105"
+                        className="w-full h-full object-cover opacity-70 scale-105"
                     />
                 </div>
 
@@ -324,8 +322,11 @@ export const Corporate: React.FC = () => {
                                             placeholder="First Name"
                                             value={formData.firstName}
                                             onChange={(e) => {
-                                                setFormData({ ...formData, firstName: e.target.value });
-                                                if (formErrors.firstName) setFormErrors({ ...formErrors, firstName: '' });
+                                                const value = e.target.value;
+                                                if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                                    setFormData({ ...formData, firstName: value });
+                                                    if (formErrors.firstName) setFormErrors({ ...formErrors, firstName: '' });
+                                                }
                                             }}
                                             className={`w-full bg-white/5 border ${formErrors.firstName ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm`}
                                         />
@@ -338,8 +339,11 @@ export const Corporate: React.FC = () => {
                                             placeholder="Last Name"
                                             value={formData.lastName}
                                             onChange={(e) => {
-                                                setFormData({ ...formData, lastName: e.target.value });
-                                                if (formErrors.lastName) setFormErrors({ ...formErrors, lastName: '' });
+                                                const value = e.target.value;
+                                                if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                                    setFormData({ ...formData, lastName: value });
+                                                    if (formErrors.lastName) setFormErrors({ ...formErrors, lastName: '' });
+                                                }
                                             }}
                                             className={`w-full bg-white/5 border ${formErrors.lastName ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans text-lg backdrop-blur-sm`}
                                         />

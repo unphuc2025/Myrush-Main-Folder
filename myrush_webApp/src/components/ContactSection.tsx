@@ -15,6 +15,8 @@ export const ContactSection: React.FC = () => {
         service: 'Academy'
     });
 
+    const [showControls, setShowControls] = useState(false);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -90,12 +92,15 @@ export const ContactSection: React.FC = () => {
                     initial={{ opacity: 0, scale: 0.95 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8, delay: 0.2 }}
+                    onMouseEnter={() => setShowControls(true)}
+                    onMouseLeave={() => setShowControls(false)}
                 >
                     <video
                         autoPlay
                         muted
                         loop
                         playsInline
+                        controls={showControls}
                         className="w-full h-full object-cover"
                     >
                         <source src="/venue-assets/Rush Video.mp4" type="video/mp4" />
@@ -148,8 +153,11 @@ export const ContactSection: React.FC = () => {
                                             className={inputClasses('firstName')}
                                             value={formData.firstName}
                                             onChange={(e) => {
-                                                setFormData({ ...formData, firstName: e.target.value });
-                                                if (errors.firstName) setErrors({ ...errors, firstName: '' });
+                                                const value = e.target.value;
+                                                if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                                    setFormData({ ...formData, firstName: value });
+                                                    if (errors.firstName) setErrors({ ...errors, firstName: '' });
+                                                }
                                             }}
                                         />
                                         {errors.firstName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{errors.firstName}</span>}
@@ -161,8 +169,11 @@ export const ContactSection: React.FC = () => {
                                             className={inputClasses('lastName')}
                                             value={formData.lastName}
                                             onChange={(e) => {
-                                                setFormData({ ...formData, lastName: e.target.value });
-                                                if (errors.lastName) setErrors({ ...errors, lastName: '' });
+                                                const value = e.target.value;
+                                                if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                                                    setFormData({ ...formData, lastName: value });
+                                                    if (errors.lastName) setErrors({ ...errors, lastName: '' });
+                                                }
                                             }}
                                         />
                                         {errors.lastName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{errors.lastName}</span>}

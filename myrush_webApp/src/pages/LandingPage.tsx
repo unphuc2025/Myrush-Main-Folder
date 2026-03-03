@@ -9,6 +9,7 @@ import ScrollIndicator from '../components/ScrollIndicator';
 
 const DynamicHeroBackground: React.FC<{ scrollY: any }> = ({ scrollY }) => {
     const [isMobile, setIsMobile] = useState(false);
+    const [showControls, setShowControls] = useState(false);
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
 
@@ -41,10 +42,11 @@ const DynamicHeroBackground: React.FC<{ scrollY: any }> = ({ scrollY }) => {
     }, [mouseX, mouseY]);
 
     return (
-        <div className="absolute inset-0 z-0 overflow-hidden bg-black">
-            {/* Dark overlay for readability */}
-            <div className="absolute inset-0 bg-black/40 z-10" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/20 z-10" />
+        <div
+            className="absolute inset-0 z-0 overflow-hidden bg-black"
+            onMouseEnter={() => !isMobile && setShowControls(true)}
+            onMouseLeave={() => !isMobile && setShowControls(false)}
+        >
 
             <motion.div
                 style={{ y: isMobile ? 0 : heroScrollY }}
@@ -59,6 +61,7 @@ const DynamicHeroBackground: React.FC<{ scrollY: any }> = ({ scrollY }) => {
                         muted
                         loop
                         playsInline
+                        controls={showControls}
                         className="w-full h-full object-cover"
                     >
                         <source src="/hero-bg.mp4" type="video/mp4" />
@@ -134,7 +137,8 @@ export const LandingPage: React.FC = () => {
             image: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=2086',
             link: '#',
             colSpan: 'md:col-span-1',
-            comingSoon: true
+            comingSoon: true,
+            imagePosition: 'object-center'
         }
     ];
 
@@ -178,8 +182,8 @@ export const LandingPage: React.FC = () => {
                             variant="primary"
                             size="lg"
                             onClick={() => navigate('/venues')}
-                            icon={<FaCalendarCheck className="hidden sm:inline" />}
-                            className="flex-1 sm:flex-none text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow hover:shadow-glow-strong whitespace-nowrap"
+                            icon={<FaCalendarCheck className="hidden sm:inline group-hover:scale-110 transition-transform" />}
+                            className="flex-1 sm:flex-none text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow hover:shadow-glow-strong whitespace-nowrap group"
                         >
                             Book a Court
                         </Button>
@@ -187,8 +191,8 @@ export const LandingPage: React.FC = () => {
                             variant="outline"
                             size="lg"
                             onClick={() => navigate('/arena')}
-                            icon={<FaArrowRight className="hidden sm:inline group-hover:translate-x-1 transition-transform" />}
-                            className="flex-1 sm:flex-none border border-primary bg-black/40 backdrop-blur-md text-white hover:brightness-110 text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 group shadow-glow hover:shadow-glow-strong whitespace-nowrap"
+                            icon={<FaArrowRight className="hidden sm:inline group-hover:translate-x-1.5 transition-transform" />}
+                            className="flex-1 sm:flex-none border border-primary bg-black/40 backdrop-blur-md text-primary hover:text-black hover:brightness-110 text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 group shadow-glow hover:shadow-glow-strong whitespace-nowrap"
                         >
                             Explore Venues
                         </Button>
@@ -219,8 +223,8 @@ export const LandingPage: React.FC = () => {
             {/* SERVICES GRID */}
             <section className="py-12 md:py-16 bg-white">
                 <div className="max-w-screen-2xl mx-auto px-4 md:px-8">
-                    <div className="mb-16 text-center">
-                        <h2 className="text-2xl md:text-4xl font-extrabold font-heading text-white uppercase leading-tight">
+                    <div className="mb-16 text-center flex flex-col items-center">
+                        <h2 className="text-2xl md:text-4xl font-extrabold font-heading text-black uppercase leading-tight">
                             Our <span className="text-primary italic">Services</span>
                         </h2>
                         <p className="text-gray-600 text-lg max-w-2xl mx-auto">
@@ -250,7 +254,7 @@ export const LandingPage: React.FC = () => {
                                     <img
                                         src={service.image}
                                         alt={service.title}
-                                        className="w-full h-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-105"
+                                        className={`w-full h-full object-cover ${service.imagePosition || 'object-center'} opacity-80 transition-transform duration-700 group-hover:scale-105`}
                                     />
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
