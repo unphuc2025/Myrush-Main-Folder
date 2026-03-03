@@ -217,7 +217,7 @@ export const Arena: React.FC = () => {
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-black font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase text-center md:text-left px-2">
+                    <h1 className="text-white mb-8 md:mb-12">
                         play your <br />
                         <span className="text-primary italic">favourite sport</span> <br />
                         at a rush arena near you.
@@ -228,13 +228,13 @@ export const Arena: React.FC = () => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-[10px] md:text-base h-12 md:h-14 px-4 md:px-10 flex-1 md:flex-none min-w-0 md:min-w-[200px] uppercase tracking-wider font-heading font-bold shadow-glow hover:shadow-glow-strong rounded-xl flex items-center justify-center"
+                            className="flex-1 md:flex-none text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow hover:shadow-glow-strong whitespace-nowrap group items-center justify-center"
                             onClick={() => navigate('/venues')}
                         >
                             Explore Venues
                         </Button>
                         <button
-                            className="border border-white text-white hover:border-primary text-[10px] md:text-base h-12 md:h-14 px-4 md:px-10 flex-1 md:flex-none min-w-0 md:min-w-[200px] uppercase tracking-wider font-heading font-black rounded-xl transition-all duration-300 group shadow-glow hover:shadow-glow-strong flex items-center justify-center gap-1.5 md:gap-3"
+                            className="flex-1 md:flex-none border border-white text-white hover:border-primary text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-black transition-all duration-300 bg-black/40 backdrop-blur-md group shadow-glow hover:shadow-glow-strong rounded-[7.5px] flex items-center justify-center gap-1.5 md:gap-3"
                             onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             View Facilities
@@ -378,7 +378,7 @@ export const Arena: React.FC = () => {
                 <div className="w-full max-w-screen-2xl mx-auto relative z-10 px-4 md:px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="!text-4xl md:text-5xl font-black text-white font-heading uppercase leading-tight mb-6">
+                            <h2 className="text-white">
                                 Complete <span className="text-primary italic">Amenities</span>
                             </h2>
                             <p className="text-body-lg text-white/40 font-light uppercase tracking-[0.2em]">
@@ -435,9 +435,9 @@ export const Arena: React.FC = () => {
                                 <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase">
                                     Reach Us
                                 </div>
-                                <h2 className="text-6xl md:text-7xl lg:text-8xl font-black font-heading leading-none mb-10 tracking-tighter text-white uppercase italic">
+                                <h1 className="text-white italic">
                                     Get in <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">touch.</span>
-                                </h2>
+                                </h1>
                                 <p className="text-lg text-white/60 font-medium leading-relaxed max-w-lg">
                                     Get in touch with us at Rush Arena to experience the ultimate sports thrill!
                                     Whether you want to book a slot, inquire about private events, or have any

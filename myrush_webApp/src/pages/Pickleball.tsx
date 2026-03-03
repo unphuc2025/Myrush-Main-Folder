@@ -132,7 +132,7 @@ export const Pickleball: React.FC = () => {
                 </div>
 
                 <div className="relative z-10 text-center max-w-5xl mx-auto px-4 md:px-6">
-                    <h1 className="!text-[48px] md:!text-5xl lg:!text-7xl text-white font-extrabold font-heading uppercase leading-[1.05] tracking-tighter mb-8 md:mb-12">
+                    <h1 className="text-white mb-8 md:mb-12">
                         Join the <br className="block md:hidden" />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Pickleball Revolution</span>
                         <br className="block md:hidden" /> at <br className="hidden md:block" />Rush Arenas
@@ -140,7 +140,7 @@ export const Pickleball: React.FC = () => {
                     <Button
                         variant="primary"
                         size="lg"
-                        className="bg-primary text-black hover:bg-primary-hover text-base px-8 md:px-10 py-4 md:py-4.5 uppercase tracking-wider font-heading font-bold shadow-[0_0_20px_rgba(0,210,106,0.3)] hover:shadow-[0_0_30px_rgba(0,210,106,0.4)] rounded-xl"
+                        className="flex-1 md:flex-none text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow hover:shadow-glow-strong whitespace-nowrap group items-center justify-center"
                         onClick={() => navigate('/venues?sport=Pickleball')}
                     >
                         Book A Court
@@ -197,7 +197,7 @@ export const Pickleball: React.FC = () => {
 
                                 <div className="p-8 flex flex-col flex-grow relative">
                                     <div className="mb-6">
-                                        <h3 className="text-2xl font-extrabold text-black uppercase font-heading leading-tight mb-4 group-hover:text-primary transition-colors duration-300">
+                                        <h3 className="text-black group-hover:text-primary transition-colors duration-300">
                                             {loc.name}
                                         </h3>
                                         <div className="w-12 h-1 bg-gray-100 rounded-full mb-6 group-hover:bg-primary group-hover:w-20 transition-all duration-300" />
@@ -228,7 +228,7 @@ export const Pickleball: React.FC = () => {
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
 
                 <div className="max-w-screen-2xl mx-auto px-4 md:px-8 relative z-10">
-                    <h2 className="text-2xl md:text-4xl font-extrabold text-black font-heading uppercase leading-tight mb-12">
+                    <h2 className="text-black mb-12">
                         FAQs
                     </h2>
 
@@ -242,9 +242,9 @@ export const Pickleball: React.FC = () => {
                                 transition={{ delay: idx * 0.1 }}
                                 className="mb-6"
                             >
-                                <h3 className="text-xl font-extrabold text-black font-heading mb-3">
+                                <h4 className="text-black">
                                     {faq.question}
-                                </h3>
+                                </h4>
                                 <p className="text-black/80 font-medium leading-relaxed">
                                     {faq.answer}
                                 </p>
@@ -262,7 +262,7 @@ export const Pickleball: React.FC = () => {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                     >
-                        <h2 className="text-2xl md:text-4xl font-extrabold text-black font-heading uppercase mb-8">
+                        <h2 className="text-black">
                             Get in touch.
                         </h2>
                         <p className="text-gray-600 text-lg mb-12 max-w-4xl mx-auto">

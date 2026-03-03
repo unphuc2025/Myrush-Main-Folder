@@ -484,7 +484,7 @@ const AcademyLanding: React.FC = () => {
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-black font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase text-center md:text-left px-2">
+                    <h1 className="text-white mb-8 md:mb-12">
                         Unlock Your <br className="hidden md:block" />
                         <span className="text-primary italic">Football Potential</span> <br />
                         with Rush Academy.
@@ -495,7 +495,7 @@ const AcademyLanding: React.FC = () => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-[10px] md:text-base h-12 md:h-14 px-4 md:px-10 flex-1 md:flex-none min-w-0 md:min-w-[200px] uppercase tracking-wider font-heading font-bold shadow-glow hover:shadow-glow-strong rounded-xl flex items-center justify-center"
+                            className="flex-1 md:flex-none text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow hover:shadow-glow-strong whitespace-nowrap group items-center justify-center"
                             onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Book A Free Trial Class
@@ -514,7 +514,7 @@ const AcademyLanding: React.FC = () => {
             <section id="why-rush" className="py-12 md:py-16 bg-white w-full">
                 <div className="w-full max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="mb-12">
-                        <h2 className="text-3xl md:text-5xl font-extrabold font-heading uppercase leading-tight text-black">
+                        <h2 className="text-black">
                             Why Rush Academy?
                         </h2>
                     </div>
@@ -567,9 +567,9 @@ const AcademyLanding: React.FC = () => {
                                         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                                     />
                                 </div>
-                                <h3 className="text-xl font-bold text-black mb-4">
+                                <h4 className="text-black">
                                     {item.title}
-                                </h3>
+                                </h4>
                                 <p className="text-sm text-gray-600 leading-relaxed font-normal">
                                     {item.description}
                                 </p>

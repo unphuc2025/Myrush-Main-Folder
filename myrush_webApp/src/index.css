@@ -184,53 +184,58 @@ iframe {
     box-sizing: border-box;
   }
 
-  /* Consistent heading hierarchy */
+  /* Consistent heading hierarchy - Standardized for Urban/Premium feel */
   h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  .text-h1 {
     font-family: var(--font-heading);
-    @apply tracking-tight font-bold uppercase;
-    line-height: var(--line-height-tight);
+    @apply text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tight;
+    line-height: 1.05;
+    margin-bottom: var(--space-xl);
+  }
+
+  h2,
+  .text-h2 {
+    font-family: var(--font-heading);
+    @apply text-3xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight;
+    line-height: 1;
+    margin-bottom: var(--space-lg);
+  }
+
+  h3,
+  .text-h3 {
+    font-family: var(--font-heading);
+    @apply text-2xl md:text-3xl lg:text-4xl font-extrabold uppercase tracking-tight;
+    line-height: 1.2;
     margin-bottom: var(--space-md);
   }
 
-  h1 {
-    font-size: var(--font-size-5xl);
-    line-height: var(--line-height-tight);
+  h4,
+  .text-h4 {
+    font-family: var(--font-heading);
+    @apply text-xl md:text-2xl font-bold uppercase tracking-normal;
+    line-height: 1.4;
+    margin-bottom: var(--space-sm);
   }
 
-  h2 {
-    font-size: var(--font-size-4xl);
-    line-height: var(--line-height-tight);
-  }
-
-  h3 {
-    font-size: var(--font-size-3xl);
-    line-height: var(--line-height-tight);
-  }
-
-  h4 {
-    font-size: var(--font-size-2xl);
-    line-height: var(--line-height-tight);
-  }
-
-  h5 {
-    font-size: var(--font-size-xl);
-    line-height: var(--line-height-tight);
-  }
-
-  h6 {
-    font-size: var(--font-size-lg);
-    line-height: var(--line-height-tight);
-  }
-
-  /* Consistent paragraph styling */
-  p {
+  /* Consistent paragraph and lead styling */
+  p,
+  .text-body {
+    font-family: var(--font-main);
+    @apply text-base md:text-lg font-normal;
+    line-height: 1.6;
     margin-bottom: var(--space-lg);
-    line-height: var(--line-height-relaxed);
+  }
+
+  .text-lead {
+    font-family: var(--font-main);
+    @apply text-lg md:text-2xl font-light;
+    line-height: 1.6;
+  }
+
+  .text-caption {
+    font-family: var(--font-main);
+    @apply text-sm font-normal;
+    line-height: 1.5;
   }
 
   /* Container utilities for consistent layouts */

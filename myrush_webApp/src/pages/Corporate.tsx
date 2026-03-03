@@ -159,7 +159,7 @@ export const Corporate: React.FC = () => {
                         </span>
                     </motion.div>
 
-                    <h1 className="text-3xl md:text-5xl lg:text-7xl text-white mb-8 md:mb-12 leading-[1.1] md:leading-[1.1] tracking-tight font-extrabold font-heading uppercase">
+                    <h1 className="text-white mb-8 md:mb-12">
                         Empower <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Your Team</span><br />
                         Through Sports
                     </h1>
@@ -172,7 +172,7 @@ export const Corporate: React.FC = () => {
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-sm md:text-base px-6 md:px-10 py-3 md:py-4.5 uppercase tracking-wider font-heading font-bold shadow-glow hover:shadow-glow-strong rounded-xl w-1/2 sm:w-auto"
+                            className="w-1/2 sm:w-auto text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow hover:shadow-glow-strong whitespace-nowrap group items-center justify-center"
                             onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Enquire Now
@@ -197,7 +197,7 @@ export const Corporate: React.FC = () => {
                             >
                                 Value Proposition
                             </motion.span>
-                            <h2 className="text-4xl md:text-6xl font-black text-black font-heading uppercase leading-none">
+                            <h2 className="text-black">
                                 Why Choose <span className="text-primary italic">MyRush?</span>
                             </h2>
                         </div>
@@ -225,9 +225,9 @@ export const Corporate: React.FC = () => {
                                     <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
                                 </div>
                                 <div className="p-10 text-left flex-1 flex flex-col bg-white">
-                                    <h3 className="text-xl font-black text-black mb-4 uppercase tracking-tight font-heading">
+                                    <h4 className="text-black">
                                         {benefit.title}
-                                    </h3>
+                                    </h4>
                                     <p className="text-gray-500 text-sm leading-relaxed font-light">
                                         {benefit.description}
                                     </p>
@@ -250,7 +250,7 @@ export const Corporate: React.FC = () => {
                         >
                             Corporate Sports Engagement
                         </motion.span>
-                        <h2 className="text-4xl md:text-6xl font-black text-black font-heading uppercase leading-none mb-8">
+                        <h2 className="text-black">
                             In Action: <span className="text-primary italic">Watch Our Videos</span>
                         </h2>
                     </div>
@@ -297,9 +297,9 @@ export const Corporate: React.FC = () => {
                                 <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase">
                                     Custom Solutions
                                 </div>
-                                <h2 className="text-6xl md:text-8xl font-black font-heading leading-tight mb-10 tracking-tighter uppercase italic">
-                                    Contact <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Us.</span>
-                                </h2>
+                                <h1 className="italic">
+                                    Get in <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">touch.</span>
+                                </h1>
                                 <p className="text-lg text-white/60 font-medium leading-relaxed max-w-lg">
                                     Interested in elevating your corporate team through the power of sports? Reach out to us by filling out the contact form. Our dedicated team will promptly respond to your inquiries and tailor the perfect sports engagement program to meet your organization's needs. Let's create a winning experience together.
                                 </p>

@@ -157,20 +157,15 @@ export const LandingPage: React.FC = () => {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 1 }}
-                        className="inline-block mb-6 px-4 py-1.5 rounded-[7.5px] border border-primary/30 bg-primary/10 backdrop-blur-md text-[9px] sm:text-xs font-bold text-primary tracking-[0.2em] uppercase"
+                        className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-[9px] sm:text-xs font-bold text-primary tracking-[0.2em] uppercase"
                     >
                         The Ultimate Sports Platform
                     </motion.div>
 
-                    <motion.h1
-                        className="!text-6xl md:!text-5xl lg:!text-7xl font-extrabold font-heading tracking-normal text-white mb-8 md:mb-12 uppercase leading-[1.05]"
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2 }}
-                    >
+                    <h1 className="text-white mb-8 md:mb-12">
                         Play <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Like</span><br />
                         A Pro
-                    </motion.h1>
+                    </h1>
 
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
@@ -224,10 +219,10 @@ export const LandingPage: React.FC = () => {
             <section className="py-12 md:py-16 bg-white">
                 <div className="max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="mb-16 text-center flex flex-col items-center">
-                        <h2 className="text-2xl md:text-4xl font-extrabold font-heading text-black uppercase leading-tight">
+                        <h2 className="text-black leading-tight">
                             Our <span className="text-primary italic">Services</span>
                         </h2>
-                        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                        <p className="text-gray-600 max-w-2xl mx-auto text-lead">
                             Welcome to Rush Arena, a premier chain of sports arenas with 9 centers, offering world-class facilities. Located in Bengaluru, Hyderabad and Chennai.
                         </p>
                     </div>
@@ -271,16 +266,16 @@ export const LandingPage: React.FC = () => {
 
                                     <div className="flex flex-col h-[160px] md:h-[140px] justify-start transition-all duration-300">
                                         <div className="flex items-center gap-[6px] mb-4">
-                                            <h3 className="text-xl md:text-2xl font-extrabold text-white font-heading uppercase italic leading-none m-0 p-0">
+                                            <h4 className="text-white m-0 p-0 italic">
                                                 {service.title}
-                                            </h3>
+                                            </h4>
                                             {!service.comingSoon && (
                                                 <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-black font-bold text-xs shadow-lg transition-transform duration-300 group-hover:scale-110">
                                                     <span>↗</span>
                                                 </div>
                                             )}
                                         </div>
-                                        <p className="text-white/80 text-sm md:text-base font-medium leading-relaxed">
+                                        <p className="text-white/80 text-caption">
                                             {service.description}
                                         </p>
                                     </div>
@@ -310,10 +305,10 @@ export const LandingPage: React.FC = () => {
                         transition={{ duration: 0.6 }}
                         className="flex flex-col items-center"
                     >
-                        <h3 className="text-2xl md:text-4xl font-black text-black font-heading uppercase tracking-tight mb-4">
+                        <h2 className="text-black">
                             Trusted by <span className="text-primary">Industry Leaders</span>
-                        </h3>
-                        <p className="text-gray-600 text-base md:text-lg max-w-2xl mx-auto">
+                        </h2>
+                        <p className="text-gray-600 max-w-2xl mx-auto">
                             Partnering with the world's most innovative companies to elevate sports culture.
                         </p>
                     </motion.div>
