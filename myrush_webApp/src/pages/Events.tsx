@@ -112,7 +112,7 @@ export const Events: React.FC = () => {
                         transition={{ duration: 0.6, delay: 0.1 }}
                         className="text-4xl md:text-8xl font-black text-white font-heading uppercase tracking-tighter mb-6 leading-tight md:leading-[0.9]"
                     >
-                        Rise To <br /> <span className="text-primary italic">Glory.</span>
+                        Rise To <br /> <span className="text-primary">Glory.</span>
                     </motion.h1>
                     <motion.p
                         initial={{ opacity: 0, y: 20 }}
@@ -179,7 +179,7 @@ export const Events: React.FC = () => {
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
                                 <div className="absolute top-4 left-4">
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${event.status === 'Live' ? 'bg-red-600 text-white animate-pulse' : 'bg-white text-black'
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${event.status === 'Live' ? 'bg-red-600 text-white' : 'bg-white text-black'
                                         }`}>
                                         {event.status}
                                     </span>
@@ -240,7 +240,7 @@ export const Events: React.FC = () => {
 
                                     <Button
                                         variant="primary"
-                                        className="w-full h-12 text-sm font-black uppercase tracking-widest shadow-glow hover:scale-[1.02] transition-transform"
+                                        className="w-full h-12 text-sm font-black uppercase tracking-widest shadow-glow"
                                         onClick={() => window.location.href = '#register-modal'} // Placeholder for now
                                     >
                                         View Details & Register

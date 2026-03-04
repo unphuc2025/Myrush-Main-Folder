@@ -221,7 +221,7 @@ iframe {
   p,
   .text-body {
     font-family: var(--font-main);
-    @apply text-base md:text-lg font-normal;
+    @apply text-base md:text-lg font-medium text-gray-600;
     line-height: 1.6;
     margin-bottom: var(--space-lg);
   }
@@ -286,15 +286,6 @@ iframe {
     cursor: pointer;
   }
 
-  @media (hover: hover) {
-    .btn-primary:hover {
-      background-color: white;
-      color: var(--primary);
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-lg);
-    }
-  }
-
   /* Consistent card styling */
   .card {
     background-color: white;
@@ -302,10 +293,6 @@ iframe {
     box-shadow: var(--shadow-md);
     padding: var(--space-xl);
     transition: box-shadow 0.2s ease;
-  }
-
-  .card:hover {
-    box-shadow: var(--shadow-lg);
   }
 }
 
@@ -672,4 +659,13 @@ button:focus-visible {
   transform: scaleX(0);
   transform-origin: right;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Utilities */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }

@@ -7,7 +7,7 @@ import { bookingsApi } from '../api/bookings';
 import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye, FaChevronRight } from 'react-icons/fa';
+import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye, FaChevronRight, FaFutbol, FaCalendarAlt } from 'react-icons/fa';
 
 export const Profile: React.FC = () => {
     const navigate = useNavigate();
@@ -500,7 +500,7 @@ export const Profile: React.FC = () => {
                             <motion.button
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => toggleMobileSection('reviews')}
-                                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${activeMobileSection === 'reviews' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
+                                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${activeMobileSection === 'reviews' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
                             >
                                 <div className="flex items-center gap-4">
                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMobileSection === 'reviews' ? 'bg-primary text-white' : 'bg-gray-50 text-gray-400'}`}>
@@ -522,7 +522,7 @@ export const Profile: React.FC = () => {
                                         exit={{ height: 0, opacity: 0 }}
                                         className="overflow-hidden px-1"
                                     >
-                                        <div className="bg-white rounded-2xl border border-gray-100 p-3 mt-1 shadow-sm">
+                                        <div className="bg-white rounded-xl border border-gray-100 p-3 mt-1 shadow-sm">
                                             {reviewsLoading ? (
                                                 <div className="py-8 text-center font-bold text-xs text-gray-400 uppercase tracking-widest">Loading...</div>
                                             ) : reviews.length === 0 ? (
@@ -552,7 +552,7 @@ export const Profile: React.FC = () => {
                     <div className="pt-8 pb-32">
                         <button
                             onClick={handleLogout}
-                            className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-red-50 text-red-600 font-black text-xs uppercase tracking-widest border border-red-100 shadow-sm"
+                            className="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-red-50 text-red-600 font-black text-xs uppercase tracking-widest border border-red-100 shadow-sm"
                         >
                             Logout
                         </button>
@@ -607,7 +607,7 @@ export const Profile: React.FC = () => {
                                     : 'border-gray-200 hover:border-gray-300 text-gray-700'
                                     }`}
                             >
-                                <span className="text-base lg:text-lg">📅</span>
+                                <span className="text-base lg:text-lg"><FaCalendarAlt /></span>
                                 <span className="text-sm lg:text-base">My Bookings</span>
                             </motion.button>
 
@@ -816,7 +816,7 @@ export const Profile: React.FC = () => {
                                                     onClick={() => navigate('/venues')}
                                                     className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 border-2 border-primary"
                                                 >
-                                                    <span>🏟️</span>
+                                                    <span><FaFutbol className="inline-block mr-1" /></span>
                                                     Book New Court
                                                 </Button>
                                             </motion.div>
@@ -898,7 +898,7 @@ export const Profile: React.FC = () => {
                                                                     </div>
                                                                     <div>
                                                                         <h3 className="text-lg font-bold text-gray-900">Review for Booking #{review.booking_display_id || review.id}</h3>
-                                                                        <p className="text-gray-600">🏟️ {review.venue_name || 'Venue'}</p>
+                                                                        <p className="text-gray-600"><FaFutbol className="inline-block mr-1" /> {review.venue_name || 'Venue'}</p>
                                                                     </div>
                                                                 </div>
 
@@ -978,7 +978,7 @@ export const Profile: React.FC = () => {
                                                             <div className="flex-1">
                                                                 <div className="flex items-center gap-3 mb-4">
                                                                     <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                                                                        <span className="text-xl">🏟️</span>
+                                                                        <span className="text-xl text-primary"><FaFutbol /></span>
                                                                     </div>
                                                                     <div>
                                                                         <h3 className="text-lg font-bold text-gray-900">Booking #{booking.booking_display_id || booking.id}</h3>
@@ -1058,17 +1058,17 @@ export const Profile: React.FC = () => {
 
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium">🏟️ Court Name:</span>
+                                                                        <span className="text-gray-600 font-medium"><FaFutbol className="inline-block mr-1" /> Court Name:</span>
                                                                         <span className="font-semibold text-gray-900">{booking.venue_name || 'N/A'}</span>
                                                                     </div>
 
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium">📍 Location:</span>
+                                                                        <span className="text-gray-600 font-medium"><FaMapMarkerAlt className="inline-block mr-1" /> Location:</span>
                                                                         <span className="font-semibold text-gray-900">{booking.venue_location || 'N/A'}</span>
                                                                     </div>
 
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium">📅 Booking Date:</span>
+                                                                        <span className="text-gray-600 font-medium"><FaCalendarAlt className="inline-block mr-1" /> Booking Date:</span>
                                                                         <span className="font-semibold text-gray-900">
                                                                             {new Date(booking.booking_date).toLocaleDateString('en-US', {
                                                                                 weekday: 'long',
@@ -1080,7 +1080,7 @@ export const Profile: React.FC = () => {
                                                                     </div>
 
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium">🕒 Start Time:</span>
+                                                                        <span className="text-gray-600 font-medium"><FaClock className="inline-block mr-1" /> Start Time:</span>
                                                                         <span className="font-semibold text-gray-900">
                                                                             {booking.time_slots && booking.time_slots.length > 0
                                                                                 ? booking.time_slots[0].start_time
@@ -1090,7 +1090,7 @@ export const Profile: React.FC = () => {
                                                                     </div>
 
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium">🕐 End Time:</span>
+                                                                        <span className="text-gray-600 font-medium"><FaClock className="inline-block mr-1" /> End Time:</span>
                                                                         <span className="font-semibold text-gray-900">
                                                                             {booking.time_slots && booking.time_slots.length > 0
                                                                                 ? booking.time_slots[0].end_time
@@ -1100,7 +1100,7 @@ export const Profile: React.FC = () => {
                                                                     </div>
 
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium">⏱️ Duration:</span>
+                                                                        <span className="text-gray-600 font-medium"><FaClock className="inline-block mr-1" /> Duration:</span>
                                                                         <span className="font-semibold text-gray-900">
                                                                             {(() => {
                                                                                 if (!booking.start_time || !booking.end_time) return 'N/A';

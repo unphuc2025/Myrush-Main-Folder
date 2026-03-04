@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, type Variants, useScroll, useTransform, useMotionValue, useSpring } from 'framer-motion';
 import { Button } from '../components/ui/Button';
-import { FaArrowRight, FaCalendarCheck } from 'react-icons/fa';
+import { FaArrowRight, FaCalendarCheck, FaFutbol, FaGraduationCap, FaHandshake, FaTrophy } from 'react-icons/fa';
 import { PublicNav } from '../components/PublicNav';
 import { ContactSection } from '../components/ContactSection';
 import ScrollIndicator from '../components/ScrollIndicator';
@@ -109,34 +109,30 @@ export const LandingPage: React.FC = () => {
         {
             title: 'Rush Arena',
             description: 'World-class facilities across 9 centers. Premium turfs, lighting, and amenities.',
-            icon: '🏟️',
+            icon: <FaFutbol />,
             image: 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=2070',
-            link: '/arena',
-            colSpan: 'md:col-span-2'
+            link: '/arena'
         },
         {
             title: 'Academy',
             description: "Bengaluru's fastest-growing football academy. Train with the best.",
-            icon: '🎓',
+            icon: <FaGraduationCap />,
             image: 'https://images.unsplash.com/photo-1624880357913-a8539238245b?q=80&w=2070',
-            link: '/academy',
-            colSpan: 'md:col-span-1'
+            link: '/academy'
         },
         {
             title: 'Corporate',
             description: 'Team building and sports events for businesses.',
-            icon: '🤝',
+            icon: <FaHandshake />,
             image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070',
-            link: '/corporate',
-            colSpan: 'md:col-span-2'
+            link: '/corporate'
         },
         {
             title: 'Tournaments',
             description: 'Compete in high-stakes leagues and tournaments.',
-            icon: '🏆',
+            icon: <FaTrophy />,
             image: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=2086',
             link: '#',
-            colSpan: 'md:col-span-1',
             comingSoon: true,
             imagePosition: 'object-center'
         }
@@ -152,7 +148,7 @@ export const LandingPage: React.FC = () => {
             <section className="relative h-screen min-h-screen flex items-center justify-center overflow-hidden bg-black">
                 <DynamicHeroBackground scrollY={scrollY} />
 
-                <div className="relative z-20 text-center px-4 max-w-5xl mx-auto mt-20">
+                <div className="relative z-20 text-center px-4 max-w-5xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -182,8 +178,8 @@ export const LandingPage: React.FC = () => {
                             variant="primary"
                             size="lg"
                             onClick={() => navigate('/venues')}
-                            icon={<FaCalendarCheck className="hidden sm:inline group-hover:scale-110 transition-transform" />}
-                            className="flex-1 sm:flex-none text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow hover:shadow-glow-strong whitespace-nowrap group"
+                            icon={<FaCalendarCheck className="hidden sm:inline transition-transform" />}
+                            className="flex-1 sm:flex-none !border-2 !border-transparent text-[10px] sm:text-sm md:text-base px-4 sm:px-8 py-3 md:py-4 min-w-[140px] sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow whitespace-nowrap group flex items-center justify-center"
                         >
                             Book a Court
                         </Button>
@@ -191,8 +187,9 @@ export const LandingPage: React.FC = () => {
                             variant="outline"
                             size="lg"
                             onClick={() => navigate('/arena')}
-                            icon={<FaArrowRight className="hidden sm:inline group-hover:translate-x-1.5 transition-transform" />}
-                            className="flex-1 sm:flex-none border border-primary bg-black/40 backdrop-blur-md text-primary hover:text-black hover:brightness-110 text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 group shadow-glow hover:shadow-glow-strong whitespace-nowrap"
+                            icon={<FaArrowRight className="hidden sm:inline transition-transform" />}
+                            className="flex-1 sm:flex-none !bg-transparent !text-white !border-2 !border-[#00D26A] text-[10px] sm:text-sm md:text-base px-4 sm:px-8 py-3 md:py-4 min-w-[140px] sm:min-w-[200px] uppercase tracking-wider font-heading font-bold shadow-none whitespace-nowrap group flex items-center justify-center"
+                            style={{ border: '2px solid #00D26A' }}
                         >
                             Explore Venues
                         </Button>
@@ -224,20 +221,20 @@ export const LandingPage: React.FC = () => {
             <section className="py-12 md:py-16 bg-white">
                 <div className="max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="mb-16 text-center flex flex-col items-center">
-                        <h2 className="text-black leading-tight">
-                            Our <span className="text-primary italic">Services</span>
+                        <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12">
+                            Our <span className="text-primary">Services</span>
                         </h2>
-                        <p className="text-gray-600 max-w-2xl mx-auto text-lead">
+                        <p className="max-w-2xl mx-auto">
                             Welcome to Rush Arena, a premier chain of sports arenas with 9 centers, offering world-class facilities. Located in Bengaluru, Hyderabad and Chennai.
                         </p>
                     </div>
 
-                    {/* 2x2 Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                    {/* 4-Column Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                         {services.map((service, i) => (
                             <motion.div
                                 key={i}
-                                className="group relative overflow-hidden rounded-xl bg-black h-96 shadow-2xl cursor-pointer"
+                                className="group relative overflow-hidden rounded-xl bg-black h-[450px] shadow-2xl cursor-pointer"
                                 custom={i}
                                 variants={fadeInUp}
                                 initial="hidden"
@@ -250,37 +247,39 @@ export const LandingPage: React.FC = () => {
                                     }
                                 }}
                             >
-                                <div className="absolute inset-0">
+                                <div className="absolute inset-0 z-0">
                                     <img
                                         src={service.image}
                                         alt={service.title}
-                                        className={`w-full h-full object-cover ${service.imagePosition || 'object-center'} opacity-80 transition-transform duration-700 group-hover:scale-105`}
+                                        className={`w-full h-full object-cover ${service.imagePosition || 'object-center'} opacity-80 transition-transform duration-700`}
                                     />
                                 </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90 z-10" />
 
-                                <div className="absolute inset-0 p-8 flex flex-col justify-end">
-                                    <div className="flex justify-end items-start mb-auto">
-                                        {/* @ts-ignore */}
-                                        {service.comingSoon && (
-                                            <span className="px-3 py-1 rounded-full bg-primary text-black text-xs font-bold uppercase tracking-wider shadow-lg">
-                                                Coming Soon
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div className="flex flex-col h-[160px] md:h-[140px] justify-start transition-all duration-300">
-                                        <div className="flex items-center gap-[6px] mb-4">
-                                            <h4 className="text-white m-0 p-0 italic">
-                                                {service.title}
-                                            </h4>
-                                            {!service.comingSoon && (
-                                                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-black font-bold text-xs shadow-lg transition-transform duration-300 group-hover:scale-110">
-                                                    <span>↗</span>
-                                                </div>
-                                            )}
+                                {/* Top Right Elements */}
+                                <div className="absolute top-6 right-6 flex items-start gap-2 z-20">
+                                    {!service.comingSoon && (
+                                        <div className="bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full transition-all duration-300 shadow-lg group-hover:bg-primary/20 group-hover:border-primary/50">
+                                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold text-sm shadow-lg transition-all duration-300">
+                                                <span>↗</span>
+                                            </div>
                                         </div>
-                                        <p className="text-white/80 text-caption">
+                                    )}
+                                    {/* @ts-ignore */}
+                                    {service.comingSoon && (
+                                        <span className="px-3 py-1 rounded-full bg-primary text-black text-xs font-bold uppercase tracking-wider shadow-lg">
+                                            Coming Soon
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Bottom Content */}
+                                <div className="absolute inset-0 p-6 pb-6 flex flex-col justify-end z-20">
+                                    <div className="flex flex-col justify-end transition-all duration-300">
+                                        <h3 className="text-white text-2xl md:text-3xl font-black m-0 p-0 leading-tight mb-2">
+                                            {service.title}
+                                        </h3>
+                                        <p className="text-white/80 text-base md:text-lg font-medium leading-relaxed">
                                             {service.description}
                                         </p>
                                     </div>
@@ -289,15 +288,15 @@ export const LandingPage: React.FC = () => {
                         ))}
                     </div>
 
-                    <div className="text-center mt-12">
+                    {/*<div className="text-center mt-12">
                         <button
                             onClick={() => navigate('/venues')}
-                            className="bg-primary text-black hover:bg-primary-hover text-lg px-8 py-4 uppercase tracking-wider font-heading font-extrabold rounded-[7.5px] shadow-glow hover:shadow-glow-strong"
+                            className="bg-primary text-black text-lg px-8 py-4 uppercase tracking-wider font-heading font-extrabold rounded-[7.5px] shadow-glow"
                         >
                             View All Facilities
                             <span className="transition-transform group-hover:translate-x-1">→</span>
                         </button>
-                    </div>
+                    </div>*/}
                 </div>
             </section>
 
@@ -310,10 +309,10 @@ export const LandingPage: React.FC = () => {
                         transition={{ duration: 0.6 }}
                         className="flex flex-col items-center"
                     >
-                        <h2 className="text-black">
+                        <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12">
                             Trusted by <span className="text-primary">Industry Leaders</span>
                         </h2>
-                        <p className="text-gray-600 max-w-2xl mx-auto">
+                        <p className="max-w-2xl mx-auto">
                             Partnering with the world's most innovative companies to elevate sports culture.
                         </p>
                     </motion.div>
@@ -345,7 +344,7 @@ export const LandingPage: React.FC = () => {
                                 ].map((client) => (
                                     <div
                                         key={`${groupIndex}-${client.name}`}
-                                        className="inline-flex items-center justify-center grayscale hover:grayscale-0 transition-all duration-500 hover:scale-110"
+                                        className="inline-flex items-center justify-center transition-all duration-500"
                                     >
                                         <img
                                             src={client.logo}

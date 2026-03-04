@@ -60,12 +60,9 @@ export const Store: React.FC = () => {
                     </motion.div>
 
                     <motion.h1
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
                         className="text-5xl md:text-7xl font-black font-heading uppercase tracking-tighter text-white mb-6 leading-[0.9]"
                     >
-                        Equip Your <br /> <span className="text-primary italic">Game.</span>
+                        Equip Your <br /> <span className="text-primary">Game.</span>
                     </motion.h1>
 
                     <motion.p
@@ -99,13 +96,13 @@ export const Store: React.FC = () => {
                                 <img
                                     src={product.image}
                                     alt={product.name}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                    className="w-full h-full object-cover transition-transform duration-500"
                                 />
                                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                                     {product.category}
                                 </div>
                             </div>
-                            <h3 className="text-lg font-bold uppercase leading-tight mb-1 group-hover:text-primary transition-colors">{product.name}</h3>
+                            <h3 className="text-lg font-bold uppercase leading-tight mb-1 transition-colors">{product.name}</h3>
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-900 font-black">{product.price}</span>
                                 <Button variant="secondary" size="sm" className="rounded-lg text-xs font-bold uppercase">Add to Cart</Button>

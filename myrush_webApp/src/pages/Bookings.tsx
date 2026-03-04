@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 // import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { FaCalendarAlt } from 'react-icons/fa';
 import './Dashboard.css';
 
 interface Booking {
@@ -87,14 +88,15 @@ export const Bookings: React.FC = () => {
                                 <div style={{
                                     width: '60px',
                                     height: '60px',
-                                    background: '#f5f5f5',
+                                    background: 'rgba(0, 210, 106, 0.1)',
                                     borderRadius: '12px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    fontSize: '1.5rem'
+                                    fontSize: '1.5rem',
+                                    color: 'var(--color-primary, #00D26A)'
                                 }}>
-                                    📅
+                                    <FaCalendarAlt />
                                 </div>
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: '1.2rem', marginBottom: '5px' }}>{booking.venue_name}</h3>

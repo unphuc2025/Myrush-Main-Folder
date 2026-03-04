@@ -4,6 +4,7 @@ import { apiClient } from '../api/client';
 import { profileApi } from '../api/profile';
 import type { City, GameType } from '../api/profile';
 import { useAuth } from '../context/AuthContext';
+import { MultiSelectDropdown } from '../components/ui/MultiSelectDropdown';
 
 export const ProfileSetup: React.FC = () => {
     const navigate = useNavigate();
@@ -12,6 +13,7 @@ export const ProfileSetup: React.FC = () => {
 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
     const [age, setAge] = useState('');
     const [city, setCity] = useState('');
     const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
@@ -49,6 +51,7 @@ export const ProfileSetup: React.FC = () => {
                         if (profileRes.success && profileRes.data) {
                             const p = profileRes.data;
                             setFullName(p.full_name || '');
+                            setEmail(p.email || '');
                             setAge(p.age ? p.age.toString() : '');
                             setCity(p.city || '');
                             setSelectedCityId(p.city_id || null);
@@ -88,6 +91,11 @@ export const ProfileSetup: React.FC = () => {
             alert('Please enter your full name, age, and city.');
             return;
         }
+        if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+             alert('Please enter a valid email address.');
+             return;
+        }
+        
         if (isSaving) return;
         setIsSaving(true);
         try {
@@ -99,6 +107,7 @@ export const ProfileSetup: React.FC = () => {
             await apiClient.post('/profile/', {
                 phone_number: phone,
                 full_name: fullName.trim(),
+                email: email.trim() || undefined,
                 age: Number.isNaN(ageNumber) ? undefined : ageNumber,
                 city: city.trim(),
                 gender: gender || undefined,
@@ -187,6 +196,18 @@ export const ProfileSetup: React.FC = () => {
                             className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all shadow-sm"
                         />
                     </div>
+                    
+                    {/* Email */}
+                    <div className="mb-6">
+                        <SectionLabel>Email Address</SectionLabel>
+                        <input
+                            type="email"
+                            placeholder="Enter your email address"
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all shadow-sm"
+                        />
+                    </div>
 
                     {/* Age + City */}
                     <div className="grid grid-cols-2 gap-5 mb-6">
@@ -254,17 +275,14 @@ export const ProfileSetup: React.FC = () => {
                     {/* Sports */}
                     {gameTypes.length > 0 && (
                         <div className="mb-6">
-                            <SectionLabel>Favourite Sports</SectionLabel>
-                            <div className="flex flex-wrap gap-2">
-                                {gameTypes.map(sp => (
-                                    <Pill
-                                        key={sp.name}
-                                        label={sp.name}
-                                        active={selectedSports.includes(sp.name)}
-                                        onClick={() => toggle(sp.name, selectedSports, setSelectedSports)}
-                                    />
-                                ))}
-                            </div>
+                            <MultiSelectDropdown
+                                label="Favourite Sport"
+                                options={gameTypes}
+                                selected={selectedSports}
+                                onChange={setSelectedSports}
+                                placeholder="Select Favourite Sports"
+                                containerClassName="!space-y-0" // override the space-y-1 block margin to match adjacent SectionLabel fields
+                            />
                         </div>
                     )}
 

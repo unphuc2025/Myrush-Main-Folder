@@ -1,12 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../api/client';
 
 interface AuthContextType {
     isAuthenticated: boolean;
     token: string | null;
-    user: any | null; // Adding user object to context
+    user: any | null;
     login: (token: string) => void;
     logout: () => void;
+    isAuthModalOpen: boolean;
+    openAuthModal: () => void;
+    closeAuthModal: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,16 +35,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [token]);
 
-    const login = (newToken: string) => {
+    const login = useCallback((newToken: string) => {
         setToken(newToken);
-    };
+    }, []);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         setToken(null);
-    };
+    }, []);
+
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+    const openAuthModal = useCallback(() => setIsAuthModalOpen(true), []);
+    const closeAuthModal = useCallback(() => setIsAuthModalOpen(false), []);
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated: !!token, token, user, login, logout }}>
+        <AuthContext.Provider value={{ 
+            isAuthenticated: !!token, 
+            token, 
+            user, 
+            login, 
+            logout,
+            isAuthModalOpen,
+            openAuthModal,
+            closeAuthModal
+        }}>
             {children}
         </AuthContext.Provider>
     );

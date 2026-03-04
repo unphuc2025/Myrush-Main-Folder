@@ -5,6 +5,7 @@ import { venuesApi } from '../api/venues';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
 import { getSportIcon } from '../utils/sportIcons';
+import { FaFutbol } from 'react-icons/fa';
 interface Venue {
     id: string;
     court_name: string;
@@ -64,12 +65,12 @@ const CustomDropdown: React.FC<{
         <div className="relative" ref={dropdownRef}>
             <div
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full bg-white border-2 rounded-xl p-3.5 text-sm font-semibold text-gray-700 flex items-center justify-between cursor-pointer transition-all hover:border-gray-300 ${isOpen ? 'border-primary' : 'border-gray-100'}`}
+                className={`w-full bg-white border-2 rounded-xl p-3.5 text-sm font-semibold text-gray-700 flex items-center justify-between cursor-pointer transition-all ${isOpen ? 'border-primary' : 'border-gray-100'}`}
             >
                 <span className="truncate">{getDisplayValue()}</span>
                 <motion.div
                     animate={{ rotate: isOpen ? 180 : 0 }}
-                    className="text-gray-400 group-hover:text-primary transition-colors"
+                    className="text-gray-400 transition-colors"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
@@ -96,7 +97,7 @@ const CustomDropdown: React.FC<{
                                             onChange(id);
                                             setIsOpen(false);
                                         }}
-                                        className={`px-4 py-3 text-sm font-semibold cursor-pointer transition-colors hover:bg-primary/5 ${value === id ? 'text-primary bg-primary/5' : 'text-gray-700'}`}
+                                        className={`px-4 py-3 text-sm font-semibold cursor-pointer transition-colors ${value === id ? 'text-primary bg-primary/5' : 'text-gray-700'}`}
                                     >
                                         {name}
                                     </div>
@@ -137,7 +138,7 @@ const VenueHero: React.FC<{
             >
                 Find Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Arena</span>
             </motion.h1>
-            <p className="text-white font-medium text-lg mb-8 max-w-2xl mx-auto drop-shadow-md">Discover and book the best sports venues in your city.</p>
+            <p className="text-white/90 text-lg mb-8 max-w-2xl mx-auto drop-shadow-md">Discover and book the best sports venues in your city.</p>
 
             <motion.div
                 className="bg-white p-2 rounded-xl max-w-3xl mx-auto flex flex-col md:flex-row gap-2 shadow-xl border border-gray-100"
@@ -163,7 +164,7 @@ const VenueHero: React.FC<{
                         onChange={setSelectedCity}
                     />
                 </div>
-                <Button variant="primary" className="py-3 px-6 rounded-xl whitespace-nowrap font-bold shadow-glow hover:shadow-glow-strong" onClick={() => { }}>
+                <Button variant="primary" className="py-3 px-6 rounded-xl whitespace-nowrap font-bold shadow-glow" onClick={() => { }}>
                     Search
                 </Button>
             </motion.div>
@@ -183,7 +184,7 @@ const FilterSidebar: React.FC<{
         <div className="flex justify-between items-center mb-8">
             <h3 className="text-xl font-bold font-heading text-gray-900 uppercase tracking-tight">Filters</h3>
             <button
-                className="text-[10px] font-bold text-gray-400 hover:text-primary transition-colors uppercase tracking-widest"
+                className="text-[10px] font-bold text-gray-400 transition-colors uppercase tracking-widest"
                 onClick={() => {
                     setSelectedSport('All');
                     setSelectedBranch('All');
@@ -195,7 +196,7 @@ const FilterSidebar: React.FC<{
 
         <div className="space-y-6">
             <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Branch</label>
+                <label className="block text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-gray-400 mb-3">Branch</label>
                 <CustomDropdown
                     label="Branch"
                     value={selectedBranch}
@@ -205,7 +206,7 @@ const FilterSidebar: React.FC<{
             </div>
 
             <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Sport</label>
+                <label className="block text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-gray-400 mb-3">Sport</label>
                 <CustomDropdown
                     label="Sport"
                     value={selectedSport}
@@ -219,7 +220,7 @@ const FilterSidebar: React.FC<{
 
 const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onClick }) => (
     <div
-        className="group bg-white overflow-hidden rounded-xl shadow-sm hover:shadow-2xl active:shadow-sm active:scale-[0.98] transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100 hover:border-primary/20 active:border-primary/50"
+        className="group bg-white overflow-hidden rounded-xl shadow-sm transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100"
         onClick={onClick}
     >
         <div className="relative h-64 overflow-hidden">
@@ -227,7 +228,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
                 src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070'}
                 alt={venue.court_name}
                 loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                className="w-full h-full object-cover transition-transform duration-700"
             />
             {/* Sport Tag */}
             <div className="absolute top-4 left-4">
@@ -242,7 +243,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
 
             {/* Location Overlay */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent p-5 pt-12 md:translate-y-2 md:group-hover:translate-y-0 transition-transform duration-300">
-                <p className="text-white text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 drop-shadow-md">
+                <p className="text-white text-xs font-semibold flex items-center gap-2 drop-shadow-md">
                     <span className="text-primary bg-primary/20 p-1 rounded-full"><IconMapPin /></span>
                     <span className="truncate opacity-90">{venue.location}</span>
                 </p>
@@ -252,10 +253,10 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
         <div className="p-6 flex flex-col flex-1 bg-white relative z-10">
             {/* Title & Rating */}
             <div className="flex justify-between items-start mb-4 gap-4">
-                <h3 className="text-xl font-bold font-heading text-gray-900 leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                <h3 className="text-xl font-bold font-heading text-gray-900 leading-tight line-clamp-2 transition-colors">
                     {venue.court_name}
                 </h3>
-                <div className="flex items-center gap-1 bg-yellow-400/10 px-2 py-1 rounded-lg border border-yellow-400/20 shrink-0">
+                <div className="flex items-center gap-1 bg-yellow-400/10 px-2 py-1 rounded-xl border border-yellow-400/20 shrink-0">
                     <span className="text-yellow-500 text-xs">⭐</span>
                     <span className="text-xs font-bold text-gray-900">
                         {venue.rating && Number(venue.rating) > 0 ? Number(venue.rating).toFixed(1) : '5.0'}
@@ -266,14 +267,14 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
             {/* Price & CTA */}
             <div className="mt-auto pt-6 border-t border-gray-100 flex items-center justify-between gap-4">
                 <div>
-                    <span className="block text-[10px] font-black text-gray-400 mb-2">Starting from</span>
+                    <span className="block text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">Starting from</span>
                     <div className="flex items-baseline gap-1">
                         <span className="text-lg font-black text-gray-900 tracking-tight">₹{venue.prices}</span>
                         <span className="text-xs text-gray-500 font-medium">/hr</span>
                     </div>
                 </div>
                 <button
-                    className="bg-zinc-900 text-white hover:bg-primary hover:text-black font-semibold text-sm px-6 py-3 rounded-lg shadow-lg hover:shadow-primary/30 transition-all duration-300 whitespace-nowrap shrink-0 active:scale-95"
+                    className="bg-zinc-900 text-white font-semibold text-sm px-6 py-3 rounded-lg shadow-lg transition-all duration-300 whitespace-nowrap shrink-0"
                     onClick={(e) => {
                         e.stopPropagation();
                         onClick();
@@ -413,6 +414,28 @@ export const Venues: React.FC = () => {
         fetchBranches();
     }, [selectedCity]);
 
+    const displayedSports = React.useMemo(() => {
+        if (selectedBranch === 'All') return sports;
+        
+        const branchName = branches.find(b => b.id === selectedBranch)?.name;
+        if (!branchName) return sports;
+
+        const available = new Set<string>();
+        venues.filter(v => v.branch_name === branchName).forEach(v => {
+            if (v.game_type) {
+                v.game_type.split(',').forEach(s => available.add(s.trim()));
+            }
+        });
+
+        return sports.filter(s => s === 'All' || available.has(s));
+    }, [sports, venues, selectedBranch, branches]);
+
+    useEffect(() => {
+        if (selectedSport !== 'All' && !displayedSports.includes(selectedSport)) {
+            setSelectedSport('All');
+        }
+    }, [displayedSports, selectedSport]);
+
     useEffect(() => {
         let res = venues;
         if (searchTerm) {
@@ -422,11 +445,11 @@ export const Venues: React.FC = () => {
                 v.location.toLowerCase().includes(term)
             );
         }
-        if (selectedSport !== 'All') {
-            res = res.filter(v => v.game_type.includes(selectedSport));
-        }
         if (selectedBranch !== 'All') {
             res = res.filter(v => v.branch_name === branches.find(b => b.id === selectedBranch)?.name);
+        }
+        if (selectedSport !== 'All') {
+            res = res.filter(v => v.game_type.includes(selectedSport));
         }
         setFilteredVenues(res);
     }, [venues, searchTerm, selectedSport, selectedBranch, branches]);
@@ -450,7 +473,7 @@ export const Venues: React.FC = () => {
                     description: v.description || '',
                     branch_name: v.branch_name,
                     amenities: v.amenities,
-                    rating: v.rating || 5.0,
+                    rating: v.rating || 0,
                     reviewCount: v.reviews || 0
                 }));
                 setVenues(mappedVenues);
@@ -484,9 +507,9 @@ export const Venues: React.FC = () => {
         <div className="min-h-screen bg-gray-50/50 font-sans text-gray-900 relative">
             {/* Mesh Background */}
             <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px] animate-pulse"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[120px] animate-pulse delay-1000"></div>
-                <div className="absolute top-[40%] left-[60%] w-[30%] h-[30%] rounded-full bg-emerald-400/20 blur-[100px] animate-pulse delay-700"></div>
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px]"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[120px]"></div>
+                <div className="absolute top-[40%] left-[60%] w-[30%] h-[30%] rounded-full bg-emerald-400/20 blur-[100px]"></div>
             </div>
 
             <TopNav />
@@ -506,7 +529,7 @@ export const Venues: React.FC = () => {
                         <FilterSidebar
                             selectedSport={selectedSport}
                             setSelectedSport={setSelectedSport}
-                            sports={sports}
+                            sports={displayedSports}
                             selectedBranch={selectedBranch}
                             setSelectedBranch={setSelectedBranch}
                             branches={branches}
@@ -519,7 +542,7 @@ export const Venues: React.FC = () => {
                     {/* Header */}
                     <div className="flex flex-col gap-6 mb-8">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                            <h2 className="text-3xl font-black text-gray-900 font-heading">
+                            <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12">
                                 {filteredVenues.length} Venues in
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-500 ml-2">
                                     {selectedCity}
@@ -531,16 +554,19 @@ export const Venues: React.FC = () => {
                     {loading ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                             {[1, 2, 3, 4, 5, 6].map(n => (
-                                <div key={n} className="bg-white h-[460px] animate-pulse shadow-sm border border-gray-100 rounded-xl" />
+                                <div key={n} className="bg-white h-[460px] shadow-sm border border-gray-100 rounded-xl" />
                             ))}
                         </div>
                     ) : filteredVenues.length === 0 ? (
                         <div className="text-center py-24 bg-white/50 backdrop-blur-sm border border-dashed border-gray-200">
-                            <div className="text-6xl mb-6 opacity-20">🏟️</div>
+                            <div className="text-primary text-6xl mb-6 opacity-20">
+                                <FaFutbol className="mx-auto" />
+                            </div>
                             <h3 className="text-2xl font-black font-heading text-gray-900 mb-2">No venues found</h3>
                             <p className="text-sm font-medium text-gray-600">Try adjusting your filters or search for something else.</p>
                             <Button
-                                className="mt-6 text-primary font-bold hover:underline"
+                                variant="outline"
+                                className="mt-6 font-bold"
                                 onClick={() => {
                                     setSearchTerm('');
                                     setSelectedSport('All');

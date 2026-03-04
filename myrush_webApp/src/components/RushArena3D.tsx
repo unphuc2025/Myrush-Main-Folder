@@ -27,7 +27,7 @@ export const RushArena3D: React.FC<{ url?: string }> = ({ url = "https://rush-ar
             >
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-                    <div className="text-primary text-lg font-bold uppercase tracking-widest animate-pulse">Loading Arena...</div>
+                    <div className="text-primary text-lg font-bold uppercase tracking-widest">Loading Arena...</div>
                 </div>
             </div>
 

@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { PhoneInput } from '../components/ui/PhoneInput';
+import { getAmenityIcon } from '../utils/amenityIcons';
 import ScrollIndicator from '../components/ScrollIndicator';
-import { FaMapMarkerAlt, FaClock, FaUsers, FaStar } from "react-icons/fa";
+import { FaMapMarkerAlt, FaClock, FaUsers, FaStar, FaArrowRight } from "react-icons/fa";
 import { venuesApi } from '../api/venues';
+import { getSportIcon } from '../utils/sportIcons';
 
 
 const FALLBACK_IMAGES = [
@@ -69,12 +71,12 @@ export const Arena: React.FC = () => {
     ];
 
     const amenities = [
-        { name: 'Floodlights', icon: '💡', description: 'Professional lighting for night games' },
-        { name: 'Changing Rooms', icon: '🚿', description: 'Clean facilities with showers' },
-        { name: 'Equipment Rental', icon: '⚽', description: 'Quality balls and gear available' },
-        { name: 'Parking', icon: '🚗', description: 'Ample parking space' },
-        { name: 'Cafeteria', icon: '☕', description: 'Refreshments and snacks' },
-        { name: 'First Aid', icon: '🩹', description: 'Medical assistance available' }
+        { name: 'Floodlights', description: 'Professional lighting for night games' },
+        { name: 'Changing Rooms', description: 'Clean facilities with showers' },
+        { name: 'Equipment Rental', description: 'Quality balls and gear available' },
+        { name: 'Parking', description: 'Ample parking space' },
+        { name: 'Cafeteria', description: 'Refreshments and snacks' },
+        { name: 'First Aid', description: 'Medical assistance available' }
     ];
 
     React.useEffect(() => {
@@ -95,7 +97,7 @@ export const Arena: React.FC = () => {
                         description: v.description || '',
                         branch_name: v.branch_name,
                         amenities: v.amenities,
-                        rating: v.rating || 4.8,
+                        rating: v.rating || 0,
                         reviewCount: v.reviews || 0
                     }));
 
@@ -187,7 +189,7 @@ export const Arena: React.FC = () => {
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-screen flex items-center justify-center md:justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
+            <section className="relative h-screen flex items-center justify-center overflow-hidden bg-black px-4">
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
                     <img
@@ -198,9 +200,9 @@ export const Arena: React.FC = () => {
                 </div>
 
                 <motion.div
-                    className="relative z-20 text-center md:text-left w-full max-w-7xl py-32"
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    className="relative z-20 text-center w-full max-w-7xl py-32 flex flex-col items-center"
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
                 >
                     {/* Badge */}
@@ -208,38 +210,41 @@ export const Arena: React.FC = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5, duration: 0.8 }}
-                        className="inline-flex items-center gap-3 mb-6 md:mb-8 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto md:mx-0"
+                        className="inline-flex items-center gap-3 mb-6 md:mb-8 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto"
                     >
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                         <span className="text-[9px] md:text-sm font-bold font-heading text-primary uppercase tracking-[0.2em] whitespace-nowrap">
                             Rush Arena - Call 7624898999
                         </span>
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-black font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase text-center md:text-left px-2">
+                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-black font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase text-center px-2">
                         play your <br />
-                        <span className="text-primary italic">favourite sport</span> <br />
+                        <span className="text-primary">favourite sport</span> <br />
                         at a rush arena near you.
                     </h1>
 
                     {/* CTA Section */}
-                    <div className="flex flex-row items-center justify-center md:justify-start gap-3 md:gap-6 px-4 md:px-0">
+                    <div className="flex flex-row items-center justify-center gap-3 md:gap-6 px-4 md:px-0">
                         <Button
                             variant="primary"
                             size="lg"
-                            className="flex-1 md:flex-none text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow hover:shadow-glow-strong whitespace-nowrap group items-center justify-center"
+                            className="flex-1 sm:flex-none !border-2 !border-transparent text-[10px] sm:text-sm md:text-base px-4 sm:px-8 py-3 md:py-4 min-w-[140px] sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow whitespace-nowrap group flex items-center justify-center"
                             onClick={() => navigate('/venues')}
                         >
                             Explore Venues
                         </Button>
-                        <button
-                            className="flex-1 md:flex-none border border-white text-white hover:border-primary text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-black transition-all duration-300 bg-black/40 backdrop-blur-md group shadow-glow hover:shadow-glow-strong rounded-[7.5px] flex items-center justify-center gap-1.5 md:gap-3"
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="flex-1 sm:flex-none !bg-transparent !text-white !border-2 !border-[#00D26A] text-[10px] sm:text-sm md:text-base px-4 sm:px-8 py-3 md:py-4 min-w-[140px] sm:min-w-[200px] uppercase tracking-wider font-heading font-black transition-all duration-300 shadow-none whitespace-nowrap group flex items-center justify-center"
+                            style={{ border: '2px solid #00D26A' }}
+                            icon={<FaArrowRight className="hidden sm:inline transition-transform" />}
                             onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             View Facilities
-                            <span className="group-hover:translate-x-1 transition-transform duration-300 hidden sm:inline">→</span>
-                        </button>
+                        </Button>
                     </div>
                 </motion.div>
 
@@ -252,10 +257,10 @@ export const Arena: React.FC = () => {
             <section id="features" className="py-12 md:py-16 bg-white w-full">
                 <div className="w-full px-4 md:px-8">
                     <div className="text-center mb-8 md:mb-12">
-                        <h2 className="!text-4xl md:text-4xl font-extrabold font-heading text-black uppercase leading-tight mb-4 md:mb-6">
-                            Premium <span className="text-primary italic">Facilities</span>
+                        <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12">
+                            Premium <span className="text-primary">Facilities</span>
                         </h2>
-                        <p className="text-sm md:text-lg text-gray-400 font-light uppercase tracking-[0.2em] px-4">
+                        <p className="text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-gray-400 px-4">
                             Everything you need for the perfect game.
                         </p>
                     </div>
@@ -264,20 +269,20 @@ export const Arena: React.FC = () => {
                         {features.map((feature, index) => (
                             <motion.div
                                 key={index}
-                                className="group relative w-full h-full flex flex-col items-center text-center p-12 rounded-xl bg-gray-50 border border-transparent hover:border-gray-100 hover:shadow-premium active:scale-[0.98] active:bg-gray-100 transition-all duration-500 min-h-[300px] justify-center"
+                                className="group relative w-full h-full flex flex-col items-center text-center p-12 rounded-xl bg-gray-50 border border-transparent active:scale-[0.98] active:bg-gray-100 transition-all duration-500 min-h-[300px] justify-center"
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.1 }}
                             >
-                                <div className="text-5xl text-black mb-8 transform group-hover:scale-110 group-hover:text-primary transition-all duration-500">
+                                <div className="text-5xl text-black mb-8 transition-all duration-500">
                                     {feature.icon}
                                 </div>
                                 <h3 className="text-h4 text-black mb-6 uppercase tracking-wider leading-tight">
                                     {feature.title}
                                 </h3>
                                 <div className="h-1 w-12 bg-gray-200 mb-6 group-hover:bg-primary group-hover:w-20 transition-all duration-500 rounded-full" />
-                                <p className="text-body text-gray-500 leading-relaxed font-light">
+                                <p className="leading-relaxed">
                                     {feature.description}
                                 </p>
                             </motion.div>
@@ -292,9 +297,9 @@ export const Arena: React.FC = () => {
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
                             <h2 className="!text-4xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-6">
-                                Our <span className="text-primary italic">Venues</span>
+                                Our <span className="text-primary">Venues</span>
                             </h2>
-                            <p className="text-body-lg text-gray-400 font-light uppercase tracking-[0.2em]">
+                            <p className="text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-gray-400">
                                 Professional arenas across Bengaluru.
                             </p>
                         </div>
@@ -308,7 +313,7 @@ export const Arena: React.FC = () => {
                         {loading ? (
                             // Loading state skeleton
                             [1, 2, 3].map((i) => (
-                                <div key={i} className="bg-white h-96 animate-pulse" />
+                                <div key={i} className="bg-white h-96" />
                             ))
                         ) : venues.length === 0 ? (
                             <div className="col-span-full text-center py-20">
@@ -319,7 +324,7 @@ export const Arena: React.FC = () => {
 
                                 <motion.div
                                     key={venue.id}
-                                    className="bg-white overflow-hidden rounded-xl shadow-premium hover:shadow-premium-hover transition-all duration-500 group cursor-pointer flex flex-col h-full"
+                                    className="bg-white overflow-hidden rounded-xl shadow-premium transition-all duration-500 group cursor-pointer flex flex-col h-full"
                                     initial={{ opacity: 0, y: 30 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
@@ -330,11 +335,11 @@ export const Arena: React.FC = () => {
                                         <img
                                             src={venue.photos?.[0] || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]}
                                             alt={venue.court_name}
-                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                            className="w-full h-full object-cover transition-transform duration-700"
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                                         <div className="absolute top-4 right-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-bold">
-                                            {venue.rating ? venue.rating.toFixed(1) : '4.8'} ⭐
+                                            {venue.rating && venue.rating > 0 ? venue.rating.toFixed(1) : '5.0'} ⭐
                                         </div>
                                     </div>
                                     <div className="p-8 flex flex-col flex-1">
@@ -342,18 +347,24 @@ export const Arena: React.FC = () => {
                                             {venue.court_name}
                                         </h3>
                                         <p className="text-gray-500 mb-4 text-sm">
-                                            📍 {venue.location}
+                                            <FaMapMarkerAlt className="inline-block mr-1 text-primary" /> {venue.location}
                                         </p>
                                         <div className="flex items-center justify-between mb-6">
-                                            <span className="text-primary font-bold">
-                                                {venue.game_type || 'Multiple Sports'}
-                                            </span>
+                                            <div className="flex gap-1.5 flex-wrap">
+                                                {venue.game_type ? venue.game_type.split(',').map((sport, i) => (
+                                                    <div key={i} title={sport.trim()} className="text-gray-800 bg-gray-100 p-1.5 rounded-full">
+                                                        {getSportIcon(sport.trim(), "w-4 h-4")}
+                                                    </div>
+                                                )) : (
+                                                    <span className="text-primary font-bold text-sm">Multiple Sports</span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="mt-auto">
                                             <Button
                                                 variant="primary"
-                                                className="w-full h-12 rounded-xl text-sm font-bold uppercase tracking-widest"
+                                                className="w-full h-12 rounded-lg text-sm font-bold uppercase tracking-widest"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     navigate(`/venues/${venue.id}`);
@@ -379,7 +390,7 @@ export const Arena: React.FC = () => {
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
                             <h2 className="text-white">
-                                Complete <span className="text-primary italic">Amenities</span>
+                                Complete <span className="text-primary">Amenities</span>
                             </h2>
                             <p className="text-body-lg text-white/40 font-light uppercase tracking-[0.2em]">
                                 Everything for your comfort and performance.
@@ -401,8 +412,8 @@ export const Arena: React.FC = () => {
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.05 }}
                             >
-                                <div className="text-3xl md:text-4xl mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-500">
-                                    {amenity.icon}
+                                <div className="text-white text-3xl md:text-4xl mb-3 md:mb-4 transition-transform duration-500 group-hover:scale-110">
+                                    {getAmenityIcon(amenity.name, "w-8 h-8 md:w-10 md:h-10")}
                                 </div>
                                 <h3 className="text-white font-bold uppercase tracking-wider text-xs md:text-sm mb-2">
                                     {amenity.name}
@@ -435,7 +446,7 @@ export const Arena: React.FC = () => {
                                 <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase">
                                     Reach Us
                                 </div>
-                                <h1 className="text-white italic">
+                                <h1 className="text-white">
                                     Get in <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">touch.</span>
                                 </h1>
                                 <p className="text-lg text-white/60 font-medium leading-relaxed max-w-lg">
@@ -544,7 +555,7 @@ export const Arena: React.FC = () => {
                                     <button
                                         type="submit"
                                         disabled={isSubmittingForm}
-                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95 text-lg flex items-center justify-center min-w-[240px]"
+                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow transition-all active:scale-95 text-lg flex items-center justify-center min-w-[200px]"
                                     >
                                         {isSubmittingForm ? (
                                             <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>

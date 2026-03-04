@@ -72,7 +72,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                 </div>
             </div>
             {error && (
-                <p className="mt-2 ml-1 text-[10px] font-bold text-red-500 uppercase tracking-wider animate-pulse">
+                <p className="mt-2 ml-1 text-[10px] font-bold text-red-500 uppercase tracking-wider">
                     {error}
                 </p>
             )}

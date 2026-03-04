@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { bookingsApi } from '../api/bookings';
 import { TopNav } from '../components/TopNav';
+import { FaCalendarAlt, FaMapMarkerAlt, FaClock, FaStar, FaFutbol } from 'react-icons/fa';
 import './MyBookings.css';
 
 interface Booking {
@@ -168,7 +169,7 @@ export const MyBookings: React.FC = () => {
                         <div className="loading-modern">Loading your bookings...</div>
                     ) : bookings.length === 0 ? (
                         <div className="empty-state-modern">
-                            <span className="empty-icon">📅</span>
+                            <span className="empty-icon text-primary"><FaCalendarAlt /></span>
                             <h3>No {activeTab !== 'all' ? activeTab : ''} bookings found</h3>
                             <p>Book a venue to get started!</p>
                             <button className="cta-btn" onClick={() => navigate('/venues')}>Browse Venues</button>
@@ -192,12 +193,12 @@ export const MyBookings: React.FC = () => {
 
                                 <div className="card-body-modern">
                                     <h3 className="venue-name">{booking.venue_name}</h3>
-                                    <p className="location-text">📍 {booking.venue_location}</p>
+                                    <p className="location-text text-primary flex items-center gap-1"><FaMapMarkerAlt className="text-primary" /> {booking.venue_location}</p>
 
                                     <div className="booking-details">
                                         <div className="detail-item">
                                             <span className="label">Time:</span>
-                                            <span className="value">🕒 {booking.start_time?.slice(0, 5) || 'N/A'} - {booking.end_time?.slice(0, 5) || 'N/A'}</span>
+                                            <span className="value flex items-center gap-1"><FaClock className="text-primary" /> {booking.start_time?.slice(0, 5) || 'N/A'} - {booking.end_time?.slice(0, 5) || 'N/A'}</span>
                                         </div>
                                         <div className="detail-item">
                                             <span className="label">Amount:</span>
@@ -232,7 +233,7 @@ export const MyBookings: React.FC = () => {
                                                     className="rate-btn"
                                                     onClick={() => setShowRatingModal(booking.id)}
                                                 >
-                                                    ⭐ Rate Your Experience
+                                                    <FaStar className="inline-block mr-1 text-yellow-400" /> Rate Your Experience
                                                 </button>
                                             )}
                                         </div>
@@ -308,7 +309,7 @@ export const MyBookings: React.FC = () => {
 
                                         <div className="detail-group">
                                             <span className="detail-label">Location</span>
-                                            <span className="detail-value">📍 {selectedBooking.venue_location}</span>
+                                            <span className="detail-value flex items-center gap-1"><FaMapMarkerAlt className="text-primary" /> {selectedBooking.venue_location}</span>
                                         </div>
 
                                         <div className="modal-divider" />
@@ -334,11 +335,11 @@ export const MyBookings: React.FC = () => {
                                         <div className="detail-row-modern">
                                             <div className="detail-group">
                                                 <span className="detail-label">Start Time</span>
-                                                <span className="detail-value">🕒 {selectedBooking.start_time?.slice(0, 5) || 'N/A'}</span>
+                                                <span className="detail-value flex items-center gap-1"><FaClock className="text-primary" /> {selectedBooking.start_time?.slice(0, 5) || 'N/A'}</span>
                                             </div>
                                             <div className="detail-group">
                                                 <span className="detail-label">End Time</span>
-                                                <span className="detail-value">🕒 {selectedBooking.end_time?.slice(0, 5) || 'N/A'}</span>
+                                                <span className="detail-value flex items-center gap-1"><FaClock className="text-primary" /> {selectedBooking.end_time?.slice(0, 5) || 'N/A'}</span>
                                             </div>
                                         </div>
 

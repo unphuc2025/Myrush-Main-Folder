@@ -5,7 +5,7 @@ import { profileApi, type ProfileData, type City, type GameType } from '../api/p
 import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaUser, FaPhone, FaMapMarkerAlt, FaTrophy, FaCalendarAlt, FaVenusMars, FaHandPaper, FaHeartbeat, FaGamepad } from 'react-icons/fa';
+import { FaUser, FaPhone, FaMapMarkerAlt, FaTrophy, FaCalendarAlt, FaVenusMars, FaHandPaper, FaHeartbeat, FaGamepad, FaLock } from 'react-icons/fa';
 
 export const EditProfile: React.FC = () => {
     const navigate = useNavigate();
@@ -211,7 +211,7 @@ export const EditProfile: React.FC = () => {
                                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed"
                                     />
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                        <span className="text-gray-400">🔒</span>
+                                        <span className="text-gray-400"><FaLock /></span>
                                     </div>
                                 </div>
                             </div>

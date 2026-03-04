@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Academy } from './pages/Academy';
 import { Arena } from './pages/Arena';
@@ -32,27 +32,39 @@ import { Footer } from './components/Footer';
 import { Chatbot } from './components/Chatbot';
 import { CustomCursor } from './components/CustomCursor';
 import { MobileNav } from './components/MobileNav';
+import { AuthModal } from './components/auth/AuthModal';
 import './App.css';
 
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, openAuthModal } = useAuth();
   const location = useLocation();
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      openAuthModal();
+    }
+  }, [isAuthenticated, openAuthModal]);
+
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
   return <>{children}</>;
 };
 
 const AppContent = () => {
   const location = useLocation();
+  const { openAuthModal, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    // If we've been redirected here from ProtectedRoute, open the modal
+    if (location.state?.from && !isAuthenticated) {
+      openAuthModal();
+    }
+  }, [location.state, isAuthenticated, openAuthModal]);
 
   // Hide footer only on specific pages like Setup Profile, Login, OTP, Profile
-  const shouldHideFooter = location.pathname === '/login' ||
-    location.pathname === '/verify-otp' ||
-    location.pathname === '/profile' ||
-    location.pathname === '/setup-profile';
+  const shouldHideFooter = location.pathname === '/profile';
 
   return (
     <div className="flex flex-col min-h-screen relative">
@@ -74,9 +86,9 @@ const AppContent = () => {
           <Route path="/open-play" element={<OpenPlay />} />
           <Route path="/store" element={<Store />} />
           <Route path="/services" element={<Services />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/verify-otp" element={<OTPVerification />} />
-          <Route path="/setup-profile" element={<ProfileSetup />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/verify-otp" element={<Navigate to="/" replace />} />
+          <Route path="/setup-profile" element={<Navigate to="/" replace />} />
 
           <Route path="/dashboard" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/venues" element={<Venues />} /> {/* Changed from ProtectedRoute<Venues /> to Venues */}
@@ -97,6 +109,7 @@ const AppContent = () => {
       <MobileNav />
       {/* <WhatsAppButton /> */}
       <Chatbot />
+      <AuthModal />
     </div>
 
   );

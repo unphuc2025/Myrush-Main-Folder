@@ -132,7 +132,7 @@ export const Corporate: React.FC = () => {
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-screen flex items-center justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
+            <section className="relative h-screen flex items-center justify-center overflow-hidden bg-black px-4">
                 <div className="absolute inset-0 z-0">
                     <img
                         src="https://images.squarespace-cdn.com/content/v1/6489a5657044a44b13bae65f/205f2470-1857-443f-bd1f-f3d0f64de382/CBAF3FB3-63F5-4A4C-B207-0BA78B372072.jpeg"
@@ -142,37 +142,22 @@ export const Corporate: React.FC = () => {
                 </div>
 
                 <motion.div
-                    className="relative z-20 text-left w-full max-w-5xl pt-40 pb-32"
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    className="relative z-20 text-center w-full max-w-5xl flex flex-col items-center"
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
                 >
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5, duration: 0.8 }}
-                        className="inline-flex items-center gap-3 mb-6 px-5 py-2.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-xl"
-                    >
-                        <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        <span className="text-[10px] font-bold text-primary uppercase tracking-[0.4em] font-heading">
-                            Corporate Excellence
-                        </span>
-                    </motion.div>
-
-                    <h1 className="text-3xl md:text-5xl lg:text-7xl text-white mb-8 md:mb-12 leading-[1.1] md:leading-[1.1] tracking-tight font-extrabold font-heading uppercase">
-                        Empower <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Your Team</span><br />
+                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-black font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase mt-8">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Your Team</span><br />
                         Through Sports
                     </h1>
 
-                    <p className="text-white/70 text-sm md:text-xl max-w-2xl mb-12 leading-relaxed font-light">
-                        Elevate productivity, foster collaboration, and build lasting bonds with our bespoke corporate sports engagement solutions.
-                    </p>
 
-                    <div className="flex flex-col sm:flex-row items-start justify-start gap-4 md:gap-6">
+                    <div className="flex flex-row items-center justify-center gap-4 md:gap-6">
                         <Button
                             variant="primary"
                             size="lg"
-                            className="w-1/2 sm:w-auto text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow hover:shadow-glow-strong whitespace-nowrap group items-center justify-center"
+                            className="flex-1 sm:flex-none !border-2 !border-transparent text-[10px] sm:text-sm md:text-base px-4 sm:px-8 py-3 md:py-4 min-w-[140px] sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow whitespace-nowrap group flex items-center justify-center"
                             onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Enquire Now
@@ -197,11 +182,11 @@ export const Corporate: React.FC = () => {
                             >
                                 Value Proposition
                             </motion.span>
-                            <h2 className="text-black">
-                                Why Choose <span className="text-primary italic">MyRush?</span>
+                            <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12">
+                                Why Choose <span className="text-primary">MyRush?</span>
                             </h2>
                         </div>
-                        <p className="text-gray-500 text-lg max-w-sm font-light">
+                        <p className="text-gray-500 max-w-sm">
                             We don't just organize sports; we build stronger, healthier, and more connected teams.
                         </p>
                     </div>
@@ -210,7 +195,7 @@ export const Corporate: React.FC = () => {
                         {benefits.map((benefit, index) => (
                             <motion.div
                                 key={index}
-                                className="group relative overflow-hidden bg-white rounded-xl shadow-premium hover:shadow-premium-hover transition-all duration-500 flex flex-col h-full border border-gray-100"
+                                className="group relative overflow-hidden bg-white rounded-xl shadow-premium transition-all duration-500 flex flex-col h-full border border-gray-100"
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
@@ -220,7 +205,7 @@ export const Corporate: React.FC = () => {
                                     <img
                                         src={benefit.image}
                                         alt={benefit.title}
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                        className="w-full h-full object-cover transition-transform duration-700"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
                                 </div>
@@ -228,7 +213,7 @@ export const Corporate: React.FC = () => {
                                     <h4 className="text-black">
                                         {benefit.title}
                                     </h4>
-                                    <p className="text-gray-500 text-sm leading-relaxed font-light">
+                                    <p className="text-gray-500 text-sm md:text-base leading-relaxed">
                                         {benefit.description}
                                     </p>
                                 </div>
@@ -250,15 +235,15 @@ export const Corporate: React.FC = () => {
                         >
                             Corporate Sports Engagement
                         </motion.span>
-                        <h2 className="text-black">
-                            In Action: <span className="text-primary italic">Watch Our Videos</span>
+                        <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12 text-center">
+                            In Action: <span className="text-primary">Watch Our Videos</span>
                         </h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                         {videos.map((video, idx) => (
                             <motion.div
                                 key={idx}
-                                className="aspect-video bg-black rounded-xl md:rounded-xl overflow-hidden shadow-premium hover:shadow-premium-hover transition-all duration-500 relative group"
+                                className="aspect-video bg-black rounded-xl md:rounded-xl overflow-hidden shadow-premium transition-all duration-500 relative group"
                                 initial={{ opacity: 0, y: 20 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
@@ -297,7 +282,7 @@ export const Corporate: React.FC = () => {
                                 <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-xs font-bold text-primary tracking-[0.2em] uppercase">
                                     Custom Solutions
                                 </div>
-                                <h1 className="italic">
+                                <h1>
                                     Get in <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">touch.</span>
                                 </h1>
                                 <p className="text-lg text-white/60 font-medium leading-relaxed max-w-lg">
@@ -418,18 +403,17 @@ export const Corporate: React.FC = () => {
                                 </div>
 
                                 <div className="pt-8 flex justify-start">
-                                    <Button
-                                        variant="primary"
+                                    <button
                                         type="submit"
                                         disabled={isSubmittingForm}
-                                        className="w-1/2 md:w-auto px-8 md:px-12 py-3 md:py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-95 text-base md:text-lg flex items-center justify-center min-w-[200px]"
+                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:bg-white transition-all active:scale-95 text-lg flex items-center justify-center min-w-[200px]"
                                     >
                                         {isSubmittingForm ? (
                                             <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
                                         ) : (
                                             'Send Message →'
                                         )}
-                                    </Button>
+                                    </button>
                                 </div>
                             </form>
                         </motion.div>

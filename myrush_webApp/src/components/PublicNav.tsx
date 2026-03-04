@@ -9,7 +9,7 @@ import { featureFlags } from '../config/featureFlags';
 export const PublicNav: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { isAuthenticated, logout } = useAuth();
+    const { isAuthenticated, logout, openAuthModal } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 
@@ -101,7 +101,7 @@ export const PublicNav: React.FC = () => {
                         {isAuthenticated ? (
                             <div className="hidden md:flex items-center gap-3 md:gap-4">
                                 <button
-                                    className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all hover:shadow-md ${scrolled ? 'bg-gray-100' : 'bg-white/20'
+                                    className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all ${scrolled ? 'bg-gray-100' : 'bg-white/20'
                                         }`}
                                     onClick={() => navigate('/profile')}
                                 >
@@ -112,7 +112,7 @@ export const PublicNav: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={logout}
-                                    className={`px-4 py-2 rounded-[7.5px] text-sm font-bold transition-all hover:shadow-md ${scrolled ? 'bg-gray-100 text-black' : 'bg-white/20 text-white'
+                                    className={`px-4 py-2 rounded-[7.5px] text-sm font-bold transition-all ${scrolled ? 'bg-gray-100 text-black' : 'bg-white/20 text-white'
                                         }`}
                                 >
                                     Logout
@@ -121,8 +121,9 @@ export const PublicNav: React.FC = () => {
                         ) : (
                             <Button
                                 variant="primary"
+                                size="md"
                                 onClick={() => navigate('/venues')}
-                                className="font-bold bg-primary text-black hover:bg-primary-hover uppercase tracking-wider text-xs md:text-sm px-4 py-2 md:px-6 md:py-2"
+                                className="font-bold bg-primary text-black uppercase tracking-widest text-xs md:text-sm px-6 py-2.5 md:px-8 md:py-3 min-w-[110px] md:min-w-[140px] shadow-glow"
                             >
                                 Book Now
                             </Button>
@@ -173,12 +174,12 @@ export const PublicNav: React.FC = () => {
                             <Button
                                 variant="primary"
                                 onClick={() => {
-                                    navigate('/login');
                                     setIsMobileMenuOpen(false);
+                                    navigate('/venues');
                                 }}
                                 className="mt-4 px-12 py-4 text-lg font-bold"
                             >
-                                Login
+                                Book Now
                             </Button>
                         )}
                     </motion.div>
