@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { venuesApi } from '../api/venues';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
+import { FaCalendarAlt } from 'react-icons/fa';
 
 interface Slot {
     time: string;
@@ -183,12 +184,12 @@ export const SlotSelection: React.FC = () => {
                     {loading ? (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                                <div key={i} className="h-20 rounded-xl bg-gray-50 animate-pulse" />
+                                <div key={i} className="h-20 rounded-xl bg-gray-50" />
                             ))}
                         </div>
                     ) : availableSlots.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                            <span className="text-4xl mb-4 opacity-50">🗓️</span>
+                            <span className="text-primary text-4xl mb-4 opacity-50"><FaCalendarAlt /></span>
                             <p>No slots available for this date.</p>
                         </div>
                     ) : (

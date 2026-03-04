@@ -277,7 +277,7 @@ export const Chatbot: React.FC = () => {
                                 <div>
                                     <h3 className="font-bold text-lg leading-tight">Rush Support</h3>
                                     <p className="text-xs text-white/80 flex items-center gap-1">
-                                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                                        <span className="w-2 h-2 bg-green-400 rounded-full"></span>
                                         Online
                                     </p>
                                 </div>
@@ -323,7 +323,7 @@ export const Chatbot: React.FC = () => {
                                                     </div>
                                                     <div className="p-3">
                                                         <h4 className="font-bold text-sm truncate">{venue.name || venue.court_name}</h4>
-                                                        <p className="text-xs text-gray-500 mb-2 truncate">📍 {venue.area}, {venue.city}</p>
+                                                        <p className="text-xs text-gray-500 mb-2 truncate flex items-center gap-1"><FaMapMarkerAlt className="text-primary text-[10px]" /> {venue.area}, {venue.city}</p>
                                                         <button onClick={() => handleVenueSelection(venue)} className="w-full bg-primary text-white text-xs font-bold py-2 rounded-lg hover:bg-primary/90 transition-all active:scale-95">Select Venue</button>
                                                     </div>
                                                 </div>

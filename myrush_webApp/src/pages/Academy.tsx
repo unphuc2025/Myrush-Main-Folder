@@ -91,7 +91,7 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
                         Complete Your Profile
                     </div>
                     <h1 className="text-3xl md:text-5xl font-extrabold font-heading uppercase mb-6 text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-black to-gray-700">
-                        Join the <span className="text-primary italic">Academy</span>
+                        Join the <span className="text-primary">Academy</span>
                     </h1>
                     <p className="text-gray-600 text-lg mb-12 max-w-2xl mx-auto font-medium">
                         You're logged in but haven't enrolled yet. Submit your application to getting assigned a coach and batch.
@@ -124,7 +124,7 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
                                 </select>
                             </div>
                             <Button
-                                className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-glow hover:scale-[1.02] transition-transform flex items-center justify-center"
+                                className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-glow transition-transform flex items-center justify-center"
                                 variant="primary"
                                 disabled={isSubmitting}
                             >
@@ -156,7 +156,7 @@ const AcademyPendingView: React.FC<{ onUpgrade: () => void }> = ({ onUpgrade }) 
                     animate={{ opacity: 1, scale: 1 }}
                     className="glass-card p-12 rounded-xl shadow-xl flex flex-col items-center"
                 >
-                    <div className="w-24 h-24 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center text-4xl mb-8 animate-pulse shadow-inner">
+                    <div className="w-24 h-24 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center text-4xl mb-8 shadow-inner">
                         <FaClock />
                     </div>
                     <h2 className="text-3xl font-extrabold font-heading uppercase mb-4 text-gray-900">Application Pending</h2>
@@ -209,7 +209,7 @@ const AcademyDashboard: React.FC = () => {
                         transition={{ delay: 0.1 }}
                         className="text-2xl md:text-4xl lg:text-5xl font-extrabold font-heading uppercase leading-tight text-white mb-8"
                     >
-                        My <span className="text-primary italic">Academy</span>
+                        My <span className="text-primary">Academy</span>
                     </motion.h1>
                 </div>
             </section>
@@ -276,7 +276,7 @@ const AcademyDashboard: React.FC = () => {
                         { date: 'Friday, Oct 27', time: '5:00 PM - 7:00 PM', topic: 'Practice Match', status: 'Scheduled' },
                         { date: 'Monday, Oct 30', time: '5:00 PM - 7:00 PM', topic: 'Fitness & Agility', status: 'Scheduled' },
                     ].map((session, i) => (
-                        <div key={i} className="p-6 border-b border-gray-100 last:border-0 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <div key={i} className="p-6 border-b border-gray-100 last:border-0 flex items-center justify-between transition-colors">
                             <div className="flex items-center gap-6">
                                 <div className="w-12 h-12 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
                                     <FaCalendarAlt />
@@ -453,21 +453,25 @@ const AcademyLanding: React.FC = () => {
             <PublicNav />
 
             {/* Hero Section */}
-            <section className="relative h-screen flex items-center justify-center md:justify-start overflow-hidden bg-black px-4 md:px-12 lg:px-32">
+            <section className="relative h-screen flex items-center justify-center overflow-hidden bg-black px-4">
                 {/* Background Image with Deep Gradient Overlay */}
                 {/* Background Image with Deep Gradient Overlay */}
                 <div className="absolute inset-0 z-0">
-                    <img
-                        src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2076&auto=format&fit=crop"
-                        alt="Football training"
-                        className="w-full h-full object-cover object-center opacity-70 scale-105"
-                    />
+                    <video
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        className="w-full h-full object-cover object-center opacity-70"
+                    >
+                        <source src="/academy-assets/academy-hero.mp4" type="video/mp4" />
+                    </video>
                 </div>
 
                 <motion.div
-                    className="relative z-20 text-center md:text-left w-full max-w-7xl py-32 flex flex-col items-center md:items-start"
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    className="relative z-20 text-center w-full max-w-7xl py-32 flex flex-col items-center"
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
                 >
                     {/* Badge */}
@@ -475,27 +479,27 @@ const AcademyLanding: React.FC = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5, duration: 0.8 }}
-                        className="inline-flex items-center gap-3 mb-6 md:mb-8 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto md:mx-0 whitespace-nowrap overflow-hidden"
+                        className="inline-flex items-center gap-3 mb-6 md:mb-8 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl mx-auto whitespace-nowrap overflow-hidden"
                     >
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                         <span className="text-[10px] md:text-sm font-bold font-heading text-primary uppercase tracking-[0.2em] whitespace-nowrap">
                             Speak to us now - +91-8548946999
                         </span>
                     </motion.div>
 
                     {/* Main Heading */}
-                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-black font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase text-center md:text-left px-2">
+                    <h1 className="text-3xl md:text-5xl lg:text-7xl font-black font-heading text-white mb-8 md:mb-12 leading-[1.1] tracking-tight uppercase text-center px-2">
                         Unlock Your <br className="hidden md:block" />
-                        <span className="text-primary italic">Football Potential</span> <br />
+                        <span className="text-primary">Football Potential</span> <br />
                         with Rush Academy.
                     </h1>
 
                     {/* CTA Section */}
-                    <div className="flex flex-row items-center justify-center md:justify-start gap-3 md:gap-6 px-4 md:px-0">
+                    <div className="flex flex-row items-center justify-center gap-3 md:gap-6 px-4 md:px-0">
                         <Button
                             variant="primary"
                             size="lg"
-                            className="bg-primary text-black hover:bg-primary-hover text-[10px] md:text-base h-12 md:h-14 px-4 md:px-10 flex-1 md:flex-none min-w-0 md:min-w-[200px] uppercase tracking-wider font-heading font-bold shadow-glow hover:shadow-glow-strong rounded-xl flex items-center justify-center"
+                            className="flex-1 sm:flex-none !border-2 !border-transparent text-[10px] sm:text-sm md:text-base px-4 sm:px-8 py-3 md:py-4 min-w-[140px] sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow whitespace-nowrap group flex items-center justify-center"
                             onClick={() => document.getElementById('enroll-section')?.scrollIntoView({ behavior: 'smooth' })}
                         >
                             Book A Free Trial Class
@@ -514,8 +518,8 @@ const AcademyLanding: React.FC = () => {
             <section id="why-rush" className="py-12 md:py-16 bg-white w-full">
                 <div className="w-full max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="mb-12">
-                        <h2 className="text-3xl md:text-5xl font-extrabold font-heading uppercase leading-tight text-black">
-                            Why Rush Academy?
+                        <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12">
+                            Why <span className="text-primary">Rush Academy?</span>
                         </h2>
                     </div>
 
@@ -564,12 +568,12 @@ const AcademyLanding: React.FC = () => {
                                     <img
                                         src={item.image}
                                         alt={item.title}
-                                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                                        className="w-full h-full object-cover transform transition-transform duration-500"
                                     />
                                 </div>
-                                <h3 className="text-xl font-bold text-black mb-4">
+                                <h4 className="text-black">
                                     {item.title}
-                                </h3>
+                                </h4>
                                 <p className="text-sm text-gray-600 leading-relaxed font-normal">
                                     {item.description}
                                 </p>
@@ -587,10 +591,10 @@ const AcademyLanding: React.FC = () => {
                 <div className="w-full max-w-screen-2xl mx-auto relative z-10 px-4 md:px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="!text-4xl md:text-5xl font-black text-white font-heading uppercase leading-tight mb-6">
-                                Our <span className="text-primary italic">Centers</span>
+                            <h2 className="text-3xl md:text-5xl font-black font-heading text-white uppercase leading-tight mb-8 md:mb-12">
+                                Our <span className="text-primary">Centers</span>
                             </h2>
-                            <p className="text-body-lg text-white/40 font-light uppercase tracking-[0.2em]">
+                            <p className="text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-gray-400">
                                 World-class facilities across Bengaluru.
                             </p>
                         </div>
@@ -604,7 +608,7 @@ const AcademyLanding: React.FC = () => {
                         {locations.map((location, index) => (
                             <motion.div
                                 key={index}
-                                className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10 hover:border-primary/50 hover:bg-white/10 hover:shadow-glow hover:-translate-y-1 transition-all duration-300 group cursor-pointer flex flex-col h-full relative overflow-hidden"
+                                className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10 transition-all duration-300 group cursor-pointer flex flex-col h-full relative overflow-hidden"
                                 onClick={() => window.open(location.mapUrl, '_blank')}
                                 initial={{ opacity: 0, y: 20 }}
                                 whileInView={{ opacity: 1, y: 0 }}
@@ -624,7 +628,7 @@ const AcademyLanding: React.FC = () => {
                                 <h3 className="text-2xl font-black text-primary mb-2 uppercase tracking-wide group-hover:text-primary transition-colors relative z-10">
                                     {location.name}
                                 </h3>
-                                <p className="text-sm text-white/90 mb-8 font-medium line-clamp-2">
+                                <p className="text-sm text-white/80 mb-8 font-medium line-clamp-2">
                                     {location.address}
                                 </p>
 
@@ -652,8 +656,8 @@ const AcademyLanding: React.FC = () => {
                 <div className="w-full max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="text-3xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-6">
-                                Meet the <span className="text-primary italic">Academy Team</span>
+                            <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12">
+                                Meet the <span className="text-primary">Academy Team</span>
                             </h2>
                         </div>
                         <div className="h-[1px] flex-grow bg-gray-200 mb-8 hidden lg:block mx-12"></div>
@@ -672,18 +676,17 @@ const AcademyLanding: React.FC = () => {
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.05 }}
                             >
-                                <div className="relative mb-10 w-full aspect-square max-w-[280px] overflow-hidden rounded-xl bg-gray-200 shadow-premium group-hover:shadow-premium-hover transition-all duration-500">
+                                <div className="relative mb-10 w-full aspect-square max-w-[280px] overflow-hidden rounded-xl bg-gray-200 shadow-premium transition-all duration-500">
                                     <img
                                         src={member.image}
                                         alt={member.name}
-                                        className="w-full h-full object-cover grayscale transition-all duration-1000 group-hover:grayscale-0 group-hover:scale-110"
+                                        className="w-full h-full object-cover transition-all duration-1000"
                                     />
-                                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                                 </div>
                                 <h3 className="text-h6 text-black mb-3 uppercase tracking-tighter group-hover:text-primary transition-colors text-center w-full">
                                     {member.name}
                                 </h3>
-                                <p className="text-sm font-normal tracking-wide text-gray-600 group-hover:text-primary transition-colors text-center w-full">
+                                <p className="text-sm font-bold tracking-[0.1em] uppercase text-gray-400 group-hover:text-primary transition-colors text-center w-full">
                                     {member.role}
                                 </p>
                             </motion.div>
@@ -697,8 +700,8 @@ const AcademyLanding: React.FC = () => {
                 <div className="w-full max-w-screen-2xl mx-auto px-4 md:px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="max-w-3xl">
-                            <h2 className="!text-4xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-6">
-                                Choose your <span className="text-primary italic">plan:</span>
+                            <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12">
+                                Choose your <span className="text-primary">plan:</span>
                             </h2>
                         </div>
                         <div className="h-[1px] flex-grow bg-gray-100 mb-8 hidden lg:block mx-12"></div>
@@ -707,16 +710,16 @@ const AcademyLanding: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mt-12 md:mt-20">
                         {/* Quarterly Plan */}
                         <motion.div
-                            className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover"
+                            className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover rounded-xl shadow-lg border border-gray-100"
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: 0.1 }}
                         >
-                            <div className="h-12 bg-primary/30 w-full" />
+                            <div className="h-12 bg-primary/20 w-full rounded-t-xl" />
                             <div className="p-10 flex flex-col items-center text-center flex-grow pt-16">
                                 <h3 className="text-xl font-bold underline mb-8">Quarterly</h3>
                                 <div className="mb-4">
@@ -738,18 +741,18 @@ const AcademyLanding: React.FC = () => {
 
                         {/* Semi-annually Plan */}
                         <motion.div
-                            className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover md:scale-105 z-10"
+                            className="relative flex flex-col bg-white transition-all duration-300 md:scale-105 z-10 rounded-xl border-2 border-primary shadow-glow shadow-primary/20"
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: 0.2 }}
                         >
-                            <div className="absolute -top-6 right-0 left-0 flex justify-center z-20">
-                                <div className="bg-primary text-black font-bold px-6 py-2 rounded-full shadow-lg uppercase tracking-widest text-xs border-2 border-white">
+                            <div className="absolute top-0 right-0 left-0 flex justify-center z-20 -translate-y-1/2">
+                                <div className="bg-primary text-black font-bold px-6 py-2 rounded-full shadow-lg uppercase tracking-widest text-[10px] border-2 border-white">
                                     Most Popular
                                 </div>
                             </div>
-                            <div className="h-12 bg-primary/30 w-full" />
+                            <div className="h-12 bg-primary/40 w-full rounded-t-xl" />
                             <div className="p-10 flex flex-col items-center text-center flex-grow pt-16">
                                 <h3 className="text-xl font-bold underline mb-8">Semi-annually</h3>
                                 <div className="mb-4">
@@ -771,13 +774,13 @@ const AcademyLanding: React.FC = () => {
 
                         {/* Annual Program */}
                         <motion.div
-                            className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover"
+                            className="relative flex flex-col bg-white shadow-premium transition-all duration-300 hover:shadow-premium-hover rounded-xl shadow-lg border border-gray-100"
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: 0.3 }}
                         >
-                            <div className="h-12 bg-primary/30 w-full" />
+                            <div className="h-12 bg-primary/20 w-full rounded-t-xl" />
                             <div className="p-10 flex flex-col items-center text-center flex-grow pt-16">
                                 <h3 className="text-xl font-bold underline mb-8">Annual Program</h3>
                                 <div className="mb-4">
@@ -822,7 +825,7 @@ const AcademyLanding: React.FC = () => {
                                     Book a Free <br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Trial Class</span>
                                 </h2>
-                                <p className="text-lg text-white/60 font-medium mb-10 leading-relaxed max-w-lg">
+                                <p className="text-white/60 mb-10 leading-relaxed max-w-lg">
                                     Give your child a taste of excellence with Rush Academy's free trial. Fill out the form below to secure a spot in our dynamic training sessions led by experienced coaches.
                                 </p>
                             </motion.div>
@@ -937,7 +940,7 @@ const AcademyLanding: React.FC = () => {
                                             variant="primary"
                                             type="submit"
                                             disabled={isSubmittingTrial}
-                                            className="w-full h-16 md:h-20 bg-primary text-black rounded-xl uppercase tracking-[0.3em] font-black shadow-glow hover:shadow-glow-strong hover:bg-white transition-all active:scale-[0.98] text-lg md:text-xl flex items-center justify-center"
+                                            className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow transition-all active:scale-[0.98] text-lg flex items-center justify-center min-w-[200px]"
                                         >
                                             {isSubmittingTrial ? (
                                                 <div className="w-8 h-8 border-3 border-black border-t-transparent rounded-full animate-spin"></div>

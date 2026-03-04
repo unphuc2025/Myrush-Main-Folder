@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FaMapMarkerAlt, FaStar, FaFutbol, FaParking, FaSwimmer, FaCoffee } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaStar, FaFutbol } from 'react-icons/fa';
+import { getAmenityIcon } from '../../utils/amenityIcons';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/user').replace('/api/user', '');
 
@@ -8,14 +9,6 @@ interface VenueDetailCardProps {
     venue: any;
     onBookClick: (venueId: string) => void;
 }
-
-const getAmenityIcon = (name: string) => {
-    const lower = name.toLowerCase();
-    if (lower.includes('parking')) return <FaParking className="text-blue-500" />;
-    if (lower.includes('cafe') || lower.includes('food')) return <FaCoffee className="text-yellow-600" />;
-    if (lower.includes('swim') || lower.includes('pool')) return <FaSwimmer className="text-cyan-500" />;
-    return <FaFutbol className="text-primary/70" />;
-};
 
 export const VenueDetailCard: React.FC<VenueDetailCardProps> = ({ venue, onBookClick }) => {
 
@@ -83,8 +76,8 @@ export const VenueDetailCard: React.FC<VenueDetailCardProps> = ({ venue, onBookC
                 <div className="flex items-center gap-3 mb-4 py-2 border-y border-gray-50">
                     {venue.amenities.slice(0, 4).map((amenity: any, idx: number) => (
                         <div key={idx} className="flex flex-col items-center gap-1" title={amenity.name || amenity}>
-                            <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center text-xs">
-                                {getAmenityIcon(amenity.name || amenity)}
+                            <div className="w-6 h-6 rounded-full bg-primary/5 flex items-center justify-center text-xs text-primary">
+                                {getAmenityIcon(amenity.name || amenity, "w-3.5 h-3.5")}
                             </div>
                         </div>
                     ))}

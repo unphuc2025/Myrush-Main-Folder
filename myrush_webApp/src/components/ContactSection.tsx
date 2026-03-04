@@ -75,45 +75,75 @@ export const ContactSection: React.FC = () => {
     const labelClasses = "block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2";
 
     return (
-        <section className="relative bg-black overflow-hidden flex flex-col pt-24">
+        <section className="relative bg-black overflow-hidden flex flex-col pt-20 pb-0">
+            {/* BACKGROUND ENHANCEMENTS */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.05]" />
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/20 blur-[150px] rounded-full" />
+                <div className="absolute bottom-[10%] right-[-10%] w-[40%] h-[60%] bg-primary/15 blur-[120px] rounded-full" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-primary/5 blur-[180px] rounded-full" />
+            </div>
+
             {/* UNCOUCH CTA INTEGRATION */}
-            <div className="relative z-10 max-w-screen-2xl mx-auto flex flex-col items-center text-center px-4 md:px-8 mb-24">
+            <div className="relative z-10 max-w-screen-2xl mx-auto flex flex-col items-center text-center px-4 md:px-8 mb-20">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="mb-4"
+                >
+                    <span className="px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-[10px] font-bold text-primary tracking-[0.3em] uppercase">
+                        The Experience
+                    </span>
+                </motion.div>
+
                 <motion.h2
-                    className="text-5xl sm:text-7xl md:text-9xl font-black text-white font-heading italic mb-8 leading-none"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.8 }}
+                    className="text-4xl sm:text-6xl md:text-8xl lg:text-[7.5rem] font-black font-montserrat mb-6 leading-none tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/40 drop-shadow-2xl"
+                    initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
                 >
                     UNCOUCH.
                 </motion.h2>
 
                 <motion.div
-                    className="w-full max-w-4xl mx-auto mb-12 rounded-2xl overflow-hidden shadow-glow border border-white/10"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.8, delay: 0.2 }}
+                    className="w-full max-w-5xl mx-auto mb-10 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_20px_rgba(0,210,106,0.15)] border border-white/10 relative group"
+                    initial={{ opacity: 0, y: 40 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 1, delay: 0.2 }}
                     onMouseEnter={() => setShowControls(true)}
                     onMouseLeave={() => setShowControls(false)}
                 >
+                    <div className="absolute inset-0 border-2 border-primary/20 rounded-xl z-20 pointer-events-none transition-colors duration-500" />
                     <video
                         autoPlay
                         muted
                         loop
                         playsInline
                         controls={showControls}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-1000"
                     >
                         <source src="/venue-assets/Rush Video.mp4" type="video/mp4" />
                         Your browser does not support the video tag.
                     </video>
                 </motion.div>
 
-                <p className="text-gray-400 text-lg md:text-3xl mb-12 font-light max-w-4xl mx-auto leading-relaxed text-center">
-                    <span className="text-white font-medium">Start playing today. Join thousands of players in the Rush community today.</span>
-                </p>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.4 }}
+                    className="max-w-3xl"
+                >
+                    <h3 className="text-white">
+                        Start <span className="text-primary">playing</span> today.
+                    </h3>
+                    <p className="text-white/70 text-lead mx-auto">
+                        Join thousands of players in the Rush community and transform your lifestyle through sports.
+                    </p>
+                </motion.div>
             </div>
 
-            <div className="flex flex-col md:flex-row pb-20 md:pb-0 relative z-10 border-t border-white/5">
+            <div className="flex flex-col md:flex-row pb-12 md:pb-0 relative z-10 border-t border-white/5">
                 {/* Left Column: Form Section */}
                 <div className="flex-1 relative z-10 px-4 py-16 md:py-24 md:px-8 lg:px-12 flex flex-col justify-center">
 
@@ -132,14 +162,9 @@ export const ContactSection: React.FC = () => {
                             Get In Touch
                         </motion.div>
 
-                        <motion.h2
-                            className="text-5xl md:text-6xl lg:text-8xl font-extrabold font-heading leading-none mb-12 tracking-tight text-white uppercase pr-4"
-                            initial={{ opacity: 0, x: -50 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.8 }}
-                        >
+                        <h1 className="text-white pr-4">
                             CONTACT <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">US</span>
-                        </motion.h2>
+                        </h1>
 
                         <form onSubmit={handleSubmit} className="space-y-6 max-w-xl">
                             {/* Name Field */}
@@ -242,7 +267,7 @@ export const ContactSection: React.FC = () => {
                                     disabled={isSubmitting}
                                     size="lg"
                                     icon={<span className="ml-2">→</span>}
-                                    className="w-full md:w-auto px-12 py-5 rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:shadow-glow-strong"
+                                    className="w-full md:w-auto px-12 py-5 rounded-xl uppercase tracking-[0.2em] font-black shadow-glow"
                                 >
                                     {isSubmitting ? 'Sending...' : 'Send Message'}
                                 </Button>

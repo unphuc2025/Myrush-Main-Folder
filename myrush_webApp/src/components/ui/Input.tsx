@@ -47,7 +47,7 @@ export const Input: React.FC<InputProps> = ({
                 />
             </div>
             {error && (
-                <p className="mt-2 ml-1 text-xs font-bold text-danger animate-pulse">{error}</p>
+                <p className="mt-2 ml-1 text-xs font-bold text-danger">{error}</p>
             )}
         </div>
     );

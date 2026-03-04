@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { TopNav } from '../components/TopNav';
 import { bookingsApi } from '../api/bookings';
 import { couponsApi } from '../api/coupons';
+import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaBuilding, FaFutbol } from 'react-icons/fa';
 
 import './BookingSummaryNew.css';
 
@@ -152,20 +153,20 @@ export const BookingSummaryNew: React.FC = () => {
                             <h2 className="court-name">{bookingData.venueName}</h2>
                             {bookingData.city && (
                                 <div className="court-detail-item">
-                                    <span className="detail-icon">🏙️</span>
+                                    <span className="detail-icon text-primary"><FaMapMarkerAlt /></span>
                                     <span className="detail-label">City:</span>
                                     <span className="detail-value">{bookingData.city}</span>
                                 </div>
                             )}
                             {bookingData.branchName && (
                                 <div className="court-detail-item">
-                                    <span className="detail-icon">🏢</span>
+                                    <span className="detail-icon text-primary"><FaBuilding /></span>
                                     <span className="detail-label">Branch:</span>
                                     <span className="detail-value">{bookingData.branchName}</span>
                                 </div>
                             )}
                             <div className="court-detail-item">
-                                <span className="detail-icon">🎾</span>
+                                <span className="detail-icon text-primary"><FaFutbol /></span>
                                 <span className="detail-label">Court:</span>
                                 <span className="detail-value">{bookingData.venueName}</span>
                             </div>
@@ -173,15 +174,15 @@ export const BookingSummaryNew: React.FC = () => {
 
                         <div className="venue-quick-stats">
                             <div className="stat-item">
-                                <span className="stat-icon">📅</span>
+                                <span className="stat-icon text-primary"><FaCalendarAlt /></span>
                                 <span>{formattedDate}</span>
                             </div>
                             <div className="stat-item">
-                                <span className="stat-icon">⏰</span>
+                                <span className="stat-icon text-primary"><FaClock /></span>
                                 <span>{bookingData.selectedSlots.length} hour{bookingData.selectedSlots.length > 1 ? 's' : ''}</span>
                             </div>
                             <div className="stat-item">
-                                <span className="stat-icon">👥</span>
+                                <span className="stat-icon text-primary"><FaUsers /></span>
                                 <span>{players} player{players > 1 ? 's' : ''}</span>
                             </div>
                         </div>

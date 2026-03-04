@@ -15,7 +15,7 @@ interface TopNavProps {
 export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false, homeLabel = 'Home' }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { isAuthenticated, user, logout } = useAuth();
+    const { isAuthenticated, user, logout, openAuthModal } = useAuth();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -58,12 +58,12 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
     return (
         <>
             <motion.nav
-                className="fixed top-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all duration-300 h-20 md:h-26"
+                className="fixed top-0 left-0 right-0 z-[9999] bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all duration-300 h-20 md:h-26 flex items-center"
                 initial={{ y: -100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             >
-                <div className="w-full px-6 h-full flex items-center justify-between relative">
+                <div className="w-full px-4 md:px-12 h-full flex items-center justify-between relative">
                     {showBackButton ? (
                         <button
                             className="flex items-center gap-2 text-black hover:text-primary transition-colors font-medium"
@@ -75,8 +75,14 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
                             Back
                         </button>
                     ) : (
-                        <div className="cursor-pointer" onClick={() => navigate('/')}>
-                            <img src="/Rush-logo.webp" alt="MyRush" className="h-[75px] md:h-[95px] w-auto" />
+                        <div 
+                            className="flex items-center gap-2 cursor-pointer h-full" 
+                            onClick={() => {
+                                navigate('/');
+                                window.scrollTo(0, 0);
+                            }}
+                        >
+                            <img src="/Rush-logo.webp" alt="MyRush" className="h-[75px] md:h-[95px] w-auto object-contain" />
                         </div>
                     )}
 
@@ -101,14 +107,14 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-2 md:gap-4">
+                    <div className="flex items-center gap-3 md:gap-4">
                         {isAuthenticated ? (
                             // Profile icon for authenticated users - hidden on mobile globally
                             <div className="hidden md:flex items-center gap-3 relative" ref={dropdownRef}>
                                 <button
                                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border-2 ${isDropdownOpen
                                         ? 'bg-primary text-white border-primary shadow-lg shadow-primary/25'
-                                        : 'bg-primary text-white border-primary/20 hover:scale-110'
+                                        : 'bg-primary text-white border-primary/20'
                                         }`}
                                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                     title="Profile Options"
@@ -194,8 +200,8 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
                             <Button
                                 variant="primary"
                                 size="md"
-                                onClick={() => navigate('/login')}
-                                className="shadow-md hover:shadow-lg"
+                                onClick={() => openAuthModal()}
+                                className="font-bold bg-primary text-black uppercase tracking-widest text-xs md:text-sm px-6 py-2.5 md:px-8 md:py-3 min-w-[110px] md:min-w-[140px] shadow-glow"
                             >
                                 Login
                             </Button>
@@ -245,7 +251,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
                             <Button
                                 variant="primary"
                                 onClick={() => {
-                                    navigate('/login');
+                                    openAuthModal();
                                     setIsMobileMenuOpen(false);
                                 }}
                                 className="mt-4 px-12 py-4 text-lg font-bold"

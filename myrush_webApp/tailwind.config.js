@@ -44,10 +44,10 @@ export default {
                 // 'gray-2': '#F9FAFB',
                 // 'gray-3': '#FAFAFA',
 
-                // Neutral
-                gray: '#F8F8F9', // Airy light background
-                'gray-2': '#EFEFF1',
-                'gray-3': '#D1D5DB',
+                // Neutral - renamed to gray-rush to avoid shadowing standard Tailwind gray palette
+                'gray-rush': '#F8F8F9', 
+                'gray-rush-2': '#EFEFF1',
+                'gray-rush-3': '#D1D5DB',
 
                 whiten: '#F1F5F9',
                 whiter: '#F5F7FD',

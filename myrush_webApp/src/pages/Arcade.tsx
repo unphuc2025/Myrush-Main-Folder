@@ -274,8 +274,8 @@ export const Arcade: React.FC = () => {
                 <div className="relative pt-24 min-h-screen flex flex-col items-center justify-center p-6 z-10">
                     {/* Background Effects */}
                     <div className="absolute inset-0 z-0 pointer-events-none">
-                        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[100px] animate-pulse" />
-                        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px] animate-pulse" />
+                        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[100px]" />
+                        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px]" />
                     </div>
 
                     <motion.div
@@ -396,7 +396,7 @@ export const Arcade: React.FC = () => {
                                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                 className="text-center"
                             >
-                                <FaBolt className="text-4xl md:text-6xl text-primary mx-auto mb-6 animate-pulse" />
+                                <FaBolt className="text-4xl md:text-6xl text-primary mx-auto mb-6" />
                                 <h2 className="text-3xl md:text-4xl font-black font-heading uppercase mb-4">Net Reflexes</h2>
                                 <p className="text-gray-400 mb-8 max-w-md mx-auto text-sm md:text-base">When the screen turns <span className="text-red-500 font-bold">RED</span>, wait.<br />When it turns <span className="text-green-500 font-bold">GREEN</span>, click!</p>
                                 <Button

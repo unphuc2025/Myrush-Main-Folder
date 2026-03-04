@@ -13,7 +13,7 @@ export const Card: React.FC<CardProps> = ({
     className = '',
     ...props
 }) => {
-    const baseStyles = "rounded-[2rem] overflow-hidden transition-all duration-500 ease-out";
+    const baseStyles = "rounded-xl overflow-hidden transition-all duration-500 ease-out";
 
     const variants = {
         default: "bg-white shadow-premium hover:shadow-premium-hover border border-gray-100",

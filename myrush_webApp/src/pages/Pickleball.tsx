@@ -1,11 +1,84 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { Button } from '../components/ui/Button';
+import { FaCalendarCheck } from 'react-icons/fa';
 import { PublicNav } from '../components/PublicNav';
 import ScrollIndicator from '../components/ScrollIndicator';
 import pickleballHero from '../assets/image copy.png';
+
+
+const LocationCard: React.FC<{ loc: any, idx: number, navigate: any }> = ({ loc, idx, navigate }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: idx * 0.1 }}
+            className="group relative flex flex-col bg-white rounded-xl shadow-premium hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 h-full"
+        >
+            <div className="h-72 overflow-hidden relative">
+                <div className="absolute inset-0 bg-gray-200" />
+                <img
+                    src={loc.image}
+                    onError={(e) => {
+                        e.currentTarget.src = "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070"
+                    }}
+                    alt={loc.name}
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
+
+                <div
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (loc.mapUrl) window.open(loc.mapUrl, '_blank');
+                    }}
+                    className="absolute top-4 right-4 bg-white/20 backdrop-blur-md border border-white/30 p-2 rounded-full opacity-100 transition-all duration-300 shadow-lg cursor-pointer hover:bg-white/40 z-30"
+                >
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold text-lg">
+                        ↗
+                    </div>
+                </div>
+            </div>
+
+            <div className="p-8 flex flex-col flex-grow relative">
+                <div className="mb-6 flex-grow">
+                    <h3 className="text-xl font-bold text-black group-hover:text-primary transition-colors duration-300 mb-2">
+                        {loc.name}
+                    </h3>
+                    <div className="w-12 h-1 bg-gray-100 rounded-full mb-6 group-hover:bg-primary group-hover:w-20 transition-all duration-300" />
+                    
+                    <div className="relative">
+                        <p className={`leading-relaxed transition-all duration-300 ${!isExpanded ? 'line-clamp-2' : ''}`}>
+                            {loc.description}
+                        </p>
+                        <button 
+                            onClick={() => setIsExpanded(!isExpanded)}
+                            className="text-primary hover:text-primary/80 font-bold text-xs uppercase tracking-widest mt-2 transition-colors inline-flex items-center gap-1 group/btn"
+                        >
+                            {isExpanded ? 'Read Less' : 'Read More'}
+                            <span className="text-lg leading-none group-hover/btn:translate-x-0.5 transition-transform">{isExpanded ? '−' : '+'}</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div className="mt-auto pt-6 border-t border-gray-100">
+                        <Button
+                            variant="primary"
+                            className="w-full h-14 bg-black text-white font-bold uppercase tracking-widest text-sm rounded-lg shadow-lg transition-all duration-300 transform"
+                            onClick={() => navigate('/venues?sport=Pickleball')}
+                        >
+                        Book This Venue
+                    </Button>
+                </div>
+            </div>
+        </motion.div>
+    );
+};
 
 export const Pickleball: React.FC = () => {
     const navigate = useNavigate();
@@ -131,19 +204,20 @@ export const Pickleball: React.FC = () => {
                     <div className="absolute inset-0 bg-black/40" />
                 </div>
 
-                <div className="relative z-10 text-center max-w-5xl mx-auto px-4 md:px-6">
+                <div className="relative z-10 text-center max-w-5xl mx-auto px-4 md:px-6 flex flex-col items-center">
                     <h1 className="!text-[48px] md:!text-5xl lg:!text-7xl text-white font-extrabold font-heading uppercase leading-[1.05] tracking-tighter mb-8 md:mb-12">
                         Join the <br className="block md:hidden" />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">Pickleball Revolution</span>
                         <br className="block md:hidden" /> at <br className="hidden md:block" />Rush Arenas
                     </h1>
-                    <Button
-                        variant="primary"
-                        size="lg"
-                        className="bg-primary text-black hover:bg-primary-hover text-base px-8 md:px-10 py-4 md:py-4.5 uppercase tracking-wider font-heading font-bold shadow-[0_0_20px_rgba(0,210,106,0.3)] hover:shadow-[0_0_30px_rgba(0,210,106,0.4)] rounded-xl"
-                        onClick={() => navigate('/venues?sport=Pickleball')}
-                    >
-                        Book A Court
+                        <Button
+                            variant="primary"
+                            size="lg"
+                            className="flex-1 sm:flex-none !border-2 !border-transparent text-[10px] sm:text-sm md:text-base px-2 sm:px-8 py-3 md:py-4 min-w-0 sm:min-w-[200px] uppercase tracking-wider font-heading font-bold transition-all duration-300 shadow-glow whitespace-nowrap group"
+                            icon={<FaCalendarCheck className="hidden sm:inline group-hover:scale-110 transition-transform" />}
+                            onClick={() => navigate('/venues?sport=Pickleball')}
+                        >
+                        Book a Court
                     </Button>
                 </div>
 
@@ -155,68 +229,13 @@ export const Pickleball: React.FC = () => {
             {/* Locations Section */}
             <section id="locations" className="py-12 md:py-16 bg-white">
                 <div className="max-w-screen-2xl mx-auto px-4 md:px-8">
-                    <h2 className="text-2xl md:text-4xl font-extrabold text-black font-heading uppercase leading-tight mb-12 text-center">
+                    <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12 text-center">
                         Our Locations
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {locations.map((loc, idx) => (
-                            <motion.div
-                                key={idx}
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: idx * 0.1 }}
-                                className="group relative flex flex-col bg-white rounded-xl shadow-premium hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100"
-                            >
-                                <div className="h-72 overflow-hidden relative">
-                                    <div className="absolute inset-0 bg-gray-200 animate-pulse" />
-                                    <img
-                                        src={loc.image}
-                                        onError={(e) => {
-                                            // Fallback if image fails to load
-                                            e.currentTarget.src = "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070"
-                                        }}
-                                        alt={loc.name}
-                                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
-
-                                    <div
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (loc.mapUrl) window.open(loc.mapUrl, '_blank');
-                                        }}
-                                        className="absolute top-4 right-4 bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg cursor-pointer hover:bg-white/20"
-                                    >
-                                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold text-lg">
-                                            ↗
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="p-8 flex flex-col flex-grow relative">
-                                    <div className="mb-6">
-                                        <h3 className="text-2xl font-extrabold text-black uppercase font-heading leading-tight mb-4 group-hover:text-primary transition-colors duration-300">
-                                            {loc.name}
-                                        </h3>
-                                        <div className="w-12 h-1 bg-gray-100 rounded-full mb-6 group-hover:bg-primary group-hover:w-20 transition-all duration-300" />
-                                        <p className="text-gray-600 leading-relaxed text-sm md:text-base font-medium">
-                                            {loc.description}
-                                        </p>
-                                    </div>
-
-                                    <div className="mt-auto pt-6 border-t border-gray-100">
-                                        <Button
-                                            variant="primary"
-                                            className="w-full h-14 bg-black text-white hover:bg-primary hover:text-black font-bold uppercase tracking-widest text-sm rounded-xl shadow-lg hover:shadow-primary/50 transition-all duration-300 transform group-hover:-translate-y-1"
-                                            onClick={() => navigate('/venues?sport=Pickleball')}
-                                        >
-                                            Book This Venue
-                                        </Button>
-                                    </div>
-                                </div>
-                            </motion.div>
+                            <LocationCard key={idx} loc={loc} idx={idx} navigate={navigate} />
                         ))}
                     </div>
                 </div>
@@ -228,7 +247,7 @@ export const Pickleball: React.FC = () => {
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
 
                 <div className="max-w-screen-2xl mx-auto px-4 md:px-8 relative z-10">
-                    <h2 className="text-2xl md:text-4xl font-extrabold text-black font-heading uppercase leading-tight mb-12">
+                    <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12">
                         FAQs
                     </h2>
 
@@ -242,10 +261,10 @@ export const Pickleball: React.FC = () => {
                                 transition={{ delay: idx * 0.1 }}
                                 className="mb-6"
                             >
-                                <h3 className="text-xl font-extrabold text-black font-heading mb-3">
+                                <h4 className="text-black">
                                     {faq.question}
-                                </h3>
-                                <p className="text-black/80 font-medium leading-relaxed">
+                                </h4>
+                                <p className="text-black/70 mb-8 leading-relaxed flex-1">
                                     {faq.answer}
                                 </p>
                             </motion.div>
@@ -262,10 +281,10 @@ export const Pickleball: React.FC = () => {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                     >
-                        <h2 className="text-2xl md:text-4xl font-extrabold text-black font-heading uppercase mb-8">
+                        <h2 className="text-3xl md:text-5xl font-black font-heading text-black uppercase leading-tight mb-8 md:mb-12">
                             Get in touch.
                         </h2>
-                        <p className="text-gray-600 text-lg mb-12 max-w-4xl mx-auto">
+                        <p className="max-w-4xl mx-auto">
                             Got questions? We'd love to hear from you. Fill out the form below and we'll get back to you shortly.
                         </p>
 
@@ -285,7 +304,7 @@ export const Pickleball: React.FC = () => {
                                                     if (formErrors.firstName) setFormErrors({ ...formErrors, firstName: '' });
                                                 }
                                             }}
-                                            className={`w-full px-4 py-3 bg-white border ${formErrors.firstName ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300`}
+                                            className={`w-full px-4 py-3 bg-white border ${formErrors.firstName ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300`}
                                         />
                                         {formErrors.firstName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.firstName}</span>}
                                     </div>
@@ -302,7 +321,7 @@ export const Pickleball: React.FC = () => {
                                                     if (formErrors.lastName) setFormErrors({ ...formErrors, lastName: '' });
                                                 }
                                             }}
-                                            className={`w-full px-4 py-3 bg-white border ${formErrors.lastName ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300`}
+                                            className={`w-full px-4 py-3 bg-white border ${formErrors.lastName ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300`}
                                         />
                                         {formErrors.lastName && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.lastName}</span>}
                                     </div>
@@ -317,7 +336,7 @@ export const Pickleball: React.FC = () => {
                                             setFormData({ ...formData, email: e.target.value });
                                             if (formErrors.email) setFormErrors({ ...formErrors, email: '' });
                                         }}
-                                        className={`w-full px-4 py-3 bg-white border ${formErrors.email ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300`}
+                                        className={`w-full px-4 py-3 bg-white border ${formErrors.email ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300`}
                                     />
                                     {formErrors.email && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.email}</span>}
                                 </div>
@@ -331,7 +350,7 @@ export const Pickleball: React.FC = () => {
                                             setFormData({ ...formData, message: e.target.value });
                                             if (formErrors.message) setFormErrors({ ...formErrors, message: '' });
                                         }}
-                                        className={`w-full px-4 py-3 bg-white border ${formErrors.message ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-300`}
+                                        className={`w-full px-4 py-3 bg-white border ${formErrors.message ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-300`}
                                     />
                                     {formErrors.message && <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider ml-1">{formErrors.message}</span>}
                                 </div>
@@ -341,7 +360,7 @@ export const Pickleball: React.FC = () => {
                                         size="lg"
                                         type="submit"
                                         disabled={isSubmittingForm}
-                                        className="w-full py-4 uppercase font-extrabold tracking-widest bg-black text-white hover:bg-primary hover:text-black transition-all duration-300 font-heading rounded-xl flex items-center justify-center min-w-[200px]"
+                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow transition-all active:scale-95 text-lg flex items-center justify-center min-w-[200px]"
                                     >
                                         {isSubmittingForm ? (
                                             <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
