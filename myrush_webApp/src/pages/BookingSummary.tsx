@@ -73,7 +73,7 @@ export const BookingSummary: React.FC = () => {
 
     // Calculations
     const baseSlotsPrice = state.selectedSlots.reduce((acc, s) => acc + s.price, 0);
-    const slotsCost = baseSlotsPrice * numPlayers;
+    const slotsCost = baseSlotsPrice;
     const platformFee = 0;
     const tax = 0;
     const totalAmount = slotsCost + platformFee + tax - discount;
@@ -333,10 +333,6 @@ export const BookingSummary: React.FC = () => {
                                         <span className="text-gray-900">₹{baseSlotsPrice}</span>
                                     </div>
                                     <div className="flex justify-between text-xs font-medium uppercase tracking-wider text-gray-400">
-                                        <span>Personnel Multiplier</span>
-                                        <span className="text-gray-900">x {numPlayers}</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs font-medium uppercase tracking-wider text-gray-400">
                                         <span>Convenience Fee</span>
                                         <span className="text-gray-900">₹{platformFee}</span>
                                     </div>
@@ -395,72 +391,29 @@ export const BookingSummary: React.FC = () => {
                                             </button>
                                         </div>
                                     )}
-                                    {/* Available Coupons List - REDESIGNED */}
+                                    {/* Simple Dropdown List */}
                                     {availableCoupons.length > 0 && (
-                                        <div className="mt-8">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Available Offers</p>
-                                                <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase">Best Deals for You</span>
-                                            </div>
-                                            <div className="space-y-3">
-                                                {availableCoupons.map((coupon) => {
-                                                    const isApplied = appliedCouponInfo?.code === coupon.code;
-                                                    return (
-                                                        <div
-                                                            key={coupon.code}
-                                                            onClick={() => {
-                                                                if (!isApplied) {
-                                                                    setCouponCode(coupon.code);
-                                                                    setTimeout(() => handleApplyCoupon(), 100);
-                                                                }
-                                                            }}
-                                                            className={`group relative overflow-hidden bg-white border rounded-xl p-4 transition-all cursor-pointer hover:shadow-md ${isApplied
-                                                                ? 'border-primary ring-1 ring-primary/20 bg-primary/[0.02]'
-                                                                : 'border-gray-100'}`}
-                                                        >
-                                                            {/* Voucher cut-out effect logic (visual only) */}
-                                                            <div className="flex items-start gap-4">
-                                                                <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 transition-colors ${isApplied ? 'bg-primary text-white' : 'bg-gray-50 text-gray-900 group-hover:bg-primary/10 group-hover:text-primary'}`}>
-                                                                    <span className="text-sm font-black leading-none">
-                                                                        {coupon.discount_type === 'percentage' ? `${Math.round(coupon.discount_value)}%` : `₹${Math.round(coupon.discount_value)}`}
-                                                                    </span>
-                                                                    <span className="text-[8px] font-bold uppercase tracking-tighter mt-0.5">OFF</span>
-                                                                </div>
-
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <span className={`text-sm font-black uppercase tracking-tight ${isApplied ? 'text-primary' : 'text-gray-900 group-hover:text-primary'}`}>
-                                                                            {coupon.code}
-                                                                        </span>
-                                                                        {isApplied && (
-                                                                            <span className="text-[9px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded-md uppercase">Applied</span>
-                                                                        )}
-                                                                    </div>
-                                                                    {coupon.description && (
-                                                                        <p className="text-[10px] text-gray-500 font-medium leading-tight mb-2 line-clamp-2">{coupon.description}</p>
-                                                                    )}
-                                                                    <div className="flex flex-wrap gap-x-3 gap-y-1">
-                                                                        {coupon.min_order_value && (
-                                                                            <span className="text-[9px] font-bold text-gray-400 uppercase">Min Order: ₹{coupon.min_order_value}</span>
-                                                                        )}
-                                                                        {coupon.terms_condition && (
-                                                                            <span className="text-[9px] font-bold text-primary/40 uppercase hover:text-primary transition-colors">* Terms apply</span>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Subtle dot line separator for voucher look */}
-                                                            {!isApplied && (
-                                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <span className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
-                                                                        Apply →
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
+                                        <div className="mt-4">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Select an Offer</label>
+                                            <div className="relative">
+                                                <select
+                                                    value={couponCode}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setCouponCode(val);
+                                                    }}
+                                                    className="w-full h-11 pl-4 pr-10 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:border-primary/50 appearance-none cursor-pointer outline-none shadow-sm"
+                                                >
+                                                    <option value="">-- Choose a Coupon --</option>
+                                                    {availableCoupons.map((coupon) => (
+                                                        <option key={coupon.code} value={coupon.code}>
+                                                            {coupon.code} - {coupon.discount_type === 'percentage' ? `${Math.round(coupon.discount_value)}% OFF` : `₹${Math.round(coupon.discount_value)} OFF`}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                </div>
                                             </div>
                                         </div>
                                     )}

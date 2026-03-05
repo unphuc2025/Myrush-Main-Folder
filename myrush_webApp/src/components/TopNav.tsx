@@ -20,6 +20,10 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
+    const restrictedPaths = ['/academy', '/arena', '/corporate', '/pickleball'];
+    const isRestrictedPath = restrictedPaths.includes(location.pathname);
+    const isBottomNavActive = isAuthenticated && !isRestrictedPath;
+
     // Handle click outside to close dropdown
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -207,12 +211,14 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
                             </Button>
                         )}
 
-                        <button
-                            className="lg:hidden p-2 rounded-xl text-black hover:bg-black/5 transition-all"
-                            onClick={() => setIsMobileMenuOpen(prev => !prev)}
-                        >
-                            {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
-                        </button>
+                        {!isBottomNavActive && (
+                            <button
+                                className="lg:hidden p-2 rounded-xl text-black hover:bg-black/5 transition-all"
+                                onClick={() => setIsMobileMenuOpen(prev => !prev)}
+                            >
+                                {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
+                            </button>
+                        )}
                     </div>
                 </div>
             </motion.nav>

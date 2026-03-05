@@ -599,9 +599,6 @@ const AcademyLanding: React.FC = () => {
                             </p>
                         </div>
                         <div className="h-[1px] flex-grow bg-white/10 mb-8 hidden lg:block mx-12"></div>
-                        <div className="hidden md:block">
-                            <span className="text-display text-white/5 leading-none">02</span>
-                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -661,9 +658,6 @@ const AcademyLanding: React.FC = () => {
                             </h2>
                         </div>
                         <div className="h-[1px] flex-grow bg-gray-200 mb-8 hidden lg:block mx-12"></div>
-                        <div className="hidden md:block">
-                            <span className="text-display text-black opacity-5 leading-none">03</span>
-                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12 lg:gap-x-12 lg:gap-y-16">
@@ -705,9 +699,6 @@ const AcademyLanding: React.FC = () => {
                             </h2>
                         </div>
                         <div className="h-[1px] flex-grow bg-gray-100 mb-8 hidden lg:block mx-12"></div>
-                        <div className="hidden md:block">
-                            <span className="text-display text-black opacity-5 leading-none">04</span>
-                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mt-12 md:mt-20">
