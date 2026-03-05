@@ -82,7 +82,8 @@ app.add_middleware(
         "http://65.0.195.149",
         "http://65.0.195.149:8011",
         "http://65.0.195.149:8000",
-        "*"
+        "https://admin-staging.myrush.in",
+        "https://staging.myrush.in",
     ],  # Explicitly add frontend origins
     allow_credentials=True,
     allow_methods=["*"],
