@@ -51,6 +51,15 @@ export const VenueDetailsPage: React.FC = () => {
     // Game Type Selection State
     const [selectedSport, setSelectedSport] = useState<string>('');
 
+    // Talking Lands virtual tour URLs — keyed by venue (branch) ID
+    const VIRTUAL_TOUR_URLS: Record<string, string> = {
+        'cfc0df1c-07c9-486f-960e-6b15bb9e3bf5': 'https://rush-arena-bcu.talkinglands.studio/',          // Rush Arena BCU
+        '5a28925c-c412-4115-8e9d-657fb44fc04a': 'https://rush-arena-cooke-town.talkinglands.studio/',   // Rush Arena Cooke Town
+        '2e85dcd9-fa65-4e1d-917f-739f84785e91': 'https://rush-arena-gtmall.talkinglands.studio/',       // Rush Arena X KheloMore GT Mall
+        '761bf3d3-7878-4080-be38-d4be3fecc52d': 'https://rush-arena-rj.talkinglands.studio/',           // Rush Arena - Rajajinagar
+    };
+    const venueVirtualTourUrl = id ? VIRTUAL_TOUR_URLS[id] : undefined;
+
     // Booking Summary State
     const [numPlayers, setNumPlayers] = useState(2);
     const [teamName, setTeamName] = useState('');
@@ -257,9 +266,8 @@ export const VenueDetailsPage: React.FC = () => {
                         <VenueImageGallery
                             photos={venue.photos || []}
                             venueName={venue.court_name}
+                            virtualTourUrl={venueVirtualTourUrl}
                         />
-
-
 
                         {/* Available Sports */}
                         {venue.game_type && (

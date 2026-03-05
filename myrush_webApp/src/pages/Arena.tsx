@@ -124,6 +124,16 @@ export const Arena: React.FC = () => {
     const [formErrors, setFormErrors] = React.useState<Record<string, string>>({});
     const [isSubmittingForm, setIsSubmittingForm] = React.useState(false);
 
+    // Virtual Tours
+    const TOUR_LIST = [
+        { label: 'All Arenas', url: 'https://rush-arena.talkinglands.studio/' },
+        { label: 'BCU', url: 'https://rush-arena-bcu.talkinglands.studio/' },
+        { label: 'Cooke Town', url: 'https://rush-arena-cooke-town.talkinglands.studio/' },
+        { label: 'GT Mall', url: 'https://rush-arena-gtmall.talkinglands.studio/' },
+        { label: 'Rajajinagar', url: 'https://rush-arena-rj.talkinglands.studio/' },
+    ];
+    const [activeTour, setActiveTour] = React.useState(0);
+
     const validateForm = () => {
         const errors: Record<string, string> = {};
         if (!formData.firstName.trim()) errors.firstName = 'First name is required';
@@ -251,6 +261,84 @@ export const Arena: React.FC = () => {
                 <motion.div style={{ opacity: indicatorOpacity }}>
                     <ScrollIndicator />
                 </motion.div>
+            </section>
+
+            {/* 360° Virtual Tour Section — 2nd Section */}
+            <section className="py-12 md:py-20 bg-gray-50 w-full">
+                <div className="w-full max-w-screen-2xl mx-auto px-4 md:px-8">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+                        <div>
+                            <h2 className="!text-4xl md:text-5xl font-black text-black font-heading uppercase leading-tight mb-3">
+                                Explore in <span className="text-primary">360°</span>
+                            </h2>
+                            <p className="text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-gray-400">
+                                Take a virtual tour of our arenas before you visit.
+                            </p>
+                        </div>
+                        <div className="h-[1px] flex-grow bg-gray-200 mb-8 hidden lg:block mx-12"></div>
+                        <div className="hidden md:block">
+                            <span className="text-display text-black opacity-5 leading-none">02</span>
+                        </div>
+                    </div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                    >
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {TOUR_LIST.map((tour, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => setActiveTour(i)}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 border-2 ${
+                                        activeTour === i
+                                            ? 'bg-primary text-black border-primary shadow-md'
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-primary hover:text-black'
+                                    }`}
+                                >
+                                    {i === 0 && (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+                                        </svg>
+                                    )}
+                                    {tour.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-xl" style={{ height: '580px' }}>
+                            <div className="w-full h-10 bg-gray-900 flex items-center justify-between px-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                                    <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
+                                    <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                                    <span className="ml-3 text-xs text-gray-400 font-semibold hidden sm:block">
+                                        360° Virtual Tour — Rush Arena {TOUR_LIST[activeTour].label}
+                                    </span>
+                                </div>
+                                <a
+                                    href={TOUR_LIST[activeTour].url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-gray-400 hover:text-white transition-colors"
+                                >
+                                    ↗ Open Full Screen
+                                </a>
+                            </div>
+                            <iframe
+                                key={activeTour}
+                                src={TOUR_LIST[activeTour].url}
+                                title={`Rush Arena ${TOUR_LIST[activeTour].label} — 360° Virtual Tour`}
+                                width="100%"
+                                style={{ height: 'calc(100% - 40px)', border: 0 }}
+                                allow="fullscreen; accelerometer; gyroscope"
+                                allowFullScreen
+                                loading="lazy"
+                            />
+                        </div>
+                    </motion.div>
+                </div>
             </section>
 
             {/* Features Section */}
