@@ -423,6 +423,8 @@ export const bookingsApi = {
 export const couponsApi = {
     getAll: (skip = 0, limit = 100) => apiRequest(`/coupons?skip=${skip}&limit=${limit}`),
     getById: (id) => apiRequest(`/coupons/${id}`),
+    getActiveCoupons: () => apiRequest('/coupons/active-coupons'),
+    lookupByCode: (code) => apiRequest(`/coupons/lookup?code=${encodeURIComponent(code)}`),
     create: (data) => apiRequest('/coupons', {
         method: 'POST',
         body: JSON.stringify(data)

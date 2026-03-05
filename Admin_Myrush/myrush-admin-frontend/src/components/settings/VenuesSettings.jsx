@@ -991,7 +991,7 @@ function VenuesSettings() {
               <div>
                 <div className="flex justify-between items-center mb-2 ml-1">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Area</label>
-                  {!isAddingArea && formData.cityId && (
+                  {!isAddingArea && (
                     <div className="h-5"></div>
                   )}
                 </div>

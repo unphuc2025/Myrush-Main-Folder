@@ -61,6 +61,8 @@ function BookingDetails() {
 
     // Calculate advance and remaining
     const totalAmount = parseFloat(booking.total_amount) || 0;
+    const originalAmount = parseFloat(booking.original_amount) || totalAmount;
+    const discountAmount = parseFloat(booking.discount_amount) || 0;
     const isPaid = booking.payment_status === 'paid' || booking.payment_status === 'completed';
     const advancePaid = isPaid ? totalAmount : 0;
     const remainingAmount = totalAmount - advancePaid;
@@ -242,11 +244,28 @@ function BookingDetails() {
                             <h3 className="text-sm font-semibold text-slate-900 mb-4">Price Breakup</h3>
                             <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm text-slate-600">Ground Total</span>
-                                <span className="text-sm font-semibold text-slate-900">₹{totalAmount.toFixed(2)}</span>
+                                <span className="text-sm font-semibold text-slate-900">₹{originalAmount.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between items-center mb-4">
-                                <span className="text-sm text-slate-600">Final Amount</span>
-                                <span className="text-sm font-semibold text-slate-900">₹{totalAmount.toFixed(2)}</span>
+
+                            {discountAmount > 0 && (
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-sm text-slate-600">Discount</span>
+                                    <span className="text-sm font-bold text-green-600">- ₹{discountAmount.toFixed(2)}</span>
+                                </div>
+                            )}
+
+                            {booking.coupon_code && (
+                                <div className="flex justify-between items-center mb-3">
+                                    <span className="text-sm text-slate-600">Applied Coupon</span>
+                                    <span className="text-sm font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
+                                        🏷 {booking.coupon_code}
+                                    </span>
+                                </div>
+                            )}
+
+                            <div className="flex justify-between items-center mb-4 border-t pt-3">
+                                <span className="text-sm font-bold text-slate-700">Final Amount</span>
+                                <span className="text-sm font-bold text-slate-900">₹{totalAmount.toFixed(2)}</span>
                             </div>
 
                             <div className="flex justify-between items-center mb-2">

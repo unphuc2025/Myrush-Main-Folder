@@ -290,13 +290,13 @@ function Dashboard() {
                 <h3 className="text-lg font-bold text-slate-900">Booking Status</h3>
                 <p className="text-sm text-slate-500">Distribution by status</p>
               </div>
-              <div className="h-64 flex items-center justify-center w-full overflow-hidden">
+              <div className="h-72 flex items-center justify-center w-full min-h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+                  <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
                     <Pie
                       data={statusData}
                       cx="50%"
-                      cy="50%"
+                      cy="45%"
                       innerRadius={60}
                       outerRadius={80}
                       paddingAngle={5}
@@ -309,7 +309,7 @@ function Dashboard() {
                     <Tooltip
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                    <Legend verticalAlign="bottom" height={40} wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

@@ -138,7 +138,9 @@ def create_booking(
             _old_price_per_hour=booking.price_per_hour,
             payment_id=str(uuid.uuid4()), # Placeholder
             coupon_id=db_coupon.id if db_coupon else None,
-            coupon_discount=discount_amount
+            coupon_code=booking.coupon_code or None,  # Save the direct coupon_code field
+            coupon_discount=discount_amount,
+            discount_amount=discount_amount  # Also save to discount_amount field
         )
         
         db.add(db_booking)
@@ -303,7 +305,7 @@ def get_all_bookings(
                 updated_at=booking.updated_at,
                 court=court_data,  # Include court data with branch and city
                 game_type=court_data.game_type if court_data else None,  # Include game type data
-                coupon_code=booking.coupon.code if booking.coupon else None,
+                coupon_code=booking.coupon_code or (booking.coupon.code if booking.coupon else None),
                 coupon_discount=booking.coupon_discount or 0
             )
             result.append(admin_booking)
@@ -399,7 +401,8 @@ def get_booking(booking_id: str, db: Session = Depends(get_db)):
         updated_at=booking.updated_at,
         court=court_data,
         game_type=court_data.game_type if court_data else None,
-        coupon_code=booking.coupon.code if booking.coupon else None,
+        # Use direct coupon_code field first; fallback to relation
+        coupon_code=booking.coupon_code or (booking.coupon.code if booking.coupon else None),
         coupon_discount=booking.coupon_discount or 0
     )
 

@@ -11,12 +11,30 @@ router = APIRouter(
     tags=["coupons"]
 )
 
+@router.get("/lookup", response_model=schemas.Coupon)
+def lookup_coupon_by_code(code: str, db: Session = Depends(get_db)):
+    """Look up a single coupon by code — no special permission required beyond admin auth"""
+    coupon = db.query(models.Coupon).filter(
+        models.Coupon.code == code.upper(),
+        models.Coupon.is_active == True
+    ).first()
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found or inactive")
+    return coupon
+
+@router.get("/active-coupons", response_model=List[schemas.Coupon])
+def get_active_coupons(db: Session = Depends(get_db)):
+    """Get all active coupons — accessible to any logged-in admin for booking form use"""
+    coupons = db.query(models.Coupon).filter(models.Coupon.is_active == True).all()
+    return coupons
+
 @router.get("", response_model=List[schemas.Coupon], dependencies=[Depends(PermissionChecker("Manage Coupons", "view"))])
 @router.get("/", response_model=List[schemas.Coupon], dependencies=[Depends(PermissionChecker("Manage Coupons", "view"))])
 def get_coupons(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """Get all coupons"""
     coupons = db.query(models.Coupon).offset(skip).limit(limit).all()
     return coupons
+
 
 @router.post("", response_model=schemas.Coupon, dependencies=[Depends(PermissionChecker("Manage Coupons", "add"))])
 @router.post("/", response_model=schemas.Coupon, dependencies=[Depends(PermissionChecker("Manage Coupons", "add"))])

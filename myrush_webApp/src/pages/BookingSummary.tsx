@@ -37,6 +37,7 @@ export const BookingSummary: React.FC = () => {
     const [teamName, setTeamName] = useState('');
     const [couponCode, setCouponCode] = useState('');
     const [discount, setDiscount] = useState(0);
+    const [appliedCouponCode, setAppliedCouponCode] = useState(''); // locked-in code after validation
     const [submitting, setSubmitting] = useState(false);
     const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
     const [loadingCoupons, setLoadingCoupons] = useState(true);
@@ -84,10 +85,12 @@ export const BookingSummary: React.FC = () => {
             const res = await couponsApi.validateCoupon(couponCode, slotsCost);
             if (res.success && res.data.valid) {
                 setDiscount(res.data.discount_amount || 0);
+                setAppliedCouponCode(couponCode.trim().toUpperCase()); // lock in the code
                 setAppliedCouponInfo(res.data);
                 alert(`Coupon Applied: ₹${res.data.discount_amount} Off`);
             } else {
                 setDiscount(0);
+                setAppliedCouponCode('');
                 setAppliedCouponInfo(null);
                 alert(res.data.message || 'Invalid Coupon Code');
             }
@@ -162,7 +165,7 @@ export const BookingSummary: React.FC = () => {
                             totalAmount: totalAmount,
                             originalAmount: slotsCost + platformFee,
                             discountAmount: discount,
-                            couponCode: couponCode,
+                            couponCode: appliedCouponCode || undefined,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_signature: response.razorpay_signature
@@ -376,13 +379,14 @@ export const BookingSummary: React.FC = () => {
                                     {appliedCouponInfo && (
                                         <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between">
                                             <div>
-                                                <p className="text-xs font-bold text-primary uppercase tracking-tight">ACTIVE: {couponCode}</p>
+                                                <p className="text-xs font-bold text-primary uppercase tracking-tight">ACTIVE: {appliedCouponCode}</p>
                                                 <p className="text-[10px] text-primary/60 font-semibold uppercase">₹{discount} SAVED ON THIS BOOKING</p>
                                             </div>
                                             <button
                                                 onClick={() => {
                                                     setDiscount(0);
                                                     setCouponCode('');
+                                                    setAppliedCouponCode('');
                                                     setAppliedCouponInfo(null);
                                                 }}
                                                 className="text-[10px] font-bold text-primary hover:text-red-500 transition-colors uppercase"

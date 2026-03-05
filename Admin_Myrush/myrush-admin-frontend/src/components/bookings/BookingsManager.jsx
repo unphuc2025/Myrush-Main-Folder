@@ -30,40 +30,48 @@ function BookingsManager() {
     const [viewingBooking, setViewingBooking] = useState(null);
 
     useEffect(() => {
-        fetchAllData();
-    }, []);
+        let isMounted = true;
 
-    const fetchAllData = async () => {
-        try {
-            setLoading(true);
-            setError(null);
+        const fetchAllData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
 
-            const adminInfo = localStorage.getItem('admin_info');
-            let branchId = null;
-            if (adminInfo) {
-                const parsed = JSON.parse(adminInfo);
-                if (parsed.branch_id) {
-                    branchId = parsed.branch_id;
-                    setSelectedBranchId(branchId);
+                const adminInfo = localStorage.getItem('admin_info');
+                let branchId = null;
+                if (adminInfo) {
+                    const parsed = JSON.parse(adminInfo);
+                    if (parsed.branch_id) {
+                        branchId = parsed.branch_id;
+                        setSelectedBranchId(branchId);
+                    }
                 }
+
+                const [citiesData, branchesData, bookingsData] = await Promise.all([
+                    citiesApi.getAll(),
+                    branchesApi.getAll(),
+                    bookingsApi.getAll(branchId) // API filters by branch if provided
+                ]);
+
+                if (isMounted) {
+                    setCities(citiesData);
+                    setBranches(branchesData);
+                    setBookings(bookingsData);
+                }
+            } catch (err) {
+                console.error('Error fetching data:', err);
+                if (isMounted) setError('Failed to load bookings');
+            } finally {
+                if (isMounted) setLoading(false);
             }
+        };
 
-            const [citiesData, branchesData, bookingsData] = await Promise.all([
-                citiesApi.getAll(),
-                branchesApi.getAll(),
-                bookingsApi.getAll(branchId) // API filters by branch if provided
-            ]);
+        fetchAllData();
 
-            setCities(citiesData);
-            setBranches(branchesData);
-            setBookings(bookingsData);
-        } catch (err) {
-            console.error('Error fetching data:', err);
-            setError('Failed to load bookings');
-        } finally {
-            setLoading(false);
-        }
-    };
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const handleSort = (key) => {
         let direction = 'asc';
@@ -97,7 +105,8 @@ function BookingsManager() {
             const searchMatch = searchTerm
                 ? (booking.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     booking.booking_reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    booking.customer_phone?.includes(searchTerm))
+                    booking.customer_phone?.includes(searchTerm) ||
+                    booking.court?.branch?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
                 : true;
 
             return cityMatch && branchMatch && statusMatch && searchMatch;
@@ -166,16 +175,30 @@ function BookingsManager() {
     };
 
     const handleViewClick = (booking) => {
-        // Just use edit mode for now as full view, can separate later if needed
-        handleEditClick(booking);
+        setViewingBooking(booking);
+        setEditingBooking(null);
+        setShowDrawer(false); // Fix: Do not open drawer when viewing
     };
 
-    const handleSaveSuccess = async () => {
-        await fetchAllData();
+    const handleSaveSuccess = () => {
         setShowDrawer(false);
         setEditingBooking(null);
+        setViewingBooking(null);
+        window.location.reload(); // Quick refresh to reflect changes
     };
 
+
+    if (viewingBooking) {
+        return (
+            <BookingViewModal
+                booking={viewingBooking}
+                onClose={() => setViewingBooking(null)}
+                onEdit={() => handleEditClick(viewingBooking)}
+                getStatusColor={getStatusColor}
+                getPaymentColor={getPaymentColor}
+            />
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -290,6 +313,7 @@ function BookingsManager() {
                                         </th>
                                         <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">ADVANCE</th>
                                         <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">REMAINING</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">COUPON</th>
                                         <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">PAYMENT</th>
                                         <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">STATUS</th>
                                         <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right pr-6">ACTION</th>
@@ -312,7 +336,7 @@ function BookingsManager() {
                                                     {booking.court?.branch?.name}
                                                 </td>
                                                 <td className="px-4 py-3 text-xs text-slate-700 capitalize">
-                                                    {booking.court?.sport_type || 'cricket'}
+                                                    {booking.court?.sport?.name || booking.court?.sport_type || 'cricket'}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-col">
@@ -337,7 +361,14 @@ function BookingsManager() {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className="text-xs font-bold text-green-600">₹{booking.total_amount}</span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-green-600">₹{booking.total_amount}</span>
+                                                        {booking.coupon_code && (
+                                                            <span className="text-[10px] text-purple-600 font-bold bg-purple-50 px-1 py-0.5 rounded border border-purple-100 inline-block mt-0.5">
+                                                                {booking.coupon_code}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className="text-xs font-bold text-slate-600">
@@ -352,6 +383,15 @@ function BookingsManager() {
                                                             ? 0
                                                             : (booking.total_amount - (booking.advance_amount || 0))}
                                                     </span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {booking.coupon_code ? (
+                                                        <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-200 whitespace-nowrap">
+                                                            🏷 {booking.coupon_code}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[10px] text-slate-300">—</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-col items-center gap-1">
@@ -467,7 +507,7 @@ function BookingsManager() {
                                             <div className="bg-white p-2.5 rounded-lg border border-slate-100">
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Venue</p>
                                                 <p className="text-xs font-semibold text-slate-700 truncate">{booking.court?.branch?.name}</p>
-                                                <p className="text-[10px] text-slate-500 mt-0.5 capitalize">{booking.court?.sport_type || 'Sports'}</p>
+                                                <p className="text-[10px] text-slate-500 mt-0.5 capitalize">{booking.court?.sport?.name || booking.court?.sport_type || 'Sports'}</p>
                                             </div>
                                         </div>
 
@@ -475,7 +515,14 @@ function BookingsManager() {
                                         <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-100 mb-4">
                                             <div>
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase">Total</p>
-                                                <p className="text-sm font-bold text-slate-900">₹{booking.total_amount}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-bold text-slate-900">₹{booking.total_amount}</p>
+                                                    {booking.coupon_code && (
+                                                        <span className="text-[9px] text-purple-600 font-bold bg-purple-50 px-1 py-0.5 rounded border border-purple-100">
+                                                            {booking.coupon_code}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase">Due</p>
@@ -553,15 +600,177 @@ function BookingsManager() {
             {/* Drawer */}
             <Drawer
                 title={editingBooking ? 'Edit Booking' : 'New Booking'}
-                isOpen={showDrawer}
-                onClose={() => setShowDrawer(false)}
+                isOpen={showDrawer && !viewingBooking}
+                onClose={() => {
+                    setShowDrawer(false);
+                    setEditingBooking(null);
+                }}
             >
                 <AddBookingForm
                     booking={editingBooking}
-                    onClose={() => setShowDrawer(false)}
+                    onClose={() => {
+                        setShowDrawer(false);
+                        setEditingBooking(null);
+                    }}
                     onBookingAdded={handleSaveSuccess}
                 />
             </Drawer>
+        </div>
+    );
+}
+
+function BookingViewModal({ booking, onClose, onEdit, getStatusColor, getPaymentColor }) {
+    return (
+        <div className="bg-white rounded-lg">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+                <h2 className="text-xl font-semibold text-slate-800">View Booking Details</h2>
+                <div className="flex gap-2">
+                    <button
+                        onClick={onEdit}
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit Booking"
+                    >
+                        <Pencil className="h-5 w-5" />
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                        title="Close"
+                    >
+                        <XCircle className="h-5 w-5 text-slate-600" />
+                    </button>
+                </div>
+            </div>
+
+            <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Customer Details */}
+                    <div>
+                        <h3 className="text-lg font-medium text-slate-900 mb-4">Customer Details</h3>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                                <p className="text-sm text-slate-900 bg-slate-50 px-3 py-2 rounded-md">{booking.customer_name}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                                <p className="text-sm text-slate-900 bg-slate-50 px-3 py-2 rounded-md">{booking.customer_phone || booking.user?.phone_number || '-'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Booking Information */}
+                    <div>
+                        <h3 className="text-lg font-medium text-slate-900 mb-4">Booking Information</h3>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Venue</label>
+                                <p className="text-sm text-slate-900 bg-slate-50 px-3 py-2 rounded-md">{booking.court?.branch?.name}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Sport</label>
+                                <p className="text-sm text-slate-900 bg-slate-50 px-3 py-2 rounded-md capitalize">{booking.court?.sport?.name || booking.court?.sport_type || 'cricket'}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                                    <p className="text-sm text-slate-900 bg-slate-50 px-3 py-2 rounded-md">{booking.booking_date}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                                    <div className="bg-slate-50 px-3 py-2 rounded-md flex items-center">
+                                        <span className={`px-2 py-1 rounded-md text-xs font-bold uppercase ${getStatusColor(booking.status)}`}>
+                                            {booking.status}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Payment Details */}
+                    <div>
+                        <h3 className="text-lg font-medium text-slate-900 mb-4">Payment Details</h3>
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Total Amount</label>
+                                    <p className="text-sm font-bold text-slate-900 bg-slate-50 px-3 py-2 rounded-md">₹{booking.total_amount}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Advance Paid</label>
+                                    <p className="text-sm font-bold text-green-600 bg-slate-50 px-3 py-2 rounded-md">₹{booking.advance_amount || 0}</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Remaining</label>
+                                    <p className="text-sm font-bold text-red-600 bg-slate-50 px-3 py-2 rounded-md">
+                                        ₹{['paid', 'completed', 'succeeded', 'confirmed', 'success'].includes(booking.payment_status?.toLowerCase())
+                                            ? 0
+                                            : (booking.total_amount - (booking.advance_amount || 0))}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Payment Status</label>
+                                    <div className="bg-slate-50 px-3 py-2 rounded-md flex items-center">
+                                        <span className={`px-2 py-1 rounded-md text-xs font-bold uppercase ${getPaymentColor(booking.payment_status?.toLowerCase() || 'pending')}`}>
+                                            {booking.payment_status || 'Pending'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            {booking.coupon_code && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Applied Coupon</label>
+                                    <div className="bg-slate-50 px-3 py-2 rounded-md flex items-center">
+                                        <span className="text-sm text-purple-700 font-bold bg-purple-100 px-2 py-1 rounded">
+                                            {booking.coupon_code}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Time Slots */}
+                    <div>
+                        <h3 className="text-lg font-medium text-slate-900 mb-4">Time Slots</h3>
+                        <div className="space-y-3">
+                            {booking.time_slots && booking.time_slots.length > 0 ? (
+                                booking.time_slots.map((slot, idx) => (
+                                    <div key={idx} className="flex justify-between items-center p-3 rounded-lg border border-slate-200 bg-slate-50">
+                                        <span className="text-sm text-slate-600">
+                                            {(slot.start || slot.startTime || slot.start_time)?.slice(0, 5)} - {(slot.end || slot.endTime || slot.end_time)?.slice(0, 5)}
+                                        </span>
+                                        <span className="text-sm font-bold text-slate-900">₹{slot.price || slot.price_per_slot || 0}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex justify-between items-center p-3 rounded-lg border border-slate-200 bg-slate-50">
+                                    <span className="text-sm text-slate-600">
+                                        {booking.start_time?.slice(0, 5)} - {booking.end_time?.slice(0, 5)}
+                                    </span>
+                                    <span className="text-sm font-bold text-slate-900">₹{booking.total_amount}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Action Button */}
+                <div className="flex justify-end pt-6 border-t border-slate-200">
+                    <button
+                        onClick={onClose}
+                        className="px-6 py-2.5 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 font-medium transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
