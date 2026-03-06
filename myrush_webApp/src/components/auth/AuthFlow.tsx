@@ -26,16 +26,18 @@ export const AuthFlow: React.FC = () => {
             login(data.access_token);
             closeAuthModal();
             // Handle redirect if coming from a protected route
-            const from = location.state?.from?.pathname || '/dashboard';
-            navigate(from, { replace: true });
+            const fromPath = location.state?.from?.pathname || '/dashboard';
+            const fromState = location.state?.from?.state || {};
+            navigate(fromPath, { state: fromState, replace: true });
         }
     };
 
     const handleOnboardingSuccess = () => {
         if (token) login(token);
         closeAuthModal();
-        const from = location.state?.from?.pathname || '/dashboard';
-        navigate(from, { replace: true });
+        const fromPath = location.state?.from?.pathname || '/dashboard';
+        const fromState = location.state?.from?.state || {};
+        navigate(fromPath, { state: fromState, replace: true });
     };
 
     return (

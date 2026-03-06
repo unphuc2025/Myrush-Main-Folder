@@ -58,10 +58,11 @@ const AppContent = () => {
 
   useEffect(() => {
     // If we've been redirected here from ProtectedRoute, open the modal
-    if (location.state?.from && !isAuthenticated) {
+    // But don't open it if we are currently viewing Terms & Conditions
+    if (location.state?.from && !isAuthenticated && location.pathname !== '/terms') {
       openAuthModal();
     }
-  }, [location.state, isAuthenticated, openAuthModal]);
+  }, [location.state, isAuthenticated, openAuthModal, location.pathname]);
 
   // Hide footer only on specific pages like Setup Profile, Login, OTP, Profile
   const shouldHideFooter = location.pathname === '/profile';

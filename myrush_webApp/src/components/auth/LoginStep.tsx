@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { apiClient } from '../../api/client';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 interface LoginStepProps {
     onSuccess: (phone: string) => void;
@@ -19,9 +21,17 @@ const countryCodes = [
 ];
 
 export const LoginStep: React.FC<LoginStepProps> = ({ onSuccess }) => {
+    const { closeAuthModal } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
     const [countryCode, setCountryCode] = useState('+91');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    const handleTermsNavigate = () => {
+        closeAuthModal();
+        navigate('/terms', { state: { ...location.state, temp_close_auth: true } });
+    };
 
     const handleSendOTP = async () => {
         if (phoneNumber.length < 5) { // Adjusted to allow various lengths
@@ -91,7 +101,17 @@ export const LoginStep: React.FC<LoginStepProps> = ({ onSuccess }) => {
 
             <p className="text-[10px] text-gray-400 text-center mt-6 uppercase tracking-wider font-bold">
                 By continuing, you agree to our <br />
-                <span className="text-gray-900 underline">Terms</span> & <span className="text-gray-900 underline">Privacy Policy</span>
+                <button 
+                    onClick={handleTermsNavigate}
+                    className="text-gray-900 underline hover:text-primary transition-colors focus:outline-none"
+                >
+                    Terms
+                </button> & <button 
+                    onClick={handleTermsNavigate}
+                    className="text-gray-900 underline hover:text-primary transition-colors focus:outline-none"
+                >
+                    Privacy Policy
+                </button>
             </p>
         </div>
     );

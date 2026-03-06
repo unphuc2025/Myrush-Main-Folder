@@ -13,6 +13,10 @@ export const PublicNav: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 
+    const restrictedPaths = ['/academy', '/arena', '/corporate', '/pickleball'];
+    const isRestrictedPath = restrictedPaths.includes(location.pathname);
+    const isBottomNavActive = isAuthenticated && !isRestrictedPath;
+
     useEffect(() => {
         const handleScroll = () => {
             if (window.scrollY > 20) {
@@ -129,13 +133,14 @@ export const PublicNav: React.FC = () => {
                             </Button>
                         )}
 
-                        <button
-                            className={`lg:hidden p-2 rounded-xl transition-all ${scrolled ? 'text-black hover:bg-black/5' : 'text-white hover:bg-white/5'
-                                }`}
-                            onClick={() => setIsMobileMenuOpen(prev => !prev)}
-                        >
-                            {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
-                        </button>
+                        {!isBottomNavActive && (
+                            <button
+                                className={`lg:hidden p-2 rounded-xl transition-all ${scrolled ? 'text-black hover:bg-black/5' : 'text-white hover:bg-white/5'}`}
+                                onClick={() => setIsMobileMenuOpen(prev => !prev)}
+                            >
+                                {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
+                            </button>
+                        )}
                     </div>
                 </div>
             </motion.nav>

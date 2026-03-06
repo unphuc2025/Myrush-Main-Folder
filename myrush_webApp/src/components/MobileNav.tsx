@@ -17,6 +17,9 @@ export const MobileNav: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { isAuthenticated } = useAuth();
+    
+    const restrictedPaths = ['/academy', '/arena', '/corporate', '/pickleball'];
+    const isRestrictedPath = restrictedPaths.includes(location.pathname);
 
     const navItems = [
         {
@@ -51,7 +54,7 @@ export const MobileNav: React.FC = () => {
         return location.pathname === item.path || (item.alternativePath && location.pathname === item.alternativePath);
     };
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || isRestrictedPath) {
         return null;
     }
 

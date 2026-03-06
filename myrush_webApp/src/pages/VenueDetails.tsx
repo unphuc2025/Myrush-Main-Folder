@@ -180,15 +180,9 @@ export const VenueDetailsPage: React.FC = () => {
             date: `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.toString().padStart(2, '0')}`,
             selectedSlots: selectedSlots,
             selectedSport: selectedSport,
-            totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0) * numPlayers,
+            totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0),
             numPlayers: numPlayers
         };
-
-        // Optimistically hide the selected slots immediately so the UI is clean
-        // while the user is on the booking summary / payment flow.
-        const bookedTimes = new Set(selectedSlots.map(s => s.display_time));
-        setAvailableSlots(prev => prev.filter(s => !bookedTimes.has(s.display_time)));
-        setSelectedSlots([]);
 
         if (!isAuthenticated) {
             // Preservation of state for the modal flow
@@ -204,6 +198,12 @@ export const VenueDetailsPage: React.FC = () => {
             openAuthModal();
             return;
         }
+
+        // Optimistically hide the selected slots immediately so the UI is clean
+        // while the user is on the booking summary / payment flow.
+        const bookedTimes = new Set(selectedSlots.map(s => s.display_time));
+        setAvailableSlots(prev => prev.filter(s => !bookedTimes.has(s.display_time)));
+        setSelectedSlots([]);
 
         // User is authenticated — go straight to booking summary
         navigate('/booking/summary', { state: bookingState });
@@ -229,7 +229,7 @@ export const VenueDetailsPage: React.FC = () => {
     );
 
     const basePrice = selectedSlots.reduce((acc, s) => acc + s.price, 0);
-    const totalPrice = basePrice * numPlayers;
+    const totalPrice = basePrice;
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">

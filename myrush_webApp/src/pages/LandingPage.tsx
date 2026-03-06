@@ -9,7 +9,6 @@ import ScrollIndicator from '../components/ScrollIndicator';
 
 const DynamicHeroBackground: React.FC<{ scrollY: any }> = ({ scrollY }) => {
     const [isMobile, setIsMobile] = useState(false);
-    const [showControls, setShowControls] = useState(false);
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
 
@@ -42,11 +41,7 @@ const DynamicHeroBackground: React.FC<{ scrollY: any }> = ({ scrollY }) => {
     }, [mouseX, mouseY]);
 
     return (
-        <div
-            className="absolute inset-0 z-0 overflow-hidden bg-black"
-            onMouseEnter={() => !isMobile && setShowControls(true)}
-            onMouseLeave={() => !isMobile && setShowControls(false)}
-        >
+        <div className="absolute inset-0 z-0 overflow-hidden bg-black">
 
             <motion.div
                 style={{ y: isMobile ? 0 : heroScrollY }}
@@ -61,8 +56,7 @@ const DynamicHeroBackground: React.FC<{ scrollY: any }> = ({ scrollY }) => {
                         muted
                         loop
                         playsInline
-                        controls={showControls}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover pointer-events-none"
                     >
                         <source src="/hero-bg.mp4" type="video/mp4" />
                         Your browser does not support the video tag.
