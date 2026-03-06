@@ -12,9 +12,15 @@ router = APIRouter(
 
 @router.get("", response_model=schemas.FAQListResponse, dependencies=[Depends(PermissionChecker("FAQ", "view"))])
 @router.get("/", response_model=schemas.FAQListResponse, dependencies=[Depends(PermissionChecker("FAQ", "view"))])
-def get_faqs(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
-    total = db.query(models.FAQ).count()
-    items = db.query(models.FAQ).offset(skip).limit(limit).all()
+def get_faqs(skip: int = 0, limit: int = 20, search: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(models.FAQ)
+    if search:
+        query = query.filter(
+            models.FAQ.question.ilike(f"%{search}%") |
+            models.FAQ.answer.ilike(f"%{search}%")
+        )
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
     page = (skip // limit) + 1 if limit else 1
     pages = (total // limit) + (1 if total % limit else 0) if limit else 1
     return schemas.FAQListResponse(items=items, total=total, page=page, pages=pages)

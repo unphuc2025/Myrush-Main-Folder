@@ -23,7 +23,7 @@ const Header = ({ sidebarOpen, setSidebarOpen }) => {
                         <Menu className="h-5 w-5" />
                     </button>
 
-                    <Link className="block flex-shrink-0 lg:hidden" to="/">
+                    <Link className="block flex-shrink-0 lg:hidden" to="/dashboard">
                         {/* Mobile Logo Placeholder */}
                         <span className="font-bold text-lg text-primary">Admin</span>
                     </Link>

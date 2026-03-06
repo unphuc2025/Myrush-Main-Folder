@@ -98,6 +98,37 @@ def get_all_admins(db: Session = Depends(get_db)):
     """Get all admins"""
     return db.query(models.Admin).all()
 
+@router.get("/me")
+@router.get("/me/")
+def get_current_admin_me(
+    db: Session = Depends(get_db),
+    current_admin: models.Admin = Depends(get_current_admin)
+):
+    """Get the currently logged-in admin's fresh data including live permissions from their role."""
+    # Re-fetch from DB to get the absolute latest role/permissions
+    admin = db.query(models.Admin).filter(models.Admin.id == current_admin.id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+
+    accessible_branches = []
+    if admin.accessible_branches:
+        accessible_branches = [str(b.id) for b in admin.accessible_branches]
+    elif admin.branch_id:
+        accessible_branches = [str(admin.branch_id)]
+
+    return {
+        "id": str(admin.id),
+        "name": admin.name,
+        "mobile": admin.mobile,
+        "email": admin.email,
+        "role": admin.role,
+        "role_id": str(admin.role_id) if admin.role_id else None,
+        "permissions": admin.role_rel.permissions if admin.role_rel else {},
+        "branch_id": str(admin.branch_id) if admin.branch_id else None,
+        "branch_ids": accessible_branches,
+        "must_change_password": admin.must_change_password
+    }
+
 @router.post("/admins", response_model=schemas.Admin, dependencies=[Depends(PermissionChecker("Sub Admin Management", "add"))])
 def create_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
     """Create a new admin (Super or Branch)"""

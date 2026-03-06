@@ -71,13 +71,18 @@ async def log_requests(request: Request, call_next):
     print(f"[DEBUG] Response status: {response.status_code} for {request.url.path}")
     return response
 
-# CORS Configuration
+# Add error handling middleware FIRST so it runs AFTER CORS
+app.add_middleware(ErrorHandlerMiddleware)
+
+# CORS Configuration (added LAST so it runs FIRST for preflight OPTIONS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://localhost:5174",
         "http://localhost:5175",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
         "http://localhost:3000",
         "http://65.0.195.149",
         "http://65.0.195.149:8011",
@@ -90,9 +95,6 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["x-rtb-fingerprint-id"], # Fix for Razorpay/Third-party warning
 )
-
-# Add error handling middleware (must be added before other middleware)
-app.add_middleware(ErrorHandlerMiddleware)
 
 # Configure error alerting system
 configure_alerts()

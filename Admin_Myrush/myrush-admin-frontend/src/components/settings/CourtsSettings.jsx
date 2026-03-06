@@ -104,7 +104,10 @@ function CourtsSettings() {
       setCourts(courtsData);
     } catch (err) {
       console.error('Error fetching data:', err);
-      setError('Failed to load data. Please try again.');
+      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+        ? 'You do not have access to view courts.'
+        : 'Failed to load data. Please try again.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -168,7 +171,10 @@ function CourtsSettings() {
         await fetchAllData();
       } catch (err) {
         console.error('Error deleting court:', err);
-        setError('Failed to delete court');
+        const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+          ? 'You do not have access to delete courts.'
+          : 'Failed to delete court';
+        setError(errorMsg);
       }
     }
   };
@@ -188,7 +194,10 @@ function CourtsSettings() {
       await courtsApi.update(court.id, updateData);
     } catch (err) {
       console.error('Error toggling court:', err);
-      setError('Failed to update court status');
+      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+        ? 'You do not have access to update courts.'
+        : 'Failed to update court status';
+      setError(errorMsg);
       fetchAllData(); // Revert
     }
   };
@@ -205,13 +214,19 @@ function CourtsSettings() {
 
   return (
     <div>
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
+          <XCircle className="h-5 w-5" />{error}
+        </div>
+      )}
+
       {/* Header & Controls */}
       <div className="flex flex-col xl:flex-row justify-between items-start gap-4 mb-6">
         <div className="flex flex-wrap gap-2 w-full xl:w-auto">
           {/* City Filter */}
           {/* City Filter */}
           <div className="relative">
-            <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
             <select
               value={selectedCityId}
               onChange={(e) => handleCityChange(e.target.value)}
@@ -263,11 +278,7 @@ function CourtsSettings() {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
-          <X className="h-4 w-4" /> {error}
-        </div>
-      )}
+
 
       {/* Global Price Conditions Banner */}
       <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100 p-4 relative overflow-hidden">
@@ -719,79 +730,89 @@ function GlobalPriceConditionsSection({ conditions, onRefresh, onEdit, editingCo
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-lg animate-in fade-in zoom-in-95">
           <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
             <h3 className="text-lg font-bold text-slate-800">{editingCondition ? 'Edit Pricing Rule' : 'New Pricing Rule'}</h3>
-            <button onClick={() => { setIsAdding(false); onEdit(null); }} className="text-slate-400 hover:text-slate-600"><X className="h-5 w-5" /></button>
+            <button type="button" onClick={() => { setIsAdding(false); onEdit(null); }} className="text-slate-400 hover:text-slate-600"><X className="h-5 w-5" /></button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Rule Type</label>
-                <div className="flex p-1 bg-slate-100 rounded-lg">
-                  <button onClick={() => setConditionType('recurring')} className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${conditionType === 'recurring' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Recurring Days</button>
-                  <button onClick={() => setConditionType('date')} className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${conditionType === 'date' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Specific Dates</button>
-                </div>
+          <div className="space-y-6">
+            {/* Rule Type Toggle */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Rule Type</label>
+              <div className="flex p-1 bg-slate-100 rounded-lg">
+                <button type="button" onClick={() => setConditionType('recurring')} className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${conditionType === 'recurring' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Recurring Days</button>
+                <button type="button" onClick={() => setConditionType('date')} className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${conditionType === 'date' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Specific Dates</button>
               </div>
-
-              {conditionType === 'recurring' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Active Days</label>
-                  <div className="flex flex-wrap gap-2">
-                    {daysOfWeek.map(day => (
-                      <button
-                        key={day.id}
-                        onClick={() => toggleDay(day.id)}
-                        className={`w-10 h-10 rounded-lg text-xs font-bold uppercase transition-all ${newCondition.days.includes(day.id) ? 'bg-green-600 text-white shadow-md shadow-green-200' : 'bg-white border border-slate-200 text-slate-500 hover:border-green-400'}`}
-                      >
-                        {day.label.slice(0, 2)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {conditionType === 'date' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Selected Dates</label>
-                  <div className="flex gap-2">
-                    <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-green-500" />
-                    <button onClick={addDate} className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800">Add</button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {newCondition.dates.map(date => (
-                      <span key={date} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-md border border-blue-100">
-                        {date}
-                        <X className="h-3 w-3 cursor-pointer hover:text-blue-900" onClick={() => removeDate(date)} />
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">From</label>
-                  <TimePicker value={newCondition.slotFrom} onChange={(e) => setNewCondition({ ...newCondition, slotFrom: e })} className="w-full" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">To</label>
-                  <TimePicker value={newCondition.slotTo} onChange={(e) => setNewCondition({ ...newCondition, slotTo: e })} className="w-full" />
-                </div>
-              </div>
-
+            {/* Active Days (Recurring) */}
+            {conditionType === 'recurring' && (
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Override Price (₹)</label>
-                <div className="relative">
-                  <Coins className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <input type="number" value={newCondition.price} onChange={(e) => setNewCondition({ ...newCondition, price: e.target.value })} className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-900 focus:border-green-500 outline-none" placeholder="0.00" />
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Active Days</label>
+                <div className="flex flex-wrap gap-2">
+                  {daysOfWeek.map(day => (
+                    <button
+                      key={day.id}
+                      type="button"
+                      onClick={() => toggleDay(day.id)}
+                      className={`w-10 h-10 rounded-lg text-xs font-bold uppercase transition-all ${newCondition.days.includes(day.id) ? 'bg-green-600 text-white shadow-md shadow-green-200' : 'bg-white border border-slate-200 text-slate-500 hover:border-green-400'}`}
+                    >
+                      {day.label.slice(0, 2)}
+                    </button>
+                  ))}
                 </div>
               </div>
+            )}
 
-              <button onClick={handleSave} className="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-100 hover:bg-green-700 transition-transform active:scale-95">
-                {editingCondition ? 'Update Rule' : 'Add Rule'}
-              </button>
+            {/* Specific Dates */}
+            {conditionType === 'date' && (
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Selected Dates</label>
+                <div className="flex gap-2">
+                  <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-900 focus:border-green-500 outline-none" />
+                  <button type="button" onClick={addDate} className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800">Add</button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3 min-h-[32px]">
+                  {newCondition.dates.map(date => (
+                    <span key={date} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-md border border-blue-100">
+                      {date}
+                      <X className="h-3 w-3 cursor-pointer hover:text-blue-900" onClick={() => removeDate(date)} />
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Time Range */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">From</label>
+                <TimePicker value={newCondition.slotFrom} onChange={(e) => setNewCondition({ ...newCondition, slotFrom: e })} className="w-full" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">To</label>
+                <TimePicker value={newCondition.slotTo} onChange={(e) => setNewCondition({ ...newCondition, slotTo: e })} className="w-full" />
+              </div>
             </div>
+
+            {/* Price Override */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Override Price (₹)</label>
+              <div className="relative">
+                <Coins className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={newCondition.price}
+                  onChange={(e) => setNewCondition({ ...newCondition, price: e.target.value })}
+                  className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-900 focus:border-green-500 outline-none"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <button type="button" onClick={handleSave} className="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-100 hover:bg-green-700 transition-transform active:scale-95">
+              {editingCondition ? 'Update Rule' : 'Add Rule'}
+            </button>
           </div>
         </div>
       )}

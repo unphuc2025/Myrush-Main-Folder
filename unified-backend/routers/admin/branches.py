@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 import models, schemas
 from database import get_db
@@ -282,6 +283,16 @@ def delete_branch(branch_id: str, db: Session = Depends(get_db)):
     if not db_branch:
         raise HTTPException(status_code=404, detail="Branch not found")
     
-    db.delete(db_branch)
-    db.commit()
-    return {"message": "Branch deleted successfully"}
+    try:
+        db.delete(db_branch)
+        db.commit()
+        return {"message": "Branch deleted successfully"}
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot delete this venue because it has associated courts or bookings. Please delete those first or deactivate the venue instead."
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

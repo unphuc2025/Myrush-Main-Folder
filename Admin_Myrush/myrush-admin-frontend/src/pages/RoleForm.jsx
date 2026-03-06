@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { rolesApi } from '../services/adminApi';
-import { ArrowLeft, Save, Loader2, CheckSquare, Square } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 const MODULES = [
     'Role Management',
@@ -37,6 +37,7 @@ const RoleForm = () => {
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(isEditMode);
     const [error, setError] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
 
     useEffect(() => {
         if (isEditMode) {
@@ -137,6 +138,23 @@ const RoleForm = () => {
         e.preventDefault();
         try {
             setLoading(true);
+            setError(null);
+
+            // Validation: Ensure at least one permission is selected
+            let hasAnyPermission = false;
+            for (const moduleObj of Object.values(permissions)) {
+                if (Object.values(moduleObj).some(val => val === true)) {
+                    hasAnyPermission = true;
+                    break;
+                }
+            }
+
+            if (!hasAnyPermission) {
+                setError('Please select at least one module permission to create a role.');
+                setLoading(false);
+                return;
+            }
+
             const data = {
                 name,
                 permissions,
@@ -148,10 +166,12 @@ const RoleForm = () => {
             } else {
                 await rolesApi.create(data);
             }
-            navigate('/roles');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setSuccessMessage(isEditMode ? 'Role updated successfully!' : 'Role created successfully!');
+            setTimeout(() => navigate('/roles'), 1500);
         } catch (err) {
             console.error('Error saving role:', err);
-            setError(err.message || 'Failed to save role');
+            setError(err?.response?.data?.detail || err.message || 'Failed to save role. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -186,10 +206,15 @@ const RoleForm = () => {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 pb-24 lg:pb-6 relative">
                 {error && (
                     <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
-                        <XCircle className="h-5 w-5" />{error}
+                        <XCircle className="h-5 w-5 shrink-0" />{error}
+                    </div>
+                )}
+                {successMessage && (
+                    <div className="mb-6 p-4 bg-green-50 text-green-700 rounded-xl flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 shrink-0" />{successMessage}
                     </div>
                 )}
 
@@ -198,7 +223,7 @@ const RoleForm = () => {
                     <input
                         type="text"
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         placeholder="e.g. Booking Manager"
                         required
@@ -255,7 +280,7 @@ const RoleForm = () => {
                     </table>
                 </div>
 
-                <div className="sticky bottom-0 bg-white border-t border-slate-100 pt-4 mt-6 flex justify-end gap-3">
+                <div className="fixed bottom-0 left-0 right-0 bg-white p-4 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] lg:static lg:shadow-none lg:p-0 lg:mt-6 lg:bg-transparent border-t border-slate-100 flex justify-end gap-3">
                     <button
                         type="button"
                         onClick={() => navigate('/roles')}

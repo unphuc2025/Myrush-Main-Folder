@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 import models, schemas
 from database import get_db
@@ -124,6 +125,16 @@ def delete_game_type(game_type_id: str, db: Session = Depends(get_db)):
     if not db_game_type:
         raise HTTPException(status_code=404, detail="Game type not found")
     
-    db.delete(db_game_type)
-    db.commit()
-    return {"message": "Game type deleted successfully"}
+    try:
+        db.delete(db_game_type)
+        db.commit()
+        return {"message": "Game type deleted successfully"}
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete this sport because it is assigned to one or more venues. Please remove it from those venues first or deactivate it."
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

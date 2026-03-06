@@ -16,6 +16,16 @@ const Reports = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [loading, setLoading] = useState(false);
 
+    // Permission check
+    const canExport = (() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return true;
+            const perms = adminInfo.permissions?.['Reports and analytics'] || {};
+            return perms.edit || perms.delete || perms.add;
+        } catch { return false; }
+    })();
+
     // Data states
     const [bookings, setBookings] = useState([]);
     const [branches, setBranches] = useState([]);
@@ -290,12 +300,16 @@ const Reports = () => {
                 </div>
 
                 <div className="flex gap-2">
-                    <button onClick={exportToExcel} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium">
-                        <FileText className="h-4 w-4" /> Export Excel
-                    </button>
-                    <button onClick={exportToPDF} className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium">
-                        <Download className="h-4 w-4" /> Export Report
-                    </button>
+                    {canExport && (
+                        <>
+                            <button onClick={exportToExcel} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium">
+                                <FileText className="h-4 w-4" /> Export Excel
+                            </button>
+                            <button onClick={exportToPDF} className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium">
+                                <Download className="h-4 w-4" /> Export Report
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 

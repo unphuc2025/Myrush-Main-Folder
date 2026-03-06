@@ -47,7 +47,10 @@ function CitiesSettings() {
       setAreas(areasData);
     } catch (err) {
       console.error('Error fetching data:', err);
-      setError('Failed to load data');
+      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+        ? 'You do not have access to view cities or areas.'
+        : 'Failed to load data';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -96,7 +99,10 @@ function CitiesSettings() {
         await fetchData();
       } catch (err) {
         console.error('Error deleting city:', err);
-        setError('Failed to delete city');
+        const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+          ? 'You do not have access to delete cities.'
+          : 'Failed to delete city';
+        setError(errorMsg);
       }
     }
   };
@@ -108,7 +114,10 @@ function CitiesSettings() {
         await fetchData();
       } catch (err) {
         console.error('Error deleting area:', err);
-        setError('Failed to delete area');
+        const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+          ? 'You do not have access to delete areas.'
+          : 'Failed to delete area';
+        setError(errorMsg);
       }
     }
   };
@@ -131,7 +140,10 @@ function CitiesSettings() {
       await fetchData();
       setShowCityModal(false);
     } catch (err) {
-      setError('Failed to save city');
+      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+        ? 'You do not have access to update cities.'
+        : 'Failed to save city';
+      setError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -155,7 +167,10 @@ function CitiesSettings() {
       await fetchData();
       setShowAreaModal(false);
     } catch (err) {
-      setError('Failed to save area');
+      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+        ? 'You do not have access to update areas.'
+        : 'Failed to save area';
+      setError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -172,6 +187,10 @@ function CitiesSettings() {
       });
     } catch (err) {
       console.error('Error toggling city:', err);
+      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+        ? 'You do not have access to update cities.'
+        : 'Failed to toggle city status';
+      setError(errorMsg);
       // Revert on error
       fetchData();
     }
@@ -187,6 +206,10 @@ function CitiesSettings() {
         is_active: !area.is_active
       });
     } catch (err) {
+      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+        ? 'You do not have access to update areas.'
+        : 'Failed to toggle area status';
+      setError(errorMsg);
       // Revert on error
       fetchData();
     }
@@ -201,6 +224,8 @@ function CitiesSettings() {
 
   return (
     <div>
+      {error && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2"><XCircle className="h-5 w-5" />{error}</div>}
+
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <div className="flex bg-slate-100 p-1 rounded-lg">
@@ -240,8 +265,6 @@ function CitiesSettings() {
           </button>
         </div>
       </div>
-
-      {error && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2"><XCircle className="h-5 w-5" />{error}</div>}
 
       {/* Table Content */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -475,7 +498,7 @@ function CitiesSettings() {
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Parent City</label>
               <div className="relative group">
-                <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors pointer-events-none" />
                 <select
                   value={areaFormData.cityId}
                   onChange={e => setAreaFormData({ ...areaFormData, cityId: e.target.value })}

@@ -39,6 +39,7 @@ function Dashboard() {
     totalUsers: 0
   });
   const [revenueData, setRevenueData] = useState([]);
+  const [selectedDay, setSelectedDay] = useState(null);
   const [statusData, setStatusData] = useState([]);
   const [recentBookings, setRecentBookings] = useState([]);
 
@@ -238,13 +239,29 @@ function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             {/* Revenue Chart */}
             <div className="lg:col-span-2 bg-white rounded-2xl p-4 md:p-6 border border-slate-100 shadow-sm min-w-0">
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-slate-900">Revenue Trend</h3>
-                <p className="text-sm text-slate-500">Earnings over the last 7 days</p>
+              <div className="flex justify-between items-end mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Revenue Trend</h3>
+                  <p className="text-sm text-slate-500">Earnings over the last 7 days</p>
+                </div>
+                {selectedDay && (
+                  <div className="text-right animate-in fade-in slide-in-from-right-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{selectedDay.name}</p>
+                    <p className="text-lg font-black text-green-600">₹{selectedDay.revenue}</p>
+                  </div>
+                )}
               </div>
               <div className="h-80 w-full overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData} style={{ outline: 'none' }}>
+                  <AreaChart
+                    data={revenueData}
+                    style={{ outline: 'none' }}
+                    onClick={(data) => {
+                      if (data && data.activePayload && data.activePayload[0]) {
+                        setSelectedDay(data.activePayload[0].payload);
+                      }
+                    }}
+                  >
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />

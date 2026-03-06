@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, Phone, Shield, MapPin, Check, X, Building2 } from 'lucide-react';
+import { User, Mail, Phone, Shield, MapPin, Check, X, Building2, Eye, EyeOff } from 'lucide-react';
 import { adminsApi, branchesApi, rolesApi } from '../../services/adminApi';
 
 function AddAdminForm({ onCancel, onSave, initialData = null }) {
@@ -16,6 +16,7 @@ function AddAdminForm({ onCancel, onSave, initialData = null }) {
     const [roles, setRoles] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
+    const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -216,9 +217,14 @@ function AddAdminForm({ onCancel, onSave, initialData = null }) {
                             <input
                                 type="tel"
                                 value={formData.mobile}
-                                onChange={e => setFormData({ ...formData, mobile: e.target.value })}
+                                onChange={e => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    if (val.length <= 10) {
+                                        setFormData({ ...formData, mobile: val });
+                                    }
+                                }}
                                 className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300 text-slate-900"
-                                placeholder="+91 98765 43210"
+                                placeholder="9876543210"
                                 required
                             />
                         </div>
@@ -231,13 +237,20 @@ function AddAdminForm({ onCancel, onSave, initialData = null }) {
                         <div className="relative group">
                             <Shield className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
                             <input
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 value={formData.password}
                                 onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300 text-slate-900"
+                                className="w-full pl-12 pr-12 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300 text-slate-900"
                                 placeholder={initialData ? "Leave blank to keep current" : "Set a secure password"}
                                 required={!initialData}
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 hover:text-green-600 transition-colors"
+                            >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
                         </div>
                         {initialData && <p className="text-xs text-slate-400 mt-1 ml-1">Leave empty if you don't want to change the password.</p>}
                     </div>

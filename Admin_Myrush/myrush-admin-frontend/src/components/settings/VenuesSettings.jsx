@@ -9,6 +9,7 @@ import ToggleSwitch from './ToggleSwitch';
 import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi, IMAGE_BASE_URL, getImageUrl, sanitizeImageUrl } from '../../services/adminApi';
 
 function VenueViewModal({ venue, cities, areas, onClose }) {
+  const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   return (
     <div className="bg-white rounded-lg">
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
@@ -52,7 +53,7 @@ function VenueViewModal({ venue, cities, areas, onClose }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-6">
             <div>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <Building2 className="h-3.5 w-3.5" /> Basic Information
               </h3>
               <div className="bg-white border border-slate-100 rounded-xl p-4 space-y-4 shadow-sm">
@@ -86,13 +87,13 @@ function VenueViewModal({ venue, cities, areas, onClose }) {
             </div>
 
             <div>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5" /> Address & Location
               </h3>
               <div className="bg-white border border-slate-100 rounded-xl p-4 space-y-4 shadow-sm">
                 <div>
                   <label className="text-[10px] text-slate-400 uppercase font-black">Full Address</label>
-                  <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                  <p className="text-base text-slate-900 leading-relaxed font-bold">
                     {venue.address_line1}
                     {venue.address_line2 && <><br />{venue.address_line2}</>}
                   </p>
@@ -150,7 +151,7 @@ function VenueViewModal({ venue, cities, areas, onClose }) {
 
           <div className="space-y-6">
             <div>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <Gamepad2 className="h-3.5 w-3.5" /> Available Games & Amenities
               </h3>
               <div className="bg-white border border-slate-100 rounded-xl p-4 space-y-6 shadow-sm">
@@ -178,19 +179,23 @@ function VenueViewModal({ venue, cities, areas, onClose }) {
             </div>
 
             <div>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <Clock className="h-3.5 w-3.5" /> Opening Hours
               </h3>
               <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
                 <div className="space-y-2">
-                  {venue.opening_hours && Object.entries(typeof venue.opening_hours === 'string' ? JSON.parse(venue.opening_hours) : venue.opening_hours).map(([day, hours]) => (
-                    <div key={day} className="flex items-center justify-between text-xs py-1 border-b border-slate-50 last:border-0">
-                      <span className="capitalize font-bold text-slate-500">{day}</span>
-                      <span className={`font-black ${hours.isActive ? 'text-slate-900' : 'text-slate-300 italic'}`}>
-                        {hours.isActive ? `${hours.open} - ${hours.close}` : 'Closed'}
-                      </span>
-                    </div>
-                  ))}
+                  {DAYS.map(day => {
+                    const hoursRaw = venue.opening_hours ? (typeof venue.opening_hours === 'string' ? JSON.parse(venue.opening_hours) : venue.opening_hours) : {};
+                    const hours = hoursRaw[day] || { open: '09:00', close: '22:00', isActive: false };
+                    return (
+                      <div key={day} className="flex items-center justify-between text-xs py-1 border-b border-slate-50 last:border-0">
+                        <span className="capitalize font-bold text-slate-500">{day}</span>
+                        <span className={`font-black ${hours.isActive ? 'text-slate-900' : 'text-slate-300 italic'}`}>
+                          {hours.isActive ? `${hours.open} - ${hours.close}` : 'Closed'}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -200,7 +205,7 @@ function VenueViewModal({ venue, cities, areas, onClose }) {
         {/* Overview section */}
         <div className="space-y-6 pb-6">
           <div>
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
               <Info className="h-3.5 w-3.5" /> Venue Overview
             </h3>
             <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
@@ -212,14 +217,14 @@ function VenueViewModal({ venue, cities, areas, onClose }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Terms & Conditions</h3>
-              <div className="text-xs text-slate-500 bg-white p-3 rounded-lg border border-slate-100 max-h-40 overflow-y-auto whitespace-pre-wrap font-medium">
+              <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2">Terms & Conditions</h3>
+              <div className="text-xs text-slate-600 bg-white p-3 rounded-lg border border-slate-100 max-h-40 overflow-y-auto whitespace-pre-wrap font-medium leading-relaxed">
                 {venue.terms_condition || 'None'}
               </div>
             </div>
             <div>
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Rules & Policies</h3>
-              <div className="text-xs text-slate-500 bg-white p-3 rounded-lg border border-slate-100 max-h-40 overflow-y-auto whitespace-pre-wrap font-medium">
+              <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-2">Rules & Policies</h3>
+              <div className="text-xs text-slate-600 bg-white p-3 rounded-lg border border-slate-100 max-h-40 overflow-y-auto whitespace-pre-wrap font-medium leading-relaxed">
                 {venue.rule || 'None'}
               </div>
             </div>
@@ -250,6 +255,7 @@ function VenuesSettings() {
   const [viewingVenue, setViewingVenue] = useState(null);
   const [showGameDropdown, setShowGameDropdown] = useState(false);
   const gameDropdownRef = useRef(null);
+  const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
   const [formData, setFormData] = useState({
     name: '',
@@ -647,7 +653,40 @@ function VenuesSettings() {
       setShowDrawer(false);
       setEditingVenue(null);
       setViewingVenue(null);
-      setEditingVenue(null);
+
+      // Reset form data after success
+      setFormData({
+        name: '',
+        cityId: '',
+        areaId: '',
+        searchLocation: '',
+        addressLine1: '',
+        addressLine2: '',
+        groundOverview: '',
+        termsCondition: '',
+        rule: '',
+        locationUrl: '',
+        price: '',
+        maxPlayers: '',
+        phoneNumber: '',
+        email: '',
+        groundType: 'single',
+        selectedGames: [],
+        selectedAmenities: [],
+        openingHours: {
+          monday: { open: '09:00', close: '22:00', isActive: true },
+          tuesday: { open: '09:00', close: '22:00', isActive: true },
+          wednesday: { open: '09:00', close: '22:00', isActive: true },
+          thursday: { open: '09:00', close: '22:00', isActive: true },
+          friday: { open: '09:00', close: '22:00', isActive: true },
+          saturday: { open: '08:00', close: '23:00', isActive: true },
+          sunday: { open: '08:00', close: '23:00', isActive: true }
+        },
+        images: [],
+        imagePreviews: [],
+        existingImages: [],
+        isActive: true
+      });
     } catch (err) {
       console.error('Error saving venue:', err);
       setError(err.message || 'Failed to save venue');
@@ -1128,7 +1167,7 @@ function VenuesSettings() {
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Address</label>
               <div className="space-y-3">
                 <div className="relative group">
-                  <MapIcon className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                  <MapIcon className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Address Line 1"
@@ -1153,20 +1192,20 @@ function VenuesSettings() {
             {/* Ground Type */}
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ground Type</label>
-              <div className="flex gap-4">
-                <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${viewingVenue ? 'cursor-default' : 'cursor-pointer'} ${formData.groundType === 'single' ? 'border-green-500 bg-green-50/50 text-green-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <label className={`flex-1 flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all ${viewingVenue ? 'cursor-default' : 'cursor-pointer'} ${formData.groundType === 'single' ? 'border-green-500 bg-green-50/50 text-green-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
                   <input type="radio" value="single" checked={formData.groundType === 'single'} onChange={e => !viewingVenue && setFormData({ ...formData, groundType: e.target.value })} className="hidden" disabled={!!viewingVenue} />
-                  <div className="h-4 w-4 rounded-full border border-current flex items-center justify-center">
-                    {formData.groundType === 'single' && <div className="h-2 w-2 rounded-full bg-current" />}
+                  <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${formData.groundType === 'single' ? 'border-green-500' : 'border-slate-300'}`}>
+                    {formData.groundType === 'single' && <div className="h-2.5 w-2.5 rounded-full bg-green-500" />}
                   </div>
-                  <span className="font-medium text-sm">Single Ground</span>
+                  <span className="font-bold text-sm">Single Ground</span>
                 </label>
-                <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${viewingVenue ? 'cursor-default' : 'cursor-pointer'} ${formData.groundType === 'multiple' ? 'border-purple-500 bg-purple-50/50 text-purple-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                <label className={`flex-1 flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all ${viewingVenue ? 'cursor-default' : 'cursor-pointer'} ${formData.groundType === 'multiple' ? 'border-purple-500 bg-purple-50/50 text-purple-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
                   <input type="radio" value="multiple" checked={formData.groundType === 'multiple'} onChange={e => !viewingVenue && setFormData({ ...formData, groundType: e.target.value })} className="hidden" disabled={!!viewingVenue} />
-                  <div className="h-4 w-4 rounded-full border border-current flex items-center justify-center">
-                    {formData.groundType === 'multiple' && <div className="h-2 w-2 rounded-full bg-current" />}
+                  <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${formData.groundType === 'multiple' ? 'border-purple-500' : 'border-slate-300'}`}>
+                    {formData.groundType === 'multiple' && <div className="h-2.5 w-2.5 rounded-full bg-purple-500" />}
                   </div>
-                  <span className="font-medium text-sm">Multiple Grounds</span>
+                  <span className="font-bold text-sm">Multiple Grounds</span>
                 </label>
               </div>
             </div>
@@ -1203,7 +1242,7 @@ function VenuesSettings() {
                       <button
                         key={game.id}
                         type="button"
-                        onClick={() => { handleGameSelect(game.id); setShowGameDropdown(false); }}
+                        onClick={() => { handleGameSelect(game.id); }}
                         className="w-full text-left px-4 py-2 hover:bg-slate-50 rounded-lg text-sm font-medium text-slate-700 flex items-center justify-between group"
                       >
                         {game.name}
@@ -1243,40 +1282,46 @@ function VenuesSettings() {
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 ml-1">Opening Hours</label>
               <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                {Object.entries(formData.openingHours).map(([day, hours]) => (
-                  <div key={day} className="flex items-center gap-3">
-                    <div className="w-24">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${hours.isActive ? 'bg-green-600 border-green-600' : 'bg-white border-slate-300'}`}>
-                          {hours.isActive && <CheckCircle2 className="h-3 w-3 text-white" />}
+                {DAYS.map(day => {
+                  const hours = formData.openingHours[day] || { open: '09:00', close: '22:00', isActive: false };
+                  return (
+                    <div key={day} className="flex items-center gap-3">
+                      <div className="w-40 flex items-center gap-2">
+                        <div
+                          onClick={() => !viewingVenue && handleDayToggle(day)}
+                          className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer ${hours.isActive ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-slate-300'}`}
+                        >
+                          {hours.isActive && <CheckCircle2 className="h-3 w-3" />}
                         </div>
-                        <input type="checkbox" checked={hours.isActive} onChange={() => !viewingVenue && handleDayToggle(day)} className="hidden" disabled={!!viewingVenue} />
-                        <span className={`text-sm font-semibold capitalize ${hours.isActive ? 'text-slate-700' : 'text-slate-400'} ${viewingVenue ? 'cursor-default' : 'cursor-pointer'}`}>{day}</span>
-                      </label>
+                        <span className={`text-xs font-bold capitalize ${hours.isActive ? 'text-slate-700' : 'text-slate-400'}`}>{day}</span>
+                      </div>
+
+                      {hours.isActive ? (
+                        <div className="flex-1 flex items-center gap-2">
+                          <input
+                            type="time"
+                            value={hours.open}
+                            onChange={(e) => handleOpeningHoursChange(day, 'open', e.target.value)}
+                            disabled={!!viewingVenue}
+                            className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:border-green-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                          />
+                          <span className="text-slate-400 self-center">-</span>
+                          <input
+                            type="time"
+                            value={hours.close}
+                            onChange={(e) => handleOpeningHoursChange(day, 'close', e.target.value)}
+                            disabled={!!viewingVenue}
+                            className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:border-green-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex-1 py-1.5">
+                          <span className="text-xs text-slate-400 italic">Closed</span>
+                        </div>
+                      )}
                     </div>
-                    {hours.isActive ? (
-                      <>
-                        <input
-                          type="time"
-                          value={hours.open}
-                          onChange={(e) => !viewingVenue && handleOpeningHoursChange(day, 'open', e.target.value)}
-                          disabled={!!viewingVenue}
-                          className="px-2 py-1 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-green-500 disabled:bg-slate-50 disabled:text-slate-500"
-                        />
-                        <span className="text-slate-400">-</span>
-                        <input
-                          type="time"
-                          value={hours.close}
-                          onChange={(e) => !viewingVenue && handleOpeningHoursChange(day, 'close', e.target.value)}
-                          disabled={!!viewingVenue}
-                          className="px-2 py-1 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-green-500 disabled:bg-slate-50 disabled:text-slate-500"
-                        />
-                      </>
-                    ) : (
-                      <span className="text-xs text-slate-400 italic">Closed</span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -1305,9 +1350,9 @@ function VenuesSettings() {
               </button>
             </div>
           )}
-        </form >
-      </Drawer >
-    </div >
+        </form>
+      </Drawer>
+    </div>
   );
 }
 

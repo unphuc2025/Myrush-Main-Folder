@@ -45,7 +45,10 @@ const Users = () => {
             setTotalItems(response.total || 0);
         } catch (err) {
             console.error('Error loading users:', err);
-            setError('Failed to load users');
+            const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+                ? 'You do not have access to view users.'
+                : 'Failed to load users';
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }

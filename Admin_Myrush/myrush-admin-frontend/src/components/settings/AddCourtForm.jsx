@@ -219,7 +219,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Branch</label>
               <div className="relative group">
-                <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-all pointer-events-none" />
                 <select
                   value={formData.branchId}
                   onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
@@ -279,10 +279,12 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
                 <Coins className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
                 <input
                   type="number"
+                  step="1"
+                  min="0"
                   value={formData.defaultPrice}
                   onChange={(e) => setFormData({ ...formData, defaultPrice: e.target.value })}
                   className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium title-font shadow-sm hover:border-slate-300"
-                  placeholder="0.00"
+                  placeholder="0"
                   required
                 />
               </div>
@@ -378,29 +380,57 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
 
           <div className="space-y-3">
             {formData.unavailabilitySlots.map((slot) => (
-              <div key={slot.id} className="p-3 bg-red-50/50 border border-red-100 rounded-xl relative group">
-                <button type="button" onClick={() => removeUnavailabilitySlot(slot.id)} className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-full opacity-0 group-hover:opacity-100 transition-all">
+              <div key={slot.id} className="p-4 bg-red-50/50 border border-red-100 rounded-xl relative group">
+                <button
+                  type="button"
+                  onClick={() => removeUnavailabilitySlot(slot.id)}
+                  className="absolute top-3 right-3 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-full transition-all"
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-3 items-center">
-                  <div className="sm:col-span-4">
-                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">Date</label>
-                    <input type="date" value={slot.date} onChange={(e) => updateUnavailabilitySlot(slot.id, 'date', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+
+                {/* Row 1: Date + Reason */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={slot.date}
+                      onChange={(e) => updateUnavailabilitySlot(slot.id, 'date', e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm text-slate-900 focus:border-red-500 outline-none transition-all"
+                    />
                   </div>
-                  <div className="sm:col-span-8">
-                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">Reason</label>
-                    <input type="text" placeholder="Reason (e.g. Maintenance)" value={slot.reason} onChange={(e) => updateUnavailabilitySlot(slot.id, 'reason', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+                  <div>
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">Reason</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Maintenance"
+                      value={slot.reason}
+                      onChange={(e) => updateUnavailabilitySlot(slot.id, 'reason', e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm text-slate-900 focus:border-red-500 outline-none transition-all"
+                    />
                   </div>
                 </div>
-                <div className="flex items-end gap-3">
-                  <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">Start Time</label>
-                    <input type="time" value={slot.from} onChange={(e) => updateUnavailabilitySlot(slot.id, 'from', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+
+                {/* Row 2: Start Time + End Time */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">Start Time</label>
+                    <input
+                      type="time"
+                      value={slot.from}
+                      onChange={(e) => updateUnavailabilitySlot(slot.id, 'from', e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm text-slate-900 focus:border-red-500 outline-none transition-all"
+                    />
                   </div>
-                  <span className="text-slate-300 font-medium pb-2">-</span>
-                  <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 ml-1">End Time</label>
-                    <input type="time" value={slot.to} onChange={(e) => updateUnavailabilitySlot(slot.id, 'to', e.target.value)} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm focus:border-red-500 outline-none transition-all" />
+                  <div>
+                    <label className="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">End Time</label>
+                    <input
+                      type="time"
+                      value={slot.to}
+                      onChange={(e) => updateUnavailabilitySlot(slot.id, 'to', e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-sm text-slate-900 focus:border-red-500 outline-none transition-all"
+                    />
                   </div>
                 </div>
               </div>

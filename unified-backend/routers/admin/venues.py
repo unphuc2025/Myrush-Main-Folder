@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 import models, schemas
 from database import get_db
@@ -176,6 +177,16 @@ def delete_venue(venue_id: str, db: Session = Depends(get_db)):
             except Exception:
                 pass
 
-    db.delete(db_venue)
-    db.commit()
-    return {"message": "Venue deleted successfully"}
+    try:
+        db.delete(db_venue)
+        db.commit()
+        return {"message": "Venue deleted successfully"}
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete this venue because it has associated bookings or dependencies. Please deactivate it instead."
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

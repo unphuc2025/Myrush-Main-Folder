@@ -190,11 +190,18 @@ function AdminLogin() {
                 <div className="relative">
                   <Phone className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
                   <input
-                    type="text"
+                    type="tel"
                     value={mobile}
                     onChange={handleMobileChange}
+                    onBlur={(e) => {
+                      if (e.target.value && e.target.value.length !== 10) {
+                        setError("Mobile number must be exactly 10 digits");
+                      }
+                    }}
+                    onFocus={() => setError('')}
                     placeholder="Enter mobile number"
                     required
+                    maxLength={10}
                     className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-sm outline-none transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
                   />
                 </div>
@@ -203,7 +210,7 @@ function AdminLogin() {
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
@@ -216,7 +223,7 @@ function AdminLogin() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -225,7 +232,7 @@ function AdminLogin() {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || mobile.length !== 10 || password.length === 0}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 py-2.5 text-sm font-semibold text-white transition-all hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
@@ -246,7 +253,7 @@ function AdminLogin() {
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">New Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                   <input
                     type="password"
                     value={newPassword}
@@ -262,7 +269,7 @@ function AdminLogin() {
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Confirm Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                   <input
                     type="password"
                     value={confirmPassword}

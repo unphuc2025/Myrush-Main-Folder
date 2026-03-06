@@ -196,14 +196,14 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
 
               {/* New Slot Data */}
               <div className="space-y-4">
-                <div className="flex gap-3">
-                  <div className="flex-1">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="min-w-0">
                     <label className="text-[10px] uppercase font-bold text-slate-400">Start</label>
-                    <TimePicker value={newDateSlot.from} onChange={v => setNewDateSlot({ ...newDateSlot, from: v })} />
+                    <TimePicker value={newDateSlot.from} onChange={v => setNewDateSlot({ ...newDateSlot, from: v })} className="w-full" />
                   </div>
-                  <div className="flex-1">
+                  <div className="min-w-0">
                     <label className="text-[10px] uppercase font-bold text-slate-400">End</label>
-                    <TimePicker value={newDateSlot.to} onChange={v => setNewDateSlot({ ...newDateSlot, to: v })} />
+                    <TimePicker value={newDateSlot.to} onChange={v => setNewDateSlot({ ...newDateSlot, to: v })} className="w-full" />
                   </div>
                 </div>
                 <div>
@@ -212,10 +212,12 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
                     <span className="absolute left-3 top-2 text-slate-400 font-bold text-sm">₹</span>
                     <input
                       type="number"
+                      step="1"
+                      min="0"
                       value={newDateSlot.price}
                       onChange={e => setNewDateSlot({ ...newDateSlot, price: e.target.value })}
                       className="w-full pl-7 pr-3 py-1.5 border border-slate-200 rounded-lg text-sm font-bold focus:border-green-500 outline-none"
-                      placeholder="0.00"
+                      placeholder="0"
                     />
                   </div>
                 </div>
@@ -279,10 +281,12 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
                 <span className="absolute left-3 top-2.5 text-slate-400 font-bold">₹</span>
                 <input
                   type="number"
+                  step="1"
+                  min="0"
                   value={tempEditData.price}
                   onChange={(e) => setTempEditData(prev => ({ ...prev, price: e.target.value }))}
                   className="w-full pl-8 pr-4 py-2 border-2 border-slate-200 rounded-lg font-bold text-lg text-slate-900 focus:border-green-500 focus:ring-0 outline-none transition-all"
-                  placeholder="0.00"
+                  placeholder="0"
                 />
               </div>
             </div>
@@ -371,26 +375,26 @@ const TimePicker = ({ value, onChange, className }) => {
   };
 
   return (
-    <div className={`flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-0.5 focus-within:ring-2 focus-within:ring-green-500/20 focus-within:border-green-500 transition-all ${className}`}>
+    <div className={`w-full flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-0.5 focus-within:ring-2 focus-within:ring-green-500/20 focus-within:border-green-500 transition-all ${className || ''}`}>
       <select
         value={h}
         onChange={e => updateTime(e.target.value, m, ampm)}
-        className="flex-1 appearance-none bg-transparent py-1.5 text-center text-sm font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded"
+        className="flex-1 min-w-0 appearance-none bg-transparent py-1.5 text-center text-sm font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded"
       >
         {Array.from({ length: 12 }, (_, i) => i + 1).map(num => <option key={num} value={num}>{num}</option>)}
       </select>
-      <span className="text-slate-300 font-bold">:</span>
+      <span className="text-slate-300 font-bold shrink-0">:</span>
       <select
         value={m}
         onChange={e => updateTime(h, e.target.value, ampm)}
-        className="flex-1 appearance-none bg-transparent py-1.5 text-center text-sm font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded"
+        className="flex-1 min-w-0 appearance-none bg-transparent py-1.5 text-center text-sm font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded"
       >
         {['00', '15', '30', '45'].map(min => <option key={min} value={min}>{min}</option>)}
       </select>
       <select
         value={ampm}
         onChange={e => updateTime(h, m, e.target.value)}
-        className="w-12 appearance-none bg-slate-50 border-l border-slate-100 py-1.5 text-center text-xs font-bold text-slate-500 outline-none cursor-pointer hover:text-green-600 rounded-r"
+        className="shrink-0 w-10 appearance-none bg-slate-50 border-l border-slate-100 py-1.5 text-center text-xs font-bold text-slate-500 outline-none cursor-pointer hover:text-green-600 rounded-r"
       >
         <option value="AM">AM</option>
         <option value="PM">PM</option>

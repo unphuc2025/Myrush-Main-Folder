@@ -46,6 +46,7 @@ function Coupons() {
     };
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [successMsg, setSuccessMsg] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [editingCoupon, setEditingCoupon] = useState(null);
@@ -142,8 +143,10 @@ function Coupons() {
             try {
                 await couponsApi.delete(id);
                 fetchCoupons();
+                setSuccessMsg('Coupon deleted successfully.');
+                setTimeout(() => setSuccessMsg(null), 3000);
             } catch (err) {
-                alert('Failed to delete coupon');
+                setError(err?.response?.data?.detail || 'Unable to delete this coupon. Please try again.');
             }
         }
     };
@@ -153,7 +156,7 @@ function Coupons() {
             await couponsApi.toggleStatus(id);
             fetchCoupons();
         } catch (err) {
-            alert('Failed to toggle status');
+            setError('Failed to toggle coupon status. Please try again.');
         }
     };
 
@@ -181,8 +184,10 @@ function Coupons() {
             }
             setShowForm(false);
             fetchCoupons();
+            setSuccessMsg(editingCoupon ? 'Coupon updated successfully!' : 'Coupon created successfully!');
+            setTimeout(() => setSuccessMsg(null), 3000);
         } catch (err) {
-            alert(err.message || 'Failed to save coupon');
+            setError(err?.response?.data?.detail || err.message || 'Failed to save coupon. Please check the details and try again.');
         } finally {
             setSubmitting(false);
         }
@@ -434,6 +439,21 @@ function Coupons() {
                 ) : (
                     // List View
                     <>
+                        {error && (
+                            <div className="mb-4 p-4 bg-red-50 border border-red-100 text-red-700 rounded-xl flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <AlertCircle className="h-5 w-5 shrink-0" />
+                                    <span className="text-sm">{error}</span>
+                                </div>
+                                <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 ml-2 text-xs font-bold">✕</button>
+                            </div>
+                        )}
+                        {successMsg && (
+                            <div className="mb-4 p-4 bg-green-50 border border-green-100 text-green-700 rounded-xl flex items-center gap-2">
+                                <span className="text-lg">✓</span>
+                                <span className="text-sm font-medium">{successMsg}</span>
+                            </div>
+                        )}
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                             <div>
                                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">

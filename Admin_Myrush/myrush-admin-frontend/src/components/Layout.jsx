@@ -1,9 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { adminsApi } from '../services/adminApi';
 
 const Layout = ({ children, onLogout }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Refresh admin_info from the backend on every page load so sub-admin permissions
+    // are always up-to-date, even after a super-admin updates a role.
+    useEffect(() => {
+        const token = localStorage.getItem('admin_token');
+        if (!token) return;
+        adminsApi.getMe()
+            .then(freshAdminInfo => {
+                localStorage.setItem('admin_info', JSON.stringify(freshAdminInfo));
+            })
+            .catch(() => {
+                // Silently ignore — stale data is better than a crash
+            });
+    }, []);
 
     return (
         <div className="dark:bg-boxdark-2 dark:text-bodydark">

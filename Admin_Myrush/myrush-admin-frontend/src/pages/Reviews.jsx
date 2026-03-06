@@ -10,6 +10,25 @@ function Reviews() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Permission check
+    const canManage = (() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return true;
+            const perms = adminInfo.permissions?.['Manage Review And Ratings'] || {};
+            return perms.edit || perms.delete || perms.add;
+        } catch { return false; }
+    })();
+
+    const hasAnyAccess = (() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return true;
+            const perms = adminInfo.permissions?.['Manage Review And Ratings'] || {};
+            return Object.values(perms).some(v => v === true);
+        } catch { return false; }
+    })();
+
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
         if (!token) {
@@ -34,6 +53,10 @@ function Reviews() {
     };
 
     const toggleStatus = async (review) => {
+        if (!canManage) {
+            setError('You do not have permission to modify reviews.');
+            return;
+        }
         try {
             const newStatus = !review.is_active;
             await reviewsApi.updateStatus(review.id, newStatus);
@@ -42,7 +65,7 @@ function Reviews() {
                 r.id === review.id ? { ...r, is_active: newStatus } : r
             ));
         } catch (err) {
-            alert('Failed to update status: ' + err.message);
+            setError('Failed to update review status. Please try again.');
         }
     };
 
@@ -64,6 +87,20 @@ function Reviews() {
             <Layout>
                 <div className="flex h-[80vh] items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+                </div>
+            </Layout>
+        );
+    }
+
+    if (!hasAnyAccess) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center h-[70vh] gap-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <AlertCircle className="h-8 w-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-slate-500 max-w-sm">You don't have permission to view the Reviews &amp; Ratings section. Please contact your administrator.</p>
                 </div>
             </Layout>
         );
@@ -153,16 +190,18 @@ function Reviews() {
                                                     }`}>
                                                     {review.is_active ? 'Visible' : 'Hidden'}
                                                 </span>
-                                                <button
-                                                    onClick={() => toggleStatus(review)}
-                                                    className={`inline-flex items-center justify-center rounded-xl p-2.5 transition-all shadow-sm border ${review.is_active
-                                                        ? 'bg-white text-slate-400 border-slate-200 hover:text-red-600 hover:border-red-200 hover:bg-red-50'
-                                                        : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 active:scale-95'
-                                                        }`}
-                                                    title={review.is_active ? "Hide Review" : "Show Review"}
-                                                >
-                                                    {review.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                                </button>
+                                                {canManage && (
+                                                    <button
+                                                        onClick={() => toggleStatus(review)}
+                                                        className={`inline-flex items-center justify-center rounded-xl p-2.5 transition-all shadow-sm border ${review.is_active
+                                                            ? 'bg-white text-slate-400 border-slate-200 hover:text-red-600 hover:border-red-200 hover:bg-red-50'
+                                                            : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 active:scale-95'
+                                                            }`}
+                                                        title={review.is_active ? "Hide Review" : "Show Review"}
+                                                    >
+                                                        {review.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -217,23 +256,25 @@ function Reviews() {
 
                             {/* Actions */}
                             <div className="border-t border-slate-100 pt-3 flex justify-end">
-                                <button
-                                    onClick={() => toggleStatus(review)}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${review.is_active
-                                        ? 'bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-700'
-                                        : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                                        }`}
-                                >
-                                    {review.is_active ? (
-                                        <>
-                                            <EyeOff className="h-4 w-4" /> Hide Review
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Eye className="h-4 w-4" /> Show Review
-                                        </>
-                                    )}
-                                </button>
+                                {canManage && (
+                                    <button
+                                        onClick={() => toggleStatus(review)}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${review.is_active
+                                            ? 'bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-700'
+                                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                            }`}
+                                    >
+                                        {review.is_active ? (
+                                            <>
+                                                <EyeOff className="h-4 w-4" /> Hide Review
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Eye className="h-4 w-4" /> Show Review
+                                            </>
+                                        )}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}

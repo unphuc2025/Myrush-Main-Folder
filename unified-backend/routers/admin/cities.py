@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from dependencies import PermissionChecker
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
 import models, schemas
 from database import get_db
@@ -74,6 +75,16 @@ def delete_city(city_id: str, db: Session = Depends(get_db)):
     if not db_city:
         raise HTTPException(status_code=404, detail="City not found")
     
-    db.delete(db_city)
-    db.commit()
-    return {"message": "City deleted successfully"}
+    try:
+        db.delete(db_city)
+        db.commit()
+        return {"message": "City deleted successfully"}
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete this city because it contains venues or areas. Please delete those first or deactivate the city."
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

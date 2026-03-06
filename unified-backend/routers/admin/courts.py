@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional
 from decimal import Decimal
@@ -341,9 +342,19 @@ def delete_court(
     if not db_court:
         raise HTTPException(status_code=404, detail="Court not found")
     
-    db.delete(db_court)
-    db.commit()
-    return {"message": "Court deleted successfully"}
+    try:
+        db.delete(db_court)
+        db.commit()
+        return {"message": "Court deleted successfully"}
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete this court because it has associated bookings. Please delete the bookings first or deactivate the court."
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 @router.post("/bulk-update-slots")
 async def bulk_update_slots(
@@ -351,17 +362,17 @@ async def bulk_update_slots(
     slot_from: str = Form(...),
     slot_to: str = Form(...),
     price: str = Form(...),
+    original_slot_from: Optional[str] = Form(None),
+    original_slot_to: Optional[str] = Form(None),
     branch_id: Optional[str] = Form(None),
     game_type_id: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     _ = Depends(PermissionChecker("Manage Courts", "edit")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
-):
+) -> dict:
     """Bulk update slots for all courts (or filtered by branch/game_type) for a specific date"""
     try:
         # Parse the date
-        from datetime import datetime
-        date_obj = datetime.strptime(date, "%Y-%m-%d").date()
         date_key = date
 
         # Get all courts (optionally filtered)
@@ -385,6 +396,9 @@ async def bulk_update_slots(
         courts = query.all()
         updated_count = 0
 
+        # Determine what to filter out: either the new time OR the original time if provided
+        from_to_match = (original_slot_from, original_slot_to) if (original_slot_from and original_slot_to) else (slot_from, slot_to)
+
         for court in courts:
             # Get existing price conditions
             price_conditions = court.price_conditions or []
@@ -394,10 +408,10 @@ async def bulk_update_slots(
                 except:
                     price_conditions = []
 
-            # Filter OUT any existing date-specific slot for this EXACT date-time combo to prevent duplicates (Bug 3)
+            # Filter OUT any existing date-specific slot for this EXACT date and the TARGET time (original or new)
             price_conditions = [
                 pc for pc in price_conditions 
-                if not (pc.get('dates') and date_key in pc.get('dates', []) and pc.get('slotFrom') == slot_from and pc.get('slotTo') == slot_to)
+                if not (pc.get('dates') and date_key in pc.get('dates', []) and pc.get('slotFrom') == from_to_match[0] and pc.get('slotTo') == from_to_match[1])
             ]
 
             # Create new date-specific slot
@@ -425,6 +439,8 @@ async def bulk_update_slots(
             "slot_to": slot_to,
             "price": price
         }
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         print(f"Error in bulk_update_slots: {e}")

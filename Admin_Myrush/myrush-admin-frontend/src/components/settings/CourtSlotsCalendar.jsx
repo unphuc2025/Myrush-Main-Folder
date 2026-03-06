@@ -37,6 +37,7 @@ function CourtSlotsCalendar() {
 
   const [globalConditions, setGlobalConditions] = useState([]);
   const [showDayDetail, setShowDayDetail] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -53,9 +54,7 @@ function CourtSlotsCalendar() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Dynamically import to avoid circular dependency issues if any, or just strictly use the api
       const { globalPriceConditionsApi } = await import('../../services/adminApi');
-
       const [courtsData, branchesData, citiesData, globalConditionsData] = await Promise.all([
         courtsApi.getAll(),
         branchesApi.getAll(),
@@ -70,6 +69,15 @@ function CourtSlotsCalendar() {
       console.error('Error fetching data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshCourts = async () => {
+    try {
+      const courtsData = await courtsApi.getAll();
+      setCourts(courtsData);
+    } catch (err) {
+      console.error('Error refreshing courts:', err);
     }
   };
 
@@ -369,19 +377,19 @@ function CourtSlotsCalendar() {
     const dateKey = getDateKey(selectedDate);
 
     try {
+      setSaving(true);
       if (bulkEditMode) {
-        // Bulk update is simpler as it pushes a specific override to all matching courts
         await courtsApi.bulkUpdateSlots(
           dateKey,
           tempEditData.slotFrom,
           tempEditData.slotTo,
           tempEditData.price,
           selectedBranchId || null,
-          null
+          null,
+          !isAddingNew && editingSlot ? editingSlot.slotFrom : null,
+          !isAddingNew && editingSlot ? editingSlot.slotTo : null
         );
-        // Full refresh to ensure consistency
-        await fetchData();
-        loadMasterSlots();
+        await refreshCourts();
         closeModal();
       } else {
         // Single Court Logic - Need to handle Price Condition Array manually
@@ -481,6 +489,8 @@ function CourtSlotsCalendar() {
     } catch (err) {
       console.error(err);
       alert('Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -489,6 +499,7 @@ function CourtSlotsCalendar() {
     const dateKey = getDateKey(selectedDate);
 
     try {
+      setSaving(true);
       if (bulkEditMode) {
         await courtsApi.bulkDeleteSlots(
           dateKey,
@@ -497,8 +508,7 @@ function CourtSlotsCalendar() {
           selectedBranchId || null,
           null
         );
-        await fetchData();
-        loadMasterSlots();
+        await refreshCourts();
         closeModal();
         return;
       }
@@ -522,14 +532,11 @@ function CourtSlotsCalendar() {
       const originalFrom = editingSlot.slotFrom;
       const originalTo = editingSlot.slotTo;
 
-      // 1. Remove from Overrides (if it was one)
       const updatedConditions = existingConditions.filter(pc => {
         const isMatch = pc.dates && pc.dates.includes(dateKey) && pc.slotFrom === originalFrom && pc.slotTo === originalTo;
         return !isMatch;
       });
 
-      // 2. Add to Unavailability (to hide standard/recurring slots)
-      // Check if already in unavailability
       const alreadyUnavailable = unavailability.some(un =>
         un.dates && un.dates.includes(dateKey) && un.times && un.times.includes(originalFrom)
       );
@@ -539,11 +546,10 @@ function CourtSlotsCalendar() {
         updatedUnavailability.push({
           type: 'date',
           dates: [dateKey],
-          times: [originalFrom] // Backend logic uses index/hour often, but front-end filter matches on slotFrom[:hour]
+          times: [originalFrom]
         });
       }
 
-      // --- ROBOT STATE PRESERVATION ---
       const formData = new FormData();
       formData.append('name', freshCourt.name);
       formData.append('branch_id', freshCourt.branch_id);
@@ -553,7 +559,6 @@ function CourtSlotsCalendar() {
       formData.append('price_conditions', JSON.stringify(updatedConditions));
       formData.append('unavailability_slots', JSON.stringify(updatedUnavailability));
 
-      // Preserve Media & Amenities
       if (freshCourt.terms_and_conditions) formData.append('terms_and_conditions', freshCourt.terms_and_conditions);
       if (freshCourt.amenities) {
         const amData = typeof freshCourt.amenities === 'string' ? freshCourt.amenities : JSON.stringify(freshCourt.amenities);
@@ -569,21 +574,19 @@ function CourtSlotsCalendar() {
       }
 
       await courtsApi.update(selectedCourt.id, formData);
+      await refreshCourts();
 
-      // Update local state
-      const updatedCourt = { ...freshCourt, price_conditions: updatedConditions, unavailability_slots: updatedUnavailability };
-      setSelectedCourt(updatedCourt);
-      setCourts(prev => prev.map(c => c.id === updatedCourt.id ? updatedCourt : c));
-
-      // Refetch for consistency
-      const refreshedCourt = await courtsApi.getById(selectedCourt.id);
-      setSelectedCourt(refreshedCourt);
-      setCourts(prev => prev.map(c => c.id === refreshedCourt.id ? refreshedCourt : c));
+      if (selectedCourt) {
+        const refreshed = await courtsApi.getById(selectedCourt.id);
+        setSelectedCourt(refreshed);
+      }
 
       closeModal();
     } catch (err) {
-      console.error("Failed to delete slot:", err);
-      alert("Failed to delete slot. Please try again.");
+      console.error(err);
+      alert('Failed to delete slot.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -657,7 +660,7 @@ function CourtSlotsCalendar() {
 
           <div className="p-1 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-2">
             <div className="flex-1 w-full md:w-auto relative group">
-              <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-green-600" />
+              <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-green-600 pointer-events-none" />
               <select
                 value={selectedCityId}
                 onChange={(e) => { setSelectedCityId(e.target.value); setSelectedBranchId(''); setSelectedCourt(null); }}
@@ -669,7 +672,7 @@ function CourtSlotsCalendar() {
             </div>
             <div className="w-px h-8 bg-slate-200 hidden md:block" />
             <div className="flex-1 w-full md:w-auto relative group">
-              <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-green-600" />
+              <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-green-600 pointer-events-none" />
               <select
                 value={selectedBranchId}
                 onChange={(e) => { setSelectedBranchId(e.target.value); setSelectedCourt(null); }}
@@ -685,14 +688,14 @@ function CourtSlotsCalendar() {
               <>
                 <div className="w-px h-8 bg-slate-200 hidden md:block" />
                 <div className="flex-[2] w-full md:w-auto relative group">
-                  <Users className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-green-600" />
+                  <Users className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-green-600 pointer-events-none" />
                   <select
                     value={selectedCourt?.id || ''}
                     onChange={(e) => {
                       const val = e.target.value;
                       setSelectedCourt(courts.find(c => String(c.id) === String(val)));
                     }}
-                    className="w-full pl-9 pr-4 py-2 bg-transparent rounded-lg font-bold text-slate-900 outline-none focus:bg-slate-50 hover:bg-slate-50 transition-colors"
+                    className="w-full pl-9 pr-4 py-2 bg-transparent rounded-lg font-medium text-slate-700 outline-none focus:bg-slate-50 hover:bg-slate-50 transition-colors"
                   >
                     <option value="">Select Court to Manage...</option>
                     {filteredCourts.map(c => <option key={c.id} value={c.id}>{c.name} ({branches.find(b => b.id === c.branch_id)?.name})</option>)}
@@ -731,69 +734,71 @@ function CourtSlotsCalendar() {
             </div>
 
             {/* Calendar Grid */}
-            <div className="p-6">
-              {/* Weekday Headers */}
-              <div className="grid grid-cols-7 mb-4">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                  <div key={d} className="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">{d}</div>
-                ))}
-              </div>
+            <div className="p-6 overflow-x-auto custom-scrollbar">
+              <div className="min-w-[700px]">
+                {/* Weekday Headers */}
+                <div className="grid grid-cols-7 mb-4">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                    <div key={d} className="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">{d}</div>
+                  ))}
+                </div>
 
-              {/* Days */}
-              <div className="grid grid-cols-7 gap-2 lg:gap-4">
-                {getDaysInMonth().map((date, idx) => {
-                  if (!date) return <div key={`empty-${idx}`} />;
+                {/* Days */}
+                <div className="grid grid-cols-7 gap-2 lg:gap-4">
+                  {getDaysInMonth().map((date, idx) => {
+                    if (!date) return <div key={`empty-${idx}`} />;
 
-                  const dateKey = getDateKey(date);
-                  const daySlots = displaySlots[dateKey] || [];
-                  const isToday = date.toDateString() === new Date().toDateString();
+                    const dateKey = getDateKey(date);
+                    const daySlots = displaySlots[dateKey] || [];
+                    const isToday = date.toDateString() === new Date().toDateString();
 
-                  return (
-                    <div
-                      key={dateKey}
-                      onClick={() => handleDayClick(date)}
-                      className={`min-h-[120px] bg-white border rounded-xl p-3 transition-all cursor-pointer group hover:shadow-md ${isToday ? 'border-green-500 ring-1 ring-green-500 shadow-sm' : 'border-slate-200 hover:border-green-400'}`}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <span className={`text-sm font-bold ${isToday ? 'text-green-600' : 'text-slate-700'}`}>{date.getDate()}</span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openAddSlot(date); }}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-all"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-
-                      <div className="space-y-1">
-                        {daySlots.slice(0, 6).map((slot, sIdx) => (
-                          <div
-                            key={sIdx}
-                            onClick={(e) => { e.stopPropagation(); openSlotEdit(date, slot); }}
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border truncate transition-colors ${slot.isDateSpecific
-                              ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
-                              : 'bg-green-600 text-white border-green-700 hover:bg-green-700'
-                              }`}
+                    return (
+                      <div
+                        key={dateKey}
+                        onClick={() => handleDayClick(date)}
+                        className={`min-h-[120px] bg-white border rounded-xl p-3 transition-all cursor-pointer group hover:shadow-md ${isToday ? 'border-green-500 ring-1 ring-green-500 shadow-sm' : 'border-slate-200 hover:border-green-400'}`}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <span className={`text-sm font-bold ${isToday ? 'text-green-600' : 'text-slate-700'}`}>{date.getDate()}</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openAddSlot(date); }}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-all"
                           >
-                            {formatTime12Hour(slot.slotFrom)} - {formatTime12Hour(slot.slotTo)}
-                          </div>
-                        ))}
-                        {daySlots.length > 6 && (
-                          <div
-                            onClick={(e) => { e.stopPropagation(); handleDayClick(date); }}
-                            className="text-[9px] text-slate-500 font-bold pl-1 mt-1 uppercase tracking-tighter hover:text-green-600 cursor-pointer transition-colors"
-                          >
-                            + {daySlots.length - 6} Slots
-                          </div>
-                        )}
-                        {daySlots.length === 0 && (
-                          <div className="h-full flex items-center justify-center text-[10px] text-slate-400 font-bold italic pt-6">
-                            {bulkEditMode ? 'No Overrides' : 'Closed'}
-                          </div>
-                        )}
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="space-y-1">
+                          {daySlots.slice(0, 6).map((slot, sIdx) => (
+                            <div
+                              key={sIdx}
+                              onClick={(e) => { e.stopPropagation(); openSlotEdit(date, slot); }}
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border truncate transition-colors ${slot.isDateSpecific
+                                ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
+                                : 'bg-green-600 text-white border-green-700 hover:bg-green-700'
+                                }`}
+                            >
+                              {formatTime12Hour(slot.slotFrom)} - {formatTime12Hour(slot.slotTo)}
+                            </div>
+                          ))}
+                          {daySlots.length > 6 && (
+                            <div
+                              onClick={(e) => { e.stopPropagation(); handleDayClick(date); }}
+                              className="text-[9px] text-slate-500 font-bold pl-1 mt-1 uppercase tracking-tighter hover:text-green-600 cursor-pointer transition-colors"
+                            >
+                              + {daySlots.length - 6} Slots
+                            </div>
+                          )}
+                          {daySlots.length === 0 && (
+                            <div className="h-full flex items-center justify-center text-[10px] text-slate-400 font-bold italic pt-6">
+                              {bulkEditMode ? 'No Overrides' : 'Closed'}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -849,25 +854,33 @@ function CourtSlotsCalendar() {
             <div className="flex gap-3 pt-4 border-t border-slate-100">
               {!isAddingNew && (
                 <button
+                  disabled={saving}
                   onClick={async () => {
                     if (window.confirm('Are you sure you want to delete this slot override? This will revert to default recurring slots if any.')) {
                       await handleDeleteSlot();
                     }
                   }}
-                  className="px-4 py-2 border border-red-100 text-red-600 font-bold rounded-lg hover:bg-red-50"
+                  className={`px-4 py-2 border border-red-100 text-red-600 font-bold rounded-lg hover:bg-red-50 ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  Delete Override
+                  {saving ? 'Deleting...' : 'Delete Override'}
                 </button>
               )}
               <div className="flex-1" />
-              <button onClick={closeModal} className="px-5 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-lg">Cancel</button>
+              <button
+                onClick={closeModal}
+                disabled={saving}
+                className="px-5 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-lg disabled:opacity-50"
+              >
+                Cancel
+              </button>
               <button
                 onClick={handleCommitChange}
-                className={`px-6 py-2 text-white font-bold rounded-lg shadow-md transition-all ${bulkEditMode
+                disabled={saving}
+                className={`px-6 py-2 text-white font-bold rounded-lg shadow-md transition-all ${saving ? 'opacity-70 cursor-not-allowed' : ''} ${bulkEditMode
                   ? 'bg-slate-800 hover:bg-slate-900 shadow-slate-200'
                   : 'bg-green-600 hover:bg-green-700 shadow-green-200'}`}
               >
-                {isAddingNew ? 'Add Slot' : 'Save Changes'}
+                {saving ? 'Saving...' : (isAddingNew ? 'Add Slot' : 'Save Changes')}
               </button>
             </div>
           </div>

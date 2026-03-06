@@ -300,6 +300,21 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
             
             if isinstance(un_slots, list):
                 for un in un_slots:
+                    # --- Format 1 (New, from AddCourtForm): { date, from, to, reason } ---
+                    single_date = un.get('date')
+                    from_time = un.get('from')
+                    to_time = un.get('to')
+                    if single_date and from_time and to_time:
+                        if single_date == date_str:
+                            from_h = safe_parse_hour(from_time)
+                            to_h = safe_parse_hour(to_time)
+                            if to_h == 0: to_h = 24
+                            if from_h <= h < to_h:
+                                is_blocked = True
+                                break
+                        continue  # Skip old format check for this entry
+
+                    # --- Format 2 (Legacy): { dates[], days[], times[] } ---
                     match = False
                     if date_str in (un.get('dates') or []): match = True
                     if not match and day_short in [d.lower()[:3] for d in (un.get('days') or [])]: match = True

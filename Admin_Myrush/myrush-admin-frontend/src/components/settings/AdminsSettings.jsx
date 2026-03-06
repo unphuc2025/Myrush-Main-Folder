@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Edit2, Plus, User, Trash2, Search, XCircle, Shield, Building2, MapPin } from 'lucide-react';
 import Drawer from './Drawer';
 import AddAdminForm from './AddAdminForm';
@@ -10,6 +11,7 @@ function AdminsSettings() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // Drawer State
     const [showDrawer, setShowDrawer] = useState(false);
@@ -18,6 +20,26 @@ function AdminsSettings() {
     useEffect(() => {
         loadData();
     }, []);
+
+    // Sync drawer state with URL search params
+    useEffect(() => {
+        const addMode = searchParams.get('addAdmin') === 'true';
+        const editId = searchParams.get('editAdmin');
+
+        if (addMode) {
+            setEditingAdmin(null);
+            setShowDrawer(true);
+        } else if (editId && admins.length > 0) {
+            const admin = admins.find(a => a.id === editId);
+            if (admin) {
+                setEditingAdmin(admin);
+                setShowDrawer(true);
+            }
+        } else {
+            setShowDrawer(false);
+            setEditingAdmin(null);
+        }
+    }, [searchParams, admins]);
 
     const loadData = async () => {
         try {
@@ -31,7 +53,10 @@ function AdminsSettings() {
             setBranches(branchesData);
         } catch (err) {
             console.error('Error loading data:', err);
-            setError('Failed to load admins');
+            const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+                ? 'You do not have access to view admins.'
+                : 'Failed to load admins';
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }
@@ -44,13 +69,15 @@ function AdminsSettings() {
     };
 
     const handleAddClick = () => {
-        setEditingAdmin(null);
-        setShowDrawer(true);
+        setSearchParams({ addAdmin: 'true' });
     };
 
     const handleEditClick = (admin) => {
-        setEditingAdmin(admin);
-        setShowDrawer(true);
+        setSearchParams({ editAdmin: admin.id });
+    };
+
+    const handleDrawerClose = () => {
+        setSearchParams({});
     };
 
     const handleDeleteClick = async (id) => {
@@ -67,8 +94,7 @@ function AdminsSettings() {
 
     const handleSaveSuccess = async () => {
         await loadData();
-        setShowDrawer(false);
-        setEditingAdmin(null);
+        handleDrawerClose();
     };
 
     const filteredAdmins = admins.filter(admin =>
@@ -265,11 +291,11 @@ function AdminsSettings() {
             <Drawer
                 title={editingAdmin ? 'Edit Admin' : 'Add New Admin'}
                 isOpen={showDrawer}
-                onClose={() => setShowDrawer(false)}
+                onClose={handleDrawerClose}
             >
                 <AddAdminForm
                     initialData={editingAdmin}
-                    onCancel={() => setShowDrawer(false)}
+                    onCancel={handleDrawerClose}
                     onSave={handleSaveSuccess}
                 />
             </Drawer>

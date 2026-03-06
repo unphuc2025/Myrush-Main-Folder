@@ -3,6 +3,8 @@ import { Edit2, Plus, Building, Upload, X, MapPin, Clock, Camera, ChevronDown, E
 import ToggleSwitch from './ToggleSwitch';
 import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi, IMAGE_BASE_URL, getImageUrl, sanitizeImageUrl } from '../../services/adminApi';
 
+const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
 function BranchesSettings() {
   const [branches, setBranches] = useState([]);
   const [cities, setCities] = useState([]);
@@ -664,7 +666,7 @@ function BranchesSettings() {
           < div >
             <label className="block text-sm font-medium text-slate-700 mb-2">Search and Add Location</label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+              <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 value={formData.searchLocation}
@@ -899,38 +901,41 @@ function BranchesSettings() {
               Opening Hours
             </label>
             <div className="space-y-3">
-              {Object.entries(formData.openingHours).map(([day, hours]) => (
-                <div key={day} className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 w-32">
-                    <input
-                      type="checkbox"
-                      checked={hours.isActive}
-                      onChange={() => handleDayToggle(day)}
-                      className="text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-sm capitalize">{day}</span>
+              {DAYS.map((day) => {
+                const hours = formData.openingHours[day] || { open: '09:00', close: '22:00', isActive: false };
+                return (
+                  <div key={day} className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 w-32">
+                      <input
+                        type="checkbox"
+                        checked={hours.isActive}
+                        onChange={() => handleDayToggle(day)}
+                        className="text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm capitalize">{day}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        value={hours.open}
+                        onChange={(e) => handleOpeningHoursChange(day, 'open', e.target.value)}
+                        disabled={!hours.isActive}
+                        className={`px-2 py-1 text-sm border rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 ${hours.isActive ? 'border-slate-300' : 'border-slate-200 bg-slate-50'
+                          }`}
+                      />
+                      <span className="text-sm">to</span>
+                      <input
+                        type="time"
+                        value={hours.close}
+                        onChange={(e) => handleOpeningHoursChange(day, 'close', e.target.value)}
+                        disabled={!hours.isActive}
+                        className={`px-2 py-1 text-sm border rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 ${hours.isActive ? 'border-slate-300' : 'border-slate-200 bg-slate-50'
+                          }`}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="time"
-                      value={hours.open}
-                      onChange={(e) => handleOpeningHoursChange(day, 'open', e.target.value)}
-                      disabled={!hours.isActive}
-                      className={`px-2 py-1 text-sm border rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 ${hours.isActive ? 'border-slate-300' : 'border-slate-200 bg-slate-50'
-                        }`}
-                    />
-                    <span className="text-sm">to</span>
-                    <input
-                      type="time"
-                      value={hours.close}
-                      onChange={(e) => handleOpeningHoursChange(day, 'close', e.target.value)}
-                      disabled={!hours.isActive}
-                      className={`px-2 py-1 text-sm border rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 ${hours.isActive ? 'border-slate-300' : 'border-slate-200 bg-slate-50'
-                        }`}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div >
 
@@ -1232,23 +1237,26 @@ function BranchViewModal({ branch, onClose }) {
         <div>
           <h3 className="text-lg font-medium text-slate-900 mb-4">Opening Hours</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(openingHours).map(([day, hours]) => (
-              <div key={day} className={`p-3 rounded-lg border ${hours.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-slate-900 capitalize">{day}</h4>
-                  <span className={`text-xs px-2 py-1 rounded ${hours.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {hours.isActive ? 'Open' : 'Closed'}
-                  </span>
+            {DAYS.map((day) => {
+              const hours = openingHours[day] || { open: '09:00', close: '22:00', isActive: false };
+              return (
+                <div key={day} className={`p-3 rounded-lg border ${hours.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-slate-900 capitalize">{day}</h4>
+                    <span className={`text-xs px-2 py-1 rounded ${hours.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {hours.isActive ? 'Open' : 'Closed'}
+                    </span>
+                  </div>
+                  {hours.isActive ? (
+                    <p className="text-sm text-slate-600">
+                      {hours.open} - {hours.close}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-slate-500 italic">Closed</p>
+                  )}
                 </div>
-                {hours.isActive ? (
-                  <p className="text-sm text-slate-600">
-                    {hours.open} - {hours.close}
-                  </p>
-                ) : (
-                  <p className="text-sm text-slate-500 italic">Closed</p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

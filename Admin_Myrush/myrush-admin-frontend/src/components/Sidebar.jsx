@@ -67,7 +67,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
             setUserRole(parsed.role || 'super_admin');
             setPermissions(parsed.permissions || {});
         }
-    }, []);
+    }, [location.pathname]);
 
     // Check if the admin has any access (view/add/edit/delete) to a given module
     const hasModuleAccess = (moduleName) => {
@@ -154,7 +154,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
             >
                 {/* <!-- SIDEBAR HEADER --> */}
                 <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
-                    <Link to="/" onClick={() => setSidebarOpen(false)} className="flex items-center justify-center gap-2 w-full">
+                    <Link to="/dashboard" onClick={() => setSidebarOpen(false)} className="flex items-center justify-center gap-2 w-full">
                         <img
                             src={logo}
                             alt="MyRush Logo"

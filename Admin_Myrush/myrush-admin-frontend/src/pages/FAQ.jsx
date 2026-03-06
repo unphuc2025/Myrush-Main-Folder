@@ -57,7 +57,7 @@ const FAQ = () => {
                 loadFaqs();
             } catch (err) {
                 console.error('Error deleting FAQ:', err);
-                alert('Failed to delete FAQ');
+                setError(err?.response?.data?.detail || 'Unable to delete this FAQ. It may be in use or you may not have permission.');
             }
         }
     };
@@ -72,7 +72,7 @@ const FAQ = () => {
             // Revert on failure
             setFaqs(prev => prev.map(f => f.id === faq.id ? { ...f, is_active: faq.is_active } : f));
             console.error('Error toggling status:', err);
-            alert('Failed to toggle FAQ status');
+            setError('Failed to update FAQ status. Please try again.');
         }
     };
 

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from dependencies import PermissionChecker
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
 import models, schemas
 from database import get_db
@@ -71,6 +72,16 @@ def delete_area(area_id: str, db: Session = Depends(get_db)):
     if not db_area:
         raise HTTPException(status_code=404, detail="Area not found")
     
-    db.delete(db_area)
-    db.commit()
-    return {"message": "Area deleted successfully"}
+    try:
+        db.delete(db_area)
+        db.commit()
+        return {"message": "Area deleted successfully"}
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete this area because it contains venues. Please delete those first or deactivate the area."
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

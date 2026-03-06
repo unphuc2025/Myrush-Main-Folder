@@ -29,12 +29,23 @@ export const sanitizeImageUrl = (url) => {
 async function apiRequest(url, options = {}) {
     const token = localStorage.getItem('admin_token');
 
+    // Default to GET if no method specified
+    const method = options.method || 'GET';
+    const isGet = method.toUpperCase() === 'GET';
+
+    const headers = {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...options.headers
+    };
+
+    // Only set Content-Type if it's not a GET request
+    if (!isGet && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+    }
+
     const config = {
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            ...options.headers
-        },
+        method,
+        headers,
         ...options
     };
 
@@ -239,7 +250,7 @@ export const courtsApi = {
     delete: (id) => apiRequest(`/courts/${id}`, {
         method: 'DELETE'
     }),
-    bulkUpdateSlots: (date, slotFrom, slotTo, price, branchId = null, gameTypeId = null) => {
+    bulkUpdateSlots: (date, slotFrom, slotTo, price, branchId = null, gameTypeId = null, originalSlotFrom = null, originalSlotTo = null) => {
         const formData = new FormData();
         formData.append('date', date);
         formData.append('slot_from', slotFrom);
@@ -247,6 +258,8 @@ export const courtsApi = {
         formData.append('price', price);
         if (branchId) formData.append('branch_id', branchId);
         if (gameTypeId) formData.append('game_type_id', gameTypeId);
+        if (originalSlotFrom) formData.append('original_slot_from', originalSlotFrom);
+        if (originalSlotTo) formData.append('original_slot_to', originalSlotTo);
 
         const token = localStorage.getItem('admin_token');
         return fetch(`${API_BASE}/courts/bulk-update-slots`, {
@@ -466,6 +479,7 @@ export const policiesApi = {
 // Admins API
 export const adminsApi = {
     getAll: () => apiRequest('/auth/admins'),
+    getMe: () => apiRequest('/auth/me'),
     create: (data) => apiRequest('/auth/admins', {
         method: 'POST',
         body: JSON.stringify(data)
@@ -507,8 +521,12 @@ export const rolesApi = {
 // FAQ API
 export const faqsApi = {
     getAll: (params = {}) => {
-        const query = new URLSearchParams(params).toString();
-        return apiRequest(`/faq?${query}`);
+        // Strip out empty/null/undefined params so we don't send ?search= when empty
+        const cleanParams = Object.fromEntries(
+            Object.entries(params).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+        );
+        const query = new URLSearchParams(cleanParams).toString();
+        return apiRequest(`/faq${query ? '?' + query : ''}`);
     },
     getById: (id) => apiRequest(`/faq/${id}`),
     create: (data) => apiRequest('/faq/', {

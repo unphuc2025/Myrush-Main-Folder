@@ -27,7 +27,10 @@ const Roles = () => {
             setRoles(data);
         } catch (err) {
             console.error('Error loading roles:', err);
-            setError('Failed to load roles');
+            const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+                ? 'You do not have access to view roles.'
+                : 'Unable to load roles right now. Please refresh the page or try again later.';
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }
@@ -40,7 +43,9 @@ const Roles = () => {
                 loadRoles();
             } catch (err) {
                 console.error('Error deleting role:', err);
-                const message = err?.response?.data?.detail || err?.message || 'Failed to delete role';
+                const message = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+                    ? 'You do not have access to delete roles.'
+                    : (err?.response?.data?.detail || 'Unable to delete this role. It may have admins assigned to it.');
                 setError(message);
             }
         }
@@ -53,7 +58,10 @@ const Roles = () => {
             loadRoles();
         } catch (err) {
             console.error('Error toggling status:', err);
-            setError(err.message || 'Failed to toggle role status');
+            const message = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+                ? 'You do not have access to update roles.'
+                : (err.message || 'Failed to toggle role status');
+            setError(message);
         }
     };
 
@@ -157,6 +165,12 @@ const Roles = () => {
                                         ))}
                                     </tbody>
                                 </table>
+                                {filteredRoles.length === 0 && (
+                                    <div className="text-center py-12 text-slate-500">
+                                        <ShieldCheck className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                                        <p className="text-base font-medium">No roles found.</p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Mobile Card View */}

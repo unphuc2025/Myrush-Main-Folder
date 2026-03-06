@@ -27,7 +27,10 @@ function AmenitiesSettings() {
       setAmenities(data);
     } catch (err) {
       console.error('Error fetching amenities:', err);
-      setError('Failed to load amenities');
+      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+        ? 'You do not have access to view amenities.'
+        : 'Failed to load amenities';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -50,7 +53,10 @@ function AmenitiesSettings() {
         await fetchAmenities();
       } catch (err) {
         console.error('Error deleting amenity:', err);
-        setError('Failed to delete amenity');
+        const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+          ? 'You do not have access to delete amenities.'
+          : 'Failed to delete amenity';
+        setError(errorMsg);
       }
     }
   };
@@ -78,7 +84,10 @@ function AmenitiesSettings() {
       await amenitiesApi.update(amenity.id, updateData);
     } catch (err) {
       console.error('Error toggling amenity:', err);
-      setError('Failed to update amenity status');
+      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+        ? 'You do not have access to update amenities.'
+        : 'Failed to update amenity status';
+      setError(errorMsg);
       fetchAmenities(); // Revert
     }
   };
@@ -89,12 +98,15 @@ function AmenitiesSettings() {
 
   return (
     <div>
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
+          <XCircle className="h-5 w-5" />{error}
+        </div>
+      )}
+
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <div>
-          {/* Optional sub-header/stats if needed */}
-        </div>
-
+        <div></div>
         <div className="flex w-full md:w-auto gap-3">
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -115,12 +127,6 @@ function AmenitiesSettings() {
           </button>
         </div>
       </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
-          <XCircle className="h-5 w-5" />{error}
-        </div>
-      )}
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

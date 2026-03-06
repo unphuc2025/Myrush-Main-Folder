@@ -27,7 +27,10 @@ function GameTypesSettings() {
       setGameTypes(data);
     } catch (err) {
       console.error('Error fetching game types:', err);
-      setError('Failed to load game types');
+      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+        ? 'You do not have access to view sports.'
+        : 'Failed to load game types';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -50,7 +53,10 @@ function GameTypesSettings() {
         await fetchGameTypes();
       } catch (err) {
         console.error('Error deleting game type:', err);
-        setError('Failed to delete game type');
+        const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+          ? 'You do not have access to delete sports.'
+          : 'Failed to delete game type';
+        setError(errorMsg);
       }
     }
   };
@@ -81,7 +87,10 @@ function GameTypesSettings() {
       // await fetchGameTypes();
     } catch (err) {
       console.error('Error toggling game type:', err);
-      setError('Failed to update game type status');
+      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+        ? 'You do not have access to update sports.'
+        : 'Failed to update game type status';
+      setError(errorMsg);
       fetchGameTypes(); // Revert
     }
   };
@@ -93,12 +102,15 @@ function GameTypesSettings() {
 
   return (
     <div>
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
+          <XCircle className="h-5 w-5" />{error}
+        </div>
+      )}
+
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <div>
-          {/* Optional sub-header if needed, otherwise kept clean */}
-        </div>
-
+        <div></div>
         <div className="flex w-full md:w-auto gap-3">
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -119,12 +131,6 @@ function GameTypesSettings() {
           </button>
         </div>
       </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
-          <XCircle className="h-5 w-5" />{error}
-        </div>
-      )}
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
