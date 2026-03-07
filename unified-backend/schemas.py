@@ -18,7 +18,7 @@ if not S3_BASE_URL and S3_BUCKET_NAME:
     S3_BASE_URL = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com"
 
 def resolve_path(path: str) -> str:
-    """Resolves a relative path to an absolute URL (S3 or Local Proxy)"""
+    """Resolves a relative path to an absolute URL via the Media Proxy"""
     if not path or not isinstance(path, str):
         return path
     
@@ -26,15 +26,10 @@ def resolve_path(path: str) -> str:
     if path.startswith('http://') or path.startswith('https://'):
         return path
         
-    # If S3 is configured, return direct S3 URL
-    if S3_BASE_URL:
-        key = path.lstrip('/')
-        return f"{S3_BASE_URL}/{key}"
-    
-    # Fallback to API proxy if S3 is not configured
+    # Fallback to API proxy (always use proxy for consistent access to private S3 buckets)
     base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
     
-    # Clean up path - remove /api/media/ prefix if it exists to avoid double prefixing
+    # Clean up path - remove prefixes if they exist to avoid double prefixing
     key = path
     if path.startswith('/api/media/'):
         key = path.replace('/api/media/', '')
@@ -43,6 +38,7 @@ def resolve_path(path: str) -> str:
     
     key = key.lstrip('/')
     
+    # Use the /api/media proxy. This router handles the S3 fetch using backend-side credentials.
     return f"{base_url}/api/media/{key}"
 
 # ============================================================================

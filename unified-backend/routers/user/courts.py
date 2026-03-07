@@ -4,6 +4,7 @@ from sqlalchemy import text
 from typing import Optional
 import models, database, json, uuid
 from date_utils import parse_date_safe
+from schemas import resolve_path
 
 router = APIRouter(
     prefix="/courts",
@@ -113,6 +114,15 @@ def get_courts(
                     if aid in amenity_map:
                         detailed_amenities.append(amenity_map[aid])
 
+            # Resolve image paths
+            photos = court_dict.get('photos') or []
+            if isinstance(photos, list):
+                photos = [resolve_path(p) for p in photos if p]
+            
+            videos = court_dict.get('videos') or []
+            if isinstance(videos, list):
+                videos = [resolve_path(v) for v in videos if v]
+
             result.append({
                 "id": str(court_dict['id']),
                 "court_name": court_dict.get('court_name', ''),
@@ -122,8 +132,8 @@ def get_courts(
                 "description": court_dict.get('description', '') or court_dict.get('ground_overview', '') or f"{court_dict.get('branch_name', '')} - {court_dict.get('game_type', '')} Court",
                 "terms_condition": court_dict.get('terms_and_conditions') or court_dict.get('branch_terms') or '',
                 "amenities": detailed_amenities,
-                "photos": court_dict.get('photos') or [],
-                "videos": court_dict.get('videos') or [],
+                "photos": photos,
+                "videos": videos,
                 "rating": float(court_dict.get('average_rating') or 0),
                 "reviews": int(court_dict.get('total_reviews') or 0),
                 "opening_hours": court_dict.get('opening_hours') or {},
@@ -198,6 +208,15 @@ def get_court(court_id: str, db: Session = Depends(database.get_db)):
                 if aid in amenity_map:
                     detailed_amenities.append(amenity_map[aid])
 
+        # Resolve image paths
+        photos = court_dict.get('photos') or []
+        if isinstance(photos, list):
+            photos = [resolve_path(p) for p in photos if p]
+        
+        videos = court_dict.get('videos') or []
+        if isinstance(videos, list):
+            videos = [resolve_path(v) for v in videos if v]
+
         return {
             "id": str(court_dict['id']),
             "court_name": court_dict.get('court_name', ''),
@@ -207,8 +226,8 @@ def get_court(court_id: str, db: Session = Depends(database.get_db)):
             "description": court_dict.get('description', '') or court_dict.get('ground_overview', '') or f"{court_dict.get('branch_name', '')} - {court_dict.get('game_type', '')} Court",
             "terms_condition": court_dict.get('terms_and_conditions') or court_dict.get('branch_terms') or '',
             "amenities": detailed_amenities,
-            "photos": court_dict.get('photos') or [],
-            "videos": court_dict.get('videos') or [],
+            "photos": photos,
+            "videos": videos,
             "rating": float(court_dict.get('average_rating') or 0),
             "reviews": int(court_dict.get('total_reviews') or 0),
             "opening_hours": court_dict.get('opening_hours') or {},

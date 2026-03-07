@@ -52,13 +52,40 @@ export const getRootUrl = (): string => {
  * If it's a relative path starting with /api/media, prepends the root URL
  */
 export const getImageUrl = (path: string | null | undefined): string | undefined => {
-  if (!path) return undefined;
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  if (!path || typeof path !== 'string' || path.trim() === '' || path === 'null' || path === 'undefined') return undefined;
 
   const rootUrl = getRootUrl();
-  // Ensure path starts with / if it's relative
-  const formattedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${rootUrl}${formattedPath}`;
+
+  // Handle double-slash protocol-relative URLs
+  let normalizedPath = path.startsWith('//') ? `https:${path}` : path;
+
+  // If it's already a full URL
+  if (normalizedPath.startsWith('http://') || normalizedPath.startsWith('https://')) {
+    // Normalize localhost/127.0.0.1 to the current rootUrl's host
+    if (normalizedPath.includes('localhost') || normalizedPath.includes('127.0.0.1')) {
+      try {
+        const urlParts = normalizedPath.split('://')[1].split('/');
+        urlParts.shift(); // remove host:port
+        const relativePath = urlParts.join('/');
+        return `${rootUrl}/${relativePath}`;
+      } catch (e) {
+        return normalizedPath;
+      }
+    }
+    return normalizedPath;
+  }
+
+  // It's a relative path.
+  // Check if it already starts with /api/media or /uploads
+  if (normalizedPath.startsWith('/api/media') || normalizedPath.startsWith('api/media') || 
+      normalizedPath.startsWith('/uploads') || normalizedPath.startsWith('uploads')) {
+    const formattedPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+    return `${rootUrl}${formattedPath}`;
+  }
+
+  // Otherwise, default to prepending /api/media/ for images from the DB that aren't resolved
+  const cleanPath = normalizedPath.startsWith('/') ? normalizedPath.slice(1) : normalizedPath;
+  return `${rootUrl}/api/media/${cleanPath}`;
 };
 
 /**

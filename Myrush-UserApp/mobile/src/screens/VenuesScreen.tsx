@@ -21,6 +21,7 @@ import { colors } from '../theme/colors';
 import { venuesApi, Venue } from '../api/venues';
 import { profileApi } from '../api/profile';
 import { RootStackParamList } from '../types';
+import { getImageUrl } from '../config/env';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 type VenuesRouteProp = RouteProp<RootStackParamList, 'Venues'>;
@@ -274,7 +275,7 @@ const VenuesScreen = () => {
                 activeOpacity={0.9}
             >
                 <ImageBackground
-                    source={firstPhoto ? { uri: firstPhoto } : undefined}
+                    source={firstPhoto ? { uri: getImageUrl(firstPhoto) } : undefined}
                     style={styles.venueCardBackground}
                     imageStyle={styles.venueCardImage}
                 >
