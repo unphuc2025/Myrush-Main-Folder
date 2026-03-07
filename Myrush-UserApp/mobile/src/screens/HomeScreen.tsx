@@ -29,6 +29,7 @@ import { RootStackParamList } from '../types';
 import { Container } from '../components/common/Container';
 import { profileApi, City, ProfileData, Player } from '../api/profile';
 import { venuesApi, Venue, favoritesApi } from '../api/venues';
+import { getImageUrl } from '../config/env';
 
 const { width } = Dimensions.get('window');
 
@@ -56,13 +57,31 @@ export const HomeScreen: React.FC = () => {
 	const [topPlayers, setTopPlayers] = useState<Player[]>([]);
 	const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
 
+	const [profileData, setProfileData] = useState<ProfileData | null>(null);
+	const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
 	useEffect(() => {
 		loadCities();
 		loadGameTypes();
 		loadVenues();
 		loadFavorites();
 		loadTopPlayers();
+		loadProfile();
 	}, [user?.city]);
+
+	const loadProfile = async () => {
+		setIsLoadingProfile(true);
+		try {
+			const response = await profileApi.getProfile('');
+			if (response.success && response.data) {
+				setProfileData(response.data);
+			}
+		} catch (error) {
+			console.error('[HOME] Error loading profile:', error);
+		} finally {
+			setIsLoadingProfile(false);
+		}
+	};
 
 	const loadGameTypes = async () => {
 		const response = await venuesApi.getGameTypes();
@@ -154,7 +173,7 @@ export const HomeScreen: React.FC = () => {
 		}
 	};
 
-	const displayName = user?.fullName?.split(' ')[0] || user?.firstName || 'Alex';
+	const displayName = profileData?.full_name?.split(' ')[0] || user?.fullName?.split(' ')[0] || user?.firstName || 'Player';
 
 	const quickActions = [
 		{ icon: 'football', label: 'Book Court', color: colors.primary, route: 'Venues' },
@@ -230,7 +249,7 @@ export const HomeScreen: React.FC = () => {
 						{/* Welcome */}
 						<View style={styles.welcomeContainer}>
 							<Text style={styles.welcomeText}>
-								<Text>Welcome, </Text><Text style={styles.userName}>{displayName}!</Text> 👋
+								Welcome, <Text style={styles.userName}>{displayName}!</Text> 👋
 							</Text>
 							<Text style={styles.subWelcome}>Ready to play?</Text>
 						</View>
@@ -294,10 +313,18 @@ export const HomeScreen: React.FC = () => {
 											style={styles.favoriteCard}
 											onPress={() => navigation.navigate('VenueDetails', { venue: item })}
 										>
-											<Image
-												source={item.photos && item.photos.length > 0 ? { uri: item.photos[0] } : require('../../assets/dashboard-hero.png')}
-												style={styles.favoriteImage}
-											/>
+										<View style={styles.favoriteImageContainer}>
+											{item.photos && item.photos.length > 0 ? (
+												<Image
+													source={{ uri: getImageUrl(item.photos[0]) }}
+													style={styles.favoriteImage}
+												/>
+											) : (
+												<View style={[styles.favoriteImage, { backgroundColor: '#1C1C1E', justifyContent: 'center', alignItems: 'center' }]}>
+													<Ionicons name="image-outline" size={moderateScale(24)} color="#333" />
+												</View>
+											)}
+										</View>
 											<View style={styles.favoriteInfo}>
 												<Text style={styles.favoriteName} numberOfLines={1}>{item.court_name}</Text>
 												<View style={styles.favoriteStats}>
@@ -376,7 +403,7 @@ export const HomeScreen: React.FC = () => {
 									>
 										<View style={styles.venueImageContainer}>
 											{venue.photos && venue.photos.length > 0 ? (
-												<Image source={{ uri: venue.photos[0] }} style={styles.venueImage} resizeMode="cover" />
+												<Image source={{ uri: getImageUrl(venue.photos[0]) }} style={styles.venueImage} resizeMode="cover" />
 											) : (
 												<View style={[styles.venueImage, { backgroundColor: '#333', alignItems: 'center', justifyContent: 'center' }]}>
 													<Ionicons name="image-outline" size={24} color="#666" />

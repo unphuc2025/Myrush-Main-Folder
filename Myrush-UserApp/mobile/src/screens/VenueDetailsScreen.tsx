@@ -23,6 +23,8 @@ import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
 import courtsApi from '../api/courts';
 import { venuesApi, favoritesApi } from '../api/venues';
+import PhotoGallery from '../components/common/PhotoGallery';
+import { getImageUrl } from '../config/env';
 
 const { width } = Dimensions.get('window');
 
@@ -52,17 +54,18 @@ const VenueDetailsScreen: React.FC = () => {
     // Default mock data if no params (fallback)
     const defaultVenue = {
         id: '1',
-        name: 'Kanteerava Cricket Nets',
-        location: 'Sampangiramnagar, Bengaluru',
-        rating: 4.5,
-        reviews: 120,
+        name: '...',
+        location: '',
+        rating: 0,
+        reviews: 0,
         price: 900,
-        image: require('../../assets/dashboard-hero.png'),
+        image: undefined,
+        photos: [] as string[],
         amenities: [
             { id: '1', name: 'WI-FI', icon: null, icon_url: null, description: 'Free WiFi available' },
             { id: '2', name: 'Parking', icon: null, icon_url: null, description: 'Parking available' },
         ],
-        about: 'Prime cricket facility in the heart of Bengaluru with well-maintained practice nets, floodlights, parking, and changing rooms. Perfect for evening sessions and weekend games.',
+        about: '',
         terms_and_conditions: 'Default terms and conditions apply.',
         rules: 'Standard rules apply.',
         googleMapUrl: '',
@@ -70,22 +73,35 @@ const VenueDetailsScreen: React.FC = () => {
         is_favorite: false,
     };
 
+    // Combine photos from venue and selected court
+    const getAllPhotos = () => {
+        const venuePhotos = (paramsVenue?.photos || []).filter((p: any) => !!getImageUrl(p));
+        const courtPhotos = (selectedCourt?.photos || []).filter((p: any) => !!getImageUrl(p));
+        
+        // Unique photos
+        const combined = Array.from(new Set([...courtPhotos, ...venuePhotos]));
+        return combined;
+    };
+
+    const allPhotos = getAllPhotos();
+
     // Map the API venue data to the screen's expected format
     const venue = paramsVenue ? {
         id: paramsVenue.id,
-        name: paramsVenue.court_name || paramsVenue.branch_name || 'Unnamed Court',
-        location: paramsVenue.location || `${paramsVenue.branch_name}, ${paramsVenue.city_name}`,
+        name: paramsVenue.court_name || paramsVenue.branch_name || '...',
+        location: paramsVenue.location || `${paramsVenue.branch_name || '...'}, ${paramsVenue.city_name || ''}`,
         rating: paramsVenue.rating || ratings.average_rating || 0,
         reviews: paramsVenue.reviews || ratings.total_reviews || 0,
         price: paramsVenue.prices,
         // Point 5 & 6: Use dynamic image from selected court or venue photos
         image: (selectedCourt?.photos && selectedCourt.photos.length > 0)
-            ? { uri: selectedCourt.photos[0] }
+            ? { uri: getImageUrl(selectedCourt.photos[0]) }
             : (paramsVenue.photos && paramsVenue.photos.length > 0)
-                ? { uri: paramsVenue.photos[0] }
-                : require('../../assets/dashboard-hero.png'),
+                ? { uri: getImageUrl(paramsVenue.photos[0]) }
+                : undefined,
+        photos: allPhotos,
         amenities: paramsVenue.amenities || [],
-        about: paramsVenue.description || paramsVenue.ground_overview || `Premium ${paramsVenue.game_type} facility at ${paramsVenue.branch_name}. Book your slots now for the best playing experience.`,
+        about: paramsVenue.description || paramsVenue.ground_overview || '',
         terms_and_conditions: paramsVenue.terms_condition || paramsVenue.terms_and_conditions || 'Standard booking terms apply. Cancellations must be made 24 hours in advance.',
         rules: paramsVenue.rule || '',
         googleMapUrl: paramsVenue.google_map_url || '',
@@ -211,28 +227,29 @@ const VenueDetailsScreen: React.FC = () => {
             <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(10) }}>
-                {/* Immersive Header Image */}
-                <ImageBackground
-                    source={venue.image}
-                    key={JSON.stringify(venue.image)} // Point 5: Force re-render when image changes
-                    style={styles.headerImage}
-                    imageStyle={styles.headerImageStyle}
-                >
+                {/* Immersive Header Gallery */}
+                <View style={styles.headerImage}>
+                    <PhotoGallery 
+                        photos={venue.photos} 
+                    />
                     <LinearGradient
-                        colors={['rgba(0,0,0,0.6)', 'transparent', 'rgba(0,0,0,0.8)', '#000000']}
-                        style={styles.gradientOverlay}
+                        colors={['rgba(0,0,0,0.6)', 'transparent', 'transparent', 'rgba(0,0,0,0.8)', '#000000']}
+                        style={[styles.gradientOverlay, StyleSheet.absoluteFillObject]}
+                        pointerEvents="box-none"
                     >
                         <View style={styles.headerSafeArea}>
                             <View style={styles.headerIcons}>
                                 <TouchableOpacity
                                     style={styles.headerButton}
                                     onPress={() => navigation.goBack()}
+                                    pointerEvents="auto"
                                 >
                                     <Ionicons name="arrow-back" size={moderateScale(24)} color="#fff" />
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={styles.headerButton}
                                     onPress={toggleFavorite}
+                                    pointerEvents="auto"
                                 >
                                     <Ionicons
                                         name={isFavorite ? 'heart' : 'heart-outline'}
@@ -242,13 +259,15 @@ const VenueDetailsScreen: React.FC = () => {
                                 </TouchableOpacity>
                             </View>
                         </View>
+                        <View style={styles.headerBottomContent}>
+                            <Text style={styles.venueNameOnImage} numberOfLines={2}>{venue.name}</Text>
+                        </View>
                     </LinearGradient>
-                </ImageBackground>
+                </View>
 
                 {/* Venue Info Content */}
                 <View style={styles.content}>
                     <View style={styles.titleSection}>
-                        <Text style={styles.venueName}>{venue.name}</Text>
                         <TouchableOpacity style={styles.locationRow} onPress={openMap}>
                             <Ionicons name="location-outline" size={moderateScale(16)} color={colors.primary} />
                             <Text style={styles.locationText}>{venue.location}</Text>
@@ -348,27 +367,27 @@ const VenueDetailsScreen: React.FC = () => {
                         </View>
                     )}
 
-                    {/* About */}
+                    {!!venue.about && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>ABOUT VENUE</Text>
+                        <Text style={styles.sectionTitle}>ABOUT</Text>
                         <Text style={styles.aboutText}>{venue.about}</Text>
                     </View>
-
+                )}
                     {/* Rules */}
                     {venue.rules ? (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Rules</Text>
+                            <Text style={styles.sectionTitle}>RULES</Text>
                             <Text style={styles.termsText}>{venue.rules}</Text>
                         </View>
                     ) : null}
 
                     {/* Terms and Conditions */}
-                    {venue.terms_and_conditions && (
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>TERMS & CONDITIONS</Text>
-                            <Text style={styles.termsText}>{venue.terms_and_conditions}</Text>
-                        </View>
-                    )}
+                    {!!venue.terms_and_conditions && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>RULES & REGULATIONS</Text>
+                        <Text style={styles.termsText}>{venue.terms_and_conditions}</Text>
+                    </View>
+                )}
 
                     {/* Reviews */}
                     <View style={styles.section}>
@@ -413,9 +432,9 @@ const VenueDetailsScreen: React.FC = () => {
                                                 <Text style={styles.reviewRatingText}>{review.rating}</Text>
                                             </View>
                                         </View>
-                                        {review.review_text && (
-                                            <Text style={styles.reviewText}>{review.review_text}</Text>
-                                        )}
+                                        {!!review.review_text && (
+                                        <Text style={styles.reviewText}>{review.review_text}</Text>
+                                    )}
                                     </View>
                                 ))}
                             </View>
@@ -489,7 +508,7 @@ const styles = StyleSheet.create({
         // No radius, fully immersive
     },
     gradientOverlay: {
-        flex: 1,
+        zIndex: 10,
         justifyContent: 'space-between',
     },
     headerSafeArea: {
@@ -519,13 +538,19 @@ const styles = StyleSheet.create({
     titleSection: {
         marginBottom: hp(3),
     },
-    venueName: {
-        fontSize: fontScale(28),
-        fontWeight: '900',
+    venueNameOnImage: {
+        fontSize: fontScale(26),
+        fontWeight: 'bold',
         color: '#fff',
-        marginBottom: hp(1),
         textTransform: 'uppercase',
         letterSpacing: 0.5,
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: -1, height: 1 },
+        textShadowRadius: 10,
+    },
+    headerBottomContent: {
+        paddingHorizontal: wp(5),
+        marginBottom: hp(1),
     },
     locationRow: {
         flexDirection: 'row',

@@ -22,6 +22,7 @@ import { RootStackParamList } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { profileApi, ProfileData } from '../api/profile';
 import { favoritesApi, Venue } from '../api/venues';
+import { getImageUrl } from '../config/env';
 
 const { width } = Dimensions.get('window');
 
@@ -117,7 +118,7 @@ const ProfileOverviewScreen = () => {
                 >
                     <View style={styles.avatarContainer}>
                         <View style={styles.avatar}>
-                            {(profileData?.avatar_url || user?.avatarUrl) ? (
+                            {!!(profileData?.avatar_url || user?.avatarUrl) ? (
                                 <Image
                                     source={{ uri: profileData?.avatar_url || user?.avatarUrl || '' }}
                                     style={{ width: '100%', height: '100%', borderRadius: 100 }}
@@ -153,7 +154,7 @@ const ProfileOverviewScreen = () => {
                         <View style={styles.loadingContainer}>
                             <ActivityIndicator size="small" color={colors.primary} />
                         </View>
-                    ) : favoriteVenues.length > 0 ? (
+                    ) : !!favoriteVenues && favoriteVenues.length > 0 ? (
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
@@ -166,10 +167,16 @@ const ProfileOverviewScreen = () => {
                                     onPress={() => navigation.navigate('VenueDetails', { venue: item })}
                                 >
                                     <View style={styles.favoriteImageContainer}>
-                                        <Image
-                                            source={item.photos && item.photos.length > 0 ? { uri: item.photos[0] } : require('../../assets/dashboard-hero.png')}
-                                            style={styles.favoriteImage}
-                                        />
+                                        {!!(item.photos && item.photos.length > 0) ? (
+                                            <Image
+                                                source={{ uri: getImageUrl(item.photos[0]) }}
+                                                style={styles.favoriteImage}
+                                            />
+                                        ) : (
+                                            <View style={[styles.favoriteImage, { backgroundColor: '#1C1C1E', justifyContent: 'center', alignItems: 'center' }]}>
+                                                <Ionicons name="image-outline" size={moderateScale(24)} color="#333" />
+                                            </View>
+                                        )}
                                         <TouchableOpacity
                                             style={styles.heartButton}
                                             onPress={() => handleToggleFavorite(item.id)}
@@ -181,7 +188,7 @@ const ProfileOverviewScreen = () => {
                                         <Text style={styles.favoriteName} numberOfLines={1}>{item.court_name}</Text>
                                         <View style={styles.favoriteStats}>
                                             <Ionicons name="star" size={moderateScale(10)} color="#FFB800" />
-                                            <Text style={styles.favoriteRating}>{item.rating?.toFixed(1) || '0.0'}</Text>
+                                            <Text style={styles.favoriteRating}>{!!item.rating ? item.rating.toFixed(1) : '0.0'}</Text>
                                             <Text style={styles.favoriteMeta}> • {item.game_type}</Text>
                                         </View>
                                     </View>
@@ -196,39 +203,7 @@ const ProfileOverviewScreen = () => {
                     )}
                 </View>
 
-                {/* Loyalty Program Section */}
-                {/* Loyalty Program Section - Hidden for MVP */}
-                {/* <TouchableOpacity
-                    style={styles.loyaltyCard}
-                    onPress={() => navigation.navigate('RedemptionStore')}
-                >
-                    <LinearGradient
-                        colors={['#FFD700', '#FFA000']} // Gold Gradient
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.loyaltyGradient}
-                    >
-                        <View style={styles.loyaltyHeader}>
-                            <View>
-                                <Text style={styles.loyaltyLabel}>MYRUSH LOYALTY</Text>
-                                <Text style={styles.loyaltyTier}>Gold Member</Text>
-                            </View>
-                            <MaterialCommunityIcons name="crown" size={moderateScale(32)} color="#FFF" />
-                        </View>
 
-                        <View style={styles.pointsContainer}>
-                            <Text style={styles.pointsValue}>1,250</Text>
-                            <Text style={styles.pointsLabel}>Rush Points</Text>
-                        </View>
-
-                        <View style={styles.progressContainer}>
-                            <View style={styles.progressBarBg}>
-                                <View style={[styles.progressBarFill, { width: '60%' }]} />
-                            </View>
-                            <Text style={styles.progressText}>750 points to Platinum</Text>
-                        </View>
-                    </LinearGradient>
-                </TouchableOpacity> */}
 
                 {/* Stats Grid */}
                 <View style={styles.statsGrid}>
@@ -262,12 +237,7 @@ const ProfileOverviewScreen = () => {
                 <View style={styles.menuContainer}>
                     <Text style={styles.sectionHeader}>Account</Text>
 
-                    {/* <Text style={[styles.sectionHeader, { fontSize: 12, color: '#666', marginTop: 0, marginBottom: 10 }]}>(Coming Soon)</Text> */}
-
-                    {/* {renderMenuItem('people-outline', 'Community', () => navigation.navigate('Community' as any))} */}
                     {renderMenuItem('calendar-outline', 'My Bookings', () => navigation.navigate('BookTab'))}
-                    {/* {renderMenuItem('ribbon-outline', 'Memberships', () => navigation.navigate('Membership'))} */}
-                    {/* {renderMenuItem('trophy-outline', 'Tournaments', () => { })} */}
                     {renderMenuItem('card-outline', 'Payment Methods', () => navigation.navigate('Payments'))}
 
                     <Text style={[styles.sectionHeader, { marginTop: hp(3) }]}>Support</Text>

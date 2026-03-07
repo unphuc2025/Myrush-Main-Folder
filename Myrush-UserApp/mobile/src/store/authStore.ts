@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as authApi from '../api/auth';
 import { apiClient, USER_KEY } from '../api/apiClient';
 import { getImageUrl } from '../config/env';
+import { profileApi } from '../api/profile';
 
 export interface UserProfile {
   id: string;
@@ -68,6 +69,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           phoneNumber: user.phone_number,
           firstName: user.first_name,
           lastName: user.last_name,
+          fullName: user.full_name || `${user.first_name} ${user.last_name}`.trim(),
           city: user.city,
           avatarUrl: getImageUrl(user.avatar_url),
         },
@@ -92,6 +94,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           email: user.email,
           firstName: user.first_name,
           lastName: user.last_name,
+          fullName: user.full_name || `${user.first_name} ${user.last_name}`.trim(),
           city: user.city,
           avatarUrl: getImageUrl(user.avatar_url),
         },
@@ -166,6 +169,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           phoneNumber: phoneNumber,
           firstName: user.first_name,
           lastName: user.last_name,
+          fullName: user.full_name || `${user.first_name} ${user.last_name}`.trim(),
           city: user.city,
         },
         token: authResp.access_token,
@@ -257,6 +261,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             phoneNumber: user.phone_number,
             firstName: user.first_name,
             lastName: user.last_name,
+            fullName: user.full_name || `${user.first_name} ${user.last_name}`.trim(),
             city: user.city,
             avatarUrl: getImageUrl(user.avatar_url),
           },
@@ -292,6 +297,7 @@ export const useAuthStore = create<AuthState>((set) => ({
               phoneNumber: user.phone_number,
               firstName: user.first_name,
               lastName: user.last_name,
+              fullName: user.full_name || `${user.first_name} ${user.last_name}`.trim(),
               city: user.city,
               avatarUrl: getImageUrl(user.avatar_url),
             },

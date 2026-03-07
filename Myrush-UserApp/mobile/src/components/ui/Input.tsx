@@ -37,7 +37,7 @@ export const Input: React.FC<InputProps> = ({
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {!!label && <Text style={styles.label}>{label}</Text>}
       <View
         style={[
           styles.inputContainer,
@@ -45,7 +45,7 @@ export const Input: React.FC<InputProps> = ({
           error && styles.error,
         ]}
       >
-        {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
+        {!!leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
         <TextInput
           style={[styles.input, leftIcon ? styles.inputWithLeftIcon : undefined, style]}
           placeholderTextColor={colors.gray[400]}
@@ -64,11 +64,11 @@ export const Input: React.FC<InputProps> = ({
             </Text>
           </TouchableOpacity>
         )}
-        {rightIcon && !isPassword && (
+        {!!rightIcon && !isPassword && (
           <View style={styles.rightIcon}>{rightIcon}</View>
         )}
       </View>
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {!!error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 };
