@@ -132,9 +132,9 @@ function CourtsSettings() {
         search: debouncedSearch,
         branch_id: selectedBranchId
       });
-      setCourts(courtsResp.items);
-      setTotalItems(courtsResp.total);
-      setTotalPages(courtsResp.pages);
+      setCourts(courtsResp?.items || courtsResp || []);
+      setTotalItems(courtsResp?.total || courtsResp?.length || 0);
+      setTotalPages(courtsResp?.pages || 1);
     } catch (err) {
       console.error('Error fetching courts:', err);
       const status = err.response?.status;

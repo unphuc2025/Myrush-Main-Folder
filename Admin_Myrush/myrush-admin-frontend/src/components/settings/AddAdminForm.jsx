@@ -39,8 +39,8 @@ function AddAdminForm({ onCancel, onSave, initialData = null }) {
                 branchesApi.getAll(),
                 rolesApi.getAll()
             ]);
-            setBranches(branchesData);
-            setRoles(rolesData);
+            setBranches(branchesData?.items || branchesData || []);
+            setRoles(rolesData?.items || rolesData || []);
         } catch (err) {
             console.error('Failed to load data', err);
         }

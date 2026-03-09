@@ -61,10 +61,10 @@ function CourtSlotsCalendar() {
         citiesApi.getAll(),
         globalPriceConditionsApi.getAll()
       ]);
-      setCourts(courtsData);
-      setBranches(branchesData);
-      setCities(citiesData);
-      setGlobalConditions(globalConditionsData);
+      setCourts(courtsData?.items || courtsData || []);
+      setBranches(branchesData?.items || branchesData || []);
+      setCities(citiesData?.items || citiesData || []);
+      setGlobalConditions(globalConditionsData?.items || globalConditionsData || []);
     } catch (err) {
       console.error('Error fetching data:', err);
     } finally {

@@ -60,9 +60,9 @@ const Reports = () => {
                 branchesApi.getAll(),
                 citiesApi.getAll()
             ]);
-            setBookings(bookingsData);
-            setBranches(branchesData);
-            setCities(citiesData);
+            setBookings(bookingsData?.items || bookingsData || []);
+            setBranches(branchesData?.items || branchesData || []);
+            setCities(citiesData?.items || citiesData || []);
         } catch (error) {
             console.error("Error fetching report data:", error);
         } finally {

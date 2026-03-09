@@ -49,8 +49,8 @@ function AdminsSettings() {
                 adminsApi.getAll(),
                 branchesApi.getAll()
             ]);
-            setAdmins(adminsData);
-            setBranches(branchesData);
+            setAdmins(adminsData?.items || adminsData || []);
+            setBranches(branchesData?.items || branchesData || []);
         } catch (err) {
             console.error('Error loading data:', err);
             const status = err.response?.status;

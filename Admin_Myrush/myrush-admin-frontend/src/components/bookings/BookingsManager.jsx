@@ -54,9 +54,9 @@ function BookingsManager() {
                 ]);
 
                 if (isMounted) {
-                    setCities(citiesData);
-                    setBranches(branchesData);
-                    setBookings(bookingsData);
+                    setCities(citiesData?.items || citiesData || []);
+                    setBranches(branchesData?.items || branchesData || []);
+                    setBookings(bookingsData?.items || bookingsData || []);
                 }
             } catch (err) {
                 console.error('Error fetching data:', err);

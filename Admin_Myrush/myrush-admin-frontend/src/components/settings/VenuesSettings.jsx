@@ -393,9 +393,9 @@ function VenuesSettings() {
         search: debouncedSearch,
         city_id: selectedCityId
       });
-      setVenues(venuesResp.items);
-      setTotalItems(venuesResp.total);
-      setTotalPages(venuesResp.pages);
+      setVenues(venuesResp?.items || venuesResp || []);
+      setTotalItems(venuesResp?.total || venuesResp?.length || 0);
+      setTotalPages(venuesResp?.pages || 1);
     } catch (err) {
       console.error('Error fetching venues:', err);
       setError('Failed to load venues. Please try again.');

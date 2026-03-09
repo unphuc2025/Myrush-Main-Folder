@@ -85,7 +85,7 @@ function Dashboard() {
       return status === 'confirmed' || status === 'completed' ? sum + amount : sum;
     }, 0);
 
-    const activeVenues = venues.filter(v => v.is_active).length;
+    const activeVenues = (Array.isArray(venues) ? venues : venues.items || []).filter(v => v.is_active).length;
 
     setStats({
       totalRevenue,
