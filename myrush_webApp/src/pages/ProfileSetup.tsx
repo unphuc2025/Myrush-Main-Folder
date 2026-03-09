@@ -82,9 +82,7 @@ export const ProfileSetup: React.FC = () => {
     const skillLevels = ['Beginner', 'Intermediate', 'Advanced', 'Pro'];
     const playingStyles = ['Dinker', 'Banger', 'All-court', 'Net Player', 'Baseline'];
 
-    const toggle = (item: string, list: string[], setList: (v: string[]) => void) => {
-        setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
-    };
+
 
     const handleContinue = async () => {
         if (!fullName.trim() || !age.trim() || !city.trim()) {
@@ -92,10 +90,10 @@ export const ProfileSetup: React.FC = () => {
             return;
         }
         if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-             alert('Please enter a valid email address.');
-             return;
+            alert('Please enter a valid email address.');
+            return;
         }
-        
+
         if (isSaving) return;
         setIsSaving(true);
         try {
@@ -196,7 +194,7 @@ export const ProfileSetup: React.FC = () => {
                             className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all shadow-sm"
                         />
                     </div>
-                    
+
                     {/* Email */}
                     <div className="mb-6">
                         <SectionLabel>Email Address</SectionLabel>

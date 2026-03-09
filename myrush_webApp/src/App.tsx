@@ -13,9 +13,7 @@ import { Services } from './pages/Services';
 import { Home } from './pages/Home';
 import { Community } from './pages/Community';
 import { Arcade } from './pages/Arcade';
-import { Login } from './pages/Login';
-import { OTPVerification } from './pages/OTPVerification';
-import { ProfileSetup } from './pages/ProfileSetup';
+
 import { Memberships } from './pages/Memberships';
 import { Venues } from './pages/Venues';
 import { VenueDetailsPage } from './pages/VenueDetails';

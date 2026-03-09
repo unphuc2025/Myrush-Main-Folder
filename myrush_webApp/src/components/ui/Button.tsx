@@ -33,7 +33,7 @@ export const Button: React.FC<ButtonProps> = ({
         lg: "text-sm px-12 py-5.5",
     };
 
-    const isMobile = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
 
     return (
         <motion.button

@@ -1,21 +1,21 @@
-import React from 'react';
-import { 
-    FaParking, 
-    FaWifi, 
-    FaShower, 
-    FaLightbulb, 
-    FaWater, 
-    FaCoffee, 
-    FaUtensils, 
-    FaFirstAid, 
-    FaVideo, 
-    FaSnowflake, 
-    FaUserTie, 
-    FaTshirt, 
-    FaLeaf, 
-    FaListOl, 
-    FaChair, 
-    FaBaby, 
+
+import {
+    FaParking,
+    FaWifi,
+    FaShower,
+    FaLightbulb,
+    FaWater,
+    FaCoffee,
+    FaUtensils,
+    FaFirstAid,
+    FaVideo,
+    FaSnowflake,
+    FaUserTie,
+    FaTshirt,
+    FaLeaf,
+    FaListOl,
+    FaChair,
+    FaBaby,
     FaCreditCard,
     FaLock,
     FaRestroom,
@@ -24,7 +24,7 @@ import {
 
 export const getAmenityIcon = (name: string, className: string = "w-6 h-6") => {
     const n = name.toLowerCase();
-    
+
     if (n.includes('park')) return <FaParking className={className} />;
     if (n.includes('wifi') || n.includes('wi-fi') || n.includes('internet')) return <FaWifi className={className} />;
     if (n.includes('toilet') || n.includes('washroom') || n.includes('restroom') || n.includes('wc')) return <FaRestroom className={className} />;
@@ -44,6 +44,6 @@ export const getAmenityIcon = (name: string, className: string = "w-6 h-6") => {
     if (n.includes('seat') || n.includes('stand') || n.includes('gallery')) return <FaChair className={className} />;
     if (n.includes('child') || n.includes('kid')) return <FaBaby className={className} />;
     if (n.includes('atm') || n.includes('cash')) return <FaCreditCard className={className} />;
-    
+
     return <FaQuestion className={className} />;
 };

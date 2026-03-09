@@ -316,7 +316,7 @@ export const VenueDetailsPage: React.FC = () => {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
                                             {venue.amenities.map((item, i) => {
                                                 const label = typeof item === 'string' ? item : item.name;
-                                                const n = label.toLowerCase();
+
                                                 const getIcon = (): React.ReactNode => {
                                                     return getAmenityIcon(label, "w-5 h-5 text-primary");
                                                 };
