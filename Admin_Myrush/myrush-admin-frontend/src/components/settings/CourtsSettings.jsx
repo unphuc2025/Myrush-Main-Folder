@@ -70,6 +70,20 @@ function CourtsSettings() {
   const [selectedCityId, setSelectedCityId] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // Reset to first page on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // View state
   const [showDrawer, setShowDrawer] = useState(false);
@@ -81,36 +95,61 @@ function CourtsSettings() {
   const [showGlobalConditions, setShowGlobalConditions] = useState(false);
   const [editingGlobalCondition, setEditingGlobalCondition] = useState(null);
 
-  // Fetch all data
+  // Fetch lookup data once on mount
   useEffect(() => {
-    fetchAllData();
+    fetchLookupData();
     fetchGlobalConditions();
   }, []);
 
-  const fetchAllData = async () => {
+  // Fetch paginated data when dependencies change
+  useEffect(() => {
+    fetchCourtsPage();
+  }, [page, debouncedSearch, selectedCityId, selectedBranchId]);
+
+  const fetchLookupData = async () => {
+    try {
+      const [citiesData, branchesData, gameTypesData] = await Promise.all([
+        citiesApi.getAll(),
+        branchesApi.getAll(), // Fetch all initially for lookup
+        gameTypesApi.getAll()
+      ]);
+      setCities(citiesData);
+      setBranches(branchesData instanceof Array ? branchesData : (branchesData.items || []));
+      setGameTypes(gameTypesData);
+    } catch (err) {
+      console.error('Error fetching lookup data:', err);
+    }
+  };
+
+  const fetchCourtsPage = async () => {
     try {
       setLoading(true);
       setError(null);
-      const [citiesData, branchesData, gameTypesData, courtsData] = await Promise.all([
-        citiesApi.getAll(),
-        branchesApi.getAll(),
-        gameTypesApi.getAll(),
-        courtsApi.getAll()
-      ]);
-
-      setCities(citiesData);
-      setBranches(branchesData);
-      setGameTypes(gameTypesData);
-      setCourts(courtsData);
+      const skip = (page - 1) * pageSize;
+      const courtsResp = await courtsApi.getAll({
+        skip,
+        limit: pageSize,
+        search: debouncedSearch,
+        branch_id: selectedBranchId
+      });
+      setCourts(courtsResp.items);
+      setTotalItems(courtsResp.total);
+      setTotalPages(courtsResp.pages);
     } catch (err) {
-      console.error('Error fetching data:', err);
-      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+      console.error('Error fetching courts:', err);
+      const status = err.response?.status;
+      const errorMsg = (status === 403 || status === 401 || err.message?.toLowerCase().includes('authorized') || err.message?.toLowerCase().includes('access'))
         ? 'You do not have access to view courts.'
         : 'Failed to load data. Please try again.';
       setError(errorMsg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchAllData = async () => {
+    // For legacy/compatibility if needed
+    await Promise.all([fetchLookupData(), fetchCourtsPage()]);
   };
 
   const fetchGlobalConditions = async () => {
@@ -122,32 +161,9 @@ function CourtsSettings() {
     }
   };
 
-  // Filter branches and courts based on selections
-  const filteredBranches = selectedCityId
-    ? branches.filter(branch => branch.city_id === selectedCityId)
-    : branches;
-
-  const filteredCourts = courts.filter(court => {
-    // 1. City Check
-    if (selectedCityId) {
-      let cityMatches = false;
-      if (court.branch?.city?.id === selectedCityId) cityMatches = true;
-      else if (court.branch?.city_id === selectedCityId) cityMatches = true;
-      else {
-        const branch = branches.find(b => b.id === court.branch_id);
-        if (branch?.city_id === selectedCityId) cityMatches = true;
-      }
-      if (!cityMatches) return false;
-    }
-
-    // 2. Branch Check
-    if (selectedBranchId && String(court.branch_id) !== String(selectedBranchId)) return false;
-
-    // 3. Search Term
-    if (searchTerm && !court.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-
-    return true;
-  });
+  // Filter branches and courts - mostly handled server-side now
+  const filteredBranches = branches;
+  const filteredCourts = courts;
 
   const handleCityChange = (cityId) => {
     setSelectedCityId(cityId);
@@ -427,46 +443,44 @@ function CourtsSettings() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex">
-                      <button onClick={() => setViewingCourt(court)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors">
-                        <Eye className="h-5 w-5" />
-                      </button>
-                    </div>
+                    <ToggleSwitch
+                      isChecked={court.is_active}
+                      onToggle={() => handleToggleCourt(court)}
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex flex-col">
-                      <span className="text-xs text-slate-500 font-bold uppercase">Branch</span>
-                      <span className="font-medium text-slate-800">{court.branch?.name} ({court.branch?.city?.short_code})</span>
+                    <div className="flex flex-col bg-slate-50 p-2 rounded-lg">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Branch</span>
+                      <span className="font-medium text-slate-800 truncate">{court.branch?.name}</span>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-slate-500 font-bold uppercase">Price</span>
-                      <span className="font-medium text-green-600">₹{court.price_per_hour || court.default_price}/hr</span>
+                    <div className="flex flex-col bg-slate-50 p-2 rounded-lg">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Price</span>
+                      <span className="font-bold text-green-600">₹{court.price_per_hour || court.default_price}/hr</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-400 uppercase">Status</span>
-                      <ToggleSwitch
-                        isChecked={court.is_active}
-                        onToggle={() => handleToggleCourt(court)}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleEditClick(court)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold bg-slate-50 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(court.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      onClick={() => setViewingCourt(court)}
+                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span className="text-sm font-bold">View</span>
+                    </button>
+                    <button
+                      onClick={() => handleEditClick(court)}
+                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      <span className="text-sm font-bold">Edit</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(court.id)}
+                      className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -482,6 +496,43 @@ function CourtsSettings() {
                 </div>
               )}
             </div>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-200">
+                <div className="text-xs text-slate-500 font-medium">
+                  Showing <span className="font-bold text-slate-700">{Math.min((page - 1) * pageSize + 1, totalItems)}</span> to <span className="font-bold text-slate-700">{Math.min(page * pageSize, totalItems)}</span> of <span className="font-bold text-slate-700">{totalItems}</span> courts
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                  >
+                    Prev
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                    .map((p, i, arr) => (
+                      <div key={p} className="flex">
+                        {i > 0 && arr[i - 1] !== p - 1 && <span className="px-1 text-slate-300">...</span>}
+                        <button
+                          onClick={() => setPage(p)}
+                          className={`w-8 h-8 rounded text-xs font-bold transition-all ${page === p ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 border border-slate-200 bg-white'}`}
+                        >
+                          {p}
+                        </button>
+                      </div>
+                    ))}
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

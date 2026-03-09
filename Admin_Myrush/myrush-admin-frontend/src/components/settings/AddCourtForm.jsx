@@ -44,13 +44,13 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
         if (initialData) {
           // Parse complex fields if they are strings
           let priceConditions = initialData.price_conditions || [];
-          if (typeof priceConditions === 'string') {
-            try { priceConditions = JSON.parse(priceConditions); } catch (e) { console.error('Error parsing price conditions', e); }
+          while (typeof priceConditions === 'string') {
+            try { priceConditions = JSON.parse(priceConditions); } catch (e) { console.error('Error parsing price conditions', e); break; }
           }
 
           let unavailabilitySlots = initialData.unavailability_slots || [];
-          if (typeof unavailabilitySlots === 'string') {
-            try { unavailabilitySlots = JSON.parse(unavailabilitySlots); } catch (e) { console.error('Error parsing unavailability slots', e); }
+          while (typeof unavailabilitySlots === 'string') {
+            try { unavailabilitySlots = JSON.parse(unavailabilitySlots); } catch (e) { console.error('Error parsing unavailability slots', e); break; }
           }
           /* Amenities parsing removed */
           setFormData({

@@ -254,10 +254,14 @@ class SiteSetting(Base):
     __tablename__ = "admin_site_settings"
     id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
     site_logo = Column(String(500), nullable=True)
+    company_name = Column(String(255), nullable=True)
     email = Column(String(255), nullable=False)
     contact_number = Column(String(50), nullable=False)
     address = Column(Text, nullable=False)
     copyright_text = Column(String(255), nullable=False)
+    instagram_url = Column(String(500), nullable=True)
+    youtube_url = Column(String(500), nullable=True)
+    linkedin_url = Column(String(500), nullable=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
 

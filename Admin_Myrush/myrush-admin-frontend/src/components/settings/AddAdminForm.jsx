@@ -59,6 +59,15 @@ function AddAdminForm({ onCancel, onSave, initialData = null }) {
                 throw new Error('Please select a role');
             }
 
+            if ((payload.mobile || '').length !== 10) {
+                throw new Error('Mobile number must be exactly 10 digits');
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (payload.email && !emailRegex.test(payload.email)) {
+                throw new Error('Please enter a valid email address');
+            }
+
             // Legacy support: fill 'role' string if needed by backend validation
             if (payload.role !== 'super_admin') {
                 payload.role = 'custom_role';

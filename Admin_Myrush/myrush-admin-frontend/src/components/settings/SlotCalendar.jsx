@@ -150,7 +150,7 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
 
                 {/* Slots Grid */}
                 {isActive && (
-                  <div className="px-3 pb-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="px-3 pb-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                     {daySlots.map(slot => (
                       <SlotCard
                         key={slot.id}
@@ -175,6 +175,7 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Date Picker */}
               <div>
+                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Select Dates</label>
                 <input
                   type="date"
                   onChange={(e) => {
@@ -182,7 +183,7 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
                       setSelectedDates([...selectedDates, e.target.value]);
                     }
                   }}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none mb-3"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none mb-3 block relative [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer bg-white"
                 />
                 <div className="flex flex-wrap gap-2 min-h-[40px]">
                   {selectedDates.map(date => (
@@ -196,18 +197,18 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
 
               {/* New Slot Data */}
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="min-w-0">
-                    <label className="text-[10px] uppercase font-bold text-slate-400">Start</label>
-                    <TimePicker value={newDateSlot.from} onChange={v => setNewDateSlot({ ...newDateSlot, from: v })} className="w-full" />
+                <div className="flex flex-col gap-3">
+                  <div className="w-full">
+                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Start</label>
+                    <TimePicker value={newDateSlot.from} onChange={v => setNewDateSlot({ ...newDateSlot, from: v })} className="w-full py-1" />
                   </div>
-                  <div className="min-w-0">
-                    <label className="text-[10px] uppercase font-bold text-slate-400">End</label>
-                    <TimePicker value={newDateSlot.to} onChange={v => setNewDateSlot({ ...newDateSlot, to: v })} className="w-full" />
+                  <div className="w-full">
+                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">End</label>
+                    <TimePicker value={newDateSlot.to} onChange={v => setNewDateSlot({ ...newDateSlot, to: v })} className="w-full py-1" />
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400">Price Override</label>
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Price Override</label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-slate-400 font-bold text-sm">₹</span>
                     <input
@@ -348,12 +349,12 @@ const SlotCard = ({ slot, onClick, onDelete, isDate }) => (
       </div>
     )}
 
-    <div className={`flex items-end justify-between ${!isDate ? 'mt-auto' : ''}`}>
+    <div className={`flex items-end justify-between gap-1 pt-2 mt-2 border-t border-slate-100/50 ${!isDate ? 'mt-auto' : ''}`}>
       <div>
         <p className={`text-[10px] font-bold uppercase mb-0.5 ${isDate ? 'text-blue-500' : 'text-slate-400'}`}>Price</p>
-        <p className={`font-bold text-lg ${isDate ? 'text-blue-700' : 'text-slate-900'}`}>₹{slot.price}</p>
+        <p className={`font-bold text-lg leading-none ${isDate ? 'text-blue-700' : 'text-slate-900'}`}>₹{slot.price}</p>
       </div>
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1.5 rounded-lg border border-slate-100 shadow-sm text-slate-500">
+      <div className="shrink-0 bg-slate-50 p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-green-600 hover:border-green-300 hover:bg-green-50 transition-colors shadow-sm">
         <Edit2 className="h-3.5 w-3.5" />
       </div>
     </div>

@@ -24,7 +24,7 @@ import { BookingSummary } from './pages/BookingSummary';
 import { MyBookings } from './pages/MyBookings';
 import { Profile } from './pages/Profile';
 import { EditProfile } from './pages/EditProfile';
-import { TermsCondition } from './pages/TermsCondition';
+import { CmsPage } from './pages/CmsPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import { Footer } from './components/Footer';
@@ -58,8 +58,7 @@ const AppContent = () => {
 
   useEffect(() => {
     // If we've been redirected here from ProtectedRoute, open the modal
-    // But don't open it if we are currently viewing Terms & Conditions
-    if (location.state?.from && !isAuthenticated && location.pathname !== '/terms') {
+    if (location.state?.from && !isAuthenticated) {
       openAuthModal();
     }
   }, [location.state, isAuthenticated, openAuthModal, location.pathname]);
@@ -103,7 +102,7 @@ const AppContent = () => {
           <Route path="/loyalty" element={<ProtectedRoute><Loyalty /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
-          <Route path="/terms" element={<TermsCondition />} />
+          <Route path="/p/:slug" element={<CmsPage />} />
         </Routes>
       </div>
       {!shouldHideFooter && <Footer />}

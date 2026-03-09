@@ -131,7 +131,12 @@ function BranchesSettings() {
       setBranches(branchesData);
     } catch (err) {
       console.error('Error fetching data:', err);
-      setError('Failed to load data. Please try again.');
+      const status = err.response?.status;
+      if (status === 403) {
+        setError('You do not have access to view branches.');
+      } else {
+        setError('Failed to load data. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -1010,67 +1015,122 @@ function BranchesSettings() {
         </div>
       ) : (
         <>
-          {/* Branches List */}
-          <div className="space-y-3">
-            {filteredBranches.map((branch) => (
-              <div key={branch.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center">
-                    {branch.images && branch.images.length > 0 ? (
-                      <img
-                        src={getImageUrl(branch.images[0])}
-                        alt={branch.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <Building className="h-5 w-5 text-green-600" />
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Venue Name</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Location</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Status</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredBranches.map((branch) => (
+                  <tr key={branch.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center flex-shrink-0">
+                          {branch.images?.[0] ? (
+                            <img src={getImageUrl(branch.images[0])} alt={branch.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Building className="h-5 w-5 text-slate-300" />
+                          )}
+                        </div>
+                        <span className="font-medium text-slate-900">{branch.name}</span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm">
+                        <p className="text-slate-900 font-medium">{branch.city?.name}</p>
+                        <p className="text-slate-500 truncate max-w-xs">{branch.address_line1}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <ToggleSwitch
+                        isChecked={branch.is_active}
+                        onToggle={() => handleToggleBranch(branch)}
+                      />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setViewingBranch(branch)}
+                          className="p-1.5 text-purple-600 bg-purple-50 rounded hover:bg-purple-100 transition-colors"
+                          title="View"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditClick(branch)}
+                          className="p-1.5 text-amber-600 bg-amber-50 rounded hover:bg-amber-100 transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {filteredBranches.map((branch) => (
+              <div key={branch.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center flex-shrink-0 bg-slate-50">
+                    {branch.images?.[0] ? (
+                      <img src={getImageUrl(branch.images[0])} alt={branch.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Building className="h-6 w-6 text-slate-300" />
                     )}
                   </div>
-                  <div>
-                    <h3 className="font-medium text-slate-900">{branch.name}</h3>
-                    <p className="text-sm text-slate-500">
-                      {branch.city?.name} • {branch.address_line1}
-                    </p>
-                    {branch.search_location && (
-                      <p className="text-sm text-slate-400">
-                        Location: {branch.search_location}
-                      </p>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="font-bold text-slate-900 truncate pr-2">{branch.name}</h3>
+                      <ToggleSwitch
+                        isChecked={branch.is_active}
+                        onToggle={() => handleToggleBranch(branch)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-slate-500 font-medium">{branch.city?.name} • {branch.area?.name || 'Main Area'}</p>
+                      <p className="text-[11px] text-slate-400 line-clamp-1">{branch.address_line1}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <ToggleSwitch
-                    isChecked={branch.is_active}
-                    onToggle={() => handleToggleBranch(branch)}
-                  />
+
+                <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
                   <button
                     onClick={() => setViewingBranch(branch)}
-                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="View"
+                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
                   >
                     <Eye className="h-4 w-4" />
+                    <span className="text-sm font-bold">View</span>
                   </button>
                   <button
                     onClick={() => handleEditClick(branch)}
-                    className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                    title="Edit"
+                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
                   >
                     <Edit2 className="h-4 w-4" />
+                    <span className="text-sm font-bold">Edit</span>
                   </button>
                 </div>
               </div>
             ))}
-
-            {filteredBranches.length === 0 && (
-              <div className="text-center py-8 text-slate-500">
-                <Building className="h-12 w-12 mx-auto text-slate-300 mb-4" />
-                <p>No branches found for the selected city.</p>
-                <p className="text-sm">Click "Add Branch" to create your first branch.</p>
-              </div>
-            )}
           </div>
+
+          {!loading && filteredBranches.length === 0 && (
+            <div className="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+              <Building className="h-12 w-12 mx-auto text-slate-300 mb-4" />
+              <p className="font-bold text-slate-900">No venues found</p>
+              <p className="text-sm text-slate-500 mt-1">Try adjusting your search or city filter.</p>
+            </div>
+          )}
         </>
       )}
     </div>

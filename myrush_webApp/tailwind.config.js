@@ -45,7 +45,7 @@ export default {
                 // 'gray-3': '#FAFAFA',
 
                 // Neutral - renamed to gray-rush to avoid shadowing standard Tailwind gray palette
-                'gray-rush': '#F8F8F9', 
+                'gray-rush': '#F8F8F9',
                 'gray-rush-2': '#EFEFF1',
                 'gray-rush-3': '#D1D5DB',
 
@@ -115,5 +115,7 @@ export default {
             }
         },
     },
-    plugins: [],
+    plugins: [
+        require('@tailwindcss/typography'),
+    ],
 }

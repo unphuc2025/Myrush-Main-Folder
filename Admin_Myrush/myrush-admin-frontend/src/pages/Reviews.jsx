@@ -11,23 +11,18 @@ function Reviews() {
     const [error, setError] = useState(null);
 
     // Permission check
-    const canManage = (() => {
+    const permissions = (() => {
         try {
             const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
-            if (adminInfo.role === 'super_admin') return true;
-            const perms = adminInfo.permissions?.['Manage Review And Ratings'] || {};
-            return perms.edit || perms.delete || perms.add;
-        } catch { return false; }
+            if (adminInfo.role === 'super_admin') return {
+                add: true, edit: true, delete: true, view: true
+            };
+            return adminInfo.permissions?.['Manage Review And Ratings'] || {};
+        } catch { return {}; }
     })();
 
-    const hasAnyAccess = (() => {
-        try {
-            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
-            if (adminInfo.role === 'super_admin') return true;
-            const perms = adminInfo.permissions?.['Manage Review And Ratings'] || {};
-            return Object.values(perms).some(v => v === true);
-        } catch { return false; }
-    })();
+    const canManage = permissions.edit || permissions.delete || permissions.add;
+    const hasView = permissions.view;
 
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
@@ -46,7 +41,13 @@ function Reviews() {
             const sorted = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             setReviews(sorted);
         } catch (err) {
-            setError(err.message || 'Failed to load reviews');
+            console.error('Error loading reviews:', err);
+            const msg = err.message || '';
+            if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                setError('You do not have access to view reviews.');
+            } else {
+                setError(err.message || 'Failed to load reviews');
+            }
         } finally {
             setLoading(false);
         }
@@ -66,6 +67,12 @@ function Reviews() {
             ));
         } catch (err) {
             setError('Failed to update review status. Please try again.');
+            const msg = err.message || '';
+            if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                setError('You do not have access to modify review status.');
+            } else {
+                setError('Failed to update review status. Please try again.');
+            }
         }
     };
 
@@ -92,7 +99,7 @@ function Reviews() {
         );
     }
 
-    if (!hasAnyAccess) {
+    if (!hasView && !loading) {
         return (
             <Layout>
                 <div className="flex flex-col items-center justify-center h-[70vh] gap-4 text-center">

@@ -249,6 +249,20 @@ function VenuesSettings() {
   // Filter state
   const [selectedCityId, setSelectedCityId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // Reset to first page on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const [showDrawer, setShowDrawer] = useState(false);
   const [editingVenue, setEditingVenue] = useState(null);
@@ -341,37 +355,59 @@ function VenuesSettings() {
     }
   };
 
-  // Fetch all initial data
+  // Fetch lookup data once on mount
   useEffect(() => {
-    fetchAllData();
+    fetchLookupData();
   }, []);
 
-  const fetchAllData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Fetch paginated data when dependencies change
+  useEffect(() => {
+    fetchVenuesPage();
+  }, [page, debouncedSearch, selectedCityId]);
 
-      const [citiesData, areasData, gameTypesData, amenitiesData, branchesData] = await Promise.all([
+  const fetchLookupData = async () => {
+    try {
+      const [citiesData, areasData, gameTypesData, amenitiesData] = await Promise.all([
         citiesApi.getAll(),
         areasApi.getAll(),
         gameTypesApi.getAll(),
-        amenitiesApi.getAll(),
-        branchesApi.getAll()
+        amenitiesApi.getAll()
       ]);
-
       setCities(citiesData);
       setAreas(areasData);
       setGameTypes(gameTypesData);
       setAmenities(amenitiesData);
-      setVenues(branchesData);
     } catch (err) {
-      console.error('Error fetching data:', err);
-      setError('Failed to load data. Please try again.');
+      console.error('Error fetching lookup data:', err);
+    }
+  };
+
+  const fetchVenuesPage = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const skip = (page - 1) * pageSize;
+      const venuesResp = await branchesApi.getAll({
+        skip,
+        limit: pageSize,
+        search: debouncedSearch,
+        city_id: selectedCityId
+      });
+      setVenues(venuesResp.items);
+      setTotalItems(venuesResp.total);
+      setTotalPages(venuesResp.pages);
+    } catch (err) {
+      console.error('Error fetching venues:', err);
+      setError('Failed to load venues. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchAllData = async () => {
+    // For legacy/compatibility if needed
+    await Promise.all([fetchLookupData(), fetchVenuesPage()]);
+  };
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -386,12 +422,8 @@ function VenuesSettings() {
     };
   }, []);
 
-  // Filter venues
-  const filteredVenues = venues.filter(venue => {
-    const matchesCity = selectedCityId ? venue.city_id === selectedCityId : true;
-    const matchesSearch = venue.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCity && matchesSearch;
-  });
+  // Filter venues - now handled server-side mostly, but client side city filter used if citiesApi doesn't support it
+  const filteredVenues = venues;
 
   const handleAddClick = () => {
     setEditingVenue(null);
@@ -834,49 +866,71 @@ function VenuesSettings() {
             </div>
 
             {/* Mobile Card View */}
-            <div className="md:hidden p-4 space-y-4">
+            <div className="md:hidden space-y-4 p-4">
               {filteredVenues.map(venue => (
                 <div key={venue.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-4">
-                  <div className="flex gap-4">
-                    <div className="h-16 w-16 bg-slate-100 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-100">
-                      {venue.images && venue.images.length > 0 ? (
-                        <img src={venue.images[0]} alt={venue.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <Building2 className="h-8 w-8 text-slate-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-slate-900 truncate">{venue.name}</h3>
-                      <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{venue.address_line1}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide capitalize ${venue.ground_type === 'multiple' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {venue.ground_type}
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                          <MapPin className="h-3 w-3" />
-                          {cities.find(c => c.id === venue.city_id)?.name}, {areas.find(a => a.id === venue.area_id)?.name}
-                        </span>
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
+                        {venue.images && venue.images.length > 0 ? (
+                          <img src={getImageUrl(venue.images[0])} alt={venue.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center bg-slate-50">
+                            <Building2 className="h-5 w-5 text-slate-300" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-[3] min-w-0 pr-2">
+                        <h4 className="font-bold text-slate-900 truncate leading-tight">{venue.name}</h4>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide capitalize ${venue.ground_type === 'multiple' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {venue.ground_type || 'Single'}
+                          </span>
+                          <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded whitespace-nowrap">
+                            <MapPin className="h-2.5 w-2.5 shrink-0" />
+                            <span className="truncate">{cities.find(c => c.id === venue.city_id)?.short_code || cities.find(c => c.id === venue.city_id)?.name}</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                     <ToggleSwitch
                       isChecked={venue.is_active}
                       onToggle={() => handleToggleVenue(venue)}
-                      label={venue.is_active ? 'Active' : 'Inactive'}
                     />
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => handleViewClick(venue)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors bg-slate-50">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => handleEditClick(venue)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors bg-slate-50">
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => handleDeleteClick(venue.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors bg-slate-50">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex flex-col bg-slate-50 p-2 rounded-lg">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">City</span>
+                      <span className="font-medium text-slate-800 truncate">{cities.find(c => c.id === venue.city_id)?.name || 'N/A'}</span>
                     </div>
+                    <div className="flex flex-col bg-slate-50 p-2 rounded-lg">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Area</span>
+                      <span className="font-medium text-slate-800 truncate">{areas.find(a => a.id === venue.area_id)?.name || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      onClick={() => handleViewClick(venue)}
+                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                    >
+                      <Eye className="h-4 w-4 shrink-0" />
+                      <span className="text-sm font-bold">View</span>
+                    </button>
+                    <button
+                      onClick={() => handleEditClick(venue)}
+                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                    >
+                      <Edit2 className="h-4 w-4 shrink-0" />
+                      <span className="text-sm font-bold">Edit</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(venue.id)}
+                      className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4 shrink-0" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -888,6 +942,43 @@ function VenuesSettings() {
                     </div>
                     <p className="font-medium">No venues found</p>
                     <p className="text-sm text-slate-400">Try adjusting your search or filters</p>
+                  </div>
+                </div>
+              )}
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-200">
+                  <div className="text-xs text-slate-500 font-medium">
+                    Showing <span className="font-bold text-slate-700">{Math.min((page - 1) * pageSize + 1, totalItems)}</span> to <span className="font-bold text-slate-700">{Math.min(page * pageSize, totalItems)}</span> of <span className="font-bold text-slate-700">{totalItems}</span> venues
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                    >
+                      Prev
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                      .map((p, i, arr) => (
+                        <div key={p} className="flex">
+                          {i > 0 && arr[i - 1] !== p - 1 && <span className="px-1 text-slate-300">...</span>}
+                          <button
+                            onClick={() => setPage(p)}
+                            className={`w-8 h-8 rounded text-xs font-bold transition-all ${page === p ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 border border-slate-200 bg-white'}`}
+                          >
+                            {p}
+                          </button>
+                        </div>
+                      ))}
+                    <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                    >
+                      Next
+                    </button>
                   </div>
                 </div>
               )}
