@@ -31,9 +31,16 @@ async def get_media(file_path: str):
             if guessed_type:
                 content_type = guessed_type
 
+        headers = {
+            "Cache-Control": "public, max-age=604800, immutable"  # Cache for 7 days
+        }
+        if 'ContentLength' in s3_response:
+            headers['Content-Length'] = str(s3_response['ContentLength'])
+
         return StreamingResponse(
             s3_response['Body'].iter_chunks(),
-            media_type=content_type
+            media_type=content_type,
+            headers=headers
         )
 
     except ClientError as e:
