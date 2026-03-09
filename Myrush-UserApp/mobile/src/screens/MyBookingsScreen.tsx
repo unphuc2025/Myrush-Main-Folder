@@ -278,7 +278,7 @@ const MyBookingsScreen: React.FC = () => {
                         </View>
                     </View>
 
-                    {booking.team_name && (
+                    {!!booking.team_name && (
                         <View style={styles.detailItem}>
                             <Ionicons name="shield-outline" size={moderateScale(16)} color={colors.text.secondary} />
                             <Text style={styles.detailText}>{booking.team_name}</Text>
@@ -288,7 +288,7 @@ const MyBookingsScreen: React.FC = () => {
                     <View style={styles.cardFooter}>
                         <View>
                             <Text style={styles.amountText}>₹{booking.total_amount}</Text>
-                            {booking.original_amount && booking.original_amount > booking.total_amount && (
+                            {!!booking.original_amount && !!booking.total_amount && booking.original_amount > booking.total_amount && (
                                 <Text style={{ fontSize: fontScale(12), color: colors.text.tertiary, textDecorationLine: 'line-through' }}>
                                     ₹{booking.original_amount}
                                 </Text>

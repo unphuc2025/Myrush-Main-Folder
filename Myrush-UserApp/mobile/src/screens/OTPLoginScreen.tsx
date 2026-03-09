@@ -17,6 +17,7 @@ import { Container } from '../components/common/Container';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { otpApi } from '../api/otp';
+import { getFriendlyErrorMessage } from '../utils/errorUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -110,20 +111,53 @@ const OTPLoginScreen: React.FC = () => {
       }
     } catch (error: any) {
       setIsLoading(false);
-      Alert.alert('Error', error.message || 'Failed to send OTP. Please try again.');
+      const friendlyMsg = getFriendlyErrorMessage(error, 'Failed to send OTP. Please try again.');
+      Alert.alert('Error', friendlyMsg);
     }
   };
 
   const handleOtpChange = (value: string, index: number) => {
-    if (value.length > 1) value = value[value.length - 1]; // Take only last char
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    if (value && index < otp.length - 1) otpInputs.current[index + 1]?.focus();
+    // Sanitize input: allow only numbers (0-9)
+    const sanitizedValue = value.replace(/[^0-9]/g, '');
+    
+    if (sanitizedValue.length > 1) {
+      // Handle paste: distribute digits across fields starting from current index
+      const newOtp = [...otp];
+      const digits = sanitizedValue.split('');
+      
+      let lastFilledIndex = index;
+      for (let i = 0; i < digits.length && (index + i) < otp.length; i++) {
+        newOtp[index + i] = digits[i];
+        lastFilledIndex = index + i;
+      }
+      
+      setOtp(newOtp);
+      
+      // Focus the next field after the last filled one, or the last field if full
+      const nextFocusIndex = Math.min(lastFilledIndex + 1, otp.length - 1);
+      otpInputs.current[nextFocusIndex]?.focus();
 
-    const enteredOTP = newOtp.join('');
-    if (enteredOTP.length === 5) {
-      verifyOTP(enteredOTP);
+      // Check if complete after state update
+      const fullOtp = newOtp.join('');
+      if (fullOtp.length === 5) {
+        verifyOTP(fullOtp);
+      }
+    } else {
+      // Handle single character input
+      const newOtp = [...otp];
+      newOtp[index] = sanitizedValue;
+      setOtp(newOtp);
+      
+      // Auto-focus next field
+      if (sanitizedValue && index < otp.length - 1) {
+        otpInputs.current[index + 1]?.focus();
+      }
+
+      // Check if complete
+      const fullOtp = newOtp.join('');
+      if (fullOtp.length === 5) {
+        verifyOTP(fullOtp);
+      }
     }
   };
 
@@ -140,6 +174,10 @@ const OTPLoginScreen: React.FC = () => {
     try {
       const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
       const verifyResponse = await otpApi.verifyOTP(formattedPhone, enteredOTP);
+
+      if (verifyResponse.success === false) {
+        throw new Error(verifyResponse.message || 'Invalid OTP');
+      }
 
       if (verifyResponse.needs_profile) {
         setIsLoading(false);
@@ -174,7 +212,7 @@ const OTPLoginScreen: React.FC = () => {
       }
     } catch (error: any) {
       // Always show an alert for any verification failure
-      const msg = error.message || 'Invalid OTP';
+      const msg = getFriendlyErrorMessage(error);
       const isInvalid = msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('incorrect');
       const title = isInvalid ? 'Incorrect OTP' : 'Verification Failed';
       const body = isInvalid ? 'The OTP you entered is invalid or has expired. Please try again.' : msg;

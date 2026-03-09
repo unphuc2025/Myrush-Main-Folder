@@ -31,6 +31,7 @@ import { useAuthStore } from '../store/authStore';
 import { profileApi, City, GameType } from '../api/profile';
 import { otpApi } from '../api/otp';
 import { apiClient } from '../api/apiClient';
+import { getFriendlyErrorMessage } from '../utils/errorUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -420,8 +421,8 @@ const PlayerProfileScreen = () => {
                 (navigation as any).navigate('MainTabs');
             }
         } catch (error: any) {
-
-            Alert.alert('Error', error?.message || 'Something went wrong while saving your profile.');
+            const friendlyMsg = getFriendlyErrorMessage(error);
+            Alert.alert('Error', friendlyMsg);
         } finally {
             setIsSaving(false);
         }
@@ -429,7 +430,8 @@ const PlayerProfileScreen = () => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.safeAreaTop} /> {/* Safe Area Background */}
+            <View style={styles.safeAreaTop} />
+            {/* Safe Area Background */}
 
             {/* FIXED TOP BAR */}
             <LinearGradient
@@ -459,7 +461,7 @@ const PlayerProfileScreen = () => {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
                 {/* Spacer for Fixed Header */}
-                <View style={{ height: Platform.OS === 'android' ? 90 : 60 }} />
+                <View style={{ height: Platform.OS === 'android' ? hp(10) : hp(7) }} />
 
                 <Text style={styles.pageSubtitle}>Personalize your MyRush experience</Text>
 
@@ -522,7 +524,7 @@ const PlayerProfileScreen = () => {
                                     placeholderTextColor={THEME.textSecondary}
                                     keyboardType="number-pad"
                                     value={age}
-                                    onChangeText={setAge}
+                                    onChangeText={(text) => setAge(text.replace(/[^0-9]/g, ''))}
                                     maxLength={2}
                                 />
                             </View>
@@ -625,8 +627,14 @@ const PlayerProfileScreen = () => {
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                     >
-                        <Text style={styles.saveButtonText}>{isSaving ? 'SAVING...' : 'SAVE PROFILE'}</Text>
-                        {!isSaving && <Ionicons name="arrow-forward" size={20} color="#000" />}
+                        {!!isSaving ? (
+                            <Text style={styles.saveButtonText}>SAVING...</Text>
+                        ) : (
+                            <>
+                                <Text style={styles.saveButtonText}>SAVE PROFILE</Text>
+                                <Ionicons name="arrow-forward" size={20} color="#000" />
+                            </>
+                        )}
                     </LinearGradient>
                 </TouchableOpacity>
             </View>
