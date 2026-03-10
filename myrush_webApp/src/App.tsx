@@ -24,6 +24,7 @@ import { Profile } from './pages/Profile';
 import { EditProfile } from './pages/EditProfile';
 import { CmsPage } from './pages/CmsPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { FavoritesProvider } from './context/FavoritesContext';
 import ScrollToTop from './components/ScrollToTop';
 import { Footer } from './components/Footer';
 // import { WhatsAppButton } from './components/WhatsAppButton'; // Kept for reference
@@ -116,9 +117,11 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <FavoritesProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </FavoritesProvider>
     </AuthProvider>
   );
 }

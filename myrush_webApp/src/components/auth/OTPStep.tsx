@@ -73,7 +73,9 @@ export const OTPStep: React.FC<OTPStepProps> = ({ phone, onSuccess, onBack }) =>
                     <input
                         key={index}
                         ref={(ref) => { otpInputs.current[index] = ref; }}
-                        type="text"
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         maxLength={1}
                         value={digit}
                         onChange={(e) => handleOtpChange(e.target.value, index)}

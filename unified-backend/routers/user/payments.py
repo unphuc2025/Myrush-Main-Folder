@@ -87,6 +87,8 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
     allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
     
     total_slot_price = 0.0
+    print(f"[PRICE_DEBUG] Starting calculation for {len(requested_slots)} slots, players={number_of_players}")
+    
     for slot in requested_slots:
         slot_time_str = slot.get('time') or slot.get('start_time')
         if not slot_time_str: continue
@@ -100,20 +102,21 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
         
         # Use price from map if available, else default (though validation should have caught it)
         if norm_start in allowed_slots_map:
-            total_slot_price += float(allowed_slots_map[norm_start]['price'])
+            slot_price = float(allowed_slots_map[norm_start]['price'])
+            total_slot_price += slot_price
+            print(f"[PRICE_DEBUG] Slot {norm_start}: Price {slot_price}")
         else:
-            print(f"[PAYMENTS ERROR] Slot {norm_start} not found in allowed map during price calc.")
+            print(f"[PRICE_DEBUG] Slot {norm_start} not found in map. Falling back.")
             # Fallback to court base price if absolutely necessary
             court = db.query(models.Court).filter(models.Court.id == court_id).first()
             if court:
-                total_slot_price += float(court.price_per_hour)
+                slot_price = float(court.price_per_hour)
+                total_slot_price += slot_price
+                print(f"[PRICE_DEBUG] Fallback Slot {norm_start}: Price {slot_price}")
 
-    # 2. Multiply by Players
-    if number_of_players < 1:
-        number_of_players = 1
-        
-    final_base_price = total_slot_price * number_of_players
-    return final_base_price
+    # 2. Final Base Price (No player multiplication)
+    print(f"[PRICE_DEBUG] FINAL TOTAL BASE: {total_slot_price} (Multiplied by players? NO)")
+    return float(total_slot_price)
 
 
 def validate_authoritative_coupon(db: Session, coupon_code: str, total_amount: float, user_id: str) -> float:
@@ -161,7 +164,7 @@ def create_payment_order(
             booking_details.court_id, 
             booking_details.booking_date, 
             booking_details.time_slots, 
-            booking_details.number_of_players or 2
+            booking_details.number_of_players or 1
         )
         print(f"[PAYMENTS DEBUG] Calculated Base Price: {server_base_price}")
     except Exception as e:
@@ -192,6 +195,7 @@ def create_payment_order(
     # 4. Final Total
     final_amount = (server_base_price + PLATFORM_FEE) - discount_amount
     final_amount = max(0, final_amount) # Never negative
+    print(f"[PRICE_DEBUG] FINAL AMOUNT TO RAZORPAY: {final_amount} (Calculated as ({server_base_price} + {PLATFORM_FEE}) - {discount_amount})")
     
     # GST Logic (Optional - assuming inclusive for now, but if we wanted to add it:)
     # gst_amount = final_amount * 0.18

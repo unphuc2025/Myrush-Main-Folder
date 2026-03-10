@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { TopNav } from '../components/TopNav';
 import { bookingsApi } from '../api/bookings';
 import { couponsApi } from '../api/coupons';
-import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaBuilding, FaFutbol } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaBuilding, FaFutbol } from 'react-icons/fa';
 
 import './BookingSummaryNew.css';
 
@@ -26,7 +26,7 @@ export const BookingSummaryNew: React.FC = () => {
     const navigate = useNavigate();
     const bookingData = location.state as BookingSummaryState;
 
-    const [players, setPlayers] = useState(bookingData?.players || 2);
+    const [players] = useState(bookingData?.players || 2);
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState('');
     const [discount, setDiscount] = useState(0);
@@ -181,10 +181,6 @@ export const BookingSummaryNew: React.FC = () => {
                                 <span className="stat-icon text-primary"><FaClock /></span>
                                 <span>{bookingData.selectedSlots.length} hour{bookingData.selectedSlots.length > 1 ? 's' : ''}</span>
                             </div>
-                            <div className="stat-item">
-                                <span className="stat-icon text-primary"><FaUsers /></span>
-                                <span>{players} player{players > 1 ? 's' : ''}</span>
-                            </div>
                         </div>
 
                         <div className="venue-location-row">
@@ -213,26 +209,6 @@ export const BookingSummaryNew: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Players Adjustment */}
-                    <div className="players-section">
-                        <label className="section-label">Number of Players</label>
-                        <div className="players-controls">
-                            <button
-                                className="player-btn"
-                                onClick={() => setPlayers(Math.max(1, players - 1))}
-                                disabled={players <= 1}
-                            >
-                                −
-                            </button>
-                            <span className="player-count">{players}</span>
-                            <button
-                                className="player-btn"
-                                onClick={() => setPlayers(players + 1)}
-                            >
-                                +
-                            </button>
-                        </div>
-                    </div>
 
                     {/* Coupon Section */}
                     <div className="coupon-section">

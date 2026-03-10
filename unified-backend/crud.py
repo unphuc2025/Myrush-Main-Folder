@@ -286,6 +286,14 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: date,
         calculated_total_base += expected_price
 
     # 3. Validate Total Amount
+    # Total = Sum of Slot Prices (No player multiplication)
+    calculated_final_total = float(calculated_total_base)
+    print(f"[CONFIG CHECK] Final Calculation: {calculated_final_total}")
+    print(f"[CONFIG CHECK] Comparison: Server={calculated_final_total} vs Client={expected_total_amount}")
+
+    if abs(calculated_final_total - float(expected_total_amount)) > 10.0:
+         print(f"[CONFIG CHECK FAIL] Total amount mismatch: {calculated_final_total} != {expected_total_amount}")
+         raise HTTPException(status_code=400, detail=f"Total booking amount mismatch. Server={calculated_final_total}, Client={expected_total_amount}")
     calculated_final_total = (calculated_total_base * number_of_players)
     if abs(calculated_final_total - float(expected_total_amount)) > 10.0:
          raise HTTPException(status_code=400, detail="Total booking amount mismatch. Please refresh.")
@@ -389,13 +397,7 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         else:
             # Legacy Calculation
             price_per_hour = booking.price_per_hour or 200.0
-            number_of_players = booking.number_of_players or 2
-            
-            # Legacy expected total_amount (often calculated as hourly_price * players * hours)
-            # BUT usually price_per_hour FROM FRONTEND is already slot price? No, it's usually rate.
-            # Let's check how it was: total_amount = price_per_hour * (booking.duration_minutes / 60.0) * number_of_players
-            
-            calculated_total = price_per_hour * (booking.duration_minutes / 60.0) * number_of_players
+            calculated_total = price_per_hour * (booking.duration_minutes / 60.0)
             original_amount = calculated_total # Assuming no discount unless coupon passed separately?
             discount_amount = 0
         
@@ -436,6 +438,7 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
 
 
         # --- VALIDATE CONFIGURATION (Business Hours, Admin Blocks, Price) ---
+        print(f"[CRUD BOOKING] Validating config with original_amount={original_amount}")
         validate_court_configuration(
             db=db,
             court_id=str(c_uuid),
@@ -487,7 +490,7 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             "razorpay_signature": booking.razorpay_signature,
         }
 
-        print(f"[CRUD BOOKING] Creating booking with data: {booking_data}")
+        print(f"[CRUD BOOKING] Creating booking record in DB for {user_id}")
 
         db_booking = models.Booking(**booking_data)
         db.add(db_booking)

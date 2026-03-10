@@ -54,7 +54,7 @@ def create_booking(
              
         result = crud.create_booking(db=db, booking=booking, user_id=current_user.id)
         
-        print(f"[BOOKINGS API] BOOKING CREATED SUCCESSFULLY: ID={result.id}, Total=₹{result.total_amount}")
+        print("[BOOKINGS API] BOOKING CREATED SUCCESSFULLY")
         return result
 
     except HTTPException as he:
@@ -62,16 +62,14 @@ def create_booking(
         raise he
     except Exception as e:
         print("===========================================")
-        print(f"[BOOKINGS API] CRITICAL ERROR CREATING BOOKING")
-        print(f"[BOOKINGS API] Error Type: {type(e).__name__}")
-        print(f"[BOOKINGS API] Error: {e}")
+        print("[BOOKINGS API] CRITICAL ERROR CREATING BOOKING")
         import traceback
         traceback.print_exc()
         print("===========================================")
 
         raise HTTPException(
             status_code=400,
-            detail=f"Booking creation failed: {str(e)}"
+            detail="Booking creation failed due to server error."
         )
 
 @router.get("/", response_model=List[schemas.BookingResponse])

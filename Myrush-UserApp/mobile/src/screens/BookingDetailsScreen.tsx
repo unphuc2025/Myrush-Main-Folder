@@ -161,15 +161,12 @@ const BookingDetailsScreen: React.FC = () => {
     } | null>(null);
 
     // Financials
-    const platformFee = 20;
+    const platformFee = 0; // Updated to 0 as per backend/web consistency
 
     // Calculate Costs Dynamic
     const calculateBasePrice = () => {
-        // As per user request: Cost calculated based on Number of Players
-        // Assuming Price passed (totalPrice) is per-slot/per-game base.
-        // Formula: (Slots Total * Players). 
-        // Note: If totalPrice is already aggregate of slots, we multipy by players.
-        return (totalPrice || 0) * numPlayers;
+        // As per user request: Cost depends ONLY on slots, not on Number of Players
+        return (totalPrice || 0);
     };
 
     const basePrice = calculateBasePrice();
@@ -429,22 +426,7 @@ const BookingDetailsScreen: React.FC = () => {
                     {/* 1. BOOKING DETAILS (Players & Team) */}
                     <Text style={styles.sectionHeader}>BOOKING DETAILS</Text>
                     <View style={styles.detailsCard}>
-                        {/* Number of Players */}
-                        <View style={styles.playerRow}>
-                            <View>
-                                <Text style={styles.inputLabel}>Number of Players</Text>
-                                <Text style={styles.inputSubLabel}>Total players on pitch</Text>
-                            </View>
-                            <View style={styles.counterContainer}>
-                                <TouchableOpacity onPress={handleDecrement} style={styles.counterBtn}>
-                                    <Ionicons name="remove" size={16} color="#fff" />
-                                </TouchableOpacity>
-                                <Text style={styles.counterText}>{numPlayers}</Text>
-                                <TouchableOpacity onPress={handleIncrement} style={styles.counterBtn}>
-                                    <Ionicons name="add" size={16} color="#fff" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
+                        {/* Number of Players - UI Removed as requested (logic remains 2) */}
 
                         {/* Inputs */}
                         <TextInput
@@ -527,7 +509,7 @@ const BookingDetailsScreen: React.FC = () => {
                         <View style={styles.divider} />
 
                         <View style={styles.costRow}>
-                            <Text style={styles.costLabel}>Base Price (x{numPlayers} Players)</Text>
+                            <Text style={styles.costLabel}>Base Price</Text>
                             <Text style={styles.costValue}>₹{basePrice}</Text>
                         </View>
                         <View style={styles.costRow}>

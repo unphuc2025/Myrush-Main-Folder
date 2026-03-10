@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getSportIcon } from '../utils/sportIcons';
@@ -9,8 +9,9 @@ import type { CourtRatings, CourtReview } from '../api/courts';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
 import { VenueImageGallery } from '../components/VenueImageGallery';
-import { FaMapMarkerAlt, FaStar, FaClock, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaStar, FaClock, FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart } from 'react-icons/fa';
 import { getAmenityIcon } from '../utils/amenityIcons';
+import { useFavorites } from '../context/FavoritesContext';
 interface Slot {
     time: string;
     display_time: string;
@@ -28,9 +29,11 @@ export const VenueDetailsPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { isAuthenticated, openAuthModal } = useAuth();
+    const { isFavorite, toggleFavorite } = useFavorites();
 
     // Venue Data State
     const [venue, setVenue] = useState<Venue | null>(null);
+    const favorited = venue ? isFavorite(venue.id) : false;
     const [ratings, setRatings] = useState<CourtRatings | null>(null);
     const [reviews, setReviews] = useState<CourtReview[]>([]);
     const [loadingVenue, setLoadingVenue] = useState(true);
@@ -61,7 +64,7 @@ export const VenueDetailsPage: React.FC = () => {
     const venueVirtualTourUrl = id ? VIRTUAL_TOUR_URLS[id] : undefined;
 
     // Booking Summary State
-    const [numPlayers, setNumPlayers] = useState(2);
+    const [numPlayers] = useState(1);
     const [teamName, setTeamName] = useState('');
 
 
@@ -254,9 +257,18 @@ export const VenueDetailsPage: React.FC = () => {
 
                         {/* Title Section (Moved Above Grid) */}
                         <div className="mb-6">
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-heading text-gray-900 mb-2 uppercase leading-[1.2] py-3 break-words w-full whitespace-normal">
-                                {venue.court_name}
-                            </h1>
+                            <div className="flex justify-between items-start gap-4">
+                                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-heading text-gray-900 mb-2 uppercase leading-[1.2] py-3 break-words w-full whitespace-normal">
+                                    {venue.court_name}
+                                </h1>
+                                <button
+                                    onClick={() => venue && toggleFavorite(venue.id)}
+                                    className={`mt-4 w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all shadow-sm active:scale-95 shrink-0 ${favorited ? 'bg-red-50 border-red-200 text-red-500' : 'bg-white border-gray-100 text-gray-400 hover:text-red-400'}`}
+                                    title={favorited ? "Remove from Favorites" : "Add to Favorites"}
+                                >
+                                    {favorited ? <FaHeart className="w-6 h-6" /> : <FaRegHeart className="w-6 h-6" />}
+                                </button>
+                            </div>
                             <p className="text-gray-500 flex items-center gap-2.5 text-sm font-medium">
                                 <FaMapMarkerAlt className="text-primary text-base shrink-0" />
                                 {venue.location}
@@ -633,31 +645,18 @@ export const VenueDetailsPage: React.FC = () => {
                                 </div>
 
                                 {/* Inputs */}
-                                <div className="grid grid-cols-2 gap-4 mb-8">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="w-0.5 h-3 bg-primary rounded-full"></div>
-                                            <label className="block text-sm font-bold text-gray-800 leading-none">Players</label>
-                                        </div>
-                                        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-md px-3 h-9">
-                                            <button onClick={() => setNumPlayers(Math.max(1, numPlayers - 1))} className="text-gray-400 hover:text-primary transition-colors text-lg font-semibold">-</button>
-                                            <span className="text-sm font-bold text-gray-900">{numPlayers}</span>
-                                            <button onClick={() => setNumPlayers(numPlayers + 1)} className="text-gray-400 hover:text-primary transition-colors text-lg font-semibold">+</button>
-                                        </div>
+                                <div className="mb-8">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-0.5 h-3 bg-primary rounded-full"></div>
+                                        <label className="block text-sm font-bold text-gray-800 leading-none">Team Name</label>
                                     </div>
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="w-0.5 h-3 bg-primary rounded-full"></div>
-                                            <label className="block text-sm font-bold text-gray-800 leading-none">Team Name</label>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            placeholder="Optional"
-                                            className="w-full h-9 bg-white border border-gray-200 rounded-md px-3 text-xs font-medium text-gray-900 outline-none focus:border-primary/40 placeholder:text-gray-300"
-                                            value={teamName}
-                                            onChange={(e) => setTeamName(e.target.value)}
-                                        />
-                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Optional (e.g. My Team)"
+                                        className="w-full h-10 bg-white border border-gray-200 rounded-md px-3 text-sm font-medium text-gray-900 outline-none focus:border-primary/40 placeholder:text-gray-300"
+                                        value={teamName}
+                                        onChange={(e) => setTeamName(e.target.value)}
+                                    />
                                 </div>
 
                                 {/* Booking Summary */}

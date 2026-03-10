@@ -7,7 +7,8 @@ import { bookingsApi } from '../api/bookings';
 import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye, FaChevronRight, FaFutbol, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye, FaChevronRight, FaFutbol, FaCalendarAlt, FaMapMarkerAlt, FaHeart } from 'react-icons/fa';
+import { useFavorites } from '../context/FavoritesContext';
 
 export const Profile: React.FC = () => {
     const navigate = useNavigate();
@@ -15,7 +16,8 @@ export const Profile: React.FC = () => {
     const [user, setUser] = useState<ProfileData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState({ bookings: 0, gamesPlayed: 0 });
-    const [currentView, setCurrentView] = useState<'profile' | 'bookings' | 'reviews'>('profile');
+    const [currentView, setCurrentView] = useState<'profile' | 'bookings' | 'reviews' | 'favorites'>('profile');
+    const { favorites, isLoading: favoritesLoading, toggleFavorite } = useFavorites();
     const [reviews, setReviews] = useState<any[]>([]);
     const [reviewsLoading, setReviewsLoading] = useState(false);
     const [bookings, setBookings] = useState<any[]>([]);
@@ -23,7 +25,7 @@ export const Profile: React.FC = () => {
     const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
     const [reviewStates, setReviewStates] = useState<Record<string, { has_reviewed: boolean; review?: { rating: number; review_text: string } }>>({});
     const [showRatingModal, setShowRatingModal] = useState<string | null>(null);
-    const [activeMobileSection, setActiveMobileSection] = useState<'profile' | 'bookings' | 'reviews' | null>(null);
+    const [activeMobileSection, setActiveMobileSection] = useState<'profile' | 'bookings' | 'reviews' | 'favorites' | null>(null);
     const [selectedRating, setSelectedRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
@@ -41,10 +43,13 @@ export const Profile: React.FC = () => {
         } else if (view === 'profile') {
             setCurrentView('profile');
             setActiveMobileSection('profile');
+        } else if (view === 'favorites') {
+            setCurrentView('favorites');
+            setActiveMobileSection('favorites');
         }
     }, [searchParams]);
 
-    const toggleMobileSection = (section: 'profile' | 'bookings' | 'reviews') => {
+    const toggleMobileSection = (section: 'profile' | 'bookings' | 'reviews' | 'favorites') => {
         setActiveMobileSection(prev => prev === section ? null : section);
         setCurrentView(section);
     };
@@ -546,6 +551,77 @@ export const Profile: React.FC = () => {
                             </AnimatePresence>
                         </div>
 
+                        {/* Favorites Accordion (Mobile) */}
+                        <div className="space-y-2">
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => toggleMobileSection('favorites')}
+                                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${activeMobileSection === 'favorites' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMobileSection === 'favorites' ? 'bg-red-500 text-white' : 'bg-gray-50 text-gray-400'}`}>
+                                        <FaHeart size={16} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-gray-900">My Favorites</p>
+                                        <p className="text-[10px] text-gray-500 font-medium">Your saved arenas & courts</p>
+                                    </div>
+                                </div>
+                                <FaChevronRight size={12} className={`transition-transform duration-300 ${activeMobileSection === 'favorites' ? 'text-primary rotate-90' : 'text-gray-300'}`} />
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {activeMobileSection === 'favorites' && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden px-1"
+                                    >
+                                        <div className="bg-white rounded-xl border border-gray-100 p-3 mt-1 shadow-sm">
+                                            {favoritesLoading ? (
+                                                <div className="py-8 text-center font-bold text-xs text-gray-400 uppercase tracking-widest">Loading...</div>
+                                            ) : favorites.length === 0 ? (
+                                                <div className="py-10 text-center font-bold text-xs text-gray-300 uppercase tracking-widest leading-relaxed">No favorites yet.<br />Save your favorite arenas for quick access!</div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {favorites.map((venue, i) => (
+                                                        <div key={i} className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <div onClick={() => navigate(`/venues/${venue.id}`)} className="cursor-pointer">
+                                                                    <h4 className="text-[11px] font-black text-gray-900">{venue.court_name}</h4>
+                                                                    <p className="text-[9px] text-gray-500"><FaMapMarkerAlt className="inline-block mr-1 text-[8px]" /> {venue.location}</p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        toggleFavorite(venue.id);
+                                                                    }}
+                                                                    className="text-red-500 p-1"
+                                                                >
+                                                                    <FaHeart size={14} />
+                                                                </button>
+                                                            </div>
+                                                            <div className="flex justify-between items-center mt-2">
+                                                                <div className="text-[9px] font-bold text-primary">₹{venue.prices}/hr</div>
+                                                                <Button
+                                                                    onClick={() => navigate(`/venues/${venue.id}`)}
+                                                                    className="bg-zinc-900 text-white text-[8px] px-3 py-1 rounded-lg font-black uppercase"
+                                                                >
+                                                                    Book Now
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                        </div>
+
                     </div>
 
                     {/* Settings Area (Bottom Mobile) */}
@@ -621,6 +697,18 @@ export const Profile: React.FC = () => {
                             >
                                 <FaStar className="text-base lg:text-lg" />
                                 <span className="text-sm lg:text-base">Rating & Reviews</span>
+                            </motion.button>
+
+                            <motion.button
+                                whileHover={{ backgroundColor: '#f3f4f6' }}
+                                onClick={() => setCurrentView('favorites')}
+                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-medium flex items-center gap-3 transition-colors ${currentView === 'favorites'
+                                    ? 'border-primary bg-primary/5 text-primary'
+                                    : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                                    }`}
+                            >
+                                <FaHeart className="text-base lg:text-lg text-red-500" />
+                                <span className="text-sm lg:text-base">My Favorites</span>
                             </motion.button>
 
                             <hr className="my-4 border-gray-200" />
@@ -1162,6 +1250,104 @@ export const Profile: React.FC = () => {
                                             })}
                                     </div>
                                 )}
+
+                                {currentView === 'favorites' && (
+                                    <div className="space-y-6">
+                                        {/* Favorites Header */}
+                                        <div className="flex justify-between items-center mb-8">
+                                            <div>
+                                                <h1 className="text-3xl font-black text-gray-900 mb-2">My Favorites</h1>
+                                                <p className="text-gray-600">Quickly book your favorite sports venues</p>
+                                            </div>
+                                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                                <Button
+                                                    onClick={() => navigate('/venues')}
+                                                    className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 border-2 border-primary"
+                                                >
+                                                    <span><FaFutbol className="inline-block mr-1" /></span>
+                                                    Explore More Venues
+                                                </Button>
+                                            </motion.div>
+                                        </div>
+
+                                        {/* Favorites Content */}
+                                        {favoritesLoading ? (
+                                            <div className="flex items-center justify-center py-12">
+                                                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                <span className="ml-3 text-gray-600">Loading your favorites...</span>
+                                            </div>
+                                        ) : favorites.length === 0 ? (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="bg-white rounded-xl border-2 border-gray-200 p-12 text-center"
+                                            >
+                                                <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                                    <FaHeart className="text-4xl text-red-400" />
+                                                </div>
+                                                <h3 className="text-xl font-bold text-gray-900 mb-2">No Favorites Yet</h3>
+                                                <p className="text-gray-600 mb-6">Save your favorite venues to find them easily next time!</p>
+                                                <Button
+                                                    onClick={() => navigate('/venues')}
+                                                    className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-semibold border-2 border-primary"
+                                                >
+                                                    Explore Venues
+                                                </Button>
+                                            </motion.div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {favorites.map((venue, index) => (
+                                                    <motion.div
+                                                        key={venue.id}
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: index * 0.1, duration: 0.6 }}
+                                                        className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:shadow-xl transition-all group"
+                                                    >
+                                                        <div className="relative h-48">
+                                                            <img
+                                                                src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1541252260730-0412e8e2108e?q=80&w=2000'}
+                                                                alt={venue.court_name}
+                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                            />
+                                                            <button
+                                                                onClick={() => toggleFavorite(venue.id)}
+                                                                className="absolute top-4 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center text-red-500 shadow-lg hover:scale-110 transition-transform"
+                                                            >
+                                                                <FaHeart size={18} />
+                                                            </button>
+                                                        </div>
+                                                        <div className="p-6">
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{venue.court_name}</h3>
+                                                                <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
+                                                                    <FaStar className="text-yellow-500 text-xs" />
+                                                                    <span className="text-xs font-bold text-gray-900">{venue.rating || '5.0'}</span>
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-sm text-gray-500 flex items-center gap-2 mb-6">
+                                                                <FaMapMarkerAlt className="text-primary" />
+                                                                {venue.location}
+                                                            </p>
+                                                            <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                                                                <div>
+                                                                    <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Starting from</span>
+                                                                    <span className="text-lg font-black text-gray-900">₹{venue.prices}<span className="text-xs font-normal text-gray-500">/hr</span></span>
+                                                                </div>
+                                                                <Button
+                                                                    onClick={() => navigate(`/venues/${venue.id}`)}
+                                                                    className="bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-2.5 rounded-xl font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-zinc-200"
+                                                                >
+                                                                    Book Now
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
@@ -1244,4 +1430,4 @@ export const Profile: React.FC = () => {
             )}
         </div>
     );
-}
+};

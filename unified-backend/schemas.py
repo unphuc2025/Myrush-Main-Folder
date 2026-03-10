@@ -697,7 +697,7 @@ class BookingCreate(BaseModel):
     start_time: str  # AM/PM format supported (Legacy/Single slot)
     end_time: Optional[str] = None # Added for legacy support
     duration_minutes: int
-    number_of_players: int = 2
+    number_of_players: int = 1
     price_per_hour: float = 200.0
     original_price_per_hour: Optional[float] = None
     team_name: Optional[str] = None

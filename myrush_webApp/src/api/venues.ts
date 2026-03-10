@@ -28,6 +28,7 @@ export interface Venue {
     games_played?: number;
     rating?: number;
     reviews?: number;
+    is_favorite?: boolean;
 }
 
 export interface VenuesFilter {
@@ -213,6 +214,49 @@ export const venuesApi = {
             };
         } catch (error: any) {
             console.error('[VENUES API] Exception fetching branches:', error);
+            return {
+                success: false,
+                data: [],
+                error: error.message,
+            };
+        }
+    }
+};
+
+// Favorites API
+export const favoritesApi = {
+    /**
+     * Toggle a court/venue as favorite
+     */
+    toggleFavorite: async (venueId: string) => {
+        try {
+            const response = await apiClient.post<{ status: string; court_id: string }>('/favorites/toggle', { court_id: venueId });
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('[FAVORITES API] Error toggling favorite:', error);
+            return {
+                success: false,
+                data: null,
+                error: error.message,
+            };
+        }
+    },
+
+    /**
+     * Get all favorite venues
+     */
+    getFavorites: async () => {
+        try {
+            const response = await apiClient.get<Venue[]>('/favorites/');
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('[FAVORITES API] Error fetching favorites:', error);
             return {
                 success: false,
                 data: [],
