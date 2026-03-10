@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '../ui/Button';
 import { apiClient } from '../../api/client';
-import { useAuth } from '../../context/AuthContext';
+
 import { FaArrowLeft } from 'react-icons/fa';
 
 interface OTPStepProps {
@@ -56,7 +56,7 @@ export const OTPStep: React.FC<OTPStepProps> = ({ phone, onSuccess, onBack }) =>
 
     return (
         <div className="space-y-6">
-            <button 
+            <button
                 onClick={onBack}
                 className="flex items-center gap-2 text-gray-400 hover:text-black transition-colors text-xs font-bold uppercase tracking-widest mb-4"
             >

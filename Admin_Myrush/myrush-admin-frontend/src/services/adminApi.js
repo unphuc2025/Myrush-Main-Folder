@@ -2,11 +2,18 @@ import config from '../config';
 const API_BASE = config.API_URL;
 export const IMAGE_BASE_URL = API_BASE.replace('/api/admin', '');
 
+export const S3_BASE_URL = 'https://rush-prod-static-bucket.s3.ap-south-1.amazonaws.com/';
+
 export const getImageUrl = (path) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    return `${IMAGE_BASE_URL}${cleanPath}`;
+
+    // If it's an S3 path (starts with known folders like settings, venues, etc. or doesn't start with /)
+    if (!path.startsWith('/')) {
+        return `${S3_BASE_URL}${path}`;
+    }
+
+    return `${IMAGE_BASE_URL}${path}`;
 };
 
 export const sanitizeImageUrl = (url) => {
@@ -179,7 +186,15 @@ export const amenitiesApi = {
 
 // Branches API
 export const branchesApi = {
-    getAll: () => apiRequest('/branches'),
+    getAll: (options = {}) => {
+        const params = new URLSearchParams();
+        if (options.skip) params.append('skip', options.skip);
+        if (options.limit) params.append('limit', options.limit);
+        if (options.search) params.append('search', options.search);
+        if (options.city_id) params.append('city_id', options.city_id);
+        const query = params.toString();
+        return apiRequest(`/branches${query ? `?${query}` : ''}`);
+    },
     getByCity: (cityId) => apiRequest(`/branches/city/${cityId}`),
     getById: (id) => apiRequest(`/branches/${id}`),
     create: (formData) => {
@@ -215,7 +230,16 @@ export const branchesApi = {
 
 // Courts API
 export const courtsApi = {
-    getAll: () => apiRequest('/courts'),
+    getAll: (options = {}) => {
+        const params = new URLSearchParams();
+        if (options.skip) params.append('skip', options.skip);
+        if (options.limit) params.append('limit', options.limit);
+        if (options.search) params.append('search', options.search);
+        if (options.branch_id) params.append('branch_id', options.branch_id);
+        if (options.game_type_id) params.append('game_type_id', options.game_type_id);
+        const query = params.toString();
+        return apiRequest(`/courts${query ? `?${query}` : ''}`);
+    },
     getById: (id) => apiRequest(`/courts/${id}`),
     create: (formData) => {
         const token = localStorage.getItem('admin_token');
@@ -549,7 +573,7 @@ export const cmsApi = {
         return apiRequest(`/cms?${query}`);
     },
     getBySlug: (slug) => apiRequest(`/cms/${slug}`),
-    create: (data) => apiRequest('/cms', {
+    create: (data) => apiRequest('/cms/', {
         method: 'POST',
         body: JSON.stringify(data)
     }),

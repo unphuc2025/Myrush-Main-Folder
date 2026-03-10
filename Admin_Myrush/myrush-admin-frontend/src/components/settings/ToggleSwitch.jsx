@@ -22,7 +22,7 @@ function ToggleSwitch({ isChecked, onToggle, disabled = false }) {
             onClick={handleToggle}
             disabled={disabled || isToggling}
             className={`
-        relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out
+        relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-200 ease-in-out shrink-0
         ${isChecked
                     ? 'bg-green-600'
                     : 'bg-red-600'
@@ -33,8 +33,8 @@ function ToggleSwitch({ isChecked, onToggle, disabled = false }) {
         >
             <span
                 className={`
-          inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out
-          ${isChecked ? 'translate-x-6' : 'translate-x-1'}
+          inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out
+          ${isChecked ? 'translate-x-8' : 'translate-x-1'}
         `}
             />
         </button>

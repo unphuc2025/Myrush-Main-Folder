@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
@@ -18,16 +18,19 @@ router = APIRouter(
 
 from dependencies import get_admin_branch_filter, require_super_admin, PermissionChecker
 
-@router.get("", response_model=List[schemas.Branch])
-@router.get("/", response_model=List[schemas.Branch])
+@router.get("", response_model=schemas.BranchListResponse)
+@router.get("/", response_model=schemas.BranchListResponse)
 def get_all_branches(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    search: Optional[str] = None,
     city_id: str = None, 
     area_id: str = None, 
     db: Session = Depends(get_db),
     _ = Depends(PermissionChecker(["Manage Branch", "Reports and analytics", "Transactions And Earnings"], "view")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
-    """Get all branches, optionally filtered by city_id or area_id and admin access"""
+    """Get all branches with pagination, searching, and filtering"""
     query = db.query(models.Branch).options(
         joinedload(models.Branch.game_types),
         joinedload(models.Branch.amenities)
@@ -37,11 +40,32 @@ def get_all_branches(
     if branch_filter is not None:
         query = query.filter(models.Branch.id.in_(branch_filter))
 
+    # 2. Search Filter
+    if search:
+        query = query.filter(
+            (models.Branch.name.ilike(f"%{search}%")) |
+            (models.Branch.address_line1.ilike(f"%{search}%")) |
+            (models.Branch.search_location.ilike(f"%{search}%"))
+        )
+
+    # 3. Category Filters
     if city_id:
         query = query.filter(models.Branch.city_id == city_id)
     if area_id:
         query = query.filter(models.Branch.area_id == area_id)
-    return query.all()
+        
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
+    
+    pages = (total + limit - 1) // limit if limit > 0 else 0
+    current_page = (skip // limit) + 1 if limit > 0 else 1
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": current_page,
+        "pages": pages
+    }
 
 @router.get("/{branch_id}", response_model=schemas.Branch, dependencies=[Depends(PermissionChecker("Manage Branch", "view"))])
 def get_branch(

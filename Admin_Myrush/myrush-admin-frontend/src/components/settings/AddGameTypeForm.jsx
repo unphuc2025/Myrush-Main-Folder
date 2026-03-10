@@ -151,7 +151,10 @@ function AddGameTypeForm({ onCancel, onSave, initialData = null }) {
                             <input
                                 type="text"
                                 value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                                    setFormData({ ...formData, name: val });
+                                }}
                                 className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300 text-slate-900"
                                 placeholder="e.g. Football"
                                 required
@@ -167,7 +170,10 @@ function AddGameTypeForm({ onCancel, onSave, initialData = null }) {
                             <input
                                 type="text"
                                 value={formData.shortCode}
-                                onChange={(e) => setFormData({ ...formData, shortCode: e.target.value.toUpperCase() })}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase();
+                                    setFormData({ ...formData, shortCode: val });
+                                }}
                                 className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg uppercase placeholder:text-slate-300 shadow-sm hover:border-slate-300"
                                 placeholder="e.g. SOC"
                                 maxLength={3}

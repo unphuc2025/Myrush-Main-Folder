@@ -13,13 +13,27 @@ function Coupons() {
     const [courts, setCourts] = useState([]);
     const [users, setUsers] = useState([]);
 
+    // Permission check
+    const permissions = (() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return {
+                add: true, edit: true, delete: true, view: true
+            };
+            return adminInfo.permissions?.['Manage Coupons'] || {};
+        } catch { return {}; }
+    })();
+
     // Auth Check
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
         if (!token) {
             navigate('/login');
+        } else if (!permissions.view) {
+            // Already handled by hasAnyAccess check in render
+        } else {
+            fetchMetadata();
         }
-        fetchMetadata();
     }, [navigate]);
 
     const fetchMetadata = async () => {
@@ -80,8 +94,9 @@ function Coupons() {
             const data = await couponsApi.getAll();
             setCoupons(data);
         } catch (err) {
-            setError('Failed to fetch coupons');
-            console.error(err);
+            console.error('Error loading coupons:', err);
+            const status = err.response?.status;
+            setError(status === 403 ? 'You do not have access to view coupons.' : 'Failed to fetch coupons');
         } finally {
             setLoading(false);
         }
@@ -97,6 +112,10 @@ function Coupons() {
     );
 
     const handleAddClick = () => {
+        if (!permissions.add) {
+            setError('You do not have permission to add coupons.');
+            return;
+        }
         setEditingCoupon(null);
         setFormData({
             code: '',
@@ -118,6 +137,10 @@ function Coupons() {
     };
 
     const handleEditClick = (coupon) => {
+        if (!permissions.edit) {
+            setError('You do not have permission to edit coupons.');
+            return;
+        }
         setEditingCoupon(coupon);
         setFormData({
             code: coupon.code,
@@ -139,6 +162,10 @@ function Coupons() {
     };
 
     const handleDeleteClick = async (id) => {
+        if (!permissions.delete) {
+            setError('You do not have permission to delete coupons.');
+            return;
+        }
         if (window.confirm('Are you sure you want to delete this coupon?')) {
             try {
                 await couponsApi.delete(id);
@@ -146,17 +173,31 @@ function Coupons() {
                 setSuccessMsg('Coupon deleted successfully.');
                 setTimeout(() => setSuccessMsg(null), 3000);
             } catch (err) {
-                setError(err?.response?.data?.detail || 'Unable to delete this coupon. Please try again.');
+                const msg = err.message || '';
+                if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                    setError('You do not have access to delete this coupon.');
+                } else {
+                    setError(err?.response?.data?.detail || 'Unable to delete this coupon. Please try again.');
+                }
             }
         }
     };
 
     const handleToggleStatus = async (id) => {
+        if (!permissions.edit) {
+            setError('You do not have permission to modify coupon status.');
+            return;
+        }
         try {
             await couponsApi.toggleStatus(id);
             fetchCoupons();
         } catch (err) {
-            setError('Failed to toggle coupon status. Please try again.');
+            const msg = err.message || '';
+            if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                setError('You do not have access to toggle coupon status.');
+            } else {
+                setError('Failed to toggle coupon status. Please try again.');
+            }
         }
     };
 
@@ -187,11 +228,30 @@ function Coupons() {
             setSuccessMsg(editingCoupon ? 'Coupon updated successfully!' : 'Coupon created successfully!');
             setTimeout(() => setSuccessMsg(null), 3000);
         } catch (err) {
-            setError(err?.response?.data?.detail || err.message || 'Failed to save coupon. Please check the details and try again.');
+            const msg = err.message || '';
+            if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                setError('You do not have access to save coupons.');
+            } else {
+                setError(err?.response?.data?.detail || err.message || 'Failed to save coupon. Please check the details and try again.');
+            }
         } finally {
             setSubmitting(false);
         }
     };
+
+    if (!permissions.view && !loading) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <AlertCircle className="h-8 w-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-800">Access Restricted</h2>
+                    <p className="text-gray-500 max-w-sm">You don't have permission to view coupons. Please contact your administrator.</p>
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout onLogout={handleLogout}>
@@ -282,6 +342,7 @@ function Coupons() {
                                     <input
                                         type="date"
                                         required
+                                        min={new Date().toISOString().split('T')[0]}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                         value={formData.start_date}
                                         onChange={e => setFormData({ ...formData, start_date: e.target.value })}
@@ -292,6 +353,7 @@ function Coupons() {
                                     <input
                                         type="date"
                                         required
+                                        min={formData.start_date || new Date().toISOString().split('T')[0]}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
                                         value={formData.end_date}
                                         onChange={e => setFormData({ ...formData, end_date: e.target.value })}
@@ -462,13 +524,15 @@ function Coupons() {
                                 </h1>
                                 <p className="text-gray-500 mt-1">Create and manage discount coupons</p>
                             </div>
-                            <button
-                                onClick={handleAddClick}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-sm w-full md:w-auto justify-center whitespace-nowrap"
-                            >
-                                <Plus className="h-5 w-5" />
-                                Add Coupon
-                            </button>
+                            {permissions.add && (
+                                <button
+                                    onClick={handleAddClick}
+                                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-sm w-full md:w-auto justify-center whitespace-nowrap"
+                                >
+                                    <Plus className="h-5 w-5" />
+                                    Add Coupon
+                                </button>
+                            )}
                         </div>
 
                         {/* Search Bar */}
@@ -508,20 +572,14 @@ function Coupons() {
                                                     <span className="bg-gray-100 text-gray-800 font-mono font-bold px-2 py-1 rounded text-sm border border-gray-200">
                                                         {coupon.code}
                                                     </span>
-                                                    {!coupon.is_active && (
-                                                        <span className="text-red-600 text-xs font-medium bg-red-100 px-2 py-0.5 rounded-full">Inactive</span>
-                                                    )}
                                                 </div>
                                                 <p className="text-sm text-gray-500 line-clamp-1">{coupon.description || 'No description'}</p>
                                             </div>
-                                            <div className="flex gap-1">
-                                                <button onClick={() => handleEditClick(coupon)} className="p-1.5 text-gray-400 hover:text-green-600 rounded-full hover:bg-gray-50">
-                                                    <Edit2 className="h-4 w-4" />
-                                                </button>
-                                                <button onClick={() => handleDeleteClick(coupon.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-50">
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
+                                            <ToggleSwitch
+                                                isChecked={coupon.is_active}
+                                                onToggle={() => handleToggleStatus(coupon.id)}
+                                                disabled={!permissions.edit}
+                                            />
                                         </div>
 
                                         {/* Card Body */}
@@ -548,19 +606,30 @@ function Coupons() {
                                                 </span>
                                             </div>
 
-                                            <div className="flex justify-between items-center pt-2">
+                                            <div className="flex items-center pt-2">
                                                 <div className="text-xs text-gray-500">
                                                     Usage: {coupon.usage_count} / {coupon.usage_limit ? coupon.usage_limit : '∞'}
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-xs font-medium ${coupon.is_active ? 'text-green-600' : 'text-gray-500'}`}>
-                                                        {coupon.is_active ? 'Active' : 'Inactive'}
-                                                    </span>
-                                                    <ToggleSwitch
-                                                        isChecked={coupon.is_active}
-                                                        onToggle={() => handleToggleStatus(coupon.id)}
-                                                    />
-                                                </div>
+                                            </div>
+
+                                            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+                                                {permissions.edit && (
+                                                    <button
+                                                        onClick={() => handleEditClick(coupon)}
+                                                        className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                        <span className="text-sm font-bold">Edit</span>
+                                                    </button>
+                                                )}
+                                                {permissions.delete && (
+                                                    <button
+                                                        onClick={() => handleDeleteClick(coupon.id)}
+                                                        className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

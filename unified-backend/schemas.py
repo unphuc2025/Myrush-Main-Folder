@@ -38,9 +38,10 @@ def resolve_path(path: str) -> str:
     
     key = key.lstrip('/')
     
-    # Use the /api/media proxy. This router handles the S3 fetch using backend-side credentials.
+    # Return direct S3 URL for better performance if configured
+    if S3_BASE_URL:
+        return f"{S3_BASE_URL}/{key}"
     return f"{base_url}/api/media/{key}"
-
 # ============================================================================
 # ADMIN SCHEMAS
 # ============================================================================
@@ -193,6 +194,12 @@ class Branch(BranchBase):
     class Config:
         from_attributes = True
 
+class BranchListResponse(BaseModel):
+    items: List[Branch]
+    total: int
+    page: int
+    pages: int
+
 class CourtBase(BaseModel):
     branch_id: str
     game_type_id: str
@@ -237,6 +244,12 @@ class Court(CourtBase):
 
     class Config:
         from_attributes = True
+
+class CourtListResponse(BaseModel):
+    items: List[Court]
+    total: int
+    page: int
+    pages: int
 
 class CouponBase(BaseModel):
     code: str
@@ -441,6 +454,12 @@ class AdminVenue(AdminVenueBase):
     class Config:
         from_attributes = True
 
+class VenueListResponse(BaseModel):
+    items: List[AdminVenue]
+    total: int
+    page: int
+    pages: int
+
 # ============================================================================
 # USER SCHEMAS
 # ============================================================================
@@ -540,10 +559,14 @@ class CMSPageListResponse(BaseModel):
     pages: int
 
 class SiteSettingBase(BaseModel):
+    company_name: Optional[str] = None
     email: str
     contact_number: str
     address: str
     copyright_text: str
+    instagram_url: Optional[str] = None
+    youtube_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
 
 class SiteSettingCreate(SiteSettingBase):
     pass

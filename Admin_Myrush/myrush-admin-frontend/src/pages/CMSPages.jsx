@@ -21,6 +21,17 @@ const CMSPages = () => {
         is_active: true
     });
 
+    // Permission check
+    const permissions = (() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return {
+                add: true, edit: true, delete: true, view: true
+            };
+            return adminInfo.permissions?.['CMS Pages'] || {};
+        } catch { return {}; }
+    })();
+
     // Pagination
     const [page, setPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
@@ -32,7 +43,7 @@ const CMSPages = () => {
             navigate('/login');
             return;
         }
-        loadPages();
+        if (permissions.view) loadPages();
     }, [navigate, page, searchTerm]);
 
     const loadPages = async () => {
@@ -48,13 +59,22 @@ const CMSPages = () => {
             setTotalItems(response.total || 0);
         } catch (err) {
             console.error('Error loading pages:', err);
-            setError('Failed to load pages');
+            const status = err.response?.status;
+            if (status === 403 || err.message?.toLowerCase().includes('permission') || err.message?.toLowerCase().includes('forbidden')) {
+                setError('You do not have access to view CMS pages.');
+            } else {
+                setError('Failed to load pages. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
     };
 
     const handleEdit = (page) => {
+        if (!permissions.edit) {
+            setError('You do not have permission to edit CMS pages.');
+            return;
+        }
         setEditingPage(page);
         setFormData({
             title: page.title,
@@ -66,6 +86,10 @@ const CMSPages = () => {
     };
 
     const handleCreate = () => {
+        if (!permissions.add) {
+            setError('You do not have permission to create CMS pages.');
+            return;
+        }
         setEditingPage(null);
         setFormData({
             title: '',
@@ -78,6 +102,7 @@ const CMSPages = () => {
 
     const handleSave = async () => {
         try {
+            setError(null);
             if (editingPage) {
                 await cmsApi.update(editingPage.id, formData);
             } else {
@@ -86,27 +111,51 @@ const CMSPages = () => {
             setIsEditorOpen(false);
             loadPages();
         } catch (err) {
-            alert('Failed to save page: ' + err.message);
+            const msg = err.message || '';
+            if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                setError('You do not have access to save CMS pages.');
+            } else {
+                setError(err?.response?.data?.detail || err.message || 'Failed to save page. Please try again.');
+            }
         }
     };
 
     const handleDelete = async (id) => {
+        if (!permissions.delete) {
+            setError('You do not have permission to delete CMS pages.');
+            return;
+        }
         if (window.confirm('Are you sure you want to delete this page? This action cannot be undone.')) {
             try {
                 await cmsApi.delete(id);
                 loadPages();
             } catch (err) {
-                alert('Failed to delete page: ' + err.message);
+                const msg = err.message || '';
+                if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                    setError('You do not have access to delete CMS pages.');
+                } else {
+                    setError('Failed to delete page: ' + (err?.response?.data?.detail || err.message));
+                }
             }
         }
     };
 
     const handleToggleStatus = async (id, currentStatus) => {
+        if (!permissions.edit) {
+            setError('You do not have permission to modify page status.');
+            return;
+        }
         try {
             await cmsApi.update(id, { is_active: !currentStatus });
             loadPages();
         } catch (err) {
             console.error('Error toggling status:', err);
+            const msg = err.message || '';
+            if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                setError('You do not have access to toggle page status.');
+            } else {
+                setError('Failed to update page status.');
+            }
         }
     };
 
@@ -139,6 +188,11 @@ const CMSPages = () => {
                                 {editingPage ? 'Edit Page' : 'Create New Page'}
                             </h1>
                         </div>
+                        {error && (
+                            <div className="flex-1 mx-4 p-2 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
+                                {error}
+                            </div>
+                        )}
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setIsEditorOpen(false)}
@@ -197,12 +251,35 @@ const CMSPages = () => {
         );
     }
 
+    if (!permissions.view && !loading) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <Plus className="h-8 w-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-gray-500 max-w-sm">You don't have permission to view CMS pages. Please contact your administrator.</p>
+                </div>
+            </Layout>
+        );
+    }
+
     return (
         <Layout>
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-900">CMS Pages</h1>
                 <p className="text-sm text-slate-500">Manage dynamic content pages like Privacy Policy, Terms, etc.</p>
             </div>
+
+            {error && (
+                <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center justify-between border border-red-100">
+                    <div className="flex items-center gap-2">
+                        <Plus className="h-5 w-5 rotate-45" /> {error}
+                    </div>
+                    <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">✕</button>
+                </div>
+            )}
 
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
                 <div className="text-sm text-slate-500">
@@ -219,13 +296,15 @@ const CMSPages = () => {
                             className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm text-slate-900"
                         />
                     </div>
-                    <button
-                        onClick={handleCreate}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10"
-                    >
-                        <Plus className="h-4 w-4" />
-                        <span className="text-sm font-semibold">Create Page</span>
-                    </button>
+                    {permissions.add && (
+                        <button
+                            onClick={handleCreate}
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span className="text-sm font-semibold">Create Page</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -263,27 +342,32 @@ const CMSPages = () => {
                                             <td className="px-6 py-4">
                                                 <button
                                                     onClick={() => handleToggleStatus(page.id, page.is_active)}
-                                                    className={`w-11 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out ${page.is_active ? 'bg-green-500' : 'bg-slate-300'}`}
+                                                    disabled={!permissions.edit}
+                                                    className={`w-14 h-7 flex items-center rounded-full transition-colors duration-200 ease-in-out ${page.is_active ? 'bg-green-500' : 'bg-slate-300'} ${!permissions.edit ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 >
-                                                    <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${page.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                    <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${page.is_active ? 'translate-x-8' : 'translate-x-1'}`} />
                                                 </button>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => handleEdit(page)}
-                                                        className="p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
-                                                        title="Edit Content"
-                                                    >
-                                                        <Edit2 className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(page.id)}
-                                                        className="p-1.5 text-red-600 bg-red-50 rounded hover:bg-red-100"
-                                                        title="Delete Page"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
+                                                    {permissions.edit && (
+                                                        <button
+                                                            onClick={() => handleEdit(page)}
+                                                            className="p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+                                                            title="Edit Content"
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                    {permissions.delete && (
+                                                        <button
+                                                            onClick={() => handleDelete(page.id)}
+                                                            className="p-1.5 text-red-600 bg-red-50 rounded hover:bg-red-100"
+                                                            title="Delete Page"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -305,9 +389,10 @@ const CMSPages = () => {
                                         </div>
                                         <button
                                             onClick={() => handleToggleStatus(page.id, page.is_active)}
-                                            className={`w-9 h-5 flex items-center rounded-full transition-colors duration-200 ease-in-out flex-shrink-0 ${page.is_active ? 'bg-green-500' : 'bg-slate-300'}`}
+                                            disabled={!permissions.edit}
+                                            className={`w-12 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out flex-shrink-0 ${page.is_active ? 'bg-green-500' : 'bg-slate-300'} ${!permissions.edit ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         >
-                                            <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${page.is_active ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                            <div className={`w-4.5 h-4.5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${page.is_active ? 'translate-x-6.5' : 'translate-x-1'}`} />
                                         </button>
                                     </div>
 
@@ -316,20 +401,24 @@ const CMSPages = () => {
                                             Updated: {new Date(page.updated_at).toLocaleDateString()}
                                         </span>
                                         <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => handleEdit(page)}
-                                                className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
-                                                title="Edit"
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(page.id)}
-                                                className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
+                                            {permissions.edit && (
+                                                <button
+                                                    onClick={() => handleEdit(page)}
+                                                    className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                                                    title="Edit"
+                                                >
+                                                    <Edit2 className="h-4 w-4" />
+                                                </button>
+                                            )}
+                                            {permissions.delete && (
+                                                <button
+                                                    onClick={() => handleDelete(page.id)}
+                                                    className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

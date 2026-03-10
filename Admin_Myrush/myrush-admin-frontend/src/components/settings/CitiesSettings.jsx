@@ -47,7 +47,8 @@ function CitiesSettings() {
       setAreas(areasData);
     } catch (err) {
       console.error('Error fetching data:', err);
-      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+      const status = err.response?.status;
+      const errorMsg = (status === 403 || status === 401 || err.message?.toLowerCase().includes('authorized') || err.message?.toLowerCase().includes('access'))
         ? 'You do not have access to view cities or areas.'
         : 'Failed to load data';
       setError(errorMsg);
@@ -316,7 +317,7 @@ function CitiesSettings() {
                 <div key={city.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-semibold text-slate-900">{city.name}</h3>
+                      <h3 className="font-bold text-slate-900">{city.name}</h3>
                       <p className="text-xs text-slate-500 font-mono mt-0.5">{city.short_code}</p>
                     </div>
                     <ToggleSwitch
@@ -324,18 +325,19 @@ function CitiesSettings() {
                       onToggle={() => handleToggleCity(city)}
                     />
                   </div>
-                  <div className="border-t border-slate-100 pt-3 flex justify-end gap-2">
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100 mt-1">
                     <button
                       onClick={() => handleEditCityClick(city)}
-                      className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-50 rounded-lg hover:bg-slate-100"
+                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
                     >
-                      <Edit2 className="h-3.5 w-3.5" /> Edit
+                      <Edit2 className="h-4 w-4" />
+                      <span className="text-sm font-bold">Edit</span>
                     </button>
                     <button
                       onClick={() => handleDeleteCity(city.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
+                      className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
                     >
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -390,9 +392,9 @@ function CitiesSettings() {
                 <div key={area.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-semibold text-slate-900">{area.name}</h3>
+                      <h3 className="font-bold text-slate-900">{area.name}</h3>
                       <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
-                        <Building2 className="h-3 w-3" />
+                        <Building2 className="h-3 w-3 text-slate-400" />
                         {area.city?.name}
                       </div>
                     </div>
@@ -401,18 +403,19 @@ function CitiesSettings() {
                       onToggle={() => handleToggleArea(area)}
                     />
                   </div>
-                  <div className="border-t border-slate-100 pt-3 flex justify-end gap-2">
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100 mt-1">
                     <button
                       onClick={() => handleEditAreaClick(area)}
-                      className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-50 rounded-lg hover:bg-slate-100"
+                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
                     >
-                      <Edit2 className="h-3.5 w-3.5" /> Edit
+                      <Edit2 className="h-4 w-4" />
+                      <span className="text-sm font-bold">Edit</span>
                     </button>
                     <button
                       onClick={() => handleDeleteArea(area.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
+                      className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
                     >
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -439,7 +442,10 @@ function CitiesSettings() {
                 <input
                   type="text"
                   value={cityFormData.name}
-                  onChange={e => setCityFormData({ ...cityFormData, name: e.target.value })}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                    setCityFormData({ ...cityFormData, name: val });
+                  }}
                   className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg placeholder:text-slate-300 shadow-sm hover:border-slate-300"
                   required
                   placeholder="e.g. Hyderabad"
@@ -454,7 +460,10 @@ function CitiesSettings() {
                 <input
                   type="text"
                   value={cityFormData.shortCode}
-                  onChange={e => setCityFormData({ ...cityFormData, shortCode: e.target.value.toUpperCase() })}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase();
+                    setCityFormData({ ...cityFormData, shortCode: val });
+                  }}
                   className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium text-lg uppercase placeholder:text-slate-300 shadow-sm hover:border-slate-300"
                   placeholder="e.g. HYD"
                 />

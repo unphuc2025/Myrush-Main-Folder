@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.attributes import flag_modified
@@ -28,39 +28,53 @@ router = APIRouter(
 
 from dependencies import get_admin_branch_filter
 
-@router.get("", response_model=List[schemas.Court])
-@router.get("/", response_model=List[schemas.Court])
+@router.get("", response_model=schemas.CourtListResponse)
+@router.get("/", response_model=schemas.CourtListResponse)
 def get_all_courts(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    search: Optional[str] = None,
     branch_id: str = None, 
     game_type_id: str = None, 
     db: Session = Depends(get_db),
     _ = Depends(PermissionChecker("Manage Courts", "view")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
-    """Get all courts, filtered by branch access rights"""
+    """Get all courts with pagination and searching, filtered by branch access rights"""
     query = db.query(models.Court)
     
     # 1. Apply Role-Based Restrictions (Server-side)
     if branch_filter is not None:
-        # User is restricted to specific branches
         if branch_id:
-            # If requesting a specific branch, ensure it's in their allowed list
             if branch_id not in branch_filter:
-                return []
+                return {"items": [], "total": 0, "page": 1, "pages": 0}
             query = query.filter(models.Court.branch_id == branch_id)
         else:
-            # Return courts from ALL allowed branches
             query = query.filter(models.Court.branch_id.in_(branch_filter))
     else:
-        # SUPER ADMIN (No filter)
         if branch_id:
             query = query.filter(models.Court.branch_id == branch_id)
 
-    # 2. Apply other filters
+    # 2. Search
+    if search:
+        query = query.filter(models.Court.name.ilike(f"%{search}%"))
+
+    # 3. Apply other filters
     if game_type_id:
         query = query.filter(models.Court.game_type_id == game_type_id)
         
-    return query.all()
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
+    
+    pages = (total + limit - 1) // limit if limit > 0 else 0
+    current_page = (skip // limit) + 1 if limit > 0 else 1
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": current_page,
+        "pages": pages
+    }
 
 @router.get("/{court_id}", response_model=schemas.Court, dependencies=[Depends(PermissionChecker("Manage Courts", "view"))])
 def get_court(court_id: str, db: Session = Depends(get_db)):

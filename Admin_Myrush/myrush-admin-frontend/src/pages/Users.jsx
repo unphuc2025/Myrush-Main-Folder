@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import { usersApi } from '../services/adminApi';
 import { Search, Trash2, Edit2, Eye, XCircle, Save, User as UserIcon, Mail, Phone, Calendar, Info } from 'lucide-react';
 import Drawer from '../components/settings/Drawer';
+import ToggleSwitch from '../components/settings/ToggleSwitch';
 
 const Users = () => {
     const navigate = useNavigate();
@@ -25,11 +26,28 @@ const Users = () => {
     const [editFormData, setEditFormData] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Permission check
+    const permissions = (() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return {
+                add: true, edit: true, delete: true, view: true
+            };
+            return adminInfo.permissions?.['User Management'] || {};
+        } catch { return {}; }
+    })();
+
+    const canEdit = permissions.edit;
+    const canDelete = permissions.delete;
+    const hasView = permissions.view;
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
-        if (!token) navigate('/login');
-        loadUsers();
-    }, [navigate, page, searchTerm]);
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+        if (hasView) loadUsers();
+    }, [navigate, page, searchTerm, hasView]);
 
     const loadUsers = async () => {
         try {
@@ -55,25 +73,42 @@ const Users = () => {
     };
 
     const handleDelete = async (id) => {
+        if (!canDelete) {
+            setError('You do not have permission to delete users.');
+            return;
+        }
         if (window.confirm('Are you sure you want to delete this user?')) {
             try {
                 await usersApi.delete(id);
                 loadUsers();
             } catch (err) {
                 console.error('Error deleting user:', err);
-                alert('Failed to delete user');
+                const msg = err.message || '';
+                if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                    setError('You do not have access to delete users.');
+                } else {
+                    setError('Failed to delete user');
+                }
             }
         }
     };
 
     const handleToggleStatus = async (id) => {
+        if (!canEdit) {
+            setError('You do not have permission to modify user status.');
+            return;
+        }
         try {
             await usersApi.toggleStatus(id);
-            // Optimistically update local state for better UX
             setUsers(prev => prev.map(u => u.id === id ? { ...u, is_active: !u.is_active } : u));
         } catch (err) {
             console.error(err);
-            alert('Failed to toggle status: ' + err.message);
+            const msg = err.message || '';
+            if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                setError('You do not have access to modify user status.');
+            } else {
+                setError('Failed to toggle status: ' + err.message);
+            }
         }
     };
 
@@ -143,8 +178,11 @@ const Users = () => {
             </div>
 
             {error && (
-                <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
-                    <XCircle className="h-5 w-5" />{error}
+                <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center justify-between border border-red-100">
+                    <div className="flex items-center gap-2">
+                        <XCircle className="h-5 w-5" /> {error}
+                    </div>
+                    <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 font-bold px-2">✕</button>
                 </div>
             )}
 
@@ -186,12 +224,11 @@ const Users = () => {
                                                 {user.phone_number || '-'}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <button
-                                                    onClick={() => handleToggleStatus(user.id)}
-                                                    className={`w-11 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out ${user.is_active ? 'bg-green-500' : 'bg-slate-300'}`}
-                                                >
-                                                    <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${user.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
-                                                </button>
+                                                <ToggleSwitch
+                                                    isChecked={user.is_active}
+                                                    onToggle={() => handleToggleStatus(user.id)}
+                                                    disabled={!canEdit}
+                                                />
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center justify-end gap-2">
@@ -202,20 +239,24 @@ const Users = () => {
                                                     >
                                                         <Eye className="h-4 w-4" />
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleEdit(user)}
-                                                        className="p-1.5 text-amber-600 bg-amber-50 rounded hover:bg-amber-100 transition-colors"
-                                                        title="Edit User"
-                                                    >
-                                                        <Edit2 className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(user.id)}
-                                                        className="p-1.5 text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors"
-                                                        title="Delete User"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
+                                                    {canEdit && (
+                                                        <button
+                                                            onClick={() => handleEdit(user)}
+                                                            className="p-1.5 text-amber-600 bg-amber-50 rounded hover:bg-amber-100 transition-colors"
+                                                            title="Edit User"
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                    {canDelete && (
+                                                        <button
+                                                            onClick={() => handleDelete(user.id)}
+                                                            className="p-1.5 text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors"
+                                                            title="Delete User"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -241,12 +282,11 @@ const Users = () => {
                                                 <p className="text-xs text-slate-500">#{(page - 1) * ITEMS_PER_PAGE + index + 1}</p>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={() => handleToggleStatus(user.id)}
-                                            className={`w-10 h-5 flex items-center rounded-full transition-colors duration-200 ease-in-out ${user.is_active ? 'bg-green-500' : 'bg-slate-300'}`}
-                                        >
-                                            <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${user.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
-                                        </button>
+                                        <ToggleSwitch
+                                            isChecked={user.is_active}
+                                            onToggle={() => handleToggleStatus(user.id)}
+                                            disabled={!canEdit}
+                                        />
                                     </div>
 
                                     <div className="space-y-3 mb-5">
@@ -267,18 +307,22 @@ const Users = () => {
                                         >
                                             <Eye className="h-4 w-4" /> View
                                         </button>
-                                        <button
-                                            onClick={() => handleEdit(user)}
-                                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-amber-600 bg-amber-50 rounded-xl font-bold text-sm hover:bg-amber-100 transition-all active:scale-95"
-                                        >
-                                            <Edit2 className="h-4 w-4" /> Edit
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(user.id)}
-                                            className="p-2.5 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-all active:scale-95"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
+                                        {canEdit && (
+                                            <button
+                                                onClick={() => handleEdit(user)}
+                                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-amber-600 bg-amber-50 rounded-xl font-bold text-sm hover:bg-amber-100 transition-all active:scale-95"
+                                            >
+                                                <Edit2 className="h-4 w-4" /> Edit
+                                            </button>
+                                        )}
+                                        {canDelete && (
+                                            <button
+                                                onClick={() => handleDelete(user.id)}
+                                                className="p-2.5 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-all active:scale-95"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))}

@@ -39,8 +39,8 @@ function AddAdminForm({ onCancel, onSave, initialData = null }) {
                 branchesApi.getAll(),
                 rolesApi.getAll()
             ]);
-            setBranches(branchesData);
-            setRoles(rolesData);
+            setBranches(branchesData?.items || branchesData || []);
+            setRoles(rolesData?.items || rolesData || []);
         } catch (err) {
             console.error('Failed to load data', err);
         }
@@ -57,6 +57,15 @@ function AddAdminForm({ onCancel, onSave, initialData = null }) {
             // Basic validation
             if (payload.role !== 'super_admin' && !payload.role_id) {
                 throw new Error('Please select a role');
+            }
+
+            if ((payload.mobile || '').length !== 10) {
+                throw new Error('Mobile number must be exactly 10 digits');
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (payload.email && !emailRegex.test(payload.email)) {
+                throw new Error('Please enter a valid email address');
             }
 
             // Legacy support: fill 'role' string if needed by backend validation

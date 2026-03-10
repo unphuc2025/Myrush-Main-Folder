@@ -13,10 +13,14 @@ const SiteSettings = () => {
     const [logoPreview, setLogoPreview] = useState(null);
     const [formData, setFormData] = useState({
         site_logo: null, // File object if new upload
+        company_name: '',
         email: '',
         contact_number: '',
         address: '',
-        copyright_text: ''
+        copyright_text: '',
+        instagram_url: '',
+        youtube_url: '',
+        linkedin_url: ''
     });
 
     useEffect(() => {
@@ -33,10 +37,14 @@ const SiteSettings = () => {
             setLoading(true);
             const data = await settingsApi.get();
             setFormData({
+                company_name: data.company_name || '',
                 email: data.email || '',
                 contact_number: data.contact_number || '',
                 address: data.address || '',
                 copyright_text: data.copyright_text || '',
+                instagram_url: data.instagram_url || '',
+                youtube_url: data.youtube_url || '',
+                linkedin_url: data.linkedin_url || '',
                 site_logo: null // Reset file input
             });
             if (data.site_logo) {
@@ -69,10 +77,14 @@ const SiteSettings = () => {
 
         try {
             const data = new FormData();
+            data.append('company_name', formData.company_name);
             data.append('email', formData.email);
             data.append('contact_number', formData.contact_number);
             data.append('address', formData.address);
             data.append('copyright_text', formData.copyright_text);
+            data.append('instagram_url', formData.instagram_url);
+            data.append('youtube_url', formData.youtube_url);
+            data.append('linkedin_url', formData.linkedin_url);
             if (formData.site_logo) {
                 data.append('site_logo', formData.site_logo);
             }
@@ -138,6 +150,23 @@ const SiteSettings = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                            {/* Company Name */}
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Company Name <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.company_name}
+                                        onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                        placeholder="Addrush Sports Private Limited"
+                                    />
+                                </div>
+                            </div>
+
                             {/* Email */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -208,6 +237,56 @@ const SiteSettings = () => {
                                     className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
                                     placeholder="&copy; {{YEAR}} RUSH Pitch Booking. All Rights Reserved"
                                 />
+                            </div>
+                        </div>
+
+                        {/* Social Media Links */}
+                        <h3 className="text-lg font-bold text-slate-900 mb-4 border-b pb-2">Social Media Links</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                            {/* Instagram */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Instagram URL
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="url"
+                                        value={formData.instagram_url}
+                                        onChange={(e) => setFormData({ ...formData, instagram_url: e.target.value })}
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                        placeholder="https://instagram.com/..."
+                                    />
+                                </div>
+                            </div>
+                            {/* YouTube */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    YouTube URL
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="url"
+                                        value={formData.youtube_url}
+                                        onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                        placeholder="https://youtube.com/..."
+                                    />
+                                </div>
+                            </div>
+                            {/* LinkedIn */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    LinkedIn URL
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="url"
+                                        value={formData.linkedin_url}
+                                        onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                        placeholder="https://linkedin.com/in/..."
+                                    />
+                                </div>
                             </div>
                         </div>
 

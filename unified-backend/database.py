@@ -25,14 +25,13 @@ if SQLALCHEMY_DATABASE_URL:
 # Create engine with connection pooling for PostgreSQL/Supabase
 if "postgresql" in SQLALCHEMY_DATABASE_URL or "supabase" in SQLALCHEMY_DATABASE_URL:
     # PostgreSQL/Supabase-specific configuration
-    # Using NullPool to prevent connection exhaustion on Supabase free tier
-    # Each request gets a fresh connection that's immediately closed
+    # Using NullPool as per original configuration to avoid connection issues on free tier
     from sqlalchemy.pool import NullPool
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
-        poolclass=NullPool,  # No connection pooling - fresh connection per request
-        pool_pre_ping=True,  # Check connection before using
-        echo=False  # Disable SQL logging
+        poolclass=NullPool,
+        pool_pre_ping=True,
+        echo=False
     )
 else:
     # Default engine for other databases

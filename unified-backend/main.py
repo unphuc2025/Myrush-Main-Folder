@@ -220,7 +220,9 @@ from routers.user import (
     favorites,
     faq as user_faq,
     policies as user_policies,
-    contact
+    contact,
+    cms as user_cms,
+    site_settings as user_site_settings
 )
 
 # Import chatbot router
@@ -241,7 +243,9 @@ app.include_router(academy.router, prefix="/api/user/academy", tags=["User Acade
 app.include_router(favorites.router, prefix="/api/user", tags=["User Favorites"])
 app.include_router(user_faq.router, prefix="/api/user", tags=["User FAQ"])
 app.include_router(user_policies.router, prefix="/api/user", tags=["User Policies"])
-app.include_router(contact.router, prefix="/api/user/contact", tags=["User Contact"])
+app.include_router(contact.router, prefix="/api/user/contact", tags=["User Contact Support"])
+app.include_router(user_cms.router, prefix="/api/user", tags=["User CMS"])
+app.include_router(user_site_settings.router, prefix="/api/user", tags=["User Site Settings"])
 
 # Include chatbot knowledge API
 app.include_router(chatbot.router, tags=["Chatbot Knowledge"])

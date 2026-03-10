@@ -49,11 +49,12 @@ function AdminsSettings() {
                 adminsApi.getAll(),
                 branchesApi.getAll()
             ]);
-            setAdmins(adminsData);
-            setBranches(branchesData);
+            setAdmins(adminsData?.items || adminsData || []);
+            setBranches(branchesData?.items || branchesData || []);
         } catch (err) {
             console.error('Error loading data:', err);
-            const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+            const status = err.response?.status;
+            const errorMsg = (status === 403 || status === 401 || err.message?.toLowerCase().includes('authorized') || err.message?.toLowerCase().includes('access'))
                 ? 'You do not have access to view admins.'
                 : 'Failed to load admins';
             setError(errorMsg);

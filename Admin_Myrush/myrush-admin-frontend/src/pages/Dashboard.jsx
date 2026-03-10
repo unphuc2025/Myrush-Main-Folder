@@ -85,7 +85,7 @@ function Dashboard() {
       return status === 'confirmed' || status === 'completed' ? sum + amount : sum;
     }, 0);
 
-    const activeVenues = venues.filter(v => v.is_active).length;
+    const activeVenues = (Array.isArray(venues) ? venues : venues.items || []).filter(v => v.is_active).length;
 
     setStats({
       totalRevenue,
@@ -138,7 +138,23 @@ function Dashboard() {
     setRecentBookings(sortedBookings);
   };
 
-  const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
+  const statusChartColors = {
+    'confirmed': '#10b981',
+    'pending': '#f59e0b',
+    'cancelled': '#ef4444',
+    'completed': '#3b82f6',
+    'unknown': '#94a3b8'
+  };
+
+  const getStatusColor = (status) => {
+    switch ((status || '').toLowerCase()) {
+      case 'confirmed': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-slate-100 text-slate-800';
+    }
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -320,7 +336,7 @@ function Dashboard() {
                       dataKey="value"
                     >
                       {statusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={statusChartColors[entry.name.toLowerCase()] || '#94a3b8'} />
                       ))}
                     </Pie>
                     <Tooltip
@@ -370,9 +386,7 @@ function Dashboard() {
                         {formatCurrency(parseFloat(String(booking.total_amount || booking.price || '0').replace(/[^0-9.]/g, '')) || 0)}
                       </td>
                       <td className="py-4 px-4">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold capitalize
-                                            ${booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                            booking.status === 'cancelled' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold capitalize ${getStatusColor(booking.status)}`}>
                           {booking.status}
                         </span>
                       </td>
@@ -398,9 +412,7 @@ function Dashboard() {
                       <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Booking ID</p>
                       <p className="text-sm font-bold text-slate-900">#{booking.id}</p>
                     </div>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize
-                                        ${booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                        booking.status === 'cancelled' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(booking.status)}`}>
                       {booking.status}
                     </span>
                   </div>

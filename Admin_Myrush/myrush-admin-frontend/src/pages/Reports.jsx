@@ -16,15 +16,18 @@ const Reports = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [loading, setLoading] = useState(false);
 
-    // Permission check
-    const canExport = (() => {
+    const permissions = (() => {
         try {
             const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
-            if (adminInfo.role === 'super_admin') return true;
-            const perms = adminInfo.permissions?.['Reports and analytics'] || {};
-            return perms.edit || perms.delete || perms.add;
-        } catch { return false; }
+            if (adminInfo.role === 'super_admin') return {
+                add: true, edit: true, delete: true, view: true
+            };
+            return adminInfo.permissions?.['Reports and analytics'] || {};
+        } catch { return {}; }
     })();
+
+    const canExport = permissions.edit || permissions.delete || permissions.add;
+    const hasView = permissions.view;
 
     // Data states
     const [bookings, setBookings] = useState([]);
@@ -57,9 +60,9 @@ const Reports = () => {
                 branchesApi.getAll(),
                 citiesApi.getAll()
             ]);
-            setBookings(bookingsData);
-            setBranches(branchesData);
-            setCities(citiesData);
+            setBookings(bookingsData?.items || bookingsData || []);
+            setBranches(branchesData?.items || branchesData || []);
+            setCities(citiesData?.items || citiesData || []);
         } catch (error) {
             console.error("Error fetching report data:", error);
         } finally {
@@ -287,6 +290,20 @@ const Reports = () => {
             alert("Failed to export Excel: " + err.message);
         }
     };
+
+    if (!hasView && !loading) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <PieChartIcon className="h-8 w-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-gray-500 max-w-sm">You don't have permission to view analytics reports. Please contact your administrator.</p>
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout onLogout={() => {

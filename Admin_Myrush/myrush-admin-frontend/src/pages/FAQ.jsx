@@ -18,6 +18,17 @@ const FAQ = () => {
     const [editingFaq, setEditingFaq] = useState(null);
     const [viewingFaq, setViewingFaq] = useState(null);
 
+    // Permission check
+    const permissions = (() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return {
+                add: true, edit: true, delete: true, view: true
+            };
+            return adminInfo.permissions?.['FAQ'] || {};
+        } catch { return {}; }
+    })();
+
     // Pagination
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -27,7 +38,7 @@ const FAQ = () => {
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
         if (!token) navigate('/login');
-        loadFaqs();
+        if (permissions.view) loadFaqs();
     }, [navigate, page, searchTerm]);
 
     const loadFaqs = async () => {
@@ -44,25 +55,43 @@ const FAQ = () => {
             setTotalItems(response.total || 0);
         } catch (err) {
             console.error('Error loading FAQs:', err);
-            setError('Failed to load FAQs');
+            const status = err.response?.status;
+            if (status === 403 || err.message?.toLowerCase().includes('permission') || err.message?.toLowerCase().includes('forbidden')) {
+                setError('You do not have access to view FAQs.');
+            } else {
+                setError('Failed to load FAQs. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id) => {
+        if (!permissions.delete) {
+            setError('You do not have permission to delete FAQs.');
+            return;
+        }
         if (window.confirm('Are you sure you want to delete this FAQ?')) {
             try {
                 await faqsApi.delete(id);
                 loadFaqs();
             } catch (err) {
                 console.error('Error deleting FAQ:', err);
-                setError(err?.response?.data?.detail || 'Unable to delete this FAQ. It may be in use or you may not have permission.');
+                const msg = err.message || '';
+                if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                    setError('You do not have access to delete FAQs.');
+                } else {
+                    setError(err?.response?.data?.detail || 'Unable to delete this FAQ. It may be in use or you may not have permission.');
+                }
             }
         }
     };
 
     const handleToggleStatus = async (faq) => {
+        if (!permissions.edit) {
+            setError('You do not have permission to modify FAQ status.');
+            return;
+        }
         // Optimistically update local state (no loading spinner)
         const newStatus = !faq.is_active;
         setFaqs(prev => prev.map(f => f.id === faq.id ? { ...f, is_active: newStatus } : f));
@@ -72,7 +101,12 @@ const FAQ = () => {
             // Revert on failure
             setFaqs(prev => prev.map(f => f.id === faq.id ? { ...f, is_active: faq.is_active } : f));
             console.error('Error toggling status:', err);
-            setError('Failed to update FAQ status. Please try again.');
+            const msg = err.message || '';
+            if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+                setError('You do not have access to toggle FAQ status.');
+            } else {
+                setError('Failed to update FAQ status. Please try again.');
+            }
         }
     };
 
@@ -81,6 +115,20 @@ const FAQ = () => {
         setEditingFaq(null);
         setIsFormOpen(true);
     };
+
+    if (!permissions.view && !loading) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <AlertCircle className="h-8 w-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-slate-500 max-w-sm">You don't have permission to view FAQs. Please contact your administrator.</p>
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout onLogout={() => { localStorage.removeItem('admin_token'); navigate('/login'); }}>
@@ -104,19 +152,23 @@ const FAQ = () => {
                             className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm"
                         />
                     </div>
-                    <button
-                        onClick={() => { setEditingFaq(null); setViewingFaq(null); setIsFormOpen(true); }}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95 whitespace-nowrap"
-                    >
-                        <Plus className="h-4 w-4" />
-                        <span className="text-sm font-semibold">Add FAQ</span>
-                    </button>
-                    <button
-                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors border border-red-200"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="text-sm font-semibold">Delete Selected</span>
-                    </button>
+                    {permissions.add && (
+                        <button
+                            onClick={() => { setEditingFaq(null); setViewingFaq(null); setIsFormOpen(true); }}
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95 whitespace-nowrap"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span className="text-sm font-semibold">Add FAQ</span>
+                        </button>
+                    )}
+                    {permissions.delete && (
+                        <button
+                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors border border-red-200"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="text-sm font-semibold">Delete Selected</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -154,21 +206,26 @@ const FAQ = () => {
                                             <td className="px-6 py-4">
                                                 <button
                                                     onClick={() => handleToggleStatus(faq)}
-                                                    className={`w-11 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out ${faq.is_active ? 'bg-green-500' : 'bg-red-400'}`}
+                                                    disabled={!permissions.edit}
+                                                    className={`w-14 h-7 flex items-center rounded-full transition-colors duration-200 ease-in-out ${faq.is_active ? 'bg-green-500' : 'bg-red-400'} ${!permissions.edit ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 >
-                                                    <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${faq.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                    <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${faq.is_active ? 'translate-x-8' : 'translate-x-1'}`} />
                                                 </button>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <button onClick={() => handleView(faq)} className="p-1.5 text-purple-600 bg-purple-50 rounded hover:bg-purple-100 cursor-pointer"><Eye className="h-4 w-4" /></button>
-                                                    <button
-                                                        onClick={() => { setEditingFaq(faq); setViewingFaq(null); setIsFormOpen(true); }}
-                                                        className="p-1.5 text-amber-600 bg-amber-50 rounded hover:bg-amber-100"
-                                                    >
-                                                        <Edit2 className="h-4 w-4" />
-                                                    </button>
-                                                    <button onClick={() => handleDelete(faq.id)} className="p-1.5 text-red-600 bg-red-50 rounded hover:bg-red-100"><Trash2 className="h-4 w-4" /></button>
+                                                    {permissions.edit && (
+                                                        <button
+                                                            onClick={() => { setEditingFaq(faq); setViewingFaq(null); setIsFormOpen(true); }}
+                                                            className="p-1.5 text-amber-600 bg-amber-50 rounded hover:bg-amber-100"
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                    {permissions.delete && (
+                                                        <button onClick={() => handleDelete(faq.id)} className="p-1.5 text-red-600 bg-red-50 rounded hover:bg-red-100"><Trash2 className="h-4 w-4" /></button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -188,9 +245,10 @@ const FAQ = () => {
                                         </div>
                                         <button
                                             onClick={() => handleToggleStatus(faq)}
-                                            className={`w-9 h-5 flex items-center rounded-full transition-colors duration-200 ease-in-out flex-shrink-0 ${faq.is_active ? 'bg-green-500' : 'bg-red-400'}`}
+                                            disabled={!permissions.edit}
+                                            className={`w-12 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out flex-shrink-0 ${faq.is_active ? 'bg-green-500' : 'bg-red-400'} ${!permissions.edit ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         >
-                                            <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${faq.is_active ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                            <div className={`w-4.5 h-4.5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${faq.is_active ? 'translate-x-6.5' : 'translate-x-1'}`} />
                                         </button>
                                     </div>
 
@@ -201,16 +259,20 @@ const FAQ = () => {
                                             <Eye className="h-4 w-4" />
                                             <span className="text-sm font-medium">View</span>
                                         </button>
-                                        <button
-                                            onClick={() => { setEditingFaq(faq); setViewingFaq(null); setIsFormOpen(true); }}
-                                            className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
-                                        >
-                                            <Edit2 className="h-4 w-4" />
-                                            <span className="text-sm font-medium">Edit</span>
-                                        </button>
-                                        <button onClick={() => handleDelete(faq.id)} className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
+                                        {permissions.edit && (
+                                            <button
+                                                onClick={() => { setEditingFaq(faq); setViewingFaq(null); setIsFormOpen(true); }}
+                                                className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                                            >
+                                                <Edit2 className="h-4 w-4" />
+                                                <span className="text-sm font-medium">Edit</span>
+                                            </button>
+                                        )}
+                                        {permissions.delete && (
+                                            <button onClick={() => handleDelete(faq.id)} className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))}

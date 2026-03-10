@@ -134,14 +134,14 @@ const BookingPolicies = () => {
         return (
             <div className="space-y-6 max-w-6xl mx-auto p-1">
                 {/* Header Actions */}
-                <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                     <div>
                         <h2 className="text-lg font-semibold text-slate-800">Policies & Terms</h2>
                         <p className="text-sm text-slate-500">Manage cancellation rules and terms of service</p>
                     </div>
                     <button
                         onClick={handleCreate}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors w-full md:w-auto"
                     >
                         <Plus className="h-4 w-4" />
                         <span className="text-sm font-semibold">Add Policy</span>
@@ -288,24 +288,24 @@ const BookingPolicies = () => {
                                 )}
                             </div>
 
-                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 mt-2">
-                                <span className="text-xs text-slate-400">
-                                    Updated: {new Date(policy.updated_at || policy.created_at).toLocaleDateString()}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => handleEdit(policy)}
-                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                    >
-                                        <Edit2 className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(policy.id)}
-                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                </div>
+                            <div className="text-xs text-slate-400 pt-2 border-t border-slate-100 mb-2 mt-2">
+                                Updated: {new Date(policy.updated_at || policy.created_at).toLocaleDateString()}
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2">
+                                <button
+                                    onClick={() => handleEdit(policy)}
+                                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                                >
+                                    <Edit2 className="h-4 w-4" />
+                                    <span className="text-sm font-bold">Edit</span>
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(policy.id)}
+                                    className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
                             </div>
                         </div>
                     ))}

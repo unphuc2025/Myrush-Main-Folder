@@ -9,7 +9,7 @@ import { featureFlags } from '../config/featureFlags';
 export const PublicNav: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { isAuthenticated, logout, openAuthModal } = useAuth();
+    const { isAuthenticated, logout } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 

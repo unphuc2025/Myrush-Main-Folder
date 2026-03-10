@@ -161,7 +161,7 @@ def create_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
         email=admin.email,
         password_hash=admin.password, # In production, hash this!
         role=final_role,
-        role_id=admin.role_id,
+        role_id=admin.role_id if admin.role_id else None,
         # Legacy support: if single branch_id passed, use it, though data isolation uses M2M
         branch_id=admin.branch_id if admin.branch_id and admin.role != 'super_admin' else None, 
         must_change_password=True  # Force password change
@@ -240,8 +240,8 @@ def update_admin(
     if current_admin.role == 'super_admin':
         if admin_update.role:
             db_admin.role = admin_update.role
-        if admin_update.role_id:
-            db_admin.role_id = admin_update.role_id
+        if admin_update.role_id is not None:
+            db_admin.role_id = admin_update.role_id if admin_update.role_id else None
             # Safety: If assigning specific role_id, ensure role is NOT super_admin
             if admin_update.role_id:
                 db_admin.role = 'admin'

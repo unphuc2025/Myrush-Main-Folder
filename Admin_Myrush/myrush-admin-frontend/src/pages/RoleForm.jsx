@@ -245,8 +245,13 @@ const RoleForm = () => {
                                     </th>
                                 ))}
                                 <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase text-center">
-                                    <div className="flex items-center justify-center gap-1 cursor-pointer" onClick={(e) => handleCheckAll(e.target.checked)}>
-                                        Check All
+                                    <div className="flex flex-col items-center gap-1">
+                                        <input
+                                            type="checkbox"
+                                            onChange={(e) => handleCheckAll(e.target.checked)}
+                                            className="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                                        />
+                                        <span className="text-[10px] mt-1">Select All</span>
                                     </div>
                                 </th>
                             </tr>

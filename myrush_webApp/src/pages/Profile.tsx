@@ -7,7 +7,7 @@ import { bookingsApi } from '../api/bookings';
 import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye, FaChevronRight, FaFutbol, FaCalendarAlt } from 'react-icons/fa';
+import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye, FaChevronRight, FaFutbol, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
 
 export const Profile: React.FC = () => {
     const navigate = useNavigate();

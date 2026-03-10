@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
@@ -21,14 +21,39 @@ router = APIRouter(
 # UPLOAD_DIR = Path("uploads/venues")
 # UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-@router.get("", response_model=List[schemas.AdminVenue], dependencies=[Depends(PermissionChecker("Manage Branch", "view"))])
-@router.get("/", response_model=List[schemas.AdminVenue], dependencies=[Depends(PermissionChecker("Manage Branch", "view"))])
-def get_all_venues(game_type: str = None, db: Session = Depends(get_db)):
-    """Get all venues, optionally filtered by game_type"""
+@router.get("", response_model=schemas.VenueListResponse, dependencies=[Depends(PermissionChecker("Manage Branch", "view"))])
+@router.get("/", response_model=schemas.VenueListResponse, dependencies=[Depends(PermissionChecker("Manage Branch", "view"))])
+def get_all_venues(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    search: Optional[str] = None,
+    game_type: str = None, 
+    db: Session = Depends(get_db)
+):
+    """Get all venues with pagination and searching"""
     query = db.query(models.AdminVenue)
+    
+    if search:
+        query = query.filter(
+            (models.AdminVenue.name.ilike(f"%{search}%")) |
+            (models.AdminVenue.location.ilike(f"%{search}%"))
+        )
+        
     if game_type:
         query = query.filter(models.AdminVenue.game_type == game_type)
-    return query.all()
+        
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
+    
+    pages = (total + limit - 1) // limit if limit > 0 else 0
+    current_page = (skip // limit) + 1 if limit > 0 else 1
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": current_page,
+        "pages": pages
+    }
 
 @router.get("/{venue_id}", response_model=schemas.AdminVenue, dependencies=[Depends(PermissionChecker("Manage Branch", "view"))])
 def get_venue(venue_id: str, db: Session = Depends(get_db)):

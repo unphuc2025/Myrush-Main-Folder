@@ -27,7 +27,8 @@ function AmenitiesSettings() {
       setAmenities(data);
     } catch (err) {
       console.error('Error fetching amenities:', err);
-      const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
+      const status = err.response?.status;
+      const errorMsg = (status === 403 || status === 401 || err.message?.toLowerCase().includes('authorized') || err.message?.toLowerCase().includes('access'))
         ? 'You do not have access to view amenities.'
         : 'Failed to load amenities';
       setError(errorMsg);
@@ -163,13 +164,14 @@ function AmenitiesSettings() {
               <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   onClick={() => handleEditClick(amenity)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-slate-600 bg-slate-50 hover:bg-white hover:text-green-600 border border-transparent hover:border-green-200 hover:shadow-sm rounded-lg transition-all"
+                  className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
                 >
-                  <Edit2 className="h-3.5 w-3.5" /> Edit
+                  <Edit2 className="h-4 w-4" />
+                  <span className="text-sm font-bold">Edit</span>
                 </button>
                 <button
                   onClick={() => handleDeleteClick(amenity.id)}
-                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
