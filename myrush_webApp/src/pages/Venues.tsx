@@ -2,30 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { venuesApi } from '../api/venues';
+import type { Venue } from '../api/venues';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
 import { getSportIcon } from '../utils/sportIcons';
 import { FaFutbol, FaHeart, FaRegHeart } from 'react-icons/fa';
 import { useFavorites } from '../context/FavoritesContext';
-interface Venue {
-    id: string;
-    court_name: string;
-    location: string;
-    game_type: string;
-    prices: string;
-    photos?: string[];
-    description: string;
-    branch_name?: string;
-    amenities?: Array<{
-        id: string;
-        name: string;
-        description?: string;
-        icon?: string;
-        icon_url?: string;
-    }>;
-    rating?: number;
-    reviewCount?: number;
-}
 
 // --- Icons ---
 const IconSearch = () => (
@@ -221,7 +203,7 @@ const FilterSidebar: React.FC<{
 
 const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onClick }) => {
     const { isFavorite, toggleFavorite } = useFavorites();
-    const favorited = isFavorite(venue.id);
+    const favorited = isFavorite(venue.id) || (venue.branch_id ? isFavorite(venue.branch_id) : false);
 
     const handleToggleFavorite = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -244,7 +226,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
                 {/* Favorite Button */}
                 <button
                     onClick={handleToggleFavorite}
-                    className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center text-red-500 shadow-md transform hover:scale-110 transition-all border border-white/50"
+                    className={`absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center shadow-md transform hover:scale-110 transition-all border border-white/50 ${favorited ? 'text-red-500' : 'text-gray-400'}`}
                 >
                     {favorited ? <FaHeart className="w-5 h-5" /> : <FaRegHeart className="w-5 h-5" />}
                 </button>
@@ -492,9 +474,10 @@ export const Venues: React.FC = () => {
                     photos: v.photos || [],
                     description: v.description || '',
                     branch_name: v.branch_name,
+                    branch_id: v.branch_id || v.id, // Explicitly set branch_id
                     amenities: v.amenities,
                     rating: v.rating || 0,
-                    reviewCount: v.reviews || 0
+                    reviews: v.reviews || 0
                 }));
                 setVenues(mappedVenues);
                 setFilteredVenues(mappedVenues);

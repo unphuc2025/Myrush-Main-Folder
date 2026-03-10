@@ -76,6 +76,7 @@ def get_favorites(
         query_sql = """
             SELECT
                 ac.id,
+                ab.id as branch_id,
                 ac.name as court_name,
                 ac.price_per_hour as prices,
                 ac.images as court_images,
@@ -104,6 +105,7 @@ def get_favorites(
             photos = row.get('branch_images') or row.get('court_images') or []
             result.append({
                 "id": str(row['id']),
+                "branch_id": str(row['branch_id']),
                 "court_name": row['branch_name'], # Use Branch Name for Venue-First consistency
                 "location": f"{row['location']}, {row['city_name']}",
                 "game_type": row['game_type'],

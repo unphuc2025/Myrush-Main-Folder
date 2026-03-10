@@ -179,7 +179,7 @@ export const BookingSummaryNew: React.FC = () => {
                             </div>
                             <div className="stat-item">
                                 <span className="stat-icon text-primary"><FaClock /></span>
-                                <span>{bookingData.selectedSlots.length} hour{bookingData.selectedSlots.length > 1 ? 's' : ''}</span>
+                                <span>{bookingData.selectedSlots.length * 0.5} hour{bookingData.selectedSlots.length * 0.5 > 1 ? 's' : ''}</span>
                             </div>
                         </div>
 
