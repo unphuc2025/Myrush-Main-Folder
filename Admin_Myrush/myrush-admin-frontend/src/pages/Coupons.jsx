@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Tag, Calendar, AlertCircle, Percent, DollarSign, Power } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Tag, Calendar, AlertCircle, Percent, DollarSign, Power, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import ToggleSwitch from '../components/settings/ToggleSwitch';
@@ -259,17 +259,19 @@ function Coupons() {
                 {showForm ? (
                     // Form View
                     <div className="bg-white rounded-xl shadow-xl overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                        <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                            <button
+                                onClick={() => setShowForm(false)}
+                                className="flex items-center gap-2 px-3 py-1.5 text-gray-600 hover:text-gray-900 transition-colors font-medium text-sm"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Back
+                            </button>
                             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                                 <Tag className="h-5 w-5 text-green-600" />
                                 {editingCoupon ? 'Edit Coupon' : 'Create New Coupon'}
                             </h2>
-                            <button
-                                onClick={() => setShowForm(false)}
-                                className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                            >
-                                Back to List
-                            </button>
+                            <div className="w-16"></div> {/* Spacer for centering */}
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-6">

@@ -265,8 +265,10 @@ app.include_router(chatbot.router, tags=["Chatbot Knowledge"])
 # ============================================================================
 
 from routers import playo
+from routers.integrations import district
 
 app.include_router(playo.router, prefix="/api", tags=["Playo Integration"])
+app.include_router(district.router, tags=["District Integration"])
 
 # ============================================================================
 # WHATSAPP INTEGRATION ROUTER

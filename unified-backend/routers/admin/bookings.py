@@ -60,9 +60,9 @@ def create_booking(
              calc_duration += 24 * 60
         # Optional: override duration_minutes with calculated one?
         # Let's fallback to calculated if provided is 0
-        if duration_minutes == 0:
-            duration_minutes = int(calc_duration)
-    
+    if duration_minutes < 60:
+        raise HTTPException(status_code=400, detail="Minimum booking duration is 1 hour.")
+
     # Coupon Validation
     db_coupon = None
     discount_amount = Decimal(0)
@@ -511,14 +511,46 @@ def update_booking_status(booking_id: str, request: dict, db: Session = Depends(
     if not db_booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    status = request.get('status')
-    if not status:
+    new_status = request.get('status')
+    if not new_status:
         raise HTTPException(status_code=400, detail="Status is required")
     
-    db_booking.status = status
+    old_status = db_booking.status
+    db_booking.status = new_status
     db.commit()
     db.refresh(db_booking)
-    return {"message": f"Booking status updated to {status}"}
+
+    # --- INTEGRATION TRIGGER (Phase 2) ---
+    try:
+        if old_status != new_status:
+            from services.integrations.orchestrator import IntegrationOrchestrator
+            
+            # Determine action: If it was active and now cancelled/pending?
+            # Actually, in MyRush, 'confirmed' and 'pending' are usually blocked. 
+            # If it moves to 'cancelled', it's available.
+            
+            was_blocked = old_status in ['confirmed', 'pending']
+            is_blocked = new_status in ['confirmed', 'pending']
+            
+            if was_blocked != is_blocked:
+                action = 'block' if is_blocked else 'available'
+                # Import here to avoid circular dependencies if any
+                from services.integrations.booking_utils import safe_parse_time_float
+                for slot in (db_booking.time_slots or []):
+                    slot_start_str = slot.get('start_time') or slot.get('time') or slot.get('start')
+                    if slot_start_str:
+                        slot_start_f = safe_parse_time_float(slot_start_str)
+                        IntegrationOrchestrator.notify_inventory_change(
+                            db=db,
+                            court_id=str(db_booking.court_id),
+                            date=str(db_booking.booking_date),
+                            slot_start=slot_start_f,
+                            action=action
+                        )
+    except Exception as ite:
+        print(f"[ADMIN STATUS UPDATE] Warning: Integration trigger failed: {ite}")
+
+    return {"message": f"Booking status updated to {new_status}"}
 
 @router.patch("/{booking_id}/payment-status", dependencies=[Depends(PermissionChecker(["Manage Bookings", "Transactions And Earnings"], "edit"))])
 def update_payment_status(booking_id: str, payment_status: str, db: Session = Depends(get_db)):
@@ -549,6 +581,23 @@ def delete_booking(
         court = db.query(models.Court).filter(models.Court.id == db_booking.court_id).first()
         if court and str(court.branch_id) not in branch_filter:
             raise HTTPException(status_code=403, detail="Access denied to this booking's branch")
+
+    try:
+        from services.integrations.orchestrator import IntegrationOrchestrator
+        from services.integrations.booking_utils import safe_parse_time_float
+        for slot in (db_booking.time_slots or []):
+            slot_start_str = slot.get('start_time') or slot.get('time') or slot.get('start')
+            if slot_start_str:
+                slot_start_f = safe_parse_time_float(slot_start_str)
+                IntegrationOrchestrator.notify_inventory_change(
+                    db=db,
+                    court_id=str(db_booking.court_id),
+                    date=str(db_booking.booking_date),
+                    slot_start=slot_start_f,
+                    action='available'
+                )
+    except Exception as ite:
+        print(f"[ADMIN BOOKING] Warning: Integration trigger failed: {ite}")
 
     db.delete(db_booking)
     db.commit()

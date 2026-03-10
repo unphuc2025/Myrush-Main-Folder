@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 import Layout from '../components/Layout';
 import { playoTokensApi } from '../services/adminApi';
 
@@ -228,9 +229,10 @@ const PlayoTokenManagement = () => {
                                             )}
                                             <button
                                                 onClick={() => deleteToken(token.id)}
-                                                className="inline-flex items-center justify-center rounded-md bg-danger py-2 px-4 text-center font-medium text-white hover:bg-opacity-90"
+                                                className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                                title="Delete Token"
                                             >
-                                                🗑️
+                                                <Trash2 className="h-5 w-5" />
                                             </button>
                                         </div>
                                     </div>

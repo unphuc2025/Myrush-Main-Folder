@@ -37,8 +37,10 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
           branchesApi.getAll(),
           gameTypesApi.getAll()
         ]);
-        setBranches(branchesData);
-        setGameTypes(gameTypesData);
+        const bItems = Array.isArray(branchesData?.items) ? branchesData.items : (Array.isArray(branchesData) ? branchesData : []);
+        const gtItems = Array.isArray(gameTypesData?.items) ? gameTypesData.items : (Array.isArray(gameTypesData) ? gameTypesData : []);
+        setBranches(bItems);
+        setGameTypes(gtItems);
         // setAmenities(amenitiesData); // Removed
 
         if (initialData) {
@@ -227,7 +229,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
                   required
                 >
                   <option value="">Select Branch</option>
-                  {branches.filter(b => b.is_active).map(b => (
+                  {Array.isArray(branches) && branches.filter(b => b.is_active).map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
@@ -251,12 +253,12 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
                   required
                 >
                   <option value="">Select Sport</option>
-                  {gameTypes
+                  {Array.isArray(gameTypes) && gameTypes
                     .filter(gt => gt.is_active)
                     .filter(gt => {
                       // Filter by branch if selected
                       if (!formData.branchId) return true;
-                      const selectedBranch = branches.find(b => b.id === formData.branchId);
+                      const selectedBranch = branches.find(b => String(b.id) === String(formData.branchId));
                       // If branch has game_types defined, use them. Otherwise show all (fallback)
                       if (selectedBranch?.game_types?.length > 0) {
                         return selectedBranch.game_types.some(bGt => bGt.id === gt.id);

@@ -122,7 +122,7 @@ function BookingDetails() {
                             )}
                         </div>
                         <div className="p-4 border-t border-slate-200">
-                            <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium">
+                            <button className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors font-medium">
                                 Cancel Booking
                             </button>
                         </div>

@@ -170,13 +170,13 @@ function PoliciesSettings() {
                             <div className="flex items-center gap-2 mt-5 pt-4 border-t border-slate-100 relative z-10">
                                 <button
                                     onClick={() => handleEditClick(policy)}
-                                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors"
                                 >
                                     <Edit2 className="h-4 w-4" /> Edit
                                 </button>
                                 <button
                                     onClick={() => handleDeleteClick(policy.id)}
-                                    className="flex items-center justify-center p-2.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                    className="flex items-center justify-center p-2.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </button>

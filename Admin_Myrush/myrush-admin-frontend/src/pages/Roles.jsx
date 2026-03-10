@@ -149,7 +149,7 @@ const Roles = () => {
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button
                                                             onClick={() => navigate(`/roles/edit/${role.id}`)}
-                                                            className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                                                            className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
                                                         >
                                                             <Edit2 className="h-4 w-4" />
                                                         </button>
@@ -195,7 +195,7 @@ const Roles = () => {
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => navigate(`/roles/edit/${role.id}`)}
-                                                className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                                                className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
                                             >
                                                 <Edit2 className="h-4 w-4" />
                                             </button>

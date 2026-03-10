@@ -558,3 +558,66 @@ class PaymentMethod(Base):
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
 
     user = relationship("User")
+
+# ============================================================================
+# PARTNER INTEGRATION MODELS (DISTRICT, PLAYO V2, ETC.)
+# ============================================================================
+
+class Partner(Base):
+    """API Partners like District, Playo, etc."""
+    __tablename__ = "integration_partners"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
+    name = Column(String(255), unique=True, nullable=False)  # e.g., 'District'
+    unique_id = Column(String(255), unique=True, nullable=False, index=True)  # Partner ID mapped to headers
+    api_key_hash = Column(String(255), nullable=False)  # Hashed API Key for auth
+    webhook_url = Column(Text, nullable=True)  # Where to send events (e.g. Type A/B)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
+
+class IdempotencyKey(Base):
+    """Stores unique transaction IDs from partners to prevent duplicate processing"""
+    __tablename__ = "integration_idempotency_keys"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
+    partner_id = Column(UUID(as_uuid=True), ForeignKey("integration_partners.id", ondelete="CASCADE"), nullable=False)
+    idempotency_key = Column(String(255), nullable=False, index=True)  # e.g., District's batchBookingId
+    endpoint = Column(String(255), nullable=False)
+    response_status = Column(Integer, nullable=False)
+    response_body = Column(JSONB, nullable=False)  # Cached successful response
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
+    
+    partner = relationship("Partner")
+    __table_args__ = (
+        UniqueConstraint('partner_id', 'idempotency_key', name='unique_partner_idempotency_key'),
+    )
+
+class IntegrationLog(Base):
+    """Audit trail of all incoming and outgoing integration HTTP requests"""
+    __tablename__ = "integration_logs"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
+    partner_id = Column(UUID(as_uuid=True), ForeignKey("integration_partners.id", ondelete="CASCADE"), nullable=True)
+    direction = Column(String(10), nullable=False)  # 'INBOUND' or 'OUTBOUND'
+    endpoint = Column(String(500), nullable=False)
+    method = Column(String(10), nullable=False)
+    request_payload = Column(JSONB, nullable=True)
+    response_status = Column(Integer, nullable=True)
+    response_payload = Column(JSONB, nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
+
+class OutboxEvent(Base):
+    """Durable queue for sending async Webhooks to partners"""
+    __tablename__ = "integration_outbox_events"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
+    partner_id = Column(UUID(as_uuid=True), ForeignKey("integration_partners.id", ondelete="CASCADE"), nullable=False)
+    event_type = Column(String(100), nullable=False)  # e.g., 'INVENTORY_UPDATE'
+    payload = Column(JSONB, nullable=False)  # The exact JSON string to send to the webhook
+    status = Column(String(20), default='pending', index=True)  # 'pending', 'processing', 'completed', 'failed'
+    attempts = Column(Integer, default=0)
+    max_attempts = Column(Integer, default=5)
+    last_attempt_at = Column(TIMESTAMP, nullable=True)
+    next_attempt_at = Column(TIMESTAMP, default=datetime.utcnow, index=True)  # Used for Exponential Backoff
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
+
+    partner = relationship("Partner")
+
