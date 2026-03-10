@@ -33,19 +33,30 @@ export const sanitizeImageUrl = (url) => {
     return url;
 };
 
+const apiCache = new Map();
+
 async function apiRequest(url, options = {}) {
     const token = localStorage.getItem('admin_token');
-
-    // Default to GET if no method specified
     const method = options.method || 'GET';
     const isGet = method.toUpperCase() === 'GET';
+    const useCache = isGet && options.useCache !== false;
+
+    if (!isGet) {
+        // Clear cache for this resource type if possible, or everything for safety
+        const resource = url.split('/')[1];
+        if (resource) clearCache(`/${resource}`);
+        else apiCache.clear();
+    }
+
+    if (useCache && apiCache.has(url)) {
+        return apiCache.get(url);
+    }
 
     const headers = {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options.headers
     };
 
-    // Only set Content-Type if it's not a GET request
     if (!isGet && !headers['Content-Type']) {
         headers['Content-Type'] = 'application/json';
     }
@@ -64,12 +75,39 @@ async function apiRequest(url, options = {}) {
             throw new Error(errorData.error || (typeof errorData.detail === 'object' ? JSON.stringify(errorData.detail) : errorData.detail) || `API Error: ${response.status} ${response.statusText}`);
         }
 
-        return response.json();
+        if (response.status === 204) return null;
+
+        const contentType = response.headers.get("content-type");
+        let result;
+        if (contentType && contentType.includes("application/json")) {
+            result = await response.json();
+        } else {
+            result = await response.text();
+        }
+
+        if (useCache) {
+            apiCache.set(url, result);
+            // Auto-clear cache after 30 seconds for local consistency
+            setTimeout(() => apiCache.delete(url), 30000);
+        }
+
+        return result;
     } catch (error) {
         console.error('API Request failed:', error);
         throw error;
     }
 }
+
+// Helper to clear cache when data is mutated
+const clearCache = (prefix) => {
+    if (!prefix) {
+        apiCache.clear();
+        return;
+    }
+    for (const key of apiCache.keys()) {
+        if (key.startsWith(prefix)) apiCache.delete(key);
+    }
+};
 
 // Cities API
 export const citiesApi = {

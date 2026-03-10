@@ -67,8 +67,8 @@ export const SlotSelection: React.FC = () => {
     };
 
     const handleConfirm = () => {
-        if (selectedSlots.length === 0) {
-            alert('Please select at least one slot.');
+        if (selectedSlots.length < 2) {
+            alert('Minimum booking duration is 1 hour (2 slots).');
             return;
         }
         // Navigate to booking summary

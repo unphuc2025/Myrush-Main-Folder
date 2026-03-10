@@ -27,7 +27,8 @@ def get_court_availability_slots(
     court_id: UUID,
     booking_date: date
 ) -> List[dict]:
-    """Get available time slots for a court on a specific date"""
+    """Get available time slots (30-min granularity) for a court on a specific date"""
+    from utils.booking_utils import get_booked_slots, generate_allowed_slots_map
     
     # Get court details
     court = db.query(models.Court).filter(models.Court.id == court_id).first()
@@ -41,7 +42,9 @@ def get_court_availability_slots(
         models.Booking.status.in_(['confirmed', 'pending'])
     ).all()
     
-    # Get pending Playo orders
+    booked_slots = get_booked_slots(bookings)
+    
+    # Get pending Playo orders (excluding expired)
     pending_orders = db.query(models.PlayoOrder).filter(
         models.PlayoOrder.court_id == court_id,
         models.PlayoOrder.booking_date == booking_date,
@@ -49,40 +52,42 @@ def get_court_availability_slots(
         models.PlayoOrder.expires_at > datetime.utcnow()
     ).all()
     
-    # Generate hourly slots (6 AM to 11 PM)
+    for order in pending_orders:
+        s_f = order.start_time.hour + (order.start_time.minute / 60.0)
+        e_f = order.end_time.hour + (order.end_time.minute / 60.0)
+        if e_f == 0: e_f = 24.0
+        curr = s_f
+        while curr < e_f:
+            booked_slots.add(curr % 24)
+            curr += 0.5
+            
+    # Get allowed slots from configuration
+    allowed_map = generate_allowed_slots_map(db, court.id, booking_date)
+    
     slots = []
-    for hour in range(6, 23):
-        start = dt_time(hour, 0)
-        end = dt_time(hour + 1, 0)
+    # Generate 30-min slots (6 AM to 11 PM)
+    import numpy as np
+    for slot_f in np.arange(6.0, 23.0, 0.5):
+        h = int(slot_f); m = int((slot_f % 1)*60)
+        start = dt_time(h, m)
         
-        # Check if slot is available
-        is_available = True
+        eh = int(slot_f + 0.5); em = int(((slot_f + 0.5) % 1)*60)
+        end = dt_time(eh % 24, em)
         
-        # Check against bookings
-        for booking in bookings:
-            if booking.time_slots:
-                for slot in booking.time_slots:
-                    try:
-                        slot_start = datetime.strptime(slot['start'], '%H:%M:%S').time()
-                        slot_end = datetime.strptime(slot['end'], '%H:%M:%S').time()
-                        if not (end <= slot_start or start >= slot_end):
-                            is_available = False
-                            break
-                    except:
-                        pass
+        time_key = f"{h:02d}:{m:02d}"
+        is_available = False
+        price = None
         
-        # Check against pending orders
-        for order in pending_orders:
-            if not (end <= order.start_time or start >= order.end_time):
-                is_available = False
-                break
-        
+        if time_key in allowed_map and slot_f not in booked_slots:
+            is_available = True
+            price = float(allowed_map[time_key]['price'])
+            
         slots.append({
             'startTime': start.strftime('%H:%M:%S'),
             'endTime': end.strftime('%H:%M:%S'),
             'available': is_available,
-            'price': float(court.price_per_hour) if is_available else None,
-            'ticketsAvailable': 1 if is_available else 0  # Default to 1 for standard courts
+            'price': price,
+            'ticketsAvailable': 1 if is_available else 0
         })
     
     return slots
@@ -270,15 +275,27 @@ async def create_order(
                     validation_errors.append(f"Court {item.courtId} not found or doesn't belong to venue")
                     continue
 
-                # Verify slot is still available
+                # Verify slot is still available (block can span multiple 30-min slots)
                 slots = get_court_availability_slots(db, court_id, booking_date)
-                slot_available = False
-                for slot in slots:
-                    slot_start = datetime.strptime(slot['startTime'], '%H:%M:%S').time()
-                    slot_end = datetime.strptime(slot['endTime'], '%H:%M:%S').time()
-                    if slot_start == start_time and slot_end == end_time and slot['available']:
-                        slot_available = True
+                
+                req_start_f = start_time.hour + (start_time.minute / 60.0)
+                req_end_f = end_time.hour + (end_time.minute / 60.0)
+                if req_end_f == 0: req_end_f = 24.0
+                
+                # Check every 30-min interval in the requested block
+                available_slots_map = {
+                    datetime.strptime(s['startTime'], '%H:%M:%S').time().hour + 
+                    datetime.strptime(s['startTime'], '%H:%M:%S').time().minute / 60.0: s['available']
+                    for s in slots
+                }
+                
+                slot_available = True
+                curr = req_start_f
+                while curr < req_end_f:
+                    if curr not in available_slots_map or not available_slots_map[curr]:
+                        slot_available = False
                         break
+                    curr += 0.5
 
                 if not slot_available:
                     validation_errors.append(f"Slot {item.startTime}-{item.endTime} is not available for court {item.courtId}")
@@ -305,8 +322,28 @@ async def create_order(
             return schemas.PlayoOrderCreateResponse(
                 orderIds=[],
                 requestStatus=0,
-                message="Order creation failed"
+                message=validation_errors[0] if validation_errors else "Order creation failed"
             )
+
+        # Enforce 1-hour minimum booking (aggregate per court/date)
+        durations_per_entity = {} # (court_id, booking_date) -> total_minutes
+        for order in validated_orders:
+            key = (order['court_id'], order['booking_date'])
+            s_f = order['start_time'].hour + (order['start_time'].minute / 60.0)
+            e_f = order['end_time'].hour + (order['end_time'].minute / 60.0)
+            if e_f == 0: e_f = 24.0
+            duration = int((e_f - s_f) * 60)
+            if duration < 0: duration += 24 * 60
+            durations_per_entity[key] = durations_per_entity.get(key, 0) + duration
+        
+        for key, total_mins in durations_per_entity.items():
+            if total_mins < 60:
+                logging.warning(f"Playo order failed 1-hour minimum: {key} had only {total_mins} mins")
+                return schemas.PlayoOrderCreateResponse(
+                    orderIds=[],
+                    requestStatus=0,
+                    message="Minimum booking duration is 1 hour (60 minutes)."
+                )
 
         # All orders validated successfully, now create them
         created_orders = []
@@ -403,7 +440,13 @@ async def confirm_order(
                 order.user_email
             )
             
-            # Create booking
+            # Calculate duration correctly
+            s_f = order.start_time.hour + (order.start_time.minute / 60.0)
+            e_f = order.end_time.hour + (order.end_time.minute / 60.0)
+            if e_f == 0: e_f = 24.0
+            duration_mins = int((e_f - s_f) * 60)
+            if duration_mins < 0: duration_mins += 24 * 60
+
             booking = models.Booking(
                 user_id=real_user.id,
                 court_id=order.court_id,
@@ -413,7 +456,7 @@ async def confirm_order(
                     'end': order.end_time.strftime('%H:%M:%S'),
                     'price': float(order.price)
                 }],
-                total_duration_minutes=60,  # Assuming 1 hour slots
+                total_duration_minutes=duration_mins,
                 original_amount=order.price,
                 total_amount=order.price,
                 discount_amount=0,
@@ -424,8 +467,8 @@ async def confirm_order(
                 # Set deprecated fields to avoid database constraint violations
                 _old_start_time=order.start_time,
                 _old_end_time=order.end_time,
-                _old_duration_minutes=60,
-                _old_price_per_hour=float(order.price)
+                _old_duration_minutes=duration_mins,
+                _old_price_per_hour=float(order.price) / (duration_mins/60.0) if duration_mins > 0 else 0
             )
             
             db.add(booking)
@@ -655,38 +698,27 @@ async def create_booking(
                     validation_errors.append(f"Court {item.courtId} not found or doesn't belong to venue")
                     continue
 
-                # Verify slot is still available (not booked or reserved)
-                existing_bookings = db.query(models.Booking).filter(
-                    models.Booking.court_id == court_id,
-                    models.Booking.booking_date == booking_date,
-                    models.Booking.status.in_(['confirmed', 'pending'])
-                ).all()
-
+                # Verify slot is still available (block can span multiple 30-min slots)
+                slots = get_court_availability_slots(db, court_id, booking_date)
+                
+                req_start_f = start_time.hour + (start_time.minute / 60.0)
+                req_end_f = end_time.hour + (end_time.minute / 60.0)
+                if req_end_f == 0: req_end_f = 24.0
+                
+                # Check every 30-min interval in the requested block
+                available_slots_map = {
+                    datetime.strptime(s['startTime'], '%H:%M:%S').time().hour + 
+                    datetime.strptime(s['startTime'], '%H:%M:%S').time().minute / 60.0: s['available']
+                    for s in slots
+                }
+                
                 slot_available = True
-                for booking in existing_bookings:
-                    if booking.time_slots:
-                        for slot in booking.time_slots:
-                            try:
-                                slot_start = datetime.strptime(slot['start'], '%H:%M:%S').time()
-                                slot_end = datetime.strptime(slot['end'], '%H:%M:%S').time()
-                                if not (end_time <= slot_start or start_time >= slot_end):
-                                    slot_available = False
-                                    break
-                            except:
-                                pass
-
-                # Check pending Playo orders
-                pending_orders = db.query(models.PlayoOrder).filter(
-                    models.PlayoOrder.court_id == court_id,
-                    models.PlayoOrder.booking_date == booking_date,
-                    models.PlayoOrder.status == 'pending',
-                    models.PlayoOrder.expires_at > datetime.utcnow()
-                ).all()
-
-                for order in pending_orders:
-                    if not (end_time <= order.start_time or start_time >= order.end_time):
+                curr = req_start_f
+                while curr < req_end_f:
+                    if curr not in available_slots_map or not available_slots_map[curr]:
                         slot_available = False
                         break
+                    curr += 0.5
 
                 if not slot_available:
                     validation_errors.append(f"Slot {item.startTime}-{item.endTime} is not available for court {item.courtId}")
@@ -719,6 +751,26 @@ async def create_booking(
                 message=first_error
             )
 
+        # Enforce 1-hour minimum booking (aggregate per court/date)
+        durations_per_entity = {} # (court_id, booking_date) -> total_minutes
+        for b in validated_bookings:
+            key = (b['court_id'], b['booking_date'])
+            s_f = b['start_time'].hour + (b['start_time'].minute / 60.0)
+            e_f = b['end_time'].hour + (b['end_time'].minute / 60.0)
+            if e_f == 0: e_f = 24.0
+            duration = int((e_f - s_f) * 60)
+            if duration < 0: duration += 24 * 60
+            durations_per_entity[key] = durations_per_entity.get(key, 0) + duration
+
+        for key, total_mins in durations_per_entity.items():
+            if total_mins < 60:
+                logging.warning(f"Playo booking failed 1-hour minimum: {key} had only {total_mins} mins")
+                return schemas.PlayoBookingCreateResponse(
+                    bookingIds=[],
+                    requestStatus=0,
+                    message="Minimum booking duration is 1 hour (60 minutes)."
+                )
+
         # All bookings validated successfully, now create them
         created_bookings = []
 
@@ -731,6 +783,13 @@ async def create_booking(
         )
 
         for booking_data in validated_bookings:
+            # Calculate duration correctly
+            s_f = booking_data['start_time'].hour + (booking_data['start_time'].minute / 60.0)
+            e_f = booking_data['end_time'].hour + (booking_data['end_time'].minute / 60.0)
+            if e_f == 0: e_f = 24.0
+            duration_mins = int((e_f - s_f) * 60)
+            if duration_mins < 0: duration_mins += 24 * 60
+
             # Create booking
             booking = models.Booking(
                 user_id=real_user.id,
@@ -742,7 +801,7 @@ async def create_booking(
                     'price': float(booking_data['price']),
                     'numTickets': booking_data['numTickets']  # For ticketing (swimming)
                 }],
-                total_duration_minutes=60,  # Assuming 1 hour slots
+                total_duration_minutes=duration_mins,
                 original_amount=booking_data['price'],
                 total_amount=booking_data['price'],
                 discount_amount=0,
@@ -753,8 +812,8 @@ async def create_booking(
                 # Set deprecated fields to avoid database constraint violations
                 _old_start_time=booking_data['start_time'],
                 _old_end_time=booking_data['end_time'],
-                _old_duration_minutes=60,
-                _old_price_per_hour=float(booking_data['price'])
+                _old_duration_minutes=duration_mins,
+                _old_price_per_hour=float(booking_data['price']) / (duration_mins/60.0) if duration_mins > 0 else 0
             )
 
             db.add(booking)

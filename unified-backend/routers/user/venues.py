@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import models, schemas, database
-from utils.booking_utils import get_booked_hours, safe_parse_hour
+from utils.booking_utils import get_booked_slots, safe_parse_time_float
 from schemas import resolve_path
 import uuid
 
@@ -549,31 +549,34 @@ def get_venue_slots(
                             try: disabled_hours.add(safe_parse_hour(t))
                             except: pass
             
-            # Use centralized robust booked_hours logic from booking_utils
-            # Cast CID to UUID for strict comparison in Postgres
+            # Use centralized robust booked_slots logic from booking_utils
             active_bookings = db.query(models.Booking).filter(
                 models.Booking.court_id == uuid.UUID(c_id),
                 models.Booking.booking_date == booking_date,
                 models.Booking.status != 'cancelled'
             ).all()
-            booked_hours = get_booked_hours(active_bookings)
+            booked_slots = get_booked_slots(active_bookings)
             
             # D. Merge to Consolidated
             now = datetime.now()
             is_today = (booking_date == now.date())
 
-            for h, cfg in court_slots.items():
+            # Generate 30-min slots based on allowed_map (from booking_utils)
+            from utils.booking_utils import generate_allowed_slots_map
+            allowed_slots_map = generate_allowed_slots_map(db, c_id, booking_date)
+
+            for slot_time, details in allowed_slots_map.items():
+                if details['is_blocked']: continue
+                
+                h_float = safe_parse_time_float(slot_time)
+                
                 # Past check
-                if is_today and h <= now.hour and (h < now.hour or now.minute > 0):
+                if is_today and h_float < (now.hour + now.minute/60.0):
                     continue
                 
-                time_key = f"{h:02d}:00"
-                is_available = not (h in disabled_hours or h in booked_hours)
+                is_available = h_float not in booked_slots
                 
-                # Rule for consolidated view:
-                # 1. If slot exists, and current attempt is available while existing is not -> update.
-                # 2. If both available, pick cheaper.
-                # 3. If both unavailable, doesn't matter much but we keep one.
+                time_key = slot_time # "HH:MM"
                 
                 update = False
                 if time_key not in consolidated_slots:
@@ -583,8 +586,36 @@ def get_venue_slots(
                     if is_available and not existing['available']:
                         update = True
                     elif is_available and existing['available']:
-                        if cfg['price'] < existing['price']:
+                        if details['price'] < existing['price']:
                             update = True
+                            
+                if update:
+                    h = int(h_float)
+                    m = int((h_float % 1) * 60)
+                    h_end_float = h_float + 0.5
+                    h_e = int(h_end_float)
+                    m_e = int((h_end_float % 1) * 60)
+
+                    sh_disp = h if h <= 12 else h - 12
+                    if sh_disp == 0: sh_disp = 12
+                    ampm_s = "AM" if h < 12 else "PM"
+                    
+                    eh_disp = h_e if h_e <= 12 else h_e - 12
+                    if eh_disp == 0: eh_disp = 12
+                    ampm_e = "AM" if h_e < 12 or h_e == 24 else "PM"
+                    if h_e == 24: ampm_e = "AM"
+                    
+                    consolidated_slots[time_key] = {
+                        "time": time_key,
+                        "display_time": f"{sh_disp:02d}:{m:02d} {ampm_s} - {eh_disp:02d}:{m_e:02d} {ampm_e}",
+                        "price": details['price'],
+                        "court_id": c_id,
+                        "court_name": court.get('name', ''),
+                        "current_court_rating": float(court.get('court_rating') or 0),
+                        "current_court_reviews": int(court.get('court_reviews') or 0),
+                        "available": is_available,
+                        "slot_id": details.get('id', 'default')
+                    }
                             
                 if update:
                     sh_disp = h if h <= 12 else h - 12

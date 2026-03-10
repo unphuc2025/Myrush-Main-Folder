@@ -16,7 +16,7 @@ import schemas
 import crud
 from utils.coupon_utils import validate_coupon_strictly
 
-from utils.booking_utils import get_booked_hours, safe_parse_hour
+from utils.booking_utils import get_booked_slots, safe_parse_time_float
 
 router = APIRouter(
     prefix="/payments",
@@ -37,7 +37,7 @@ def verify_slot_availability(db: Session, court_id: str, booking_date: date, req
     if not requested_slots:
         return
         
-    from utils.booking_utils import generate_allowed_slots_map, safe_parse_hour, get_booked_hours
+    from utils.booking_utils import generate_allowed_slots_map, get_booked_slots, safe_parse_time_float
 
     # 1. Generate Authoritative Allowed Slots (Venue Hours + Pricing + Admin Blocks)
     allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
@@ -52,15 +52,19 @@ def verify_slot_availability(db: Session, court_id: str, booking_date: date, req
         models.Booking.status != 'cancelled'
     ).all()
     
-    booked_times = get_booked_hours(active_bookings)
+    booked_times = get_booked_slots(active_bookings)
 
     # 3. Validate requested slots
     for slot in requested_slots:
         time_str = slot.get('start_time') or slot.get('time')
         if not time_str: continue
         
-        h = safe_parse_hour(time_str)
-        norm_start = f"{h:02d}:00"
+        h_f = safe_parse_time_float(time_str)
+        norm_start = time_str # Assume HH:MM from frontend
+        if ":" not in norm_start:
+            h = int(h_f)
+            m = int((h_f % 1) * 60)
+            norm_start = f"{h:02d}:{m:02d}"
         
         if norm_start not in allowed_slots_map:
             raise HTTPException(status_code=400, detail=f"Slot {time_str} is not in the venue's operating hours.")
@@ -69,7 +73,7 @@ def verify_slot_availability(db: Session, court_id: str, booking_date: date, req
         if server_slot['is_blocked']:
             raise HTTPException(status_code=400, detail=f"Slot {time_str} has been blocked by Admin.")
             
-        if h in booked_times:
+        if h_f in booked_times:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Slot {time_str} is already booked.")
 
 def calculate_authoritative_price(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]], number_of_players: int) -> float:
@@ -77,7 +81,7 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
     Calculate the total price based on unified slot generation engine.
     Logic: Sum(Slot Prices) * Number of Players
     """
-    from utils.booking_utils import generate_allowed_slots_map, safe_parse_hour
+    from utils.booking_utils import generate_allowed_slots_map, safe_parse_time_float
 
     # 1. Generate Slots Map to get correct prices
     allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
@@ -87,8 +91,12 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
         slot_time_str = slot.get('time') or slot.get('start_time')
         if not slot_time_str: continue
         
-        h = safe_parse_hour(slot_time_str)
-        norm_start = f"{h:02d}:00"
+        h_f = safe_parse_time_float(slot_time_str)
+        norm_start = slot_time_str
+        if ":" not in norm_start:
+            h = int(h_f)
+            m = int((h_f % 1) * 60)
+            norm_start = f"{h:02d}:{m:02d}"
         
         # Use price from map if available, else default (though validation should have caught it)
         if norm_start in allowed_slots_map:

@@ -297,10 +297,10 @@ function CitiesSettings() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleEditCityClick(city)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md">
+                          <button onClick={() => handleEditCityClick(city)} className="p-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md transition-colors">
                             <Edit2 className="h-4 w-4" />
                           </button>
-                          <button onClick={() => handleDeleteCity(city.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md">
+                          <button onClick={() => handleDeleteCity(city.id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -372,10 +372,10 @@ function CitiesSettings() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleEditAreaClick(area)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md">
+                          <button onClick={() => handleEditAreaClick(area)} className="p-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md transition-colors">
                             <Edit2 className="h-4 w-4" />
                           </button>
-                          <button onClick={() => handleDeleteArea(area.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md">
+                          <button onClick={() => handleDeleteArea(area.id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>

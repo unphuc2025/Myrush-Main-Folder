@@ -161,6 +161,12 @@ function AdminLogin() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <style>{`
+        input::-ms-reveal,
+        input::-ms-clear {
+          display: none;
+        }
+      `}</style>
       <div className="w-full max-w-md animate-fade-in overflow-hidden rounded-2xl bg-white shadow-xl">
         <div className="relative bg-slate-900 p-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-green-600 shadow-lg shadow-green-500/30">

@@ -17,6 +17,7 @@ const FAQ = () => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingFaq, setEditingFaq] = useState(null);
     const [viewingFaq, setViewingFaq] = useState(null);
+    const [selectedFaqs, setSelectedFaqs] = useState([]);
 
     // Permission check
     const permissions = (() => {
@@ -74,6 +75,7 @@ const FAQ = () => {
         if (window.confirm('Are you sure you want to delete this FAQ?')) {
             try {
                 await faqsApi.delete(id);
+                setSelectedFaqs(prev => prev.filter(fid => fid !== id));
                 loadFaqs();
             } catch (err) {
                 console.error('Error deleting FAQ:', err);
@@ -85,6 +87,42 @@ const FAQ = () => {
                 }
             }
         }
+    };
+
+    const handleDeleteSelected = async () => {
+        if (!permissions.delete) {
+            setError('You do not have permission to delete FAQs.');
+            return;
+        }
+        if (selectedFaqs.length === 0) return;
+
+        if (window.confirm(`Are you sure you want to delete ${selectedFaqs.length} selected FAQs?`)) {
+            try {
+                setLoading(true);
+                // The API might not have a bulk delete, so we map over deletes or check if it exists
+                // Assuming we loop for now as per most common pattern in this codebase unless confirmed otherwise
+                await Promise.all(selectedFaqs.map(id => faqsApi.delete(id)));
+                setSelectedFaqs([]);
+                loadFaqs();
+            } catch (err) {
+                console.error('Error deleting selected FAQs:', err);
+                setError('Failed to delete some selected FAQs.');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedFaqs.length === faqs.length) {
+            setSelectedFaqs([]);
+        } else {
+            setSelectedFaqs(faqs.map(f => f.id));
+        }
+    };
+
+    const toggleSelectFaq = (id) => {
+        setSelectedFaqs(prev => prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]);
     };
 
     const handleToggleStatus = async (faq) => {
@@ -161,12 +199,13 @@ const FAQ = () => {
                             <span className="text-sm font-semibold">Add FAQ</span>
                         </button>
                     )}
-                    {permissions.delete && (
+                    {permissions.delete && selectedFaqs.length > 0 && (
                         <button
-                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors border border-red-200"
+                            onClick={handleDeleteSelected}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors border border-red-200 animate-in fade-in zoom-in duration-200"
                         >
                             <Trash2 className="h-4 w-4" />
-                            <span className="text-sm font-semibold">Delete Selected</span>
+                            <span className="text-sm font-semibold">Delete Selected ({selectedFaqs.length})</span>
                         </button>
                     )}
                 </div>
@@ -188,7 +227,14 @@ const FAQ = () => {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50 border-b border-slate-200">
-                                        <th className="p-4 w-4"><input type="checkbox" className="rounded border-slate-300" /></th>
+                                        <th className="p-4 w-4 text-center">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-slate-300 text-green-600 focus:ring-green-500 w-4 h-4 cursor-pointer"
+                                                checked={faqs.length > 0 && selectedFaqs.length === faqs.length}
+                                                onChange={toggleSelectAll}
+                                            />
+                                        </th>
                                         <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Sr no.</th>
                                         <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Question</th>
                                         <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Answer</th>
@@ -198,8 +244,15 @@ const FAQ = () => {
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {faqs.map((faq, index) => (
-                                        <tr key={faq.id} className="hover:bg-slate-50/80 transition-colors">
-                                            <td className="p-4"><input type="checkbox" className="rounded border-slate-300" /></td>
+                                        <tr key={faq.id} className={`hover:bg-slate-50/80 transition-colors ${selectedFaqs.includes(faq.id) ? 'bg-green-50/50' : ''}`}>
+                                            <td className="p-4 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-slate-300 text-green-600 focus:ring-green-500 w-4 h-4 cursor-pointer"
+                                                    checked={selectedFaqs.includes(faq.id)}
+                                                    onChange={() => toggleSelectFaq(faq.id)}
+                                                />
+                                            </td>
                                             <td className="px-6 py-4 text-sm text-slate-600">{(page - 1) * ITEMS_PER_PAGE + index + 1}</td>
                                             <td className="px-6 py-4 text-sm font-medium text-slate-900">{faq.question}</td>
                                             <td className="px-6 py-4 text-sm text-slate-700 truncate max-w-xs" title={faq.answer}>{faq.answer}</td>
@@ -237,11 +290,19 @@ const FAQ = () => {
                         {/* Mobile Card View */}
                         <div className="md:hidden space-y-3 p-4">
                             {faqs.map((faq, index) => (
-                                <div key={faq.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-3">
+                                <div key={faq.id} className={`bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-3 transition-colors ${selectedFaqs.includes(faq.id) ? 'border-green-500 bg-green-50/30' : ''}`}>
                                     <div className="flex justify-between items-start gap-2">
-                                        <div className="space-y-1">
-                                            <span className="text-xs font-bold text-slate-400">#{(page - 1) * ITEMS_PER_PAGE + index + 1}</span>
-                                            <h4 className="font-bold text-slate-900 line-clamp-2">{faq.question}</h4>
+                                        <div className="flex gap-3 items-start">
+                                            <input
+                                                type="checkbox"
+                                                className="mt-1 rounded border-slate-300 text-green-600 focus:ring-green-500 w-4 h-4 cursor-pointer"
+                                                checked={selectedFaqs.includes(faq.id)}
+                                                onChange={() => toggleSelectFaq(faq.id)}
+                                            />
+                                            <div className="space-y-1">
+                                                <span className="text-xs font-bold text-slate-400">#{(page - 1) * ITEMS_PER_PAGE + index + 1}</span>
+                                                <h4 className="font-bold text-slate-900 line-clamp-2">{faq.question}</h4>
+                                            </div>
                                         </div>
                                         <button
                                             onClick={() => handleToggleStatus(faq)}

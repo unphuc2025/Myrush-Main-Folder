@@ -15,7 +15,7 @@ const formatTimeAMPM = (timeStr) => {
 function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
   const [activeTab, setActiveTab] = useState('recurring');
   const [selectedDates, setSelectedDates] = useState([]);
-  const [newDateSlot, setNewDateSlot] = useState({ from: '09:00', to: '10:00', price: defaultPrice || '' });
+  const [newDateSlot, setNewDateSlot] = useState({ from: '09:00', to: '09:30', price: defaultPrice || '' });
 
   // Edit State
   const [editingSlot, setEditingSlot] = useState(null);
@@ -44,7 +44,7 @@ function SlotCalendar({ slots, onSlotsChange, defaultPrice }) {
       type: 'recurring',
       days: [dayId],
       slotFrom: '09:00',
-      slotTo: '10:00',
+      slotTo: '09:30',
       price: defaultPrice || ''
     };
     onSlotsChange([...slots, newSlot]);
@@ -390,7 +390,7 @@ const TimePicker = ({ value, onChange, className }) => {
         onChange={e => updateTime(h, e.target.value, ampm)}
         className="flex-1 min-w-0 appearance-none bg-transparent py-1.5 text-center text-sm font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-50 rounded"
       >
-        {['00', '15', '30', '45'].map(min => <option key={min} value={min}>{min}</option>)}
+        {['00', '30'].map(min => <option key={min} value={min}>{min}</option>)}
       </select>
       <select
         value={ampm}

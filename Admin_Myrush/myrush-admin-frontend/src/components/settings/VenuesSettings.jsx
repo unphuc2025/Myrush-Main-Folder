@@ -393,8 +393,9 @@ function VenuesSettings() {
         search: debouncedSearch,
         city_id: selectedCityId
       });
-      setVenues(venuesResp?.items || venuesResp || []);
-      setTotalItems(venuesResp?.total || venuesResp?.length || 0);
+      const items = Array.isArray(venuesResp?.items) ? venuesResp.items : (Array.isArray(venuesResp) ? venuesResp : []);
+      setVenues(items);
+      setTotalItems(venuesResp?.total || items.length || 0);
       setTotalPages(venuesResp?.pages || 1);
     } catch (err) {
       console.error('Error fetching venues:', err);
@@ -681,6 +682,7 @@ function VenuesSettings() {
       }
 
       // Refresh data and close form
+      setPage(1);
       await fetchAllData();
       setShowDrawer(false);
       setEditingVenue(null);
@@ -835,13 +837,13 @@ function VenuesSettings() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 transition-opacity">
-                          <button onClick={() => handleViewClick(venue)} title="View Venue" className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors">
+                          <button onClick={() => handleViewClick(venue)} title="View Venue" className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors">
                             <Eye className="h-4 w-4" />
                           </button>
-                          <button onClick={() => handleEditClick(venue)} title="Edit Venue" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                          <button onClick={() => handleEditClick(venue)} title="Edit Venue" className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-md transition-colors">
                             <Edit2 className="h-4 w-4" />
                           </button>
-                          <button onClick={() => handleDeleteClick(venue.id)} title="Delete Venue" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
+                          <button onClick={() => handleDeleteClick(venue.id)} title="Delete Venue" className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>

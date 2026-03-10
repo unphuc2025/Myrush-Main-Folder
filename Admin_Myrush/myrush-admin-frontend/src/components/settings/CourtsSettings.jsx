@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Edit2, Plus, Play, Eye, Trash2, X, Settings, Search, Building2, MapPin, Trophy, Coins, CheckCircle2, ChevronDown } from 'lucide-react';
+import { Edit2, Plus, Play, Eye, Trash2, X, Settings, Search, Building2, MapPin, Trophy, Coins, CheckCircle2, ChevronDown, XCircle } from 'lucide-react';
 import ToggleSwitch from './ToggleSwitch';
 import AddCourtForm from './AddCourtForm';
 import Drawer from './Drawer';
@@ -132,8 +132,9 @@ function CourtsSettings() {
         search: debouncedSearch,
         branch_id: selectedBranchId
       });
-      setCourts(courtsResp?.items || courtsResp || []);
-      setTotalItems(courtsResp?.total || courtsResp?.length || 0);
+      const items = Array.isArray(courtsResp?.items) ? courtsResp.items : (Array.isArray(courtsResp) ? courtsResp : []);
+      setCourts(items);
+      setTotalItems(courtsResp?.total || items.length || 0);
       setTotalPages(courtsResp?.pages || 1);
     } catch (err) {
       console.error('Error fetching courts:', err);
@@ -391,13 +392,13 @@ function CourtsSettings() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 transition-opacity">
-                          <button onClick={() => setViewingCourt(court)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="View Details">
+                          <button onClick={() => setViewingCourt(court)} className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors" title="View Details">
                             <Eye className="h-4 w-4" />
                           </button>
-                          <button onClick={() => handleEditClick(court)} className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors" title="Edit Court">
+                          <button onClick={() => handleEditClick(court)} className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-md transition-colors" title="Edit Court">
                             <Edit2 className="h-4 w-4" />
                           </button>
-                          <button onClick={() => handleDeleteClick(court.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete Court">
+                          <button onClick={() => handleDeleteClick(court.id)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors" title="Delete Court">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -740,8 +741,8 @@ function GlobalPriceConditionsSection({ conditions, onRefresh, onEdit, editingCo
               <div className="flex justify-between items-start mb-2">
                 <span className="text-xs font-bold text-green-600 uppercase tracking-wider">{condition.condition_type}</span>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => onEdit(condition)} className="p-1 text-slate-400 hover:text-blue-600"><Edit2 className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => handleDelete(condition.id)} className="p-1 text-slate-400 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => onEdit(condition)} className="p-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors"><Edit2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => handleDelete(condition.id)} className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
               <div className="mb-3">

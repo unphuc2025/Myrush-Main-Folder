@@ -414,21 +414,21 @@ function BookingsManager() {
                                                     <div className="flex items-center justify-end gap-1">
                                                         <button
                                                             onClick={() => handleViewClick(booking)}
-                                                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded transition-colors"
+                                                            className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded transition-colors"
                                                             title="View Details"
                                                         >
                                                             <Eye className="h-3.5 w-3.5" />
                                                         </button>
                                                         <button
                                                             onClick={() => handleEditClick(booking)}
-                                                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                            className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded transition-colors"
                                                             title="Edit Booking"
                                                         >
                                                             <Pencil className="h-3.5 w-3.5" />
                                                         </button>
                                                         <button
                                                             onClick={() => handleDeleteClick(booking.id)}
-                                                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                            className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors"
                                                             title="Delete Booking"
                                                         >
                                                             <Trash2 className="h-3.5 w-3.5" />
@@ -538,14 +538,14 @@ function BookingsManager() {
                                         <div className="flex items-center gap-2 pt-2">
                                             <button
                                                 onClick={() => handleEditClick(booking)}
-                                                className="flex-1 min-h-[44px] flex items-center justify-center gap-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+                                                className="flex-1 min-h-[44px] flex items-center justify-center gap-2 text-amber-600 bg-amber-50 rounded-lg text-sm font-bold hover:bg-amber-100 transition-colors"
                                             >
                                                 <Pencil className="h-4 w-4" />
                                                 Edit
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteClick(booking.id)}
-                                                className="min-h-[44px] w-[44px] flex items-center justify-center bg-white border border-red-100 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                                                className="min-h-[44px] w-[44px] flex items-center justify-center text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
@@ -628,7 +628,7 @@ function BookingViewModal({ booking, onClose, onEdit, getStatusColor, getPayment
                 <div className="flex gap-2">
                     <button
                         onClick={onEdit}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
                         title="Edit Booking"
                     >
                         <Pencil className="h-5 w-5" />

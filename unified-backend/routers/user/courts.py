@@ -256,7 +256,7 @@ def get_available_slots(
     try:
         from datetime import datetime
         from date_utils import parse_date_safe
-        from utils.booking_utils import generate_allowed_slots_map, get_booked_hours, get_now_ist, safe_parse_hour
+        from utils.booking_utils import generate_allowed_slots_map, get_booked_slots, get_now_ist, safe_parse_time_float
         
         print(f"[COURTS API] Fetching slots for court={court_id}, date={date}")
         
@@ -279,7 +279,7 @@ def get_available_slots(
             models.Booking.status != 'cancelled'
         ).all()
         
-        booked_hours = get_booked_hours(active_bookings)
+        booked_slots = get_booked_slots(active_bookings)
         
         # 4. Filter and Format Output
         all_slots = []
@@ -287,34 +287,35 @@ def get_available_slots(
         is_today = (booking_date == now_ist.date())
 
         for h_str, details in sorted(allowed_slots_map.items()):
-            # Extract hour int for business logic checks
-            h = safe_parse_hour(h_str)
-            
-            # --- Past Slot filtering removed as per strict admin-defined model requirements ---
-            # if is_today and h < now_ist.hour:
-            #      continue
-            # if is_today and h == now_ist.hour and now_ist.minute > 45: 
-            #     continue
+            # Extract hour float for business logic checks
+            h_float = safe_parse_time_float(h_str)
             
             # Skip Admin Blocked slots
             if details['is_blocked']: continue
             
             # Skip already booked slots
-            if h in booked_hours: continue
+            if h_float in booked_slots: continue
 
             # Format time for display (12-hour format)
+            h = int(h_float)
+            m = int((h_float % 1) * 60)
+            
+            h_end_float = h_float + 0.5
+            h_e = int(h_end_float)
+            m_e = int((h_end_float % 1) * 60)
+
             sh_disp = h if h <= 12 else h - 12
             if sh_disp == 0: sh_disp = 12
             ampm_s = "AM" if h < 12 else "PM"
             
-            h_end = (h + 1) % 24
-            eh_disp = h_end if h_end <= 12 else h_end - 12
+            eh_disp = h_e if h_e <= 12 else h_e - 12
             if eh_disp == 0: eh_disp = 12
-            ampm_e = "AM" if h_end < 12 else "PM"
+            ampm_e = "AM" if h_e < 12 or h_e == 24 else "PM"
+            if h_e == 24: ampm_e = "AM"
 
             all_slots.append({
                 "time": h_str,
-                "display_time": f"{sh_disp:02d}:00 {ampm_s} - {eh_disp:02d}:00 {ampm_e}",
+                "display_time": f"{sh_disp:02d}:{m:02d} {ampm_s} - {eh_disp:02d}:{m_e:02d} {ampm_e}",
                 "price": details['price'],
                 "available": True,
                 "slot_id": f"slot_{h_str.replace(':', '')}" # Synthetic ID

@@ -161,16 +161,9 @@ function AddPolicyForm({ onCancel, onSave, initialData = null }) {
 
             <div className="pt-6 mt-2 border-t border-slate-100 flex gap-4 bg-white sticky bottom-0 z-10 pb-2">
                 <button
-                    type="button"
-                    onClick={onCancel}
-                    className="flex-1 px-6 py-3.5 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors"
-                >
-                    Cancel
-                </button>
-                <button
                     type="submit"
                     disabled={isSubmitting}
-                    className={`flex-[2] px-6 py-3.5 text-white font-bold rounded-xl transition-colors disabled:opacity-70 shadow-lg flex items-center justify-center gap-2
+                    className={`flex-1 px-6 py-3.5 text-white font-bold rounded-xl transition-colors disabled:opacity-70 shadow-lg flex items-center justify-center gap-2
                         ${formData.type === 'cancellation'
                             ? 'bg-red-600 hover:bg-red-700 shadow-red-900/10'
                             : 'bg-blue-600 hover:bg-blue-700 shadow-blue-900/10'}`}

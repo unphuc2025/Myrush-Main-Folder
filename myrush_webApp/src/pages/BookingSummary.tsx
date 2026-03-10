@@ -121,7 +121,13 @@ export const BookingSummary: React.FC = () => {
 
             const sortedSlots = [...state.selectedSlots].sort((a, b) => a.time.localeCompare(b.time));
             const startTime = sortedSlots[0].time;
-            const durationMinutes = sortedSlots.length * 60;
+            const durationMinutes = sortedSlots.length * 30;
+
+            if (durationMinutes < 60) {
+                alert('Minimum booking duration is 1 hour (2 slots).');
+                setSubmitting(false);
+                return;
+            }
 
             const orderRes = await bookingsApi.createPaymentOrder({
                 courtId: state.selectedSlots[0]?.court_id || state.venueId,

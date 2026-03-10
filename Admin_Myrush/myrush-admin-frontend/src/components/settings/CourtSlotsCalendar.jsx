@@ -75,7 +75,8 @@ function CourtSlotsCalendar() {
   const refreshCourts = async () => {
     try {
       const courtsData = await courtsApi.getAll();
-      setCourts(courtsData);
+      const updatedCourts = courtsData?.items || courtsData || [];
+      setCourts(updatedCourts);
     } catch (err) {
       console.error('Error refreshing courts:', err);
     }
@@ -89,7 +90,7 @@ function CourtSlotsCalendar() {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     // Get all active courts (optionally filtered)
-    const filteredCourts = courts.filter(court => {
+    const filteredCourts = Array.isArray(courts) ? courts.filter(court => {
       if (!court.is_active) return false;
       if (selectedBranchId && String(court.branch_id) !== String(selectedBranchId)) return false;
       if (selectedCityId) {
@@ -97,7 +98,7 @@ function CourtSlotsCalendar() {
         if (!branch || String(branch.city_id) !== String(selectedCityId)) return false;
       }
       return true;
-    });
+    }) : [];
 
     // Build slots for each date by aggregating
     for (let day = 1; day <= daysInMonth; day++) {
@@ -136,12 +137,21 @@ function CourtSlotsCalendar() {
           const condPrice = cond.price || cond.price_per_hour || court.price_per_hour;
 
           if (condFrom && condTo) {
-            const startH = parseInt(condFrom.split(':')[0]);
-            const endH = parseInt(condTo.split(':')[0]);
+            const parseTimeF = (ts) => {
+              const [h, m] = ts.split(':').map(Number);
+              return h + (m / 60);
+            };
+            const startF = parseTimeF(condFrom);
+            const endF = parseTimeF(condTo);
 
-            for (let h = startH; h < endH; h++) {
-              const sFrom = `${String(h).padStart(2, '0')}:00`;
-              const sTo = `${String(h + 1).padStart(2, '0')}:00`;
+            for (let t = startF * 2; t < endF * 2; t++) {
+              const h_s = Math.floor(t / 2);
+              const m_s = (t % 2) * 30;
+              const h_e = Math.floor((t + 1) / 2);
+              const m_e = ((t + 1) % 2) * 30;
+
+              const sFrom = `${String(h_s).padStart(2, '0')}:${String(m_s).padStart(2, '0')}`;
+              const sTo = `${String(h_e).padStart(2, '0')}:${String(m_e).padStart(2, '0')}`;
               const slotKey = `${sFrom}-${sTo}`;
 
               if (!aggregatedSlots[slotKey]) {
@@ -179,7 +189,7 @@ function CourtSlotsCalendar() {
   };
 
   const loadCourtSlots = () => {
-    if (!selectedCourt) return;
+    if (!selectedCourt || !Array.isArray(courts)) return;
 
     let priceConditions = selectedCourt.price_conditions || [];
     if (typeof priceConditions === 'string') {
@@ -221,13 +231,26 @@ function CourtSlotsCalendar() {
       // 1. Generate Base Slots from Branch Opening Hours
       if (dayConfig.isActive && dayConfig.open && dayConfig.close) {
         try {
-          const startH = parseInt(dayConfig.open.split(':')[0]);
-          const endH = parseInt(dayConfig.close.split(':')[0]);
-          for (let h = startH; h < endH; h++) {
+          const parseTimeF = (ts) => {
+            const [h, m] = ts.split(':').map(Number);
+            return h + (m / 60);
+          };
+          const startF = parseTimeF(dayConfig.open);
+          const endF = parseTimeF(dayConfig.close);
+
+          for (let t = startF * 2; t < endF * 2; t++) {
+            const h_s = Math.floor(t / 2);
+            const m_s = (t % 2) * 30;
+            const h_e = Math.floor((t + 1) / 2);
+            const m_e = ((t + 1) % 2) * 30;
+
+            const sFrom = `${String(h_s).padStart(2, '0')}:${String(m_s).padStart(2, '0')}`;
+            const sTo = `${String(h_e).padStart(2, '0')}:${String(m_e).padStart(2, '0')}`;
+
             daySlots.push({
-              id: `${dateKey}-${h}`,
-              slotFrom: `${String(h).padStart(2, '0')}:00`,
-              slotTo: `${String(h + 1).padStart(2, '0')}:00`,
+              id: `${dateKey}-${sFrom}`,
+              slotFrom: sFrom,
+              slotTo: sTo,
               price: selectedCourt.price_per_hour,
               isDefault: true,
               isDateSpecific: false
@@ -250,12 +273,21 @@ function CourtSlotsCalendar() {
         const condPrice = cond.price || cond.price_per_hour || selectedCourt.price_per_hour;
 
         if (condFrom && condTo) {
-          const startH = parseInt(condFrom.split(':')[0]);
-          const endH = parseInt(condTo.split(':')[0]);
+          const parseTimeF = (ts) => {
+            const [h, m] = ts.split(':').map(Number);
+            return h + (m / 60);
+          };
+          const startF = parseTimeF(condFrom);
+          const endF = parseTimeF(condTo);
 
-          for (let h = startH; h < endH; h++) {
-            const sFrom = `${String(h).padStart(2, '0')}:00`;
-            const sTo = `${String(h + 1).padStart(2, '0')}:00`;
+          for (let t = startF * 2; t < endF * 2; t++) {
+            const h_s = Math.floor(t / 2);
+            const m_s = (t % 2) * 30;
+            const h_e = Math.floor((t + 1) / 2);
+            const m_e = ((t + 1) % 2) * 30;
+
+            const sFrom = `${String(h_s).padStart(2, '0')}:${String(m_s).padStart(2, '0')}`;
+            const sTo = `${String(h_e).padStart(2, '0')}:${String(m_e).padStart(2, '0')}`;
 
             const existingIdx = daySlots.findIndex(s => s.slotFrom === sFrom && s.slotTo === sTo);
             const isDateSpecific = !!(cond.dates && cond.dates.includes(dateKey));
@@ -270,7 +302,7 @@ function CourtSlotsCalendar() {
               };
             } else {
               daySlots.push({
-                id: `${dateKey}-${h}-override`,
+                id: `${dateKey}-${sFrom}-override`,
                 slotFrom: sFrom,
                 slotTo: sTo,
                 price: condPrice,
@@ -292,9 +324,11 @@ function CourtSlotsCalendar() {
       const disabledTimes = new Set();
       unavailability.forEach(un => {
         const applies = (un.dates && un.dates.includes(dateKey)) || (un.days && un.days.includes(dayOfWeekShort));
-        if (applies && un.times) {
+        if (applies && un.times && Array.isArray(un.times)) {
           un.times.forEach(t => {
-            const timeMatch = t.split(':')[0] + ':00';
+            // Support both HH:MM and HH:MM:SS
+            const parts = t.split(':');
+            const timeMatch = parts.slice(0, 2).map(p => p.padStart(2, '0')).join(':');
             disabledTimes.add(timeMatch);
           });
         }
@@ -365,7 +399,7 @@ function CourtSlotsCalendar() {
     setEditingSlot(null);
     setTempEditData({
       slotFrom: '09:00',
-      slotTo: '10:00',
+      slotTo: '09:30',
       price: selectedCourt?.price_per_hour || ''
     });
     setIsAddingNew(true);
@@ -465,22 +499,20 @@ function CourtSlotsCalendar() {
         // Preserve Media
         if (freshCourt.images) {
           const imgs = typeof freshCourt.images === 'string' ? JSON.parse(freshCourt.images) : freshCourt.images;
-          imgs.forEach(img => formData.append('existing_images', img));
+          if (Array.isArray(imgs)) {
+            imgs.forEach(img => formData.append('existing_images', img));
+          }
         }
         if (freshCourt.videos) {
           const vids = typeof freshCourt.videos === 'string' ? JSON.parse(freshCourt.videos) : freshCourt.videos;
-          vids.forEach(vid => formData.append('existing_videos', vid));
+          if (Array.isArray(vids)) {
+            vids.forEach(vid => formData.append('existing_videos', vid));
+          }
         }
 
-        await courtsApi.update(selectedCourt.id, formData);
+        const refreshedCourt = await courtsApi.update(selectedCourt.id, formData);
 
         // 4. Update local state
-        const updatedCourt = { ...freshCourt, price_conditions: updatedConditions };
-        setSelectedCourt(updatedCourt);
-        setCourts(prev => prev.map(c => c.id === updatedCourt.id ? updatedCourt : c));
-
-        // Force Refetch for safety
-        const refreshedCourt = await courtsApi.getById(selectedCourt.id);
         setSelectedCourt(refreshedCourt);
         setCourts(prev => prev.map(c => c.id === refreshedCourt.id ? refreshedCourt : c));
 
@@ -566,11 +598,15 @@ function CourtSlotsCalendar() {
       }
       if (freshCourt.images) {
         const imgs = typeof freshCourt.images === 'string' ? JSON.parse(freshCourt.images) : freshCourt.images;
-        imgs.forEach(img => formData.append('existing_images', img));
+        if (Array.isArray(imgs)) {
+          imgs.forEach(img => formData.append('existing_images', img));
+        }
       }
       if (freshCourt.videos) {
         const vids = typeof freshCourt.videos === 'string' ? JSON.parse(freshCourt.videos) : freshCourt.videos;
-        vids.forEach(vid => formData.append('existing_videos', vid));
+        if (Array.isArray(vids)) {
+          vids.forEach(vid => formData.append('existing_videos', vid));
+        }
       }
 
       await courtsApi.update(selectedCourt.id, formData);
@@ -993,7 +1029,7 @@ const LocalTimePicker = ({ value, onChange }) => {
       </select>
       <span className="self-center font-bold text-slate-300">:</span>
       <select value={m} onChange={e => update(h, e.target.value, ampm)} className="w-16 p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-green-500 text-center cursor-pointer hover:bg-slate-100 transition-colors">
-        {['00', '15', '30', '45'].map(n => <option key={n} value={n}>{n}</option>)}
+        {['00', '30'].map(n => <option key={n} value={n}>{n}</option>)}
       </select>
       <select value={ampm} onChange={e => update(h, m, e.target.value)} className="w-16 p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-green-500 text-center cursor-pointer hover:bg-slate-100 transition-colors">
         <option value="AM">AM</option>

@@ -353,7 +353,7 @@ const CMSPages = () => {
                                                     {permissions.edit && (
                                                         <button
                                                             onClick={() => handleEdit(page)}
-                                                            className="p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+                                                            className="p-1.5 text-amber-600 bg-amber-50 rounded hover:bg-amber-100"
                                                             title="Edit Content"
                                                         >
                                                             <Edit2 className="h-4 w-4" />
@@ -404,7 +404,7 @@ const CMSPages = () => {
                                             {permissions.edit && (
                                                 <button
                                                     onClick={() => handleEdit(page)}
-                                                    className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                                                    className="p-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100"
                                                     title="Edit"
                                                 >
                                                     <Edit2 className="h-4 w-4" />

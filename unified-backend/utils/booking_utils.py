@@ -6,139 +6,135 @@ from sqlalchemy.orm import Session
 
 def get_now_ist() -> datetime:
     """Get current time in Indian Standard Time (IST) using UTC offset."""
-    # pytz might be missing, using manual offset for Asia/Kolkata (UTC+5:30)
+    # Asia/Kolkata is UTC+5:30
     return datetime.utcnow() + timedelta(hours=5, minutes=30)
 
-def validate_slot_not_past(booking_date: date, start_hour: int):
+def validate_slot_not_past(booking_date: date, start_time_str: str):
     """
     Ensure the requested slot is not too far in the past.
-    Allows for a 45-minute grace period to account for payment processing time.
-    Throws HTTPException if invalid.
+    Allows for a 45-minute grace period.
     """
     from fastapi import HTTPException
     now_ist = get_now_ist()
     
-    # 1. Past Date Check
     if booking_date < now_ist.date():
         raise HTTPException(status_code=400, detail="Cannot book a slot on a past date.")
     
-    # 2. Same Day Past Slot Check
     if booking_date == now_ist.date():
-        # Construction of slot start time
-        slot_dt = datetime.combine(booking_date, time(start_hour, 0))
-        # Grace period: 45 minutes
+        slot_start = safe_parse_time_float(start_time_str)
+        hh = int(slot_start)
+        mm = int((slot_start % 1) * 60)
+        
+        slot_dt = datetime.combine(booking_date, time(hh, mm))
         grace_limit = now_ist - timedelta(minutes=45)
         
         if slot_dt < grace_limit:
-            print(f"[PAST CHECK FAIL] Slot {start_hour}:00 is too old. Now={now_ist}, Limit={grace_limit}")
+            print(f"[PAST CHECK FAIL] Slot {start_time_str} is too old. Now={now_ist}, Limit={grace_limit}")
             raise HTTPException(status_code=400, detail="This slot has already started or passed. Please choose a later time.")
 
-def safe_parse_hour(time_str: str) -> int:
+def safe_parse_time_float(time_str: str) -> float:
     """
-    Robustly extract hour (0-23) from a time string.
-    Handles 'HH:mm', 'HH:MM:SS', 'HH:MM AM/PM', 'HH AM', and legacy formats.
+    Robustly extract time as float (e.g. 10:30 -> 10.5) from a time string.
     """
     if not time_str:
-        return 0
+        return 0.0
     
     time_str = str(time_str).strip().upper()
     
-    # 1. Handle AM/PM formats first
+    # 1. Handle AM/PM formats
     match = re.search(r'(\d+):?(\d*)?\s*(AM|PM)', time_str)
     if match:
         hour = int(match.group(1))
+        minute = int(match.group(2) or 0)
         ampm = match.group(3)
         if ampm == 'PM' and hour != 12:
             hour += 12
         elif ampm == 'AM' and hour == 12:
             hour = 0
-        return hour % 24
+        return (hour % 24) + (minute / 60.0)
     
     # 2. Handle 24h formats HH:MM or HH:MM:SS
     match = re.search(r'(\d{1,2}):(\d{2})', time_str)
     if match:
-        return int(match.group(1)) % 24
+        hour = int(match.group(1))
+        minute = int(match.group(2))
+        return (hour % 24) + (minute / 60.0)
     
     # 3. Simple integer string
     if time_str.isdigit():
-        return int(time_str) % 24
+        return float(time_str) % 24.0
     
-    # Fallback to simple split
     try:
-        return int(time_str.split(':')[0]) % 24
-    except (ValueError, IndexError):
-        return 0
+        parts = time_str.split(':')
+        h = int(parts[0]) % 24
+        m = int(parts[1]) if len(parts) > 1 else 0
+        return h + (m / 60.0)
+    except:
+        return 0.0
 
-def get_booked_hours(active_bookings: list) -> set:
+def safe_parse_hour(time_str: str) -> int:
+    return int(safe_parse_time_float(time_str))
+
+def get_booked_slots(active_bookings: list) -> set:
     """
-    Unified logic for extracting booked hours from a list of booking models.
-    Supports both new time_slots JSON and legacy columns.
+    Unified logic for extracting booked 30-min slots from a list of booking models.
+    Returns a set of slot start times (floats like 10.0, 10.5).
     """
-    booked_times = set()
-    print(f"[BOOKING UTILS] Processing {len(active_bookings)} active bookings...")
+    booked_slots = set()
+    print(f"[BOOKING UTILS] Processing {len(active_bookings)} active bookings for 30-min granularity...")
     
     for b in active_bookings:
         # 1. Try time_slots JSON
         t_slots = b.time_slots
         if isinstance(t_slots, str):
-            try:
-                t_slots = json.loads(t_slots)
-            except:
-                t_slots = []
+            try: t_slots = json.loads(t_slots)
+            except: t_slots = []
         
         if t_slots and isinstance(t_slots, list):
             for slot in t_slots:
                 if isinstance(slot, dict):
-                    # Check both 'start_time' and 'time' keys
-                    t_str = slot.get('start_time') or slot.get('time')
+                    t_str = slot.get('start_time') or slot.get('time') or slot.get('start')
                     if t_str:
-                        h = safe_parse_hour(t_str)
-                        booked_times.add(h)
-                        print(f"  Booking {getattr(b, 'booking_display_id', b.id)}: Slot {t_str} -> Hour {h}")
+                        slot_start = safe_parse_time_float(t_str)
+                        booked_slots.add(slot_start)
+                        print(f"  Booking {getattr(b, 'booking_display_id', b.id)}: Slot {t_str} -> {slot_start}")
         else:
             # 2. Fallback for legacy bookings
             try:
-                # Use _deprecated columns if helper properties are missing
                 start_val = getattr(b, 'start_time', None) or getattr(b, '_old_start_time', None)
                 duration = getattr(b, 'duration_minutes', None) or getattr(b, '_old_duration_minutes', None) or 60
                 
                 if start_val:
                     if isinstance(start_val, str):
-                        h_val = safe_parse_hour(start_val)
+                        start_f = safe_parse_time_float(start_val)
                     else:
-                        h_val = start_val.hour
+                        start_f = start_val.hour + (start_val.minute / 60.0)
                     
-                    num_hours = (int(duration) + 59) // 60
-                    for i in range(num_hours):
-                        h = (h_val + i) % 24
-                        booked_times.add(h)
-                        print(f"  Booking {getattr(b, 'booking_display_id', b.id)} (Legacy): {start_val} + {duration}m -> Hour {h}")
+                    num_half_hours = (int(duration) + 29) // 30
+                    for i in range(num_half_hours):
+                        s = (start_f + (i * 0.5)) % 24
+                        booked_slots.add(s)
+                        print(f"  Booking {getattr(b, 'booking_display_id', b.id)} (Legacy): {start_val} + {duration}m -> Slot {s}")
             except Exception as e:
                 print(f"[BOOKING UTILS] Error parsing legacy booking {getattr(b, 'id', 'unknown')}: {e}")
                 
-    print(f"[BOOKING UTILS] Final booked hours: {sorted(list(booked_times))}")
-    return booked_times
+    print(f"[BOOKING UTILS] Final booked slots: {sorted(list(booked_slots))}")
+    return booked_slots
 
 def get_venue_hours(opening_hours: Any, booking_date: date) -> tuple:
     """
-    Extract opening and closing hours for a specific date from branch opening_hours JSON.
-    Returns (start_hour, end_hour). Default 0-24 if not found or unconfigured.
+    Extract opening and closing hours for a specific date (HH.F format).
     """
     if not opening_hours:
-        print(f"[SLOT ENGINE] No opening_hours found, defaulting to 24h.")
-        return 0, 24
+        return 0.0, 24.0
 
     if isinstance(opening_hours, str):
-        try:
-            opening_hours = json.loads(opening_hours)
-        except Exception as e:
-            print(f"[SLOT ENGINE] JSON parse error for opening_hours: {e}")
-            return 0, 24
+        try: opening_hours = json.loads(opening_hours)
+        except: return 0.0, 24.0
 
     day_name = booking_date.strftime("%A").lower()
     day_config = None
 
-    # Handle both Dict format ("monday": {...}) and List format ([{"day": "monday", ...}, ...])
     if isinstance(opening_hours, dict):
         day_config = opening_hours.get(day_name)
     elif isinstance(opening_hours, list):
@@ -147,63 +143,31 @@ def get_venue_hours(opening_hours: Any, booking_date: date) -> tuple:
                 day_config = item
                 break
     
-    print(f"[SLOT ENGINE] Day Config for {day_name}: {day_config}")
+    if not day_config or not day_config.get('isActive'):
+        return 0.0, 0.0
 
-    if not day_config:
-        print(f"[SLOT ENGINE] No config for {day_name}, defaulting to 24h.")
-        return 0, 24
-
-    # Robust isActive check (handle strings, bools, nulls)
-    is_active_raw = day_config.get('isActive')
-    if is_active_raw is False or str(is_active_raw).lower() == 'false':
-        print(f"[SLOT ENGINE] Venue is EXPLICITLY CLOSED for {day_name}.")
-        return 0, 0
-
-    # Extract times, handling nulls/missing keys
-    start_str = day_config.get('startTime') or '00:00'
-    end_str = day_config.get('endTime') or '00:00'
-
-    start_h = safe_parse_hour(start_str)
-    
-    # Check for various forms of "Midnight" or "End of Day"
-    if end_str in ('23:59', '00:00', '24:00', '12:00 AM', None):
-        end_h = 24
+    start_h = safe_parse_time_float(day_config.get('startTime') or '00:00')
+    end_str = day_config.get('endTime')
+    if end_str in ('23:59', '00:00', '24:00', '12:00 AM', None, '23:30'):
+        end_h = 24.0
     else:
-        end_h = safe_parse_hour(end_str)
-        # If they set endTime to 00:00 (which is 12 AM), it usually means the end of the day or start of next
-        if end_h == 0: 
-            end_h = 24
-
-    # Safety check: if start and end are same and not 0, it might be misconfigured, default to 24h
-    if start_h == end_h and start_h == 0:
-        # If exactly 00:00 to 00:00, treat as 24h
-        return 0, 24
+        end_h = safe_parse_time_float(end_str)
+        if end_h == 0: end_h = 24.0
 
     return start_h, end_h
 
 def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -> Dict[str, Dict[str, Any]]:
     """
-    Authoritative slot generation engine. Used by User App for availability and by Booking Validation.
-    STRICT MODEL: Returns only slots explicitly defined by rules (Date-specific or Recurring).
-    Removes dynamic generation from venue opening hours.
+    30-Minute Slot Engine. 
+    Halves the 'price_per_hour' to get the 30-min slot price by default.
     """
     import models
     
-    # 1. Fetch Court
     court = db.query(models.Court).filter(models.Court.id == court_id).first()
-    if not court:
-        return {}
+    if not court: return {}
     
-    # 2. Prepare conditions and current context
     day_short = booking_date.strftime("%a").lower()
     date_str = booking_date.isoformat()
-    
-    # 3. Collect all potential rules
-    # Priority order for finding the 'best' price for a slot:
-    # 1. Court-specific Date match
-    # 2. Court-specific Day match
-    # 3. Global Date match
-    # 4. Global Day match
     
     court_rules = court.price_conditions or []
     if isinstance(court_rules, str):
@@ -222,76 +186,53 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
             'source': 'global'
         })
 
-    # 4. Generate Allowable Slots (0 to 23)
     allowed_slots = {}
-    
-    # NEW PERMANENT SOLUTION:
-    # We still use Venue Hours as the "Base Explicit Slots" to avoid breaking existing venues.
-    # However, we allow rules to override their prices or provide extra slots.
-    # If the user's intent was to only allow rules, they can set opening hours to 'Closed'.
-    
     branch = db.query(models.Branch).filter(models.Branch.id == court.branch_id).first()
     v_start, v_end = get_venue_hours(branch.opening_hours if branch else None, booking_date)
     
-    # Priority: 1. Court Date > 2. Court Day > 3. Global Date > 4. Global Day > 5. Venue Hours
-    for h in range(0, 24):
-        time_key = f"{h:02d}:00"
+    # Generate 48 slots
+    for i in range(0, 48):
+        h_start = i * 0.5
+        h_end = (i + 1) * 0.5
+        
+        hh = int(h_start)
+        mm = int((h_start % 1) * 60)
+        time_key = f"{hh:02d}:{mm:02d}"
+        
         matched_rule = None
         
-        # Priority 1: Court Specific Date
+        # Priority: Court Date > Court Day > Global Date > Global Day
+        # 1. Court Date
         for pc in court_rules:
             if date_str in (pc.get('dates') or []):
-                s_h = safe_parse_hour(pc.get('slotFrom', '00:00'))
-                e_h = safe_parse_hour(pc.get('slotTo', '24:00'))
-                if e_h == 0: e_h = 24
-                if s_h <= h < e_h:
-                    matched_rule = pc
-                    matched_rule['source'] = 'court_date'
-                    break
+                if safe_parse_time_float(pc.get('slotFrom')) <= h_start < (safe_parse_time_float(pc.get('slotTo')) or 24.0):
+                    matched_rule = pc; matched_rule['source'] = 'court_date'; break
         
-        # Priority 2: Court Specific Day
+        # 2. Court Day
         if not matched_rule:
             for pc in court_rules:
-                days = [d.lower()[:3] for d in (pc.get('days') or [])]
-                if day_short in days:
-                    s_h = safe_parse_hour(pc.get('slotFrom', '00:00'))
-                    e_h = safe_parse_hour(pc.get('slotTo', '24:00'))
-                    if e_h == 0: e_h = 24
-                    if s_h <= h < e_h:
-                        matched_rule = pc
-                        matched_rule['source'] = 'court_day'
-                        break
+                if day_short in [d.lower()[:3] for d in (pc.get('days') or [])]:
+                    if safe_parse_time_float(pc.get('slotFrom')) <= h_start < (safe_parse_time_float(pc.get('slotTo')) or 24.0):
+                        matched_rule = pc; matched_rule['source'] = 'court_day'; break
 
-        # Priority 3: Global Date
+        # 3. Global Date
         if not matched_rule:
             for gr in global_rules:
                 if date_str in (gr.get('dates') or []):
-                    s_h = safe_parse_hour(gr.get('slotFrom', '00:00'))
-                    e_h = safe_parse_hour(gr.get('slotTo', '24:00'))
-                    if e_h == 0: e_h = 24
-                    if s_h <= h < e_h:
-                        matched_rule = gr
-                        matched_rule['source'] = 'global_date'
-                        break
+                    if safe_parse_time_float(gr.get('slotFrom')) <= h_start < (safe_parse_time_float(gr.get('slotTo')) or 24.0):
+                        matched_rule = gr; matched_rule['source'] = 'global_date'; break
 
-        # Priority 4: Global Day
+        # 4. Global Day
         if not matched_rule:
             for gr in global_rules:
                 if day_short in (gr.get('days') or []):
-                    s_h = safe_parse_hour(gr.get('slotFrom', '00:00'))
-                    e_h = safe_parse_hour(gr.get('slotTo', '24:00'))
-                    if e_h == 0: e_h = 24
-                    if s_h <= h < e_h:
-                        matched_rule = gr
-                        matched_rule['source'] = 'global_day'
-                        break
+                    if safe_parse_time_float(gr.get('slotFrom')) <= h_start < (safe_parse_time_float(gr.get('slotTo')) or 24.0):
+                        matched_rule = gr; matched_rule['source'] = 'global_day'; break
         
-        # Priority 5: Venue Hours (Fallback "Base Rule")
-        is_venue_open_now = (v_start <= h < v_end)
+        # Check Venue Hours
+        is_venue_open_now = (v_start <= h_start < v_end)
         
-        # If a rule exists OR it's within venue hours, the slot is allowable
         if matched_rule or is_venue_open_now:
-             # Check Unavailability (Blocks specifically defined slots)
             is_blocked = False
             un_slots = court.unavailability_slots or []
             if isinstance(un_slots, str):
@@ -300,47 +241,36 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
             
             if isinstance(un_slots, list):
                 for un in un_slots:
-                    # --- Format 1 (New, from AddCourtForm): { date, from, to, reason } ---
-                    single_date = un.get('date')
-                    from_time = un.get('from')
-                    to_time = un.get('to')
-                    if single_date and from_time and to_time:
-                        if single_date == date_str:
-                            from_h = safe_parse_hour(from_time)
-                            to_h = safe_parse_hour(to_time)
-                            if to_h == 0: to_h = 24
-                            if from_h <= h < to_h:
-                                is_blocked = True
-                                break
-                        continue  # Skip old format check for this entry
-
-                    # --- Format 2 (Legacy): { dates[], days[], times[] } ---
-                    match = False
-                    if date_str in (un.get('dates') or []): match = True
-                    if not match and day_short in [d.lower()[:3] for d in (un.get('days') or [])]: match = True
-                    
-                    if match:
-                        blocked_times = un.get('times') or []
-                        if any(safe_parse_hour(t) == h for t in blocked_times):
-                            is_blocked = True
-                            break
+                    # Date specific block
+                    if un.get('date') == date_str:
+                        if safe_parse_time_float(un.get('from')) <= h_start < (safe_parse_time_float(un.get('to')) or 24.0):
+                            is_blocked = True; break
+                    # Recurring block
+                    match = (date_str in (un.get('dates') or [])) or (day_short in [d.lower()[:3] for d in (un.get('days') or [])])
+                    if match and any(safe_parse_time_float(t) == h_start for t in (un.get('times') or [])):
+                        is_blocked = True; break
             
-            # If not blocked, add to map
             if not is_blocked:
-                # Use rule price if matched, else base court price
-                price = float(court.price_per_hour)
-                source = 'venue_hours'
+                base_price = float(court.price_per_hour)
+                # Slot is 30 mins, so price is half of hourly rate
+                price = (float(matched_rule.get('price', base_price)) if matched_rule else base_price) / 2.0
                 
-                if matched_rule:
-                    price = float(matched_rule.get('price', price))
-                    source = matched_rule.get('source', 'court')
-
+                ehh = int(h_end)
+                emm = int((h_end % 1) * 60)
                 allowed_slots[time_key] = {
                     "price": price,
                     "is_blocked": False,
-                    "end_time": f"{(h+1)%24:02d}:00",
-                    "source": source
+                    "end_time": f"{ehh:02d}:{emm:02d}",
+                    "source": matched_rule.get('source', 'venue_hours') if matched_rule else 'venue_hours'
                 }
 
-    print(f"[SLOT ENGINE] PERMANENT MODEL: Found {len(allowed_slots)} slots for {booking_date}")
+    print(f"[SLOT ENGINE] 30-MIN MODEL: Found {len(allowed_slots)} slots for {booking_date}")
     return allowed_slots
+
+def validate_booking_duration(slots: list):
+    """
+    Enforces the 1-hour minimum booking requirement (at least 2 consecutive 30-min slots).
+    """
+    from fastapi import HTTPException
+    if not slots or len(slots) < 2:
+        raise HTTPException(status_code=400, detail="Minimum booking duration is 1 hour (2 slots).")

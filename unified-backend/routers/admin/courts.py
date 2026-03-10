@@ -13,6 +13,7 @@ import shutil
 import json
 from pathlib import Path
 from utils import s3_utils
+from services.integrations.orchestrator import IntegrationOrchestrator
 
 # Create uploads directory if it doesn't exist
 # (Local upload logic removed in favor of S3)
@@ -207,6 +208,15 @@ async def create_court(
     db.add(db_court)
     db.commit()
     db.refresh(db_court)
+    
+    # Notify partners about recurring schedule
+    try:
+        for day in range(7):
+            for hour in range(24):
+                IntegrationOrchestrator.notify_recurring_change(db, str(db_court.id), day, hour, "update")
+    except Exception as e:
+        print(f"Recurring notification failed: {e}")
+
     return db_court
 
 @router.put("/{court_id}", response_model=schemas.Court)
@@ -315,6 +325,15 @@ async def update_court(
 
     db.commit()
     db.refresh(db_court)
+    
+    # Notify partners about recurring schedule changes
+    try:
+        for day in range(7):
+            for hour in range(24):
+                IntegrationOrchestrator.notify_recurring_change(db, str(db_court.id), day, hour, "update")
+    except Exception as e:
+        print(f"Recurring notification failed: {e}")
+
     return db_court
 
 @router.patch("/{court_id}/toggle", response_model=schemas.Court, dependencies=[Depends(PermissionChecker("Manage Courts", "edit"))])
@@ -336,6 +355,16 @@ def toggle_court_status(
     db_court.is_active = not db_court.is_active
     db.commit()
     db.refresh(db_court)
+    
+    # Notify partners about recurring schedule (available/block toggle)
+    try:
+        status_action = "available" if db_court.is_active else "block"
+        for day in range(7):
+            for hour in range(24):
+                IntegrationOrchestrator.notify_recurring_change(db, str(db_court.id), day, hour, status_action)
+    except Exception as e:
+        print(f"Toggle notification failed: {e}")
+
     return db_court
 
 @router.delete("/{court_id}", dependencies=[Depends(PermissionChecker("Manage Courts", "delete"))])
