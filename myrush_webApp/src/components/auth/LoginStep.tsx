@@ -80,6 +80,8 @@ export const LoginStep: React.FC<LoginStepProps> = ({ onSuccess }) => {
                     <div className="relative flex-1">
                         <input
                             type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             placeholder="Mobile Number"
                             value={phoneNumber}
                             onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
@@ -101,12 +103,12 @@ export const LoginStep: React.FC<LoginStepProps> = ({ onSuccess }) => {
 
             <p className="text-[10px] text-gray-400 text-center mt-6 uppercase tracking-wider font-bold">
                 By continuing, you agree to our <br />
-                <button 
+                <button
                     onClick={handleTermsNavigate}
                     className="text-gray-900 underline hover:text-primary transition-colors focus:outline-none"
                 >
                     Terms
-                </button> & <button 
+                </button> & <button
                     onClick={handleTermsNavigate}
                     className="text-gray-900 underline hover:text-primary transition-colors focus:outline-none"
                 >

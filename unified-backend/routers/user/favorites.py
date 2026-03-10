@@ -78,7 +78,8 @@ def get_favorites(
                 ac.id,
                 ac.name as court_name,
                 ac.price_per_hour as prices,
-                ac.images as photos,
+                ac.images as court_images,
+                ab.images as branch_images,
                 ab.name as branch_name,
                 ab.address_line1 as location,
                 acity.name as city_name,
@@ -98,13 +99,16 @@ def get_favorites(
         result = []
         for fav in favorites:
             row = dict(fav._mapping)
+            # Prefer branch-level images (these are the venue images shown in the app)
+            # Fall back to court-level images if branch images are empty
+            photos = row.get('branch_images') or row.get('court_images') or []
             result.append({
                 "id": str(row['id']),
                 "court_name": row['branch_name'], # Use Branch Name for Venue-First consistency
                 "location": f"{row['location']}, {row['city_name']}",
                 "game_type": row['game_type'],
                 "prices": str(row['prices']),
-                "photos": row['photos'] or [],
+                "photos": photos,
                 "rating": float(row['average_rating'] or 0),
                 "is_favorite": True
             })

@@ -119,20 +119,20 @@ const OTPLoginScreen: React.FC = () => {
   const handleOtpChange = (value: string, index: number) => {
     // Sanitize input: allow only numbers (0-9)
     const sanitizedValue = value.replace(/[^0-9]/g, '');
-    
+
     if (sanitizedValue.length > 1) {
       // Handle paste: distribute digits across fields starting from current index
       const newOtp = [...otp];
       const digits = sanitizedValue.split('');
-      
+
       let lastFilledIndex = index;
       for (let i = 0; i < digits.length && (index + i) < otp.length; i++) {
         newOtp[index + i] = digits[i];
         lastFilledIndex = index + i;
       }
-      
+
       setOtp(newOtp);
-      
+
       // Focus the next field after the last filled one, or the last field if full
       const nextFocusIndex = Math.min(lastFilledIndex + 1, otp.length - 1);
       otpInputs.current[nextFocusIndex]?.focus();
@@ -147,7 +147,7 @@ const OTPLoginScreen: React.FC = () => {
       const newOtp = [...otp];
       newOtp[index] = sanitizedValue;
       setOtp(newOtp);
-      
+
       // Auto-focus next field
       if (sanitizedValue && index < otp.length - 1) {
         otpInputs.current[index + 1]?.focus();
@@ -307,7 +307,7 @@ Delayed/Lost Shipments: In the case of a delayed or lost shipment, customers sho
                   <Input
                     label="Mobile Number"
                     placeholder="Enter 10-digit number"
-                    keyboardType="number-pad"
+                    keyboardType="phone-pad"
                     maxLength={10}
                     value={phoneNumber}
                     onChangeText={(text) => setPhoneNumber(text.replace(/[^0-9]/g, ''))}

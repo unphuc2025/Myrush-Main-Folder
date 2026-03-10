@@ -53,7 +53,7 @@ class StructuredFormatter(logging.Formatter):
         if hasattr(record, 'extra_fields'):
             log_entry.update(record.extra_fields)
         
-        return json.dumps(log_entry, ensure_ascii=False, indent=2)
+        return json.dumps(log_entry, ensure_ascii=True, indent=2)
 
 # Create logs directory
 LOGS_DIR = Path("logs")

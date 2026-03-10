@@ -5,7 +5,8 @@ import { venuesApi } from '../api/venues';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
 import { getSportIcon } from '../utils/sportIcons';
-import { FaFutbol } from 'react-icons/fa';
+import { FaFutbol, FaHeart, FaRegHeart } from 'react-icons/fa';
+import { useFavorites } from '../context/FavoritesContext';
 interface Venue {
     id: string;
     court_name: string;
@@ -218,74 +219,93 @@ const FilterSidebar: React.FC<{
     </div>
 );
 
-const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onClick }) => (
-    <div
-        className="group bg-white overflow-hidden rounded-xl shadow-sm transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100"
-        onClick={onClick}
-    >
-        <div className="relative h-64 overflow-hidden">
-            <img
-                src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070'}
-                alt={venue.court_name}
-                loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-700"
-            />
-            {/* Sport Tag */}
-            <div className="absolute top-4 left-4">
-                <div className="flex gap-1.5 bg-white/95 backdrop-blur-md text-gray-900 px-3 py-1.5 rounded-full shadow-sm border border-white/50">
-                    {venue.game_type.split(',').map((sport, i) => (
-                        <div key={i} title={sport.trim()} className="text-gray-800">
-                            {getSportIcon(sport.trim())}
-                        </div>
-                    ))}
-                </div>
-            </div>
+const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onClick }) => {
+    const { isFavorite, toggleFavorite } = useFavorites();
+    const favorited = isFavorite(venue.id);
 
-            {/* Location Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent p-5 pt-12 md:translate-y-2 md:group-hover:translate-y-0 transition-transform duration-300">
-                <p className="text-white text-xs font-semibold flex items-center gap-2 drop-shadow-md">
-                    <span className="text-primary bg-primary/20 p-1 rounded-full"><IconMapPin /></span>
-                    <span className="truncate opacity-90">{venue.location}</span>
-                </p>
-            </div>
-        </div>
+    const handleToggleFavorite = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        await toggleFavorite(venue.id);
+    };
 
-        <div className="p-6 flex flex-col flex-1 bg-white relative z-10">
-            {/* Title & Rating */}
-            <div className="flex justify-between items-start mb-4 gap-4">
-                <h3 className="text-xl font-bold font-heading text-gray-900 leading-tight line-clamp-2 transition-colors">
-                    {venue.court_name}
-                </h3>
-                <div className="flex items-center gap-1 bg-yellow-400/10 px-2 py-1 rounded-xl border border-yellow-400/20 shrink-0">
-                    <span className="text-yellow-500 text-xs">⭐</span>
-                    <span className="text-xs font-bold text-gray-900">
-                        {venue.rating && Number(venue.rating) > 0 ? Number(venue.rating).toFixed(1) : '5.0'}
-                    </span>
-                </div>
-            </div>
+    return (
+        <div
+            className="group bg-white overflow-hidden rounded-xl shadow-sm transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100"
+            onClick={onClick}
+        >
+            <div className="relative h-64 overflow-hidden">
+                <img
+                    src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2070'}
+                    alt={venue.court_name}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-700"
+                />
 
-            {/* Price & CTA */}
-            <div className="mt-auto pt-6 border-t border-gray-100 flex items-center justify-between gap-4">
-                <div>
-                    <span className="block text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">Starting from</span>
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-lg font-black text-gray-900 tracking-tight">₹{venue.prices}</span>
-                        <span className="text-xs text-gray-500 font-medium">/hr</span>
+                {/* Favorite Button */}
+                <button
+                    onClick={handleToggleFavorite}
+                    className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center text-red-500 shadow-md transform hover:scale-110 transition-all border border-white/50"
+                >
+                    {favorited ? <FaHeart className="w-5 h-5" /> : <FaRegHeart className="w-5 h-5" />}
+                </button>
+
+                {/* Sport Tag */}
+                <div className="absolute top-4 left-4">
+                    <div className="flex gap-1.5 bg-white/95 backdrop-blur-md text-gray-900 px-3 py-1.5 rounded-full shadow-sm border border-white/50">
+                        {venue.game_type.split(',').map((sport, i) => (
+                            <div key={i} title={sport.trim()} className="text-gray-800">
+                                {getSportIcon(sport.trim())}
+                            </div>
+                        ))}
                     </div>
                 </div>
-                <button
-                    className="bg-zinc-900 text-white font-semibold text-sm px-6 py-3 rounded-lg shadow-lg transition-all duration-300 whitespace-nowrap shrink-0"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onClick();
-                    }}
-                >
-                    Book Now
-                </button>
+
+                {/* Location Overlay */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent p-5 pt-12 md:translate-y-2 md:group-hover:translate-y-0 transition-transform duration-300">
+                    <p className="text-white text-xs font-semibold flex items-center gap-2 drop-shadow-md">
+                        <span className="text-primary bg-primary/20 p-1 rounded-full"><IconMapPin /></span>
+                        <span className="truncate opacity-90">{venue.location}</span>
+                    </p>
+                </div>
+            </div>
+
+            <div className="p-6 flex flex-col flex-1 bg-white relative z-10">
+                {/* Title & Rating */}
+                <div className="flex justify-between items-start mb-4 gap-4">
+                    <h3 className="text-xl font-bold font-heading text-gray-900 leading-tight line-clamp-2 transition-colors">
+                        {venue.court_name}
+                    </h3>
+                    <div className="flex items-center gap-1 bg-yellow-400/10 px-2 py-1 rounded-xl border border-yellow-400/20 shrink-0">
+                        <span className="text-yellow-500 text-xs">⭐</span>
+                        <span className="text-xs font-bold text-gray-900">
+                            {venue.rating && Number(venue.rating) > 0 ? Number(venue.rating).toFixed(1) : '5.0'}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Price & CTA */}
+                <div className="mt-auto pt-6 border-t border-gray-100 flex items-center justify-between gap-4">
+                    <div>
+                        <span className="block text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">Starting from</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-lg font-black text-gray-900 tracking-tight">₹{venue.prices}</span>
+                            <span className="text-xs text-gray-500 font-medium">/hr</span>
+                        </div>
+                    </div>
+                    <button
+                        className="bg-zinc-900 text-white font-semibold text-sm px-6 py-3 rounded-lg shadow-lg transition-all duration-300 whitespace-nowrap shrink-0"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onClick();
+                        }}
+                    >
+                        Book Now
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 // --- Main Page ---
 export const Venues: React.FC = () => {
@@ -416,7 +436,7 @@ export const Venues: React.FC = () => {
 
     const displayedSports = React.useMemo(() => {
         if (selectedBranch === 'All') return sports;
-        
+
         const branchName = branches.find(b => b.id === selectedBranch)?.name;
         if (!branchName) return sports;
 

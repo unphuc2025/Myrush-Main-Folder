@@ -14,7 +14,17 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from sqlalchemy.exc import OperationalError
 import traceback
+import sys
 import os
+
+# Robust UTF-8 encoding for Windows terminals
+try:
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout.reconfigure(encoding='utf-8')
+    if sys.stderr.encoding != 'utf-8':
+        sys.stderr.reconfigure(encoding='utf-8')
+except (AttributeError, Exception):
+    pass
 
 # Import our error handling middleware and utilities
 from middleware.error_handler import ErrorHandlerMiddleware

@@ -33,7 +33,7 @@ export const BookingSummary: React.FC = () => {
     const state = location.state as LocationState;
 
     const [venue, setVenue] = useState<any>(null);
-    const [numPlayers, setNumPlayers] = useState(state?.numPlayers || 1);
+    const [numPlayers] = useState(state?.numPlayers || 1);
     const [teamName, setTeamName] = useState('');
     const [couponCode, setCouponCode] = useState('');
     const [discount, setDiscount] = useState(0);
@@ -279,13 +279,7 @@ export const BookingSummary: React.FC = () => {
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 border-b border-gray-100 pb-8">
                                 <div>
                                     <h3 className="text-lg font-bold uppercase tracking-tight">Booking Details</h3>
-                                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Timeslots & Personnel</p>
-                                </div>
-                                <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-xl border border-gray-200">
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-2 pr-2 border-r border-gray-200">Players</span>
-                                    <button onClick={() => setNumPlayers(Math.max(1, numPlayers - 1))} className="w-8 h-8 flex items-center justify-center font-bold hover:bg-white rounded-lg transition-colors">-</button>
-                                    <span className="font-bold w-6 text-center text-sm">{numPlayers}</span>
-                                    <button onClick={() => setNumPlayers(numPlayers + 1)} className="w-8 h-8 flex items-center justify-center font-bold hover:bg-white rounded-lg transition-colors">+</button>
+                                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Timeslots</p>
                                 </div>
                             </div>
 

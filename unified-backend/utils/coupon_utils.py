@@ -59,7 +59,7 @@ def validate_coupon_strictly(db: Session, coupon_code: str, total_amount: float,
 
     # 6. Check Min Order Value
     if min_val and total_amount < float(min_val):
-        return {"valid": False, "message": f"Order value must be at least ₹{min_val} to use this coupon"}
+        return {"valid": False, "message": f"Order value must be at least Rs.{min_val} to use this coupon"}
 
     # 7. Calculate Discount
     if disc_type.lower() == 'percentage':

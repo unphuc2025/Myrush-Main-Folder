@@ -81,6 +81,8 @@ export const Login: React.FC = () => {
                     <div className="space-y-6">
                         <Input
                             type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             placeholder="Enter mobile number"
                             value={phoneNumber}
                             onChange={(e) => setPhoneNumber(e.target.value)}
