@@ -77,7 +77,7 @@ const VenueDetailsScreen: React.FC = () => {
     const getAllPhotos = () => {
         const venuePhotos = (paramsVenue?.photos || []).filter((p: any) => !!getImageUrl(p));
         const courtPhotos = (selectedCourt?.photos || []).filter((p: any) => !!getImageUrl(p));
-        
+
         // Unique photos
         const combined = Array.from(new Set([...courtPhotos, ...venuePhotos]));
         return combined;
@@ -229,8 +229,8 @@ const VenueDetailsScreen: React.FC = () => {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(10) }}>
                 {/* Immersive Header Gallery */}
                 <View style={styles.headerImage}>
-                    <PhotoGallery 
-                        photos={venue.photos} 
+                    <PhotoGallery
+                        photos={venue.photos}
                     />
                     <LinearGradient
                         colors={['rgba(0,0,0,0.6)', 'transparent', 'transparent', 'rgba(0,0,0,0.8)', '#000000']}
@@ -242,14 +242,12 @@ const VenueDetailsScreen: React.FC = () => {
                                 <TouchableOpacity
                                     style={styles.headerButton}
                                     onPress={() => navigation.goBack()}
-                                    pointerEvents="auto"
                                 >
                                     <Ionicons name="arrow-back" size={moderateScale(24)} color="#fff" />
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={styles.headerButton}
                                     onPress={toggleFavorite}
-                                    pointerEvents="auto"
                                 >
                                     <Ionicons
                                         name={isFavorite ? 'heart' : 'heart-outline'}
@@ -368,11 +366,11 @@ const VenueDetailsScreen: React.FC = () => {
                     )}
 
                     {!!venue.about && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>ABOUT</Text>
-                        <Text style={styles.aboutText}>{venue.about}</Text>
-                    </View>
-                )}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>ABOUT</Text>
+                            <Text style={styles.aboutText}>{venue.about}</Text>
+                        </View>
+                    )}
                     {/* Rules */}
                     {venue.rules ? (
                         <View style={styles.section}>
@@ -383,11 +381,11 @@ const VenueDetailsScreen: React.FC = () => {
 
                     {/* Terms and Conditions */}
                     {!!venue.terms_and_conditions && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>RULES & REGULATIONS</Text>
-                        <Text style={styles.termsText}>{venue.terms_and_conditions}</Text>
-                    </View>
-                )}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>RULES & REGULATIONS</Text>
+                            <Text style={styles.termsText}>{venue.terms_and_conditions}</Text>
+                        </View>
+                    )}
 
                     {/* Reviews */}
                     <View style={styles.section}>
@@ -433,8 +431,8 @@ const VenueDetailsScreen: React.FC = () => {
                                             </View>
                                         </View>
                                         {!!review.review_text && (
-                                        <Text style={styles.reviewText}>{review.review_text}</Text>
-                                    )}
+                                            <Text style={styles.reviewText}>{review.review_text}</Text>
+                                        )}
                                     </View>
                                 ))}
                             </View>
