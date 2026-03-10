@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { favoritesApi, type Venue } from '../api/venues';
 import { useAuth } from './AuthContext';
 
@@ -16,35 +16,76 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [favorites, setFavorites] = useState<Venue[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Set of favorited IDs — includes court IDs (from API) + all original venue/branch IDs
-    const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+    // Persistent set of IDs from localStorage to prevent flicker on refresh
+    const [cachedFavoriteIds, setCachedFavoriteIds] = useState<Set<string>>(() => {
+        const saved = localStorage.getItem('myrush_favorite_ids');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return new Set(Array.isArray(parsed) ? parsed : []);
+            } catch (e) {
+                console.error('Failed to parse cached favorites', e);
+            }
+        }
+        return new Set();
+    });
 
     // Persistent map: venueId (branch ID) -> courtId
     // This is built up over time as users toggle favorites and survives refreshes
     const venueToCourtMapRef = useRef<Map<string, string>>(new Map());
 
-    const { user } = useAuth();
+    const { isAuthenticated } = useAuth();
 
     /**
-     * After a refresh, reconstruct the full favoriteIds set by:
-     * 1. Including all courtIds from the API response
-     * 2. Also including all venueIds (branch IDs) whose court is in the response
+     * Declarative set of favorited IDs — includes court IDs + original venue/branch IDs
+     * derived automatically from the favorites array + local cache.
      */
-    const buildFavoriteIds = useCallback((courtFavorites: Venue[]): Set<string> => {
-        const ids = new Set<string>(courtFavorites.map((fav: Venue) => fav.id));
-        // Re-add branch IDs for any venue whose mapped court is still favorited
-        venueToCourtMapRef.current.forEach((courtId, venueId) => {
-            if (ids.has(courtId)) {
-                ids.add(venueId);
+    const favoriteIdsSet = useMemo(() => {
+        const ids = new Set<string>(cachedFavoriteIds);
+
+        favorites.forEach(fav => {
+            // Add Court ID
+            if (fav.id) {
+                const idStr = String(fav.id).trim().toLowerCase();
+                if (idStr && !idStr.startsWith('temp-')) {
+                    ids.add(idStr);
+                }
+            }
+            // Add Branch ID
+            if (fav.branch_id) {
+                const bIdStr = String(fav.branch_id).trim().toLowerCase();
+                if (bIdStr) {
+                    ids.add(bIdStr);
+                }
             }
         });
+
+        // Also include any manually mapped venue IDs from our persistent map
+        venueToCourtMapRef.current.forEach((courtId, venueId) => {
+            const cleanCourtId = String(courtId).trim().toLowerCase();
+            const cleanVenueId = String(venueId).trim().toLowerCase();
+            if (ids.has(cleanCourtId)) {
+                ids.add(cleanVenueId);
+            }
+        });
+
         return ids;
-    }, []);
+    }, [favorites, cachedFavoriteIds]);
+
+    // Update localStorage whenever favoriteIdsSet changes
+    useEffect(() => {
+        if (isAuthenticated) {
+            const idsArray = Array.from(favoriteIdsSet);
+            localStorage.setItem('myrush_favorite_ids', JSON.stringify(idsArray));
+        } else {
+            localStorage.removeItem('myrush_favorite_ids');
+        }
+    }, [favoriteIdsSet, isAuthenticated]);
 
     const refreshFavorites = useCallback(async () => {
-        if (!user) {
+        if (!isAuthenticated) {
             setFavorites([]);
-            setFavoriteIds(new Set());
+            setCachedFavoriteIds(new Set());
             return;
         }
 
@@ -53,74 +94,104 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             const response = await favoritesApi.getFavorites();
             if (response.success && Array.isArray(response.data)) {
                 setFavorites(response.data);
-                setFavoriteIds(buildFavoriteIds(response.data));
+
+                // Update cache with fresh data from server
+                const freshIds = new Set<string>();
+                response.data.forEach((fav: any) => {
+                    if (fav.id) freshIds.add(String(fav.id).toLowerCase());
+                    if (fav.branch_id) {
+                        const bId = String(fav.branch_id).toLowerCase();
+                        freshIds.add(bId);
+                        if (fav.id) venueToCourtMapRef.current.set(bId, String(fav.id).toLowerCase());
+                    }
+                });
+                setCachedFavoriteIds(freshIds);
             }
         } catch (error) {
             console.error('Failed to fetch favorites:', error);
         } finally {
             setIsLoading(false);
         }
-    }, [user, buildFavoriteIds]);
+    }, [isAuthenticated]);
 
     useEffect(() => {
         refreshFavorites();
     }, [refreshFavorites]);
 
-    const isFavorite = useCallback((venueId: string) => {
-        return favoriteIds.has(venueId);
-    }, [favoriteIds]);
+    const isFavorite = useCallback((idToCheck: string) => {
+        if (!idToCheck) return false;
+
+        const cleanId = String(idToCheck).trim().toLowerCase();
+
+        // Check 1: Hit in our pre-calculated Set (fastest and includes cache)
+        if (favoriteIdsSet.has(cleanId)) return true;
+
+        // Check 2: Direct hit in the favorites array (for robustness)
+        return favorites.some(fav => {
+            const courtId = fav.id ? String(fav.id).toLowerCase() : null;
+            const branchId = fav.branch_id ? String(fav.branch_id).toLowerCase() : null;
+            return courtId === cleanId ||
+                branchId === cleanId ||
+                courtId === `temp-${cleanId}` ||
+                `temp-${courtId}` === cleanId;
+        });
+    }, [favoriteIdsSet, favorites]);
 
     const toggleFavorite = async (venueId: string) => {
-        if (!user) {
+        if (!isAuthenticated) {
             alert('Please login to add favorites');
             return;
         }
 
-        const isCurrentlyFavorite = favoriteIds.has(venueId);
-        const previousIds = new Set(favoriteIds);
+        const isCurrentlyFavorite = isFavorite(venueId);
         const previousFavorites = [...favorites];
+        const previousCache = new Set(cachedFavoriteIds);
 
         // --- Optimistic update ---
         if (isCurrentlyFavorite) {
-            setFavoriteIds(prev => {
+            // Remove locally
+            setFavorites(prev => prev.filter(fav => {
+                const cId = String(fav.id).toLowerCase();
+                const bId = String(fav.branch_id).toLowerCase();
+                return cId !== venueId.toLowerCase() && bId !== venueId.toLowerCase();
+            }));
+            setCachedFavoriteIds(prev => {
                 const next = new Set(prev);
-                next.delete(venueId);
-                // Also remove any court ID mapped from this venue
-                const courtId = venueToCourtMapRef.current.get(venueId);
-                if (courtId) next.delete(courtId);
+                next.delete(venueId.toLowerCase());
                 return next;
             });
-            setFavorites(prev => prev.filter(fav => fav.id !== venueId && fav.id !== venueToCourtMapRef.current.get(venueId)));
         } else {
-            setFavoriteIds(prev => {
+            // Add locally with a placeholder
+            const placeholder: any = {
+                id: `temp-${venueId}`,
+                branch_id: venueId,
+                court_name: 'Updating...',
+                is_favorite: true
+            };
+            setFavorites(prev => [...prev, placeholder]);
+            setCachedFavoriteIds(prev => {
                 const next = new Set(prev);
-                next.add(venueId);
+                next.add(venueId.toLowerCase());
                 return next;
             });
-            const placeholder: any = { id: venueId, court_name: 'Loading...' };
-            setFavorites(prev => [...prev, placeholder]);
         }
 
         try {
             const response = await favoritesApi.toggleFavorite(venueId);
             if (response.success) {
-                // Save the venueId -> courtId mapping from the toggle response
-                if (!isCurrentlyFavorite && response.data?.court_id) {
-                    venueToCourtMapRef.current.set(venueId, response.data.court_id);
-                } else if (isCurrentlyFavorite) {
-                    venueToCourtMapRef.current.delete(venueId);
+                if (response.data?.status === 'favorited' && response.data?.court_id) {
+                    venueToCourtMapRef.current.set(String(venueId), String(response.data.court_id));
                 }
-
-                // Refresh from server to get full, correct data
+                // Always sync with server to get full real data
                 await refreshFavorites();
             } else {
-                setFavoriteIds(previousIds);
+                // Rollback
                 setFavorites(previousFavorites);
-                console.error('Failed to toggle favorite:', response.error);
+                setCachedFavoriteIds(previousCache);
             }
         } catch (error) {
-            setFavoriteIds(previousIds);
             setFavorites(previousFavorites);
+            setCachedFavoriteIds(previousCache);
             console.error('Failed to toggle favorite:', error);
         }
     };

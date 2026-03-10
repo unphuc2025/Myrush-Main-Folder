@@ -221,6 +221,7 @@ def get_venues(
                 "reviews": int(b.get('total_reviews') or 0),
                 "branch_name": b['branch_name'],
                 "city_name": b['city_name'],
+                "branch_id": str(b['id']), # Explicitly return branch_id for easier frontend matching
                 "created_at": b['created_at'].isoformat() if b.get('created_at') else None,
                 "updated_at": b['updated_at'].isoformat() if b.get('updated_at') else None,
             })
@@ -370,6 +371,7 @@ def get_venue(venue_id: str, db: Session = Depends(database.get_db)):
                 "created_at": b['created_at'].isoformat() if b.get('created_at') else None,
                 "updated_at": b['updated_at'].isoformat() if b.get('updated_at') else None,
                 "branch_name": b['branch_name'],
+                "branch_id": str(b['id']), # Explicitly return branch_id
                 "city_name": b.get('city_name') or '',
                 "google_map_url": b.get('google_map_url')
             }
@@ -617,25 +619,6 @@ def get_venue_slots(
                         "slot_id": details.get('id', 'default')
                     }
                             
-                if update:
-                    sh_disp = h if h <= 12 else h - 12
-                    if sh_disp == 0: sh_disp = 12
-                    ampm_s = "AM" if h < 12 else "PM"
-                    eh_disp = (h+1) if (h+1) <= 12 else (h+1) - 12
-                    if eh_disp == 0: eh_disp = 12
-                    ampm_e = "AM" if (h+1) < 12 else "PM"
-                    
-                    consolidated_slots[time_key] = {
-                        "time": time_key,
-                        "display_time": f"{sh_disp:02d}:00 {ampm_s} - {eh_disp:02d}:00 {ampm_e}",
-                        "price": cfg['price'],
-                        "court_id": c_id,
-                        "court_name": court.get('name', ''),
-                        "current_court_rating": float(court.get('court_rating') or 0),
-                        "current_court_reviews": int(court.get('court_reviews') or 0),
-                        "available": is_available,
-                        "slot_id": cfg['id']
-                    }
 
         # Filter to only available slots
         final_slots = sorted([slot for slot in consolidated_slots.values() if slot['available']], key=lambda x: x['time'])

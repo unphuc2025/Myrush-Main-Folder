@@ -252,8 +252,8 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
             
             if not is_blocked:
                 base_price = float(court.price_per_hour)
-                # Slot is 30 mins, so price is half of hourly rate
-                price = (float(matched_rule.get('price', base_price)) if matched_rule else base_price) / 2.0
+                # Slot is 30 mins, but the price is per slot as per requirement
+                price = float(matched_rule.get('price', base_price)) if matched_rule else base_price
                 
                 ehh = int(h_end)
                 emm = int((h_end % 1) * 60)

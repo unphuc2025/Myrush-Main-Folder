@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef } from 'react';
+﻿import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getSportIcon } from '../utils/sportIcons';
@@ -33,7 +33,13 @@ export const VenueDetailsPage: React.FC = () => {
 
     // Venue Data State
     const [venue, setVenue] = useState<Venue | null>(null);
-    const favorited = venue ? isFavorite(venue.id) : false;
+    // Robust check: UI-level ID, venue-object ID, or venue-object branch_id
+    const favorited = useMemo(() => {
+        if (venue) {
+            return isFavorite(venue.id) || (venue.branch_id ? isFavorite(venue.branch_id) : false);
+        }
+        return isFavorite(id || '');
+    }, [venue, id, isFavorite]);
     const [ratings, setRatings] = useState<CourtRatings | null>(null);
     const [reviews, setReviews] = useState<CourtReview[]>([]);
     const [loadingVenue, setLoadingVenue] = useState(true);
@@ -173,6 +179,12 @@ export const VenueDetailsPage: React.FC = () => {
     const handleBooking = () => {
         if (!venue || !id || selectedSlots.length === 0) {
             alert('Please select at least one time slot');
+            return;
+        }
+
+        // Enforce 1-hour minimum booking (2 x 30min slots)
+        if (selectedSlots.length < 2) {
+            alert('Minimum booking duration is 1 hour (Please select at least 2 consecutive slots)');
             return;
         }
 

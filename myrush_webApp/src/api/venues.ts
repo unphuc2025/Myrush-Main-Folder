@@ -29,6 +29,7 @@ export interface Venue {
     rating?: number;
     reviews?: number;
     is_favorite?: boolean;
+    branch_id?: string;
 }
 
 export interface VenuesFilter {
