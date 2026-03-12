@@ -101,6 +101,8 @@ async def check_availability(
         
         return response_data
         
+    except HTTPException as he:
+        raise he
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
@@ -128,12 +130,12 @@ async def make_batch_booking(
         
         existing_key = db.query(models.IdempotencyKey).filter(
             models.IdempotencyKey.partner_id == partner.id,
-            models.IdempotencyKey.key == payload_hash
+            models.IdempotencyKey.idempotency_key == payload_hash
         ).first()
         
         if existing_key:
             logging.info(f"Idempotency hit for partner {partner.id}, key {payload_hash}")
-            return existing_key.response_payload
+            return existing_key.response_body
 
         # 2. GENERATE BATCH ID
         batch_id = f"DIST-{uuid.uuid4().hex[:8].upper()}"
@@ -156,9 +158,10 @@ async def make_batch_booking(
         # 4. STORE IDEMPOTENCY KEY
         idemp_record = models.IdempotencyKey(
             partner_id=partner.id,
-            key=payload_hash,
-            response_payload=response_data,
-            expires_at=datetime.utcnow() + timedelta(days=1)
+            idempotency_key=payload_hash,
+            endpoint="/api/makeBatchBooking",
+            response_status=200,
+            response_body=response_data
         )
         db.add(idemp_record)
         
@@ -168,6 +171,8 @@ async def make_batch_booking(
         
         return response_data
         
+    except HTTPException as he:
+        raise he
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
@@ -213,6 +218,8 @@ async def cancel_booking(
         
         return response_data
         
+    except HTTPException as he:
+        raise he
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
@@ -234,6 +241,8 @@ async def get_booking_status(
         adapter = DistrictAdapter(db, partner_id=str(partner.id))
         
         return adapter.get_booking_status(bookingId)
+    except HTTPException as he:
+        raise he
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
@@ -256,6 +265,8 @@ async def get_booking_history(
         adapter = DistrictAdapter(db, partner_id=str(partner.id))
         
         return adapter.get_booking_history(facilityName, date)
+    except HTTPException as he:
+        raise he
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
@@ -277,6 +288,8 @@ async def discovery_api(
         
         facilities = adapter.get_facilities()
         return facilities
+    except HTTPException as he:
+        raise he
     except Exception as e:
         logging.error(f"District Discovery Error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal Server Error")

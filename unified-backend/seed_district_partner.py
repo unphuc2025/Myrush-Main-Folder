@@ -19,8 +19,8 @@ def seed_district():
             print("Creating District Partner...")
             district = models.Partner(
                 name="District",
-                unique_id="unique-id", # Change to actual production ID
-                api_key_hash="api-key", # Store hashed/encrypted in prod
+                unique_id="dist_2a380850",
+                api_key_hash="mr_sk_0eb6c8782604c08b5c0a396ce7c849ac",
                 webhook_url="https://www.district.in/gw/ext/play/rush/callback",
                 is_active=True
             )
@@ -30,10 +30,12 @@ def seed_district():
             print(f"✅ District Partner created with ID: {district.id}")
         else:
             print(f"ℹ️ District Partner already exists (ID: {district.id})")
-            # Update webhook URL if needed
+            # Force update credentials to production values
+            district.unique_id = "dist_2a380850"
+            district.api_key_hash = "mr_sk_0eb6c8782604c08b5c0a396ce7c849ac"
             district.webhook_url = "https://www.district.in/gw/ext/play/rush/callback"
             db.commit()
-            print("✅ District Webhook URL updated.")
+            print("✅ District credentials and Webhook URL updated to Production values.")
 
         # Optional: Seed some initial environment variables instructions
         print("\n--- NEXT STEPS ---")

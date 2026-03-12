@@ -1,0 +1,286 @@
+{
+	"info": {
+		"_postman_id": "8a3b5c12-9d4f-4b0e-b8a1-3c2d1e0f9b8a",
+		"name": "MyRush - District Integration API",
+		"description": "Postman collection for District team to integrate with MyRush. Includes Availability, Booking, Cancellation, Status, and Discovery APIs.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Discovery",
+			"item": [
+				{
+					"name": "Get Facilities & Sports",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/facilities?id={{partner_id}}&apiKey={{api_key}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"facilities"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{partner_id}}"
+								},
+								{
+									"key": "apiKey",
+									"value": "{{api_key}}"
+								}
+							]
+						},
+						"description": "Retrieve a list of all facilities and sports available for booking through the District integration."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Availability",
+			"item": [
+				{
+					"name": "Check Availability",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/checkAvailability/?id={{partner_id}}&apiKey={{api_key}}&facilityName=Rush Arena&sportName=Badminton&date=15-03-2026",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"checkAvailability",
+								""
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{partner_id}}"
+								},
+								{
+									"key": "apiKey",
+									"value": "{{api_key}}"
+								},
+								{
+									"key": "facilityName",
+									"value": "Rush Arena",
+									"description": "Case-sensitive name of the venue"
+								},
+								{
+									"key": "sportName",
+									"value": "Badminton",
+									"description": "Case-sensitive name of the sport"
+								},
+								{
+									"key": "date",
+									"value": "15-03-2026",
+									"description": "Date in DD-MM-YYYY format"
+								}
+							]
+						},
+						"description": "Check real-time availability for a specific facility, sport, and date. Returns a list of 30-minute slots."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Booking",
+			"item": [
+				{
+					"name": "Make Batch Booking",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"{{partner_id}}\",\n    \"apiKey\": \"{{api_key}}\",\n    \"facilityName\": \"Rush Arena\",\n    \"sportName\": \"Badminton\",\n    \"userName\": \"District Test User\",\n    \"userPhone\": \"9876543210\",\n    \"slots\": [\n        {\n            \"date\": \"15-03-2026\",\n            \"slotNumber\": 20,\n            \"courtNumber\": 0\n        },\n        {\n            \"date\": \"15-03-2026\",\n            \"slotNumber\": 21,\n            \"courtNumber\": 0\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/makeBatchBooking",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"makeBatchBooking"
+							]
+						},
+						"description": "Book one or more slots. Minimum duration requirement is 1 hour (2 consecutive 30-min slots)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Reconciliation",
+			"item": [
+				{
+					"name": "Get Booking Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/booking/DIST-SAMPLE123?id={{partner_id}}&apiKey={{api_key}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"booking",
+								"DIST-SAMPLE123"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{partner_id}}"
+								},
+								{
+									"key": "apiKey",
+									"value": "{{api_key}}"
+								}
+							]
+						},
+						"description": "Check the status of a specific booking using the batchBookingId returned during creation."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Booking History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/bookings?facilityName=Rush Arena&date=15-03-2026&id={{partner_id}}&apiKey={{api_key}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bookings"
+							],
+							"query": [
+								{
+									"key": "facilityName",
+									"value": "Rush Arena"
+								},
+								{
+									"key": "date",
+									"value": "15-03-2026"
+								},
+								{
+									"key": "id",
+									"value": "{{partner_id}}"
+								},
+								{
+									"key": "apiKey",
+									"value": "{{api_key}}"
+								}
+							]
+						},
+						"description": "Retrieve all bookings made by District for a specific facility and date."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Cancellation",
+			"item": [
+				{
+					"name": "Cancel Booking",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "id",
+									"value": "{{partner_id}}",
+									"type": "text"
+								},
+								{
+									"key": "apiKey",
+									"value": "{{api_key}}",
+									"type": "text"
+								},
+								{
+									"key": "facilityName",
+									"value": "Rush Arena",
+									"type": "text"
+								},
+								{
+									"key": "bookingID",
+									"value": "DIST-SAMPLE123",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/cancelBooking/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"cancelBooking",
+								""
+							]
+						},
+						"description": "Cancel a booking. Accepts either the Batch ID (e.g., DIST-ABCD123) or an individual slot level ID."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://api-staging.myrush.in",
+			"type": "string"
+		},
+		{
+			"key": "partner_id",
+			"value": "dist_2a380850",
+			"type": "string"
+		},
+		{
+			"key": "api_key",
+			"value": "mr_sk_0eb6c8782604c08b5c0a396ce7c849ac",
+			"type": "string"
+		}
+	]
+}
