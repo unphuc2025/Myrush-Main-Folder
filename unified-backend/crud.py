@@ -559,6 +559,58 @@ def verify_otp_record(db: Session, phone_number: str, otp_code: str):
     db.refresh(otp)
     return otp
 
+def cancel_booking(db: Session, booking_id: str, user_id: str):
+    """
+    Cancel a booking if it's at least 1 hour before the start time.
+    """
+    from models import Booking
+    from utils.booking_utils import get_now_ist
+    from fastapi import HTTPException
+    from services.integrations.orchestrator import IntegrationOrchestrator
+
+    db_booking = db.query(Booking).filter(
+        Booking.id == booking_id,
+        Booking.user_id == user_id
+    ).first()
+
+    if not db_booking:
+        raise HTTPException(status_code=404, detail="Booking not found or access denied.")
+
+    if db_booking.status == 'cancelled':
+        raise HTTPException(status_code=400, detail="Booking is already cancelled.")
+
+    # 1-hour cancellation rule
+    now_ist = get_now_ist()
+    booking_start = datetime.combine(db_booking.booking_date, db_booking.start_time)
+    
+    # Check if cancellation is within 1 hour of start time
+    if booking_start - now_ist < timedelta(hours=1):
+        raise HTTPException(status_code=400, detail="Cancellations are only allowed up to 1 hour before the booked time.")
+
+    # Update status
+    db_booking.status = 'cancelled'
+    db_booking.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(db_booking)
+
+    # Release inventory
+    try:
+        from utils.booking_utils import safe_parse_time_float
+        for slot in (db_booking.time_slots or []):
+            s_f = safe_parse_time_float(slot.get('start_time'))
+            IntegrationOrchestrator.notify_inventory_change(
+                db=db,
+                court_id=str(db_booking.court_id),
+                date=str(db_booking.booking_date),
+                slot_start=s_f,
+                action='release'
+            )
+    except Exception as e:
+        print(f"[CRUD] Warning: Failed to release inventory after cancellation: {e}")
+
+    return db_booking
+
 def get_bookings(db: Session, user_id: str):
     """Get all bookings for a user, enriched with court name and venue location."""
     try:

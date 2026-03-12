@@ -6,11 +6,13 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { FaArrowLeft } from 'react-icons/fa';
+import { useNotification } from '../context/NotificationContext';
 
 export const Login: React.FC = () => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { isAuthenticated } = useAuth();
+    const { showAlert } = useNotification();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -24,7 +26,7 @@ export const Login: React.FC = () => {
 
     const handleSendOTP = async () => {
         if (phoneNumber.length < 10) {
-            alert('Please enter a valid 10-digit mobile number');
+            showAlert('Please enter a valid 10-digit mobile number', 'warning');
             return;
         }
 
@@ -36,7 +38,7 @@ export const Login: React.FC = () => {
             navigate('/verify-otp', { state: { phoneNumber: formattedPhone, from: (location.state as any)?.from } });
         } catch (error) {
             console.error('Failed to send OTP', error);
-            alert('Failed to send OTP. Please try again.');
+            showAlert('Failed to send OTP. Please try again.', 'error');
         } finally {
             setIsLoading(false);
         }

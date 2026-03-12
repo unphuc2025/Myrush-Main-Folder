@@ -78,3 +78,11 @@ def get_bookings(
     db: Session = Depends(database.get_db),
 ):
     return crud.get_bookings(db=db, user_id=current_user.id)
+
+@router.put("/{booking_id}/cancel", response_model=schemas.BookingResponse)
+def cancel_booking(
+    booking_id: str,
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(database.get_db),
+):
+    return crud.cancel_booking(db=db, booking_id=booking_id, user_id=current_user.id)

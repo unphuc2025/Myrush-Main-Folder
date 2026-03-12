@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
 import { FaCheck, FaCrown, FaStar, FaBolt } from 'react-icons/fa';
+import { useNotification } from '../context/NotificationContext';
 
 export const Memberships: React.FC = () => {
     const plans = [
@@ -49,8 +50,9 @@ export const Memberships: React.FC = () => {
         }
     ];
 
+    const { showAlert } = useNotification();
     const handleSubscribe = (planName: string) => {
-        alert(`Redirecting to payment gateway for ${planName} Plan...`);
+        showAlert(`Redirecting to payment gateway for ${planName} Plan...`, 'info');
         // In a real app, this would initialize Razorpay/Stripe
     };
 

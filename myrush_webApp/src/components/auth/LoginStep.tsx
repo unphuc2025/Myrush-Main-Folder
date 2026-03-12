@@ -3,6 +3,7 @@ import { Button } from '../ui/Button';
 import { apiClient } from '../../api/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 
 interface LoginStepProps {
     onSuccess: (phone: string) => void;
@@ -22,6 +23,7 @@ const countryCodes = [
 
 export const LoginStep: React.FC<LoginStepProps> = ({ onSuccess }) => {
     const { closeAuthModal } = useAuth();
+    const { showAlert } = useNotification();
     const navigate = useNavigate();
     const location = useLocation();
     const [countryCode, setCountryCode] = useState('+91');
@@ -35,7 +37,7 @@ export const LoginStep: React.FC<LoginStepProps> = ({ onSuccess }) => {
 
     const handleSendOTP = async () => {
         if (phoneNumber.length < 5) { // Adjusted to allow various lengths
-            alert('Please enter a valid mobile number');
+            showAlert('Please enter a valid mobile number', 'warning');
             return;
         }
 
@@ -46,7 +48,7 @@ export const LoginStep: React.FC<LoginStepProps> = ({ onSuccess }) => {
             onSuccess(formattedPhone);
         } catch (error) {
             console.error('Failed to send OTP', error);
-            alert('Failed to send OTP. Please try again.');
+            showAlert('Failed to send OTP. Please try again.', 'error');
         } finally {
             setIsLoading(false);
         }

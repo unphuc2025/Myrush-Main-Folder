@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { bookingsApi } from '../api/bookings';
 import { venuesApi } from '../api/venues';
 import { couponsApi, type AvailableCoupon } from '../api/coupons';
+import { useNotification } from '../context/NotificationContext';
 
 import { Button } from '../components/ui/Button';
 import { TopNav } from '../components/TopNav';
@@ -31,6 +32,7 @@ export const BookingSummary: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const state = location.state as LocationState;
+    const { showAlert } = useNotification();
 
     const [venue, setVenue] = useState<any>(null);
     const [numPlayers] = useState(state?.numPlayers || 1);
@@ -87,15 +89,15 @@ export const BookingSummary: React.FC = () => {
                 setDiscount(res.data.discount_amount || 0);
                 setAppliedCouponCode(couponCode.trim().toUpperCase()); // lock in the code
                 setAppliedCouponInfo(res.data);
-                alert(`Coupon Applied: ₹${res.data.discount_amount} Off`);
+                showAlert(`Coupon Applied: ₹${res.data.discount_amount} Off`, 'success');
             } else {
                 setDiscount(0);
                 setAppliedCouponCode('');
                 setAppliedCouponInfo(null);
-                alert(res.data.message || 'Invalid Coupon Code');
+                showAlert(res.data.message || 'Invalid Coupon Code', 'error');
             }
         } catch (error) {
-            alert('Failed to validate coupon');
+            showAlert('Failed to validate coupon', 'error');
         }
     };
 
@@ -114,7 +116,7 @@ export const BookingSummary: React.FC = () => {
         try {
             const isLoaded = await loadRazorpay();
             if (!isLoaded) {
-                alert('Razorpay SDK failed to load. Are you online?');
+                showAlert('Razorpay SDK failed to load. Are you online?', 'error');
                 setSubmitting(false);
                 return;
             }
@@ -124,7 +126,7 @@ export const BookingSummary: React.FC = () => {
             const durationMinutes = sortedSlots.length * 30;
 
             if (durationMinutes < 60) {
-                alert('Minimum booking duration is 1 hour (2 slots).');
+                showAlert('Minimum booking duration is 1 hour (2 slots).', 'warning');
                 setSubmitting(false);
                 return;
             }
@@ -140,7 +142,7 @@ export const BookingSummary: React.FC = () => {
             });
 
             if (!orderRes.success || !orderRes.data) {
-                alert('Failed to initiate payment: ' + (orderRes.data?.detail || 'Unknown error'));
+                showAlert('Failed to initiate payment: ' + (orderRes.data?.detail || 'Unknown error'), 'error');
                 setSubmitting(false);
                 return;
             }
@@ -180,15 +182,15 @@ export const BookingSummary: React.FC = () => {
                         const res = await bookingsApi.createBooking(payload);
 
                         if (res.success) {
-                            alert('Booking Confirmed! 🎉');
+                            showAlert('Booking Confirmed! 🎉', 'success');
                             // Navigate to bookings — VenueDetails will auto-refetch slots
                             // on window focus when user returns, hiding the booked slot.
                             navigate('/bookings', { state: { bookingSuccess: true } });
                         } else {
-                            alert('Payment successful but booking creation failed. ' + (res.data?.detail || ''));
+                            showAlert('Payment successful but booking creation failed. ' + (res.data?.detail || ''), 'error');
                         }
                     } catch (err: any) {
-                        alert('Error confirming booking: ' + err.message);
+                        showAlert('Error confirming booking: ' + err.message, 'error');
                     }
                 },
                 prefill: {
@@ -204,7 +206,7 @@ export const BookingSummary: React.FC = () => {
 
         } catch (error) {
             console.error(error);
-            alert('An error occurred during transaction');
+            showAlert('An error occurred during transaction', 'error');
         } finally {
             setSubmitting(false);
         }

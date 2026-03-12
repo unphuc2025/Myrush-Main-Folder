@@ -4,6 +4,7 @@ import { Button } from './ui/Button';
 import { PhoneInput } from './ui/PhoneInput';
 import { apiClient } from '../api/client';
 import rushEventImg from '../assets/Rush-Event.jpg';
+import { useNotification } from '../context/NotificationContext';
 
 export const ContactSection: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -19,6 +20,7 @@ export const ContactSection: React.FC = () => {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const { showAlert } = useNotification();
 
     const validate = () => {
         const newErrors: Record<string, string> = {};
@@ -58,14 +60,14 @@ export const ContactSection: React.FC = () => {
                 message: `Interested Service: ${formData.service}`
             });
             if (response.data.success) {
-                alert(response.data.message);
+                showAlert(response.data.message, 'success');
                 setFormData({ firstName: '', lastName: '', email: '', countryCode: '+91', phone: '', service: 'Academy' });
             } else {
-                alert('An error occurred. Please try again.');
+                showAlert('An error occurred. Please try again.', 'error');
             }
         } catch (error) {
             console.error('Submission error:', error);
-            alert('Failed to send message. Please try again.');
+            showAlert('Failed to send message. Please try again.', 'error');
         } finally {
             setIsSubmitting(false);
         }

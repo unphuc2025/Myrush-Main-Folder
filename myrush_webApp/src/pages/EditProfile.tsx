@@ -5,11 +5,13 @@ import { profileApi, type ProfileData, type City, type GameType } from '../api/p
 import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
+import { useNotification } from '../context/NotificationContext';
 import { FaUser, FaPhone, FaMapMarkerAlt, FaTrophy, FaCalendarAlt, FaVenusMars, FaHandPaper, FaHeartbeat, FaGamepad, FaLock } from 'react-icons/fa';
 
 export const EditProfile: React.FC = () => {
     const navigate = useNavigate();
     const { } = useAuth(); // Removed unused logout
+    const { showAlert } = useNotification();
 
     // Profile fields matching mobile app
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -94,7 +96,7 @@ export const EditProfile: React.FC = () => {
         e.preventDefault();
 
         if (!fullName.trim() || !age.trim() || !selectedCity.trim()) {
-            alert('Please fill in your full name, age, and city.');
+            showAlert('Please fill in your full name, age, and city.', 'warning');
             return;
         }
 
@@ -116,14 +118,14 @@ export const EditProfile: React.FC = () => {
             const res = await profileApi.createOrUpdateProfile(profileData);
 
             if (res.success) {
-                alert('Profile Updated Successfully!');
+                showAlert('Profile Updated Successfully!', 'success');
                 navigate('/profile');
             } else {
-                alert('Failed to update profile. Please try again.');
+                showAlert('Failed to update profile. Please try again.', 'error');
             }
         } catch (error) {
             console.error('Error saving profile:', error);
-            alert('An error occurred while saving. Please try again.');
+            showAlert('An error occurred while saving. Please try again.', 'error');
         } finally {
             setSaving(false);
         }

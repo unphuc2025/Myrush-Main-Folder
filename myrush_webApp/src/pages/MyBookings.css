@@ -95,10 +95,11 @@
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    z-index: 1100;
+    z-index: 9999;
     padding: 20px;
+    overflow-y: auto;
 }
 
 .booking-modal-content {
@@ -108,6 +109,7 @@
     max-width: 500px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     overflow: hidden;
+    margin: 40px auto;
 }
 
 .modal-header {
@@ -302,6 +304,85 @@
     color: #D32F2F;
 }
 
+/* Cancellation Buttons */
+.cancel-booking-btn-minimal {
+    font-size: 0.75rem;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background-color: transparent;
+    border: 1px solid #D32F2F;
+    color: #D32F2F;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-booking-btn-minimal:hover {
+    background-color: #D32F2F;
+    color: white;
+}
+
+.cancel-booking-btn-modal {
+    font-size: 0.85rem;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background-color: #FFEBEE;
+    border: 1px solid #D32F2F;
+    color: #D32F2F;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+}
+
+.cancel-booking-btn-modal:hover {
+    background-color: #D32F2F;
+    color: white;
+}
+
+/* Coupon Info */
+.coupon-info-badge {
+    font-size: 0.7rem;
+    color: #00D26A;
+    background: #E8F5E9;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.payment-breakdown-box {
+    background: var(--bg-page);
+    padding: 16px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--text-sec);
+}
+
+.breakdown-row.discount {
+    color: #00D26A;
+    font-weight: 600;
+}
+
+.breakdown-row.total {
+    color: var(--text-main);
+    font-weight: 800;
+    font-size: 1rem;
+}
+
+.modal-divider.mini {
+    margin: 4px 0;
+    opacity: 0.5;
+}
+
 /* Card Body */
 .card-body-modern {
     display: flex;
@@ -476,11 +557,12 @@
     bottom: 0;
     background: rgba(0, 0, 0, 0.6);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    z-index: 1000;
+    z-index: 9999;
     padding: 20px;
     backdrop-filter: blur(4px);
+    overflow-y: auto;
 }
 
 .rating-modal {
@@ -490,6 +572,7 @@
     max-width: 500px;
     width: 100%;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    margin: 40px auto;
 }
 
 .rating-modal h3 {

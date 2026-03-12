@@ -78,39 +78,42 @@ export const VenueImageGallery: React.FC<VenueImageGalleryProps> = ({ photos, ve
             )}
 
             {/* Content area */}
-            {activeTab === 'tour' && virtualTourUrl ? (
-                /* Virtual Tour iframe */
-                <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-md" style={{ height: '500px' }}>
-                    <div className="w-full h-9 bg-gray-900 flex items-center justify-between px-4">
-                        <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                            <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
-                            <span className="w-3 h-3 rounded-full bg-green-500"></span>
-                            <span className="ml-2 text-xs text-gray-400 font-semibold">360° Virtual Tour — {venueName}</span>
+            <div className="relative w-full overflow-hidden rounded-2xl border border-gray-200 shadow-md h-[300px] sm:h-[400px] md:h-[500px]">
+                {/* Virtual Tour iframe - Preloaded and kept alive */}
+                {virtualTourUrl && (
+                    <div 
+                        className={`absolute inset-0 z-10 w-full h-full bg-white transition-opacity duration-500 ${activeTab !== 'tour' ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
+                    >
+                        <div className="w-full h-9 bg-gray-900 flex items-center justify-between px-4">
+                            <div className="flex items-center gap-2">
+                                <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                                <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
+                                <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                                <span className="ml-2 text-xs text-gray-400 font-semibold">360° Virtual Tour — {venueName}</span>
+                            </div>
+                            <a
+                                href={virtualTourUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-gray-400 hover:text-white transition-colors"
+                                title="Open full screen"
+                            >
+                                ↗ Full Screen
+                            </a>
                         </div>
-                        <a
-                            href={virtualTourUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-gray-400 hover:text-white transition-colors"
-                            title="Open full screen"
-                        >
-                            ↗ Full Screen
-                        </a>
+                        <iframe
+                            src={virtualTourUrl}
+                            title={`${venueName} — 360° Virtual Tour`}
+                            width="100%"
+                            style={{ height: 'calc(100% - 36px)', border: 0 }}
+                            allow="fullscreen; accelerometer; gyroscope"
+                            allowFullScreen
+                        />
                     </div>
-                    <iframe
-                        src={virtualTourUrl}
-                        title={`${venueName} — 360° Virtual Tour`}
-                        width="100%"
-                        style={{ height: 'calc(100% - 36px)', border: 0 }}
-                        allow="fullscreen; accelerometer; gyroscope"
-                        allowFullScreen
-                        loading="lazy"
-                    />
-                </div>
-            ) : (
-                /* Photo Gallery */
-                <div className="flex flex-col lg:flex-row gap-4 h-[300px] sm:h-[400px] md:h-[500px] w-full">
+                )}
+
+                {/* Photo Gallery */}
+                <div className={`flex flex-col lg:flex-row gap-4 w-full h-full transition-opacity duration-500 ${activeTab === 'tour' && virtualTourUrl ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}>
                     {/* Main Preview */}
                     <div className="relative flex-1 group overflow-hidden rounded-2xl bg-gray-100 shadow-md">
                         <AnimatePresence mode="wait">
@@ -200,7 +203,7 @@ export const VenueImageGallery: React.FC<VenueImageGalleryProps> = ({ photos, ve
                         ))}
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 };

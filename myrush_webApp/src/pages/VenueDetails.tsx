@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getSportIcon } from '../utils/sportIcons';
@@ -12,6 +12,7 @@ import { VenueImageGallery } from '../components/VenueImageGallery';
 import { FaMapMarkerAlt, FaStar, FaClock, FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart } from 'react-icons/fa';
 import { getAmenityIcon } from '../utils/amenityIcons';
 import { useFavorites } from '../context/FavoritesContext';
+import { useNotification } from '../context/NotificationContext';
 interface Slot {
     time: string;
     display_time: string;
@@ -30,6 +31,7 @@ export const VenueDetailsPage: React.FC = () => {
     const location = useLocation();
     const { isAuthenticated, openAuthModal } = useAuth();
     const { isFavorite, toggleFavorite } = useFavorites();
+    const { showAlert } = useNotification();
 
     // Venue Data State
     const [venue, setVenue] = useState<Venue | null>(null);
@@ -178,13 +180,13 @@ export const VenueDetailsPage: React.FC = () => {
 
     const handleBooking = () => {
         if (!venue || !id || selectedSlots.length === 0) {
-            alert('Please select at least one time slot');
+            showAlert('Please select at least one time slot', 'warning');
             return;
         }
 
         // Enforce 1-hour minimum booking (2 x 30min slots)
         if (selectedSlots.length < 2) {
-            alert('Minimum booking duration is 1 hour (Please select at least 2 consecutive slots)');
+            showAlert('Minimum booking duration is 1 hour (Please select at least 2 consecutive slots)', 'warning');
             return;
         }
 
@@ -301,19 +303,14 @@ export const VenueDetailsPage: React.FC = () => {
                                     {venue.game_type.split(',').map((sport, idx) => {
                                         const s = sport.trim();
                                         if (!s) return null;
-                                        const isSelected = selectedSport === s;
                                         return (
-                                            <button
+                                            <div
                                                 key={idx}
-                                                onClick={() => setSelectedSport(s)}
-                                                className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all border-2 ${isSelected
-                                                    ? 'bg-primary text-white border-primary shadow-lg'
-                                                    : 'bg-white border-gray-400 text-gray-700 shadow-sm transition-all'
-                                                    }`}
+                                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 text-sm font-bold shadow-sm"
                                             >
-                                                {getSportIcon(s, "w-4 h-4")}
+                                                {getSportIcon(s, "w-4 h-4 text-primary")}
                                                 <span>{s}</span>
-                                            </button>
+                                            </div>
                                         );
                                     })}
                                 </div>

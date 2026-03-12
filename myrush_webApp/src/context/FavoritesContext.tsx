@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { favoritesApi, type Venue } from '../api/venues';
 import { useAuth } from './AuthContext';
+import { useNotification } from './NotificationContext';
 
 interface FavoritesContextType {
     favorites: Venue[];
@@ -15,6 +16,7 @@ const FavoritesContext = createContext<FavoritesContextType | undefined>(undefin
 export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [favorites, setFavorites] = useState<Venue[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const { showAlert } = useNotification();
 
     // Persistent set of IDs from localStorage to prevent flicker on refresh
     const [cachedFavoriteIds, setCachedFavoriteIds] = useState<Set<string>>(() => {
@@ -139,7 +141,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const toggleFavorite = async (venueId: string) => {
         if (!isAuthenticated) {
-            alert('Please login to add favorites');
+            showAlert('Please login to add favorites', 'warning');
             return;
         }
 

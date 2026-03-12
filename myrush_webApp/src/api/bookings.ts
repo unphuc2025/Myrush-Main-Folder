@@ -168,4 +168,24 @@ export const bookingsApi = {
             };
         }
     },
+
+    /**
+     * Cancel a booking
+     */
+    cancelBooking: async (bookingId: string) => {
+        try {
+            const response = await apiClient.put(`/bookings/${bookingId}/cancel`);
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('[BOOKINGS API] Exception cancelling booking:', error);
+            return {
+                success: false,
+                data: null,
+                error: error.response?.data?.detail || error.message || 'Failed to cancel booking',
+            };
+        }
+    },
 };

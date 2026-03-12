@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
 import { FaUserFriends, FaSearch, FaCommentDots, FaHeart, FaGamepad, FaPlus } from 'react-icons/fa';
+import { useNotification } from '../context/NotificationContext';
 
 interface Player {
     rank: number;
@@ -26,6 +27,7 @@ interface Activity {
 
 export const Community: React.FC = () => {
     const navigate = useNavigate();
+    const { showAlert } = useNotification();
     const [activeTab, setActiveTab] = useState<'leaderboard' | 'feed' | 'squads'>('leaderboard');
     const [showCreateSquadModal, setShowCreateSquadModal] = useState(false);
     const [mySquad, setMySquad] = useState<{ name: string; sport: string } | null>(null);
@@ -188,7 +190,7 @@ export const Community: React.FC = () => {
                                     </Button>
                                     <Button
                                         variant="outline"
-                                        onClick={() => alert('Search feature coming soon!')}
+                                        onClick={() => showAlert('Search feature coming soon!', 'info')}
                                         className="px-8 py-3 rounded-xl font-bold flex items-center gap-2"
                                     >
                                         <FaSearch size={12} /> Find Squads

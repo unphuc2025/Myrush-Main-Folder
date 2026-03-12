@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { bookingsApi } from '../api/bookings';
 import { TopNav } from '../components/TopNav';
 import { FaCalendarAlt, FaMapMarkerAlt, FaClock, FaStar } from 'react-icons/fa';
+import { useNotification } from '../context/NotificationContext';
 import './MyBookings.css';
 
 interface Booking {
@@ -15,6 +16,9 @@ interface Booking {
     start_time: string;
     end_time: string;
     price_per_hour: number;
+    original_amount: number;
+    discount_amount: number;
+    coupon_code?: string;
     total_amount: number;
     status: string;
     created_at: string;
@@ -40,6 +44,7 @@ export const MyBookings: React.FC = () => {
     const [selectedRating, setSelectedRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+    const { showAlert, showConfirm } = useNotification();
 
     useEffect(() => {
         loadBookings();
@@ -91,7 +96,7 @@ export const MyBookings: React.FC = () => {
 
     const handleSubmitReview = async (bookingId: string, courtId: string) => {
         if (selectedRating === 0) {
-            alert('Please select a rating');
+            showAlert('Please select a rating', 'warning');
             return;
         }
 
@@ -107,9 +112,38 @@ export const MyBookings: React.FC = () => {
             setShowRatingModal(null);
             setSelectedRating(0);
             setReviewText('');
-            alert('Review submitted successfully!');
+            showAlert('Review submitted successfully!', 'success');
         } else {
-            alert('Failed to submit review. Please try again.');
+            showAlert('Failed to submit review. Please try again.', 'error');
+        }
+    };
+
+    const handleCancelBooking = async (bookingId: string) => {
+        showConfirm(
+            'Are you sure you want to cancel this booking? This action cannot be undone.',
+            async () => {
+                const res = await bookingsApi.cancelBooking(bookingId);
+                if (res.success) {
+                    showAlert('Booking cancelled successfully.', 'success');
+                    loadBookings(); // Refresh list
+                } else {
+                    showAlert(res.error || 'Failed to cancel booking.', 'error');
+                }
+            }
+        );
+    };
+
+    const isCancellable = (booking: Booking): boolean => {
+        if (booking.status !== 'upcoming' && booking.status !== 'confirmed') return false;
+        
+        try {
+            const startDateTime = new Date(`${booking.booking_date}T${booking.start_time}`);
+            const now = new Date();
+            // 1 hour in milliseconds
+            const ONE_HOUR = 60 * 60 * 1000;
+            return (startDateTime.getTime() - now.getTime()) >= ONE_HOUR;
+        } catch (e) {
+            return false;
         }
     };
 
@@ -188,7 +222,18 @@ export const MyBookings: React.FC = () => {
                                         <span className="day">{new Date(booking.booking_date).getDate()}</span>
                                         <span className="month">{new Date(booking.booking_date).toLocaleDateString('en-US', { month: 'short' })}</span>
                                     </div>
-                                    {getStatusBadge(booking.status)}
+                                    <div className="flex items-center gap-2">
+                                        {getStatusBadge(booking.status)}
+                                        {isCancellable(booking) && (
+                                            <button 
+                                                className="cancel-booking-btn-minimal"
+                                                onClick={() => handleCancelBooking(booking.id)}
+                                                title="Cancel Booking (Allowed up to 1h before)"
+                                            >
+                                                Cancel
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="card-body-modern">
@@ -202,7 +247,14 @@ export const MyBookings: React.FC = () => {
                                         </div>
                                         <div className="detail-item">
                                             <span className="label">Amount:</span>
-                                            <span className="value price">₹{booking.total_amount}</span>
+                                            <div className="flex flex-col items-end">
+                                                <span className="value price">₹{booking.total_amount}</span>
+                                                {booking.coupon_code && (
+                                                    <span className="coupon-info-badge">
+                                                        Coupon: {booking.coupon_code} (-₹{booking.discount_amount})
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -328,7 +380,17 @@ export const MyBookings: React.FC = () => {
                                             </div>
                                             <div className="detail-group">
                                                 <span className="detail-label">Status</span>
-                                                <span className="detail-value">{getStatusBadge(selectedBooking.status)}</span>
+                                                <div className="flex flex-col items-start gap-1">
+                                                    {getStatusBadge(selectedBooking.status)}
+                                                    {isCancellable(selectedBooking) && (
+                                                        <button 
+                                                            className="cancel-booking-btn-modal"
+                                                            onClick={() => handleCancelBooking(selectedBooking.id)}
+                                                        >
+                                                            Cancel Booking
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 
@@ -345,15 +407,32 @@ export const MyBookings: React.FC = () => {
 
                                         <div className="modal-divider" />
 
-                                        <div className="detail-row-modern">
-                                            <div className="detail-group">
-                                                <span className="detail-label">Total Amount</span>
-                                                <span className="detail-value price-highlight">₹{selectedBooking.total_amount}</span>
+                                        <div className="detail-group">
+                                            <span className="detail-label">Payment Breakdown</span>
+                                            <div className="payment-breakdown-box">
+                                                <div className="breakdown-row">
+                                                    <span>Original Price</span>
+                                                    <span>₹{selectedBooking.original_amount}</span>
+                                                </div>
+                                                {selectedBooking.coupon_code && (
+                                                    <div className="breakdown-row discount">
+                                                        <span>Coupon Applied ({selectedBooking.coupon_code})</span>
+                                                        <span>-₹{selectedBooking.discount_amount}</span>
+                                                    </div>
+                                                )}
+                                                <div className="modal-divider mini" />
+                                                <div className="breakdown-row total">
+                                                    <span>Total Paid</span>
+                                                    <span>₹{selectedBooking.total_amount}</span>
+                                                </div>
                                             </div>
-                                            <div className="detail-group">
-                                                <span className="detail-label">Booking ID</span>
-                                                <span className="detail-value text-xs opacity-70">{selectedBooking.booking_display_id || selectedBooking.id}</span>
-                                            </div>
+                                        </div>
+
+                                        <div className="modal-divider" />
+
+                                        <div className="detail-group">
+                                            <span className="detail-label">Booking ID</span>
+                                            <span className="detail-value text-xs opacity-70">{selectedBooking.booking_display_id || selectedBooking.id}</span>
                                         </div>
                                     </div>
                                 </div>
