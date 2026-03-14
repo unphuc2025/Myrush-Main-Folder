@@ -1,0 +1,221 @@
+.slot-selection-page {
+    background-color: #F5F7FA;
+    min-height: 100vh;
+    padding-bottom: 100px;
+    /* Footer space */
+}
+
+/* Centered Container */
+.slot-selection-page>* {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.slot-header {
+    background: white;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.slot-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    flex: 1;
+    text-align: center;
+    margin-right: 40px;
+    /* Balance back button */
+}
+
+.calendar-section {
+    background: white;
+    padding: 24px;
+    margin: 24px 40px;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.month-selector {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    font-weight: 600;
+    color: #111827;
+    /* Ensure visible text */
+}
+
+.month-selector button {
+    border: none;
+    background: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px 10px;
+    color: #111827;
+    /* Ensure buttons are visible */
+}
+
+.month-selector button:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+.days-scroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.day-chip {
+    min-width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    /* Circle */
+    border: 1px solid #eee;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-weight: 500;
+    color: #333;
+    /* Ensure text is visible */
+}
+
+.day-chip.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.day-chip.disabled {
+    color: #ddd;
+    background: #f9f9f9;
+    cursor: not-allowed;
+}
+
+.slots-grid-section {
+    padding: 0 40px;
+    margin-top: 32px;
+}
+
+.slots-grid-section h3 {
+    margin: 0 0 15px;
+    font-size: 1rem;
+    color: #333;
+}
+
+.slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+}
+
+.slot-card {
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 15px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.slot-card.selected {
+    border-color: var(--primary-color);
+    background-color: #E8F5E9;
+    /* Light green tint */
+}
+
+.slot-time {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.slot-price {
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 5px;
+}
+
+.slot-card.selected .slot-time,
+.slot-card.selected .slot-price {
+    color: var(--primary-color);
+}
+
+.check-icon {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: var(--primary-color);
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.slot-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: white;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    box-sizing: border-box;
+}
+
+.total-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.total-info .label {
+    font-size: 0.8rem;
+    color: #999;
+}
+
+.total-info .amount {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--color-black);
+}
+
+.confirm-btn {
+    background: var(--color-lime);
+    color: var(--color-black);
+    /* High contrast */
+    border: none;
+    padding: 14px 30px;
+    border-radius: 50px;
+    font-weight: 800;
+    font-size: 1rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(50, 205, 50, 0.4);
+    transition: transform 0.2s;
+}
+
+.confirm-btn:disabled {
+    background: #e0e0e0;
+    color: #999;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.loading-slots,
+.no-slots {
+    text-align: center;
+    color: #999;
+    padding: 40px;
+}

@@ -1,0 +1,272 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import { featureFlags } from '../config/featureFlags';
+import { Button } from './ui/Button';
+import { FaUser, FaStar, FaSignOutAlt, FaChevronRight, FaBars, FaTimes } from 'react-icons/fa';
+
+interface TopNavProps {
+    onLogout?: () => void;
+    showBackButton?: boolean;
+    homeLabel?: string;
+}
+
+export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false, homeLabel = 'Home' }) => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { isAuthenticated, user, logout, openAuthModal } = useAuth();
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const isBottomNavActive = isAuthenticated;
+
+    // Handle click outside to close dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Close dropdown on navigation
+    useEffect(() => {
+        setIsDropdownOpen(false);
+        setIsMobileMenuOpen(false);
+    }, [location.pathname]);
+
+    const getInitials = (name?: string) => {
+        if (!name) return 'MP';
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    };
+
+    const isActive = (path: string) => location.pathname === path;
+
+    const navItems = [
+        { label: homeLabel, path: '/' },
+        { label: 'Book Court', path: '/venues' },
+        { label: 'My Bookings', path: '/bookings' },
+    ].filter((item): item is { label: string; path: string } => Boolean(item));
+
+    return (
+        <>
+            <motion.nav
+                className="fixed top-0 left-0 right-0 z-[9999] bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all duration-300 h-20 md:h-26 flex items-center"
+                initial={{ y: -100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            >
+                <div className="w-full px-4 md:px-12 h-full flex items-center justify-between relative">
+                    {showBackButton ? (
+                        <button
+                            className="flex items-center gap-2 text-black hover:text-primary transition-colors font-medium"
+                            onClick={() => navigate(-1)}
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M19 12H5M12 19l-7-7 7-7" />
+                            </svg>
+                            Back
+                        </button>
+                    ) : (
+                        <div 
+                            className="flex items-center gap-3 cursor-pointer h-full" 
+                            onClick={() => {
+                                navigate('/');
+                                window.scrollTo(0, 0);
+                            }}
+                        >
+                            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-black shadow-glow">
+                                <span className="font-black text-xl tracking-tighter">KS</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-black text-xl leading-none tracking-tight text-gray-900 uppercase font-heading">Kalaburgi</span>
+                                <span className="font-bold text-[10px] leading-none tracking-[0.2em] text-primary uppercase">Stadium</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="hidden lg:flex flex-1 justify-center items-center gap-8 px-4">
+                        {navItems.map((item) => (
+                            <button
+                                key={item.path}
+                                className={`relative text-sm font-semibold font-heading uppercase tracking-wider transition-colors nav-hover-underline whitespace-nowrap ${isActive(item.path) || (item.path === '/' && location.pathname === '/dashboard')
+                                    ? 'text-primary'
+                                    : 'text-black hover:text-primary'
+                                    }`}
+                                onClick={() => navigate(item.path)}
+                            >
+                                {item.label}
+                                {(isActive(item.path) || (item.path === '/' && location.pathname === '/dashboard')) && (
+                                    <motion.div
+                                        layoutId="navParams"
+                                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-full shadow-glow"
+                                    />
+                                )}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex items-center gap-3 md:gap-4">
+                        {isAuthenticated ? (
+                            // Profile icon for authenticated users - hidden on mobile globally
+                            <div className="hidden md:flex items-center gap-3 relative" ref={dropdownRef}>
+                                <button
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border-2 ${isDropdownOpen
+                                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/25'
+                                        : 'bg-primary text-white border-primary/20'
+                                        }`}
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    title="Profile Options"
+                                >
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                </button>
+
+                                <AnimatePresence>
+                                    {isDropdownOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            transition={{ duration: 0.2, ease: "easeOut" }}
+                                            className="absolute right-0 top-full mt-3 w-72 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.12)] border border-gray-100 overflow-hidden"
+                                        >
+                                            {/* Name Card */}
+                                            <div className="p-5 bg-gradient-to-br from-gray-50 to-white border-b border-gray-100">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg shadow-md shadow-primary/20">
+                                                        {getInitials(user?.full_name)}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-base font-black text-gray-900 truncate">
+                                                            {user?.full_name || 'MyRush Player'}
+                                                        </p>
+                                                        <p className="text-xs font-medium text-gray-500 truncate">
+                                                            {user?.phone_number || 'Athlete'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Dropdown Options */}
+                                            <div className="p-2">
+                                                <button
+                                                    onClick={() => navigate('/profile')}
+                                                    className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors group"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                                                            <FaUser size={16} />
+                                                        </div>
+                                                        <span className="text-sm font-bold text-gray-700">Profile Information</span>
+                                                    </div>
+                                                    <FaChevronRight size={12} className="text-gray-300 group-hover:text-gray-400 transition-colors" />
+                                                </button>
+
+                                                <button
+                                                    onClick={() => navigate('/profile?view=reviews')}
+                                                    className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors group"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-9 h-9 rounded-lg bg-yellow-50 text-yellow-600 flex items-center justify-center">
+                                                            <FaStar size={16} />
+                                                        </div>
+                                                        <span className="text-sm font-bold text-gray-700">Rating & Reviews</span>
+                                                    </div>
+                                                    <FaChevronRight size={12} className="text-gray-300 group-hover:text-gray-400 transition-colors" />
+                                                </button>
+
+                                                <div className="h-px bg-gray-100 my-2 mx-2" />
+
+                                                <button
+                                                    onClick={onLogout || logout}
+                                                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 text-red-600 transition-colors"
+                                                >
+                                                    <div className="w-9 h-9 rounded-lg bg-red-100/50 flex items-center justify-center">
+                                                        <FaSignOutAlt size={16} />
+                                                    </div>
+                                                    <span className="text-sm font-bold">Logout</span>
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        ) : (
+                            // Login/Signup button for unauthenticated users
+                            <Button
+                                variant="primary"
+                                size="md"
+                                onClick={() => openAuthModal()}
+                                className="font-bold bg-primary text-black uppercase tracking-widest text-xs md:text-sm px-6 py-2.5 md:px-8 md:py-3 min-w-[110px] md:min-w-[140px] shadow-glow"
+                            >
+                                Login
+                            </Button>
+                        )}
+
+                        {!isBottomNavActive && (
+                            <button
+                                className="lg:hidden p-2 rounded-xl text-black hover:bg-black/5 transition-all"
+                                onClick={() => setIsMobileMenuOpen(prev => !prev)}
+                            >
+                                {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </motion.nav>
+
+            <AnimatePresence>
+                {isMobileMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, x: '100%' }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: '100%' }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                        className="fixed inset-0 z-[10000] bg-black/95 flex flex-col items-center justify-start pt-24 pb-12 gap-6 lg:hidden overflow-y-auto backdrop-blur-sm"
+                    >
+                        <button className="absolute top-6 right-6 text-white p-2" onClick={() => setIsMobileMenuOpen(false)}>
+                            <FaTimes size={24} />
+                        </button>
+
+                        {navItems.map((item, index) => (
+                            <motion.button
+                                key={item.label}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                onClick={() => {
+                                    navigate(item.path);
+                                    setIsMobileMenuOpen(false);
+                                }}
+                                className={`text-2xl font-semibold font-heading uppercase tracking-widest ${isActive(item.path) ? 'text-primary' : 'text-white'
+                                    }`}
+                            >
+                                {item.label}
+                            </motion.button>
+                        ))}
+
+                        {!isAuthenticated && (
+                            <Button
+                                variant="primary"
+                                onClick={() => {
+                                    openAuthModal();
+                                    setIsMobileMenuOpen(false);
+                                }}
+                                className="mt-4 px-12 py-4 text-lg font-bold"
+                            >
+                                Login
+                            </Button>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
+    );
+};

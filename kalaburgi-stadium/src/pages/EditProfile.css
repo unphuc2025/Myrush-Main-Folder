@@ -1,0 +1,110 @@
+.profile-setup-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #F5F7FA;
+    font-family: 'Inter', sans-serif;
+}
+
+.setup-header {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background-color: #ffffff;
+    border-bottom: 1px solid #E5E7EB;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.setup-header h2 {
+    flex: 1;
+    text-align: center;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+    margin-right: 24px;
+    /* Balance the back button */
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    color: #374151;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+    background-color: #F3F4F6;
+}
+
+.setup-form {
+    flex: 1;
+    padding: 1.5rem;
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.5rem;
+    background-color: #ffffff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #00C853;
+    box-shadow: 0 0 0 3px rgba(0, 200, 83, 0.1);
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 0.875rem;
+    background-color: #00C853;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 1rem;
+}
+
+.submit-btn:hover {
+    background-color: #00b54b;
+}
+
+.submit-btn:disabled {
+    background-color: #9CA3AF;
+    cursor: not-allowed;
+}

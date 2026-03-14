@@ -1,0 +1,1433 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { apiClient } from '../api/client';
+import { profileApi, type ProfileData } from '../api/profile';
+import { bookingsApi } from '../api/bookings';
+import { useAuth } from '../context/AuthContext';
+import { TopNav } from '../components/TopNav';
+import { Button } from '../components/ui/Button';
+import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye, FaChevronRight, FaFutbol, FaCalendarAlt, FaMapMarkerAlt, FaHeart } from 'react-icons/fa';
+import { useFavorites } from '../context/FavoritesContext';
+
+export const Profile: React.FC = () => {
+    const navigate = useNavigate();
+    const { logout } = useAuth();
+    const [user, setUser] = useState<ProfileData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [stats, setStats] = useState({ bookings: 0, gamesPlayed: 0 });
+    const [currentView, setCurrentView] = useState<'profile' | 'bookings' | 'reviews' | 'favorites'>('profile');
+    const { favorites, isLoading: favoritesLoading, toggleFavorite } = useFavorites();
+    const [reviews, setReviews] = useState<any[]>([]);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
+    const [bookings, setBookings] = useState<any[]>([]);
+    const [bookingsLoading, setBookingsLoading] = useState(false);
+    const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
+    const [reviewStates, setReviewStates] = useState<Record<string, { has_reviewed: boolean; review?: { rating: number; review_text: string } }>>({});
+    const [showRatingModal, setShowRatingModal] = useState<string | null>(null);
+    const [activeMobileSection, setActiveMobileSection] = useState<'profile' | 'bookings' | 'reviews' | 'favorites' | null>(null);
+    const [selectedRating, setSelectedRating] = useState(0);
+    const [reviewText, setReviewText] = useState('');
+    const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
+    const [searchParams] = useSearchParams();
+
+    // Sync activeMobileSection with query parameter
+    useEffect(() => {
+        const view = searchParams.get('view');
+        if (view === 'reviews') {
+            setCurrentView('reviews');
+            setActiveMobileSection('reviews');
+        } else if (view === 'bookings') {
+            setCurrentView('bookings');
+            setActiveMobileSection('bookings');
+        } else if (view === 'profile') {
+            setCurrentView('profile');
+            setActiveMobileSection('profile');
+        } else if (view === 'favorites') {
+            setCurrentView('favorites');
+            setActiveMobileSection('favorites');
+        }
+    }, [searchParams]);
+
+    const toggleMobileSection = (section: 'profile' | 'bookings' | 'reviews' | 'favorites') => {
+        setActiveMobileSection(prev => prev === section ? null : section);
+        setCurrentView(section);
+    };
+
+
+
+    useEffect(() => {
+        const fetchProfileAndStats = async () => {
+            try {
+                setIsLoading(true);
+
+                // First try to get user info from auth endpoint (which contains the logged-in user's data)
+                let userPhoneNumber = null;
+                try {
+                    const authResponse = await apiClient.get('/auth/profile');
+                    userPhoneNumber = authResponse.data.phone_number;
+                    console.log('Auth profile phone:', userPhoneNumber);
+                } catch (authErr) {
+                    console.error('Failed to fetch auth profile', authErr);
+                }
+
+                // Fetch user profile data using JWT token (authenticated endpoint)
+                const profileResponse = await profileApi.getProfile();
+                if (profileResponse.success && profileResponse.data) {
+                    console.log('Profile data phone:', profileResponse.data.phone_number);
+                    setUser(profileResponse.data);
+                } else {
+                    // If profile doesn't exist yet, use the phone number from auth
+                    setUser({
+                        full_name: 'Kalaburgi Athlete',
+                        phone_number: userPhoneNumber || 'Not available',
+                    });
+                }
+
+                // Fetch user statistics (bookings count)
+                try {
+                    const bookingsResponse = await apiClient.get('/bookings');
+                    setStats(prev => ({ ...prev, bookings: bookingsResponse.data.length || 0 }));
+                } catch (statsErr) {
+                    console.log('Could not fetch booking stats');
+                }
+
+            } catch (err) {
+                console.error('Failed to fetch profile', err);
+                setUser({
+                    full_name: 'Kalaburgi Athlete',
+                    phone_number: 'Not available'
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProfileAndStats();
+    }, []);
+
+    const fetchBookings = async () => {
+        try {
+            setBookingsLoading(true);
+            const bookingsResponse = await bookingsApi.getUserBookings();
+            if (bookingsResponse.success) {
+                // Process bookings to determine their actual status
+                const processedBookings = bookingsResponse.data.map((b: any) => {
+                    let status = b.status.toLowerCase();
+                    if (status !== 'cancelled') {
+                        if (b.end_time) {
+                            const bookingTime = new Date(`${b.booking_date}T${b.end_time}`);
+                            if (bookingTime < new Date()) {
+                                status = 'completed';
+                            } else {
+                                status = 'upcoming';
+                            }
+                        } else if (status === 'confirmed') {
+                            status = 'upcoming';
+                        }
+                    }
+                    return { ...b, status };
+                });
+
+                setBookings(processedBookings);
+
+                // Check review status for completed bookings
+                const completedBookings = processedBookings.filter(
+                    (b: any) => b.status === 'completed'
+                );
+
+                for (const booking of completedBookings) {
+                    const reviewRes = await bookingsApi.checkBookingReviewed(booking.id);
+                    if (reviewRes.success) {
+                        setReviewStates(prev => ({
+                            ...prev,
+                            [booking.id]: reviewRes.data
+                        }));
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch bookings:', error);
+            setBookings([]);
+        } finally {
+            setBookingsLoading(false);
+        }
+    };
+
+    const fetchReviews = async () => {
+        try {
+            setReviewsLoading(true);
+            // First get user bookings to get review data
+            const bookingsResponse = await bookingsApi.getUserBookings();
+            if (bookingsResponse.success) {
+                const userReviews: any[] = [];
+
+                for (const booking of bookingsResponse.data) {
+                    // Check if this booking has a review
+                    const reviewRes = await bookingsApi.checkBookingReviewed(booking.id);
+                    if (reviewRes.success && reviewRes.data.has_reviewed) {
+                        // Add booking details with review info
+                        userReviews.push({
+                            ...booking,
+                            review: reviewRes.data.review
+                        });
+                    }
+                }
+
+                // Sort reviews by creation date (most recent first)
+                userReviews.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                setReviews(userReviews);
+            }
+        } catch (error) {
+            console.error('Failed to fetch reviews:', error);
+            setReviews([]);
+        } finally {
+            setReviewsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (currentView === 'bookings') {
+            fetchBookings();
+        } else if (currentView === 'reviews') {
+            fetchReviews();
+        }
+    }, [currentView]);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/');
+    };
+
+    const getInitials = (name?: string) => {
+        if (!name) return 'MP';
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    };
+
+    const getSkillBadgeColor = (skill?: string) => {
+        switch (skill?.toLowerCase()) {
+            case 'beginner': return 'bg-green-500/20 text-green-400 border-green-500/30';
+            case 'intermediate': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+            case 'advanced': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+            case 'professional': return 'bg-red-500/20 text-red-400 border-red-500/30';
+            default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+        }
+    };
+
+    const renderStars = (rating: number, interactive = false, onRate?: (r: number) => void) => {
+        return (
+            <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map(star => (
+                    <span
+                        key={star}
+                        className={`text-lg cursor-pointer ${star <= rating ? 'text-yellow-400' : 'text-gray-300'} ${interactive ? 'hover:text-yellow-400' : ''}`}
+                        onClick={() => interactive && onRate && onRate(star)}
+                    >
+                        ★
+                    </span>
+                ))}
+            </div>
+        );
+    };
+
+    const handleSubmitReview = async (bookingId: string, courtId: string) => {
+        if (selectedRating === 0) {
+            alert('Please select a rating');
+            return;
+        }
+
+        const res = await bookingsApi.submitReview(bookingId, courtId, selectedRating, reviewText);
+        if (res.success) {
+            setReviewStates(prev => ({
+                ...prev,
+                [bookingId]: {
+                    has_reviewed: true,
+                    review: { rating: selectedRating, review_text: reviewText }
+                }
+            }));
+            setShowRatingModal(null);
+            setSelectedRating(0);
+            setReviewText('');
+            alert('Review submitted successfully!');
+
+            // Refresh reviews if we're in reviews view
+            if (currentView === 'reviews') {
+                fetchReviews();
+            }
+        } else {
+            alert('Failed to submit review. Please try again.');
+        }
+    };
+
+
+
+    const toggleBookingExpansion = (bookingId: string) => {
+        setExpandedBookingId(prev => prev === bookingId ? null : bookingId);
+    };
+
+
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600 font-medium">Loading your profile...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <TopNav />
+
+            <div className="flex flex-col lg:flex-row pt-16 lg:pt-20">
+                <div className="lg:hidden flex-1 p-4 space-y-6 pt-10">
+                    {/* 1. Profile Header (Mobile) */}
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center text-xl font-black shadow-lg shadow-primary/20">
+                                {getInitials(user?.full_name)}
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-black text-gray-900">{user?.full_name || 'Kalaburgi Athlete'}</h1>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{user?.phone_number || 'Athlete'}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => navigate('/profile/edit')}
+                            className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm text-primary"
+                        >
+                            <FaEdit size={18} />
+                        </button>
+                    </div>
+
+                    {/* 2. Quick Stats Row (Mobile) */}
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase">Bookings</span>
+                            <span className="text-2xl font-black text-gray-900">{stats.bookings}</span>
+                        </div>
+                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase">Played</span>
+                            <span className="text-2xl font-black text-gray-900">{stats.gamesPlayed}</span>
+                        </div>
+                    </div>
+
+                    {/* 3. Accordion Navigation (Mobile) */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 px-1">
+                            <span className="w-1 h-4 bg-primary rounded-full"></span>
+                            <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">Account Details</h2>
+                        </div>
+
+                        {/* Profile Info Accordion (Mobile) */}
+                        <div className="space-y-2">
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => toggleMobileSection('profile')}
+                                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${activeMobileSection === 'profile' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMobileSection === 'profile' ? 'bg-primary text-white' : 'bg-gray-50 text-gray-400'}`}>
+                                        <FaUser size={16} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-gray-900">Personal Information</p>
+                                        <p className="text-[10px] text-gray-500 font-medium">Manage your name, email & city</p>
+                                    </div>
+                                </div>
+                                <FaChevronRight size={12} className={`transition-transform duration-300 ${activeMobileSection === 'profile' ? 'text-primary rotate-90' : 'text-gray-300'}`} />
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {activeMobileSection === 'profile' && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden px-1"
+                                    >
+                                        <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-1 space-y-6 shadow-sm">
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1 block">Full Name</label>
+                                                    <p className="text-base font-bold text-gray-900">{user?.full_name || 'Not provided'}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1 block">Phone Number</label>
+                                                    <p className="text-base font-bold text-gray-900">{user?.phone_number}</p>
+                                                </div>
+                                                {user?.email && (
+                                                    <div>
+                                                        <label className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1 block">Email</label>
+                                                        <p className="text-sm font-semibold text-gray-900 truncate">{user.email}</p>
+                                                    </div>
+                                                )}
+                                                {user?.city && (
+                                                    <div>
+                                                        <label className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1 block">City</label>
+                                                        <p className="text-sm font-semibold text-gray-900">{user.city}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="pt-4 border-t border-gray-50 space-y-4">
+                                                <h3 className="text-xs font-black text-gray-900 uppercase">Sports Profile</h3>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {user?.age && (
+                                                        <div>
+                                                            <label className="text-[9px] uppercase font-bold text-gray-400 block">Age</label>
+                                                            <p className="text-sm font-bold text-gray-900">{user.age}</p>
+                                                        </div>
+                                                    )}
+                                                    {user?.gender && (
+                                                        <div>
+                                                            <label className="text-[9px] uppercase font-bold text-gray-400 block">Gender</label>
+                                                            <p className="text-sm font-bold text-gray-900">{user.gender}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {user?.skill_level && (
+                                                    <div>
+                                                        <label className="text-[9px] uppercase font-bold text-gray-400 mb-2 block">Skill Level</label>
+                                                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-bold border ${getSkillBadgeColor(user.skill_level)}`}>
+                                                            <FaTrophy className="mr-1.5" />
+                                                            {user.skill_level}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* My Bookings Accordion (Mobile) */}
+                        <div className="space-y-2">
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => toggleMobileSection('bookings')}
+                                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${activeMobileSection === 'bookings' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMobileSection === 'bookings' ? 'bg-primary text-white' : 'bg-gray-50 text-gray-400'}`}>
+                                        <FaCalendarCheck size={16} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-gray-900">My Bookings</p>
+                                        <p className="text-[10px] text-gray-500 font-medium">View your court history</p>
+                                    </div>
+                                </div>
+                                <FaChevronRight size={12} className={`transition-transform duration-300 ${activeMobileSection === 'bookings' ? 'text-primary rotate-90' : 'text-gray-300'}`} />
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {activeMobileSection === 'bookings' && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden px-1"
+                                    >
+                                        <div className="bg-white rounded-2xl border border-gray-100 p-2 mt-1 shadow-sm">
+                                            {/* Booking Tabs (Mobile) */}
+                                            <div className="flex gap-1 mb-4 p-1 bg-gray-50 rounded-xl overflow-x-auto no-scrollbar">
+                                                {['all', 'upcoming', 'completed', 'cancelled'].map(tab => (
+                                                    <button
+                                                        key={tab}
+                                                        className={`px-3 py-1.5 font-bold text-[10px] rounded-lg transition-all whitespace-nowrap ${activeTab === tab
+                                                            ? 'bg-white text-primary shadow-sm'
+                                                            : 'text-gray-400'
+                                                            }`}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveTab(tab as any);
+                                                        }}
+                                                    >
+                                                        {tab.toUpperCase()}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {/* Minimal Bookings List */}
+                                            {bookingsLoading ? (
+                                                <div className="py-8 text-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div></div>
+                                            ) : bookings.filter(b => activeTab === 'all' || b.status === activeTab).length === 0 ? (
+                                                <div className="py-10 text-center">
+                                                    <p className="text-xs font-bold text-gray-400 uppercase">No bookings found</p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {bookings
+                                                        .filter(b => activeTab === 'all' || b.status === activeTab)
+                                                        .map((booking, idx) => (
+                                                            <div key={idx} className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <div>
+                                                                        <h4 className="text-xs font-black text-gray-900 line-clamp-1">{booking.venue_name || 'Court Booking'}</h4>
+                                                                        <p className="text-[10px] font-bold text-gray-500">{new Date(booking.booking_date).toLocaleDateString()}</p>
+                                                                    </div>
+                                                                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                                        {booking.status}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="text-[10px] text-gray-600 font-medium">₹{booking.total_amount} • {booking.time_slots?.[0]?.start_time || booking.start_time}</div>
+                                                                    <button
+                                                                        onClick={() => toggleBookingExpansion(booking.id)}
+                                                                        className="text-primary text-[10px] font-black uppercase tracking-wider"
+                                                                    >
+                                                                        {expandedBookingId === booking.id ? 'Hide' : 'Details'}
+                                                                    </button>
+                                                                </div>
+                                                                {expandedBookingId === booking.id && (
+                                                                    <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-[10px]">
+                                                                        <div><span className="text-gray-400 font-bold block">TIME</span><p>{booking.start_time} - {booking.end_time}</p></div>
+                                                                        <div><span className="text-gray-400 font-bold block">BOOKING ID</span><p>{booking.booking_display_id || booking.id}</p></div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))
+                                                    }
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Ratings Accordion (Mobile) */}
+                        <div className="space-y-2">
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => toggleMobileSection('reviews')}
+                                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${activeMobileSection === 'reviews' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMobileSection === 'reviews' ? 'bg-primary text-white' : 'bg-gray-50 text-gray-400'}`}>
+                                        <FaStar size={16} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-gray-900">Rating & Reviews</p>
+                                        <p className="text-[10px] text-gray-500 font-medium">Feedback on your games</p>
+                                    </div>
+                                </div>
+                                <FaChevronRight size={12} className={`transition-transform duration-300 ${activeMobileSection === 'reviews' ? 'text-primary rotate-90' : 'text-gray-300'}`} />
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {activeMobileSection === 'reviews' && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden px-1"
+                                    >
+                                        <div className="bg-white rounded-xl border border-gray-100 p-3 mt-1 shadow-sm">
+                                            {reviewsLoading ? (
+                                                <div className="py-8 text-center font-bold text-xs text-gray-400 uppercase tracking-widest">Loading...</div>
+                                            ) : reviews.length === 0 ? (
+                                                <div className="py-10 text-center font-bold text-xs text-gray-300 uppercase tracking-widest leading-relaxed">No reviews submitted yet.<br />Complete games to rate them!</div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {reviews.map((rev, i) => (
+                                                        <div key={i} className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <h4 className="text-[11px] font-black text-gray-900">{rev.venue_name}</h4>
+                                                                <div className="flex text-yellow-400 text-[10px]">{'★'.repeat(rev.review.rating)}</div>
+                                                            </div>
+                                                            <p className="text-[10px] text-gray-600 italic leading-relaxed">"{rev.review.review_text}"</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Favorites Accordion (Mobile) */}
+                        <div className="space-y-2">
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => toggleMobileSection('favorites')}
+                                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${activeMobileSection === 'favorites' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMobileSection === 'favorites' ? 'bg-red-500 text-white' : 'bg-gray-50 text-gray-400'}`}>
+                                        <FaHeart size={16} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-gray-900">My Favorites</p>
+                                        <p className="text-[10px] text-gray-500 font-medium">Your saved arenas & courts</p>
+                                    </div>
+                                </div>
+                                <FaChevronRight size={12} className={`transition-transform duration-300 ${activeMobileSection === 'favorites' ? 'text-primary rotate-90' : 'text-gray-300'}`} />
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {activeMobileSection === 'favorites' && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden px-1"
+                                    >
+                                        <div className="bg-white rounded-xl border border-gray-100 p-3 mt-1 shadow-sm">
+                                            {favoritesLoading ? (
+                                                <div className="py-8 text-center font-bold text-xs text-gray-400 uppercase tracking-widest">Loading...</div>
+                                            ) : favorites.length === 0 ? (
+                                                <div className="py-10 text-center font-bold text-xs text-gray-300 uppercase tracking-widest leading-relaxed">No favorites yet.<br />Save your favorite arenas for quick access!</div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {favorites.map((venue, i) => (
+                                                        <div key={i} className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <div onClick={() => navigate(`/venues/${venue.id}`)} className="cursor-pointer">
+                                                                    <h4 className="text-[11px] font-black text-gray-900">{venue.court_name}</h4>
+                                                                    <p className="text-[9px] text-gray-500"><FaMapMarkerAlt className="inline-block mr-1 text-[8px]" /> {venue.location}</p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        toggleFavorite(venue.id);
+                                                                    }}
+                                                                    className="text-red-500 p-1"
+                                                                >
+                                                                    <FaHeart size={14} />
+                                                                </button>
+                                                            </div>
+                                                            <div className="flex justify-between items-center mt-2">
+                                                                <div className="text-[9px] font-bold text-primary">₹{venue.prices}/hr</div>
+                                                                <Button
+                                                                    onClick={() => navigate(`/venues/${venue.id}`)}
+                                                                    className="bg-zinc-900 text-white text-[8px] px-3 py-1 rounded-lg font-black uppercase"
+                                                                >
+                                                                    Book Now
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                        </div>
+
+                    </div>
+
+                    {/* Settings Area (Bottom Mobile) */}
+                    <div className="pt-8 pb-32">
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-red-50 text-red-600 font-black text-xs uppercase tracking-widest border border-red-100 shadow-sm"
+                        >
+                            Logout
+                        </button>
+                    </div>
+                </div>
+
+                {/* Desktop Sidebar (Existing Logic) */}
+                <motion.div
+                    initial={{ x: -100, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.6 }}
+                    className="hidden lg:flex relative lg:fixed lg:left-0 lg:top-20 w-80 bg-white border-r border-gray-200 h-[calc(100vh-5rem)] p-6 overflow-y-auto z-10"
+                >
+                    <div className="space-y-4">
+                        <h2 className="text-lg lg:text-xl font-bold text-gray-900 mb-4 lg:mb-6">Account Settings</h2>
+
+                        {/* Profile Overview */}
+                        <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            className="bg-gradient-to-r from-primary to-blue-500 rounded-xl p-4 text-white mb-4 lg:mb-6"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 rounded-full flex items-center justify-center text-lg font-bold">
+                                    {getInitials(user?.full_name)}
+                                </div>
+                                <div>
+                                    <h3 className="text-sm lg:text-base font-bold truncate max-w-[150px] lg:max-w-none">{user?.full_name || 'Kalaburgi Athlete'}</h3>
+                                    <p className="text-white/80 text-xs lg:text-sm">{user?.phone_number}</p>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        {/* Menu Options */}
+                        <div className="space-y-2">
+                            <motion.button
+                                whileHover={{ backgroundColor: '#f3f4f6' }}
+                                onClick={() => setCurrentView('profile')}
+                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-semibold flex items-center gap-3 transition-colors ${currentView === 'profile'
+                                    ? 'border-primary bg-primary/5 text-primary'
+                                    : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                                    }`}
+                            >
+                                <FaUser className="text-base lg:text-lg" />
+                                <span className="text-sm lg:text-base">Profile Information</span>
+                            </motion.button>
+
+                            <motion.button
+                                whileHover={{ backgroundColor: '#f3f4f6' }}
+                                onClick={() => setCurrentView('bookings')}
+                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-medium flex items-center gap-3 transition-colors ${currentView === 'bookings'
+                                    ? 'border-primary bg-primary/5 text-primary'
+                                    : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                                    }`}
+                            >
+                                <span className="text-base lg:text-lg"><FaCalendarAlt /></span>
+                                <span className="text-sm lg:text-base">My Bookings</span>
+                            </motion.button>
+
+                            <motion.button
+                                whileHover={{ backgroundColor: '#f3f4f6' }}
+                                onClick={() => setCurrentView('reviews')}
+                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-medium flex items-center gap-3 transition-colors ${currentView === 'reviews'
+                                    ? 'border-primary bg-primary/5 text-primary'
+                                    : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                                    }`}
+                            >
+                                <FaStar className="text-base lg:text-lg" />
+                                <span className="text-sm lg:text-base">Rating & Reviews</span>
+                            </motion.button>
+
+                            <motion.button
+                                whileHover={{ backgroundColor: '#f3f4f6' }}
+                                onClick={() => setCurrentView('favorites')}
+                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-medium flex items-center gap-3 transition-colors ${currentView === 'favorites'
+                                    ? 'border-primary bg-primary/5 text-primary'
+                                    : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                                    }`}
+                            >
+                                <FaHeart className="text-base lg:text-lg text-red-500" />
+                                <span className="text-sm lg:text-base">My Favorites</span>
+                            </motion.button>
+
+                            <hr className="my-4 border-gray-200" />
+
+                            <motion.button
+                                whileHover={{ backgroundColor: '#fee2e2' }}
+                                onClick={handleLogout}
+                                className="w-full text-left px-4 py-3 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50 font-medium flex items-center gap-3 transition-colors"
+                            >
+                                <span className="text-base lg:text-lg">🚪</span>
+                                <span className="text-sm lg:text-base">Logout</span>
+                            </motion.button>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* Content Area - Offset on desktop, hidden on mobile in favor of accordion */}
+                <motion.div
+                    key={currentView}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3, duration: 0.6 }}
+                    className="hidden lg:block flex-1 lg:ml-80 p-8 lg:overflow-y-auto lg:h-[calc(100vh-5rem)]"
+                >
+                    <div className="max-w-5xl mx-auto">
+                        {currentView === 'profile' ? (
+                            <>
+                                {/* Profile Header */}
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                                    <div>
+                                        <h1 className="text-2xl lg:text-4xl font-black text-gray-900 mb-1 lg:mb-2 tracking-tight">Profile <span className="text-primary italic">Settings</span></h1>
+                                        <p className="text-gray-500 lg:text-gray-600 text-xs md:text-sm lg:text-lg">Manage your account details and preferences</p>
+                                    </div>
+                                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
+                                        <Button
+                                            onClick={() => navigate('/profile/edit')}
+                                            className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-6 lg:px-8 py-2.5 lg:py-3 rounded-full font-bold shadow-lg shadow-primary/30 flex items-center justify-center gap-2 transition-all"
+                                        >
+                                            <FaEdit />
+                                            Edit Profile
+                                        </Button>
+                                    </motion.div>
+                                </div>
+
+                                {/* Profile Details Cards */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                                    {/* Personal Information */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.4, duration: 0.6 }}
+                                        className="bg-white rounded-xl p-6 md:p-8 border-2 border-gray-100 relative overflow-hidden group shadow-sm hover:shadow-md transition-all"
+                                    >
+                                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <FaUser size={120} />
+                                        </div>
+                                        <div className="flex items-center gap-4 mb-8 relative z-10">
+                                            <div className="w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-xl flex items-center justify-center shadow-lg text-white text-xl">
+                                                <FaUser />
+                                            </div>
+                                            <h2 className="text-2xl font-bold text-gray-900">Personal Info</h2>
+                                        </div>
+
+                                        <div className="space-y-6 relative z-10">
+                                            <div>
+                                                <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">Full Name</label>
+                                                <p className="text-xl font-bold text-gray-900">{user?.full_name || 'Not provided'}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">Phone Number</label>
+                                                <p className="text-xl font-bold text-gray-900">{user?.phone_number}</p>
+                                            </div>
+                                            {(user?.email || user?.city) && (
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {user?.email && (
+                                                        <div>
+                                                            <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">Email</label>
+                                                            <p className="text-base font-semibold text-gray-900 truncate">{user.email}</p>
+                                                        </div>
+                                                    )}
+                                                    {user?.city && (
+                                                        <div>
+                                                            <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">City</label>
+                                                            <p className="text-base font-semibold text-gray-900">{user.city}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+
+                                    {/* Sports & Preferences */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.5, duration: 0.6 }}
+                                        className="bg-white rounded-xl p-6 md:p-8 border-2 border-gray-100 relative overflow-hidden group shadow-sm hover:shadow-md transition-all"
+                                    >
+                                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <FaTrophy size={120} />
+                                        </div>
+                                        <div className="flex items-center gap-4 mb-8 relative z-10">
+                                            <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center shadow-lg text-white text-xl">
+                                                <FaTrophy />
+                                            </div>
+                                            <h2 className="text-2xl font-bold text-gray-900">Sports Profile</h2>
+                                        </div>
+
+                                        <div className="space-y-6 relative z-10">
+                                            <div className="grid grid-cols-2 gap-6">
+                                                {user?.age && (
+                                                    <div>
+                                                        <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">Age</label>
+                                                        <p className="text-xl font-bold text-gray-900">{user.age}</p>
+                                                    </div>
+                                                )}
+                                                {user?.gender && (
+                                                    <div>
+                                                        <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1 block">Gender</label>
+                                                        <p className="text-xl font-bold text-gray-900">{user.gender}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {user?.skill_level && (
+                                                <div>
+                                                    <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-2 block">Skill Level</label>
+                                                    <span className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold border ${getSkillBadgeColor(user.skill_level)}`}>
+                                                        <FaTrophy className="mr-2" />
+                                                        {user.skill_level}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {user?.sports && user.sports.length > 0 && (
+                                                <div>
+                                                    <label className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-2 block">Interests</label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {user.sports.map((sport, index) => (
+                                                            <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold">
+                                                                {sport}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                </div>
+
+                                {/* Statistics Card */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.7, duration: 0.6 }}
+                                    className="mb-8"
+                                >
+                                    <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-3">
+                                        Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Performance</span>
+                                    </h2>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        <div className="glass-card rounded-xl p-6 hover:shadow-glow transition-all cursor-default">
+                                            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Bookings</p>
+                                            <div className="flex justify-between items-end">
+                                                <p className="text-4xl font-black text-gray-900">{stats.bookings}</p>
+                                                <div className="text-blue-500 bg-blue-50 p-2 rounded-lg"><FaCalendarCheck /></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="glass-card rounded-xl p-6 hover:shadow-glow transition-all cursor-default">
+                                            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Games Played</p>
+                                            <div className="flex justify-between items-end">
+                                                <p className="text-4xl font-black text-gray-900">{stats.gamesPlayed}</p>
+                                                <div className="text-emerald-500 bg-emerald-50 p-2 rounded-lg"><FaTrophy /></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </>
+                        ) : (
+                            <>
+                                {currentView === 'bookings' && (
+                                    <>
+                                        {/* Bookings Header */}
+                                        <div className="flex justify-between items-center mb-8">
+                                            <div>
+                                                <h1 className="text-3xl font-black text-gray-900 mb-2">My Bookings</h1>
+                                                <p className="text-gray-600">View and manage your court bookings</p>
+                                            </div>
+                                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                                <Button
+                                                    onClick={() => navigate('/venues')}
+                                                    className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 border-2 border-primary"
+                                                >
+                                                    <span><FaFutbol className="inline-block mr-1" /></span>
+                                                    Book New Court
+                                                </Button>
+                                            </motion.div>
+                                        </div>
+
+                                        {/* Booking Tabs */}
+                                        <div className="flex gap-2 mb-6 border-b border-gray-200">
+                                            {['all', 'upcoming', 'completed', 'cancelled'].map(tab => (
+                                                <button
+                                                    key={tab}
+                                                    className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${activeTab === tab
+                                                        ? 'border-primary text-primary bg-primary/5'
+                                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                                        }`}
+                                                    onClick={() => setActiveTab(tab as any)}
+                                                >
+                                                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Bookings Content */}
+                                {bookingsLoading ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                        <span className="ml-3 text-gray-600">Loading bookings...</span>
+                                    </div>
+                                ) : currentView === 'reviews' ? (
+                                    <div className="space-y-6">
+                                        {/* Reviews Header */}
+                                        <div className="flex justify-between items-center mb-8">
+                                            <div>
+                                                <h1 className="text-3xl font-black text-gray-900 mb-2">Rating & Reviews</h1>
+                                                <p className="text-gray-600">View your feedback and ratings</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Reviews Content */}
+                                        {reviewsLoading ? (
+                                            <div className="flex items-center justify-center py-12">
+                                                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                <span className="ml-3 text-gray-600">Loading your reviews...</span>
+                                            </div>
+                                        ) : reviews.length === 0 ? (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="bg-white rounded-xl border-2 border-gray-200 p-12 text-center"
+                                            >
+                                                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                                    <FaStar className="text-4xl text-gray-400" />
+                                                </div>
+                                                <h3 className="text-xl font-bold text-gray-900 mb-2">No Reviews Yet</h3>
+                                                <p className="text-gray-600 mb-6">Complete a booking to leave your first review!</p>
+                                                <Button
+                                                    onClick={() => setCurrentView('bookings')}
+                                                    className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-semibold border-2 border-primary"
+                                                >
+                                                    View My Bookings
+                                                </Button>
+                                            </motion.div>
+                                        ) : (
+                                            <div className="space-y-6">
+                                                {reviews.map((review, index) => (
+                                                    <motion.div
+                                                        key={review.id || index}
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: index * 0.1, duration: 0.6 }}
+                                                        className="bg-white rounded-xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                                                    >
+                                                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-3 mb-4">
+                                                                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+                                                                        <FaStar className="text-yellow-500" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <h3 className="text-lg font-bold text-gray-900">Review for Booking #{review.booking_display_id || review.id}</h3>
+                                                                        <p className="text-gray-600"><FaFutbol className="inline-block mr-1" /> {review.venue_name || 'Venue'}</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Rating Display */}
+                                                                <div className="mb-4">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <span className="text-sm font-medium text-gray-700">Your Rating:</span>
+                                                                        {renderStars(review.review.rating)}
+                                                                        <span className="text-sm text-gray-600 ml-2">
+                                                                            {review.review.rating}/5 stars
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Review Text */}
+                                                                {review.review.review_text && (
+                                                                    <div className="mb-4">
+                                                                        <p className="text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                                                            "{review.review.review_text}"
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Booking Details */}
+                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <FaCalendarCheck className="text-primary" />
+                                                                        <span className="text-gray-600">Date:</span>
+                                                                        <span className="font-semibold text-gray-900">{new Date(review.booking_date).toLocaleDateString()}</span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <FaClock className="text-primary" />
+                                                                        <span className="text-gray-600">Time:</span>
+                                                                        <span className="font-semibold text-gray-900">
+                                                                            {review.time_slots && review.time_slots.length > 0
+                                                                                ? `${review.time_slots[0].start_time} - ${review.time_slots[0].end_time}`
+                                                                                : 'TBD'
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600">Amount:</span>
+                                                                        <span className="font-bold text-primary">₹{review.total_amount || review.price_per_hour || 'N/A'}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        {/* Filter bookings based on active tab */}
+                                        {bookings
+                                            .filter(booking => {
+                                                if (activeTab === 'all') return true;
+                                                return booking.status === activeTab;
+                                            })
+                                            .map((booking, index) => {
+                                                // Check if booking is completed
+                                                const isCompleted = booking.status === 'completed' ||
+                                                    (booking.end_time && new Date(`${booking.booking_date}T${booking.end_time}`) < new Date());
+
+                                                return (
+                                                    <motion.div
+                                                        key={booking.id || index}
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: index * 0.1, duration: 0.6 }}
+                                                        className="bg-white rounded-xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                                                    >
+                                                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-3 mb-4">
+                                                                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+                                                                        <span className="text-xl text-primary"><FaFutbol /></span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <h3 className="text-lg font-bold text-gray-900">Booking #{booking.booking_display_id || booking.id}</h3>
+                                                                        <p className="text-gray-600">Court booking</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <FaCalendarCheck className="text-primary" />
+                                                                        <span className="text-gray-600">Date:</span>
+                                                                        <span className="font-semibold text-gray-900">{new Date(booking.booking_date).toLocaleDateString()}</span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <FaClock className="text-primary" />
+                                                                        <span className="text-gray-600">Time:</span>
+                                                                        <span className="font-semibold text-gray-900">
+                                                                            {booking.time_slots && booking.time_slots.length > 0
+                                                                                ? `${booking.time_slots[0].start_time} - ${booking.time_slots[0].end_time}`
+                                                                                : 'TBD'
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600">Amount:</span>
+                                                                        <span className="font-bold text-primary">₹{booking.total_amount || booking.price_per_hour || 'N/A'}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex flex-col gap-3">
+                                                                <div className={`px-3 py-1 rounded-full text-xs font-semibold text-center ${booking.status === 'confirmed'
+                                                                    ? 'bg-green-100 text-green-800 border border-green-200'
+                                                                    : booking.status === 'pending'
+                                                                        ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                                                                        : 'bg-gray-100 text-gray-800 border border-gray-200'
+                                                                    }`}>
+                                                                    {booking.status || 'Unknown'}
+                                                                </div>
+
+                                                                <div className="flex flex-col gap-2">
+                                                                    <Button
+                                                                        onClick={() => toggleBookingExpansion(booking.id)}
+                                                                        className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-4 py-2 rounded-xl font-medium text-sm border-2 border-gray-200 flex items-center justify-center gap-2"
+                                                                    >
+                                                                        <FaEye className="text-sm" />
+                                                                        {expandedBookingId === booking.id ? 'Hide Details' : 'View Details'}
+                                                                    </Button>
+
+                                                                    {isCompleted && (
+                                                                        <Button
+                                                                            onClick={() => setShowRatingModal(booking.id)}
+                                                                            className="bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-xl font-medium text-sm border-2 border-primary/20 flex items-center justify-center gap-2"
+                                                                        >
+                                                                            <FaStar className="text-sm" />
+                                                                            {reviewStates[booking.id]?.has_reviewed ? 'View Review' : 'Add Review'}
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Expanded Details Section */}
+                                                        {expandedBookingId === booking.id && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, height: 0 }}
+                                                                animate={{ opacity: 1, height: 'auto' }}
+                                                                transition={{ duration: 0.3 }}
+                                                                className="mt-6 pt-6 border-t border-gray-200"
+                                                            >
+                                                                <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                                                    <FaEye className="text-primary" />
+                                                                    Complete Booking Information
+                                                                </h4>
+
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600 font-medium"><FaFutbol className="inline-block mr-1" /> Court Name:</span>
+                                                                        <span className="font-semibold text-gray-900">{booking.venue_name || 'N/A'}</span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600 font-medium"><FaMapMarkerAlt className="inline-block mr-1" /> Location:</span>
+                                                                        <span className="font-semibold text-gray-900">{booking.venue_location || 'N/A'}</span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600 font-medium"><FaCalendarAlt className="inline-block mr-1" /> Booking Date:</span>
+                                                                        <span className="font-semibold text-gray-900">
+                                                                            {new Date(booking.booking_date).toLocaleDateString('en-US', {
+                                                                                weekday: 'long',
+                                                                                year: 'numeric',
+                                                                                month: 'long',
+                                                                                day: 'numeric'
+                                                                            })}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600 font-medium"><FaClock className="inline-block mr-1" /> Start Time:</span>
+                                                                        <span className="font-semibold text-gray-900">
+                                                                            {booking.time_slots && booking.time_slots.length > 0
+                                                                                ? booking.time_slots[0].start_time
+                                                                                : booking.start_time || 'N/A'
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600 font-medium"><FaClock className="inline-block mr-1" /> End Time:</span>
+                                                                        <span className="font-semibold text-gray-900">
+                                                                            {booking.time_slots && booking.time_slots.length > 0
+                                                                                ? booking.time_slots[0].end_time
+                                                                                : booking.end_time || 'N/A'
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600 font-medium"><FaClock className="inline-block mr-1" /> Duration:</span>
+                                                                        <span className="font-semibold text-gray-900">
+                                                                            {(() => {
+                                                                                if (!booking.start_time || !booking.end_time) return 'N/A';
+                                                                                const start = new Date(`2000-01-01T${booking.start_time}`);
+                                                                                const end = new Date(`2000-01-01T${booking.end_time}`);
+                                                                                const diff = (end.getTime() - start.getTime()) / (1000 * 60);
+                                                                                return `${Math.floor(diff / 60)}h ${diff % 60}m`;
+                                                                            })()}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600 font-medium">💰 Price per Hour:</span>
+                                                                        <span className="font-semibold text-gray-900">₹{booking.price_per_hour || 'N/A'}</span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600 font-medium">💵 Total Amount:</span>
+                                                                        <span className="font-bold text-primary">₹{booking.total_amount || 'N/A'}</span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600 font-medium">🆔 Booking ID:</span>
+                                                                        <span className="font-semibold text-gray-900">{booking.booking_display_id || booking.id}</span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-gray-600 font-medium">📝 Created On:</span>
+                                                                        <span className="font-semibold text-gray-900">
+                                                                            {new Date(booking.created_at).toLocaleString('en-US', {
+                                                                                year: 'numeric',
+                                                                                month: 'short',
+                                                                                day: 'numeric',
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit'
+                                                                            })}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Rewards Section */}
+                                                                {isCompleted && (
+                                                                    <div className="mt-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center border border-yellow-300">
+                                                                                <FaGift className="text-yellow-600" />
+                                                                            </div>
+                                                                            <div>
+                                                                                <h5 className="font-bold text-yellow-800">🎁 Booking Rewards</h5>
+                                                                                <p className="text-sm text-yellow-700">You've earned points for completing this booking!</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </motion.div>
+                                                        )}
+                                                    </motion.div>
+                                                );
+                                            })}
+                                    </div>
+                                )}
+
+                                {currentView === 'favorites' && (
+                                    <div className="space-y-6">
+                                        {/* Favorites Header */}
+                                        <div className="flex justify-between items-center mb-8">
+                                            <div>
+                                                <h1 className="text-3xl font-black text-gray-900 mb-2">My Favorites</h1>
+                                                <p className="text-gray-600">Quickly book your favorite sports venues</p>
+                                            </div>
+                                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                                <Button
+                                                    onClick={() => navigate('/venues')}
+                                                    className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 border-2 border-primary"
+                                                >
+                                                    <span><FaFutbol className="inline-block mr-1" /></span>
+                                                    Explore More Venues
+                                                </Button>
+                                            </motion.div>
+                                        </div>
+
+                                        {/* Favorites Content */}
+                                        {favoritesLoading ? (
+                                            <div className="flex items-center justify-center py-12">
+                                                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                <span className="ml-3 text-gray-600">Loading your favorites...</span>
+                                            </div>
+                                        ) : favorites.length === 0 ? (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="bg-white rounded-xl border-2 border-gray-200 p-12 text-center"
+                                            >
+                                                <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                                    <FaHeart className="text-4xl text-red-400" />
+                                                </div>
+                                                <h3 className="text-xl font-bold text-gray-900 mb-2">No Favorites Yet</h3>
+                                                <p className="text-gray-600 mb-6">Save your favorite venues to find them easily next time!</p>
+                                                <Button
+                                                    onClick={() => navigate('/venues')}
+                                                    className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-semibold border-2 border-primary"
+                                                >
+                                                    Explore Venues
+                                                </Button>
+                                            </motion.div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {favorites.map((venue, index) => (
+                                                    <motion.div
+                                                        key={venue.id}
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: index * 0.1, duration: 0.6 }}
+                                                        className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:shadow-xl transition-all group"
+                                                    >
+                                                        <div className="relative h-48">
+                                                            <img
+                                                                src={venue.photos?.[0] || 'https://images.unsplash.com/photo-1541252260730-0412e8e2108e?q=80&w=2000'}
+                                                                alt={venue.court_name}
+                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                            />
+                                                            <button
+                                                                onClick={() => toggleFavorite(venue.id)}
+                                                                className="absolute top-4 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center text-red-500 shadow-lg hover:scale-110 transition-transform"
+                                                            >
+                                                                <FaHeart size={18} />
+                                                            </button>
+                                                        </div>
+                                                        <div className="p-6">
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{venue.court_name}</h3>
+                                                                <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
+                                                                    <FaStar className="text-yellow-500 text-xs" />
+                                                                    <span className="text-xs font-bold text-gray-900">{venue.rating || '5.0'}</span>
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-sm text-gray-500 flex items-center gap-2 mb-6">
+                                                                <FaMapMarkerAlt className="text-primary" />
+                                                                {venue.location}
+                                                            </p>
+                                                            <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                                                                <div>
+                                                                    <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Starting from</span>
+                                                                    <span className="text-lg font-black text-gray-900">₹{venue.prices}<span className="text-xs font-normal text-gray-500">/hr</span></span>
+                                                                </div>
+                                                                <Button
+                                                                    onClick={() => navigate(`/venues/${venue.id}`)}
+                                                                    className="bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-2.5 rounded-xl font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-zinc-200"
+                                                                >
+                                                                    Book Now
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </motion.div>
+            </div>
+
+
+            {/* Rating Modal */}
+            {showRatingModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="bg-white rounded-xl border-2 border-gray-200 p-6 max-w-md w-full"
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                <FaStar className="text-yellow-500" />
+                                Rate Your Experience
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setShowRatingModal(null);
+                                    setSelectedRating(0);
+                                    setReviewText('');
+                                }}
+                                className="text-gray-400 hover:text-gray-600 text-xl"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <p className="text-gray-600 mb-4">How was your experience with this booking?</p>
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Your Rating</label>
+                            <div className="flex justify-center mb-2">
+                                {renderStars(selectedRating, true, setSelectedRating)}
+                            </div>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Your Review (Optional)</label>
+                            <textarea
+                                className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-colors"
+                                placeholder="Share your experience about the venue, facilities, etc..."
+                                value={reviewText}
+                                onChange={(e) => setReviewText(e.target.value)}
+                                rows={4}
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                            <Button
+                                onClick={() => {
+                                    setShowRatingModal(null);
+                                    setSelectedRating(0);
+                                    setReviewText('');
+                                }}
+                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900 px-4 py-3 rounded-xl font-medium border-2 border-gray-200"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    const booking = bookings.find(b => b.id === showRatingModal);
+                                    if (booking) {
+                                        handleSubmitReview(showRatingModal, booking.court_id || '');
+                                    }
+                                }}
+                                disabled={selectedRating === 0}
+                                className={`flex-1 ${selectedRating === 0 ? 'bg-primary/20 text-primary/50 cursor-not-allowed' : 'bg-primary hover:bg-primary/90 text-white'} px-4 py-3 rounded-xl font-medium border-2 border-primary`}
+                            >
+                                Submit Review
+                            </Button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </div>
+    );
+};
