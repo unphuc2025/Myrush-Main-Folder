@@ -3,7 +3,7 @@ import {
   Building2, Gamepad2, Coins, CalendarDays, Camera, Video,
   Trash2, Plus, Info, X, MapPin
 } from 'lucide-react';
-import { branchesApi, gameTypesApi, courtsApi, sanitizeImageUrl } from '../../services/adminApi';
+import { branchesApi, gameTypesApi, courtsApi, facilityTypesApi, sharedGroupsApi, rentalItemsApi, courtUnitsApi, divisionModesApi, sanitizeImageUrl } from '../../services/adminApi';
 import SlotCalendar from './SlotCalendar';
 
 function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
@@ -11,6 +11,9 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
   const [gameTypes, setGameTypes] = useState([]);
   /* Amenities logic removed */
   const [loading, setLoading] = useState(true);
+  const [facilityTypes, setFacilityTypes] = useState([]);
+  const [sharedGroups, setSharedGroups] = useState([]);
+  const [allRentalItems, setAllRentalItems] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -27,20 +30,32 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
     unavailabilitySlots: [],
     termsAndConditions: '',
     // amenities: [], // Removed
-    isActive: true
+    isActive: true,
+    facilityTypeId: '',
+    logicType: 'independent', // independent, shared, divisible, capacity
+    sharedGroupId: '',
+    capacityLimit: 1,
+    priceOverrides: {},
+    units: [],
+    divisionModes: [],
+    rentalItemIds: []
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [branchesData, gameTypesData] = await Promise.all([
+        const [branchesData, gameTypesData, facilityTypesData, rentalItemsData] = await Promise.all([
           branchesApi.getAll(),
-          gameTypesApi.getAll()
+          gameTypesApi.getAll(),
+          facilityTypesApi.getAll(),
+          rentalItemsApi.getAll()
         ]);
         const bItems = Array.isArray(branchesData?.items) ? branchesData.items : (Array.isArray(branchesData) ? branchesData : []);
         const gtItems = Array.isArray(gameTypesData?.items) ? gameTypesData.items : (Array.isArray(gameTypesData) ? gameTypesData : []);
         setBranches(bItems);
         setGameTypes(gtItems);
+        setFacilityTypes(facilityTypesData || []);
+        setAllRentalItems(rentalItemsData || []);
         // setAmenities(amenitiesData); // Removed
 
         if (initialData) {
@@ -54,7 +69,13 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
           while (typeof unavailabilitySlots === 'string') {
             try { unavailabilitySlots = JSON.parse(unavailabilitySlots); } catch (e) { console.error('Error parsing unavailability slots', e); break; }
           }
-          /* Amenities parsing removed */
+          
+          const courtUnits = initialData.units || [];
+          const divisionModes = (initialData.division_modes || []).map(mode => ({
+             name: mode.name,
+             unitNames: (mode.units || []).map(u => u.name)
+          }));
+
           setFormData({
             name: initialData.name,
             branchId: initialData.branch_id,
@@ -68,7 +89,15 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
             unavailabilitySlots: unavailabilitySlots,
             termsAndConditions: initialData.terms_and_conditions || '',
             // amenities: courtAmenities, // Removed
-            isActive: initialData.is_active
+            isActive: initialData.is_active,
+            facilityTypeId: initialData.facility_type_id || '',
+            logicType: initialData.logic_type || 'independent',
+            sharedGroupId: initialData.shared_group_id || '',
+            capacityLimit: initialData.capacity_limit || 1,
+            priceOverrides: initialData.price_overrides || {},
+            units: courtUnits,
+            divisionModes: divisionModes,
+            rentalItemIds: (initialData.rental_items || []).map(ri => ri.id)
           });
         }
       } catch (err) {
@@ -80,6 +109,12 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
     };
     fetchData();
   }, [initialData]);
+
+  useEffect(() => {
+    if (formData.branchId) {
+      sharedGroupsApi.getAll(formData.branchId).then(setSharedGroups).catch(console.error);
+    }
+  }, [formData.branchId]);
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -140,6 +175,109 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
       )
     }));
   };
+  
+  const handleSharedGroupChange = async (val) => {
+    if (val === 'new') {
+      const name = window.prompt("Enter new Shared Group name:");
+      if (name && formData.branchId) {
+        try {
+          const newGroup = await sharedGroupsApi.create({ name, branch_id: formData.branchId });
+          setSharedGroups(prev => [...prev, newGroup]);
+          setFormData(prev => ({ ...prev, sharedGroupId: newGroup.id }));
+        } catch (e) {
+          console.error("Failed to create shared group", e);
+          setError("Failed to create shared group");
+        }
+      }
+    } else {
+      setFormData(prev => ({ ...prev, sharedGroupId: val }));
+    }
+  };
+
+  const addUnit = () => {
+    const name = window.prompt("Enter Unit Name (e.g. A, B, C):");
+    if (name) {
+      setFormData(prev => ({
+        ...prev,
+        units: [...(prev.units || []), { name }]
+      }));
+    }
+  };
+
+  const removeUnit = (index) => {
+    setFormData(prev => {
+      const unitName = prev.units[index].name;
+      return {
+        ...prev,
+        units: prev.units.filter((_, i) => i !== index),
+        divisionModes: (prev.divisionModes || []).map(mode => ({
+          ...mode,
+          unitNames: mode.unitNames.filter(name => name !== unitName)
+        }))
+      };
+    });
+  };
+
+  const addDivisionMode = () => {
+    setFormData(prev => ({
+      ...prev,
+      divisionModes: [...(prev.divisionModes || []), { name: '', unitNames: [] }]
+    }));
+  };
+
+  const updateMode = (index, field, value) => {
+    setFormData(prev => {
+      const newModes = [...(prev.divisionModes || [])];
+      newModes[index] = { ...newModes[index], [field]: value };
+      return { ...prev, divisionModes: newModes };
+    });
+  };
+
+  const toggleUnitInMode = (modeIdx, unitName) => {
+    setFormData(prev => {
+      const newModes = [...(prev.divisionModes || [])];
+      const mode = { ...newModes[modeIdx] };
+      if (mode.unitNames.includes(unitName)) {
+        mode.unitNames = mode.unitNames.filter(n => n !== unitName);
+      } else {
+        mode.unitNames = [...mode.unitNames, unitName];
+      }
+      newModes[modeIdx] = mode;
+      return { ...prev, divisionModes: newModes };
+    });
+  };
+
+  const removeMode = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      divisionModes: (prev.divisionModes || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const saveDivisibleSettings = async (courtId) => {
+    if (formData.logicType !== 'divisible') return;
+
+    // Create Units
+    const unitPromises = (formData.units || []).map(unit => 
+      courtUnitsApi.create(courtId, unit)
+    );
+    const createdUnits = await Promise.all(unitPromises);
+    
+    // Create Modes
+    const modePromises = (formData.divisionModes || []).map(mode => {
+      // Map unit names to created unit IDs
+      const unitIds = mode.unitNames.map(name => {
+        const u = createdUnits.find(cu => cu.name === name);
+        return u?.id;
+      }).filter(Boolean);
+      
+      return divisionModesApi.create(courtId, {
+        name: mode.name,
+        unit_ids: unitIds
+      });
+    });
+    await Promise.all(modePromises);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -156,6 +294,13 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
       submitData.append('game_type_id', formData.gameTypeId);
       submitData.append('price_per_hour', formData.defaultPrice);
       submitData.append('is_active', formData.isActive);
+      submitData.append('logic_type', formData.logicType);
+      
+      if (formData.facilityTypeId) submitData.append('facility_type_id', formData.facilityTypeId);
+      if (formData.sharedGroupId) submitData.append('shared_group_id', formData.sharedGroupId);
+      if (formData.capacityLimit) submitData.append('capacity_limit', formData.capacityLimit);
+      if (formData.priceOverrides) submitData.append('price_overrides', JSON.stringify(formData.priceOverrides));
+      if (formData.rentalItemIds) submitData.append('rental_item_ids', JSON.stringify(formData.rentalItemIds));
 
       // Serialize complex objects
       submitData.append('price_conditions', JSON.stringify(priceConditions));
@@ -168,14 +313,19 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
       formData.images.forEach(img => submitData.append('images', img.file));
       formData.videos.forEach(vid => submitData.append('videos', vid.file));
 
+      let result;
       // Append existing files if editing - sanitize to relative paths
       if (initialData) {
         formData.existingImages.forEach(url => submitData.append('existing_images', sanitizeImageUrl(url)));
         formData.existingVideos.forEach(url => submitData.append('existing_videos', sanitizeImageUrl(url)));
 
-        await courtsApi.update(initialData.id, submitData);
+        result = await courtsApi.update(initialData.id, submitData);
       } else {
-        await courtsApi.create(submitData);
+        result = await courtsApi.create(submitData);
+      }
+
+      if (formData.logicType === 'divisible') {
+        await saveDivisibleSettings(result.id);
       }
 
       onSuccess();
@@ -271,6 +421,155 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
                 </select>
               </div>
             </div>
+
+            {/* Facility Type */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Facility Type</label>
+              <div className="relative group">
+                <Building2 className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                <select
+                  value={formData.facilityTypeId}
+                  onChange={(e) => setFormData({ ...formData, facilityTypeId: e.target.value })}
+                  className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium appearance-none shadow-sm hover:border-slate-300"
+                >
+                  <option value="">Select Facility Type</option>
+                  {facilityTypes.map(type => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Logic Type */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Booking Rule</label>
+              <div className="relative group">
+                <Info className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                <select
+                  value={formData.logicType}
+                  onChange={(e) => setFormData({ ...formData, logicType: e.target.value })}
+                  className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-0 outline-none transition-all font-medium appearance-none shadow-sm hover:border-slate-300"
+                  required
+                >
+                  <option value="independent">Standard (One at a time)</option>
+                  <option value="shared">Shared (Multiple Sports/Venues)</option>
+                  <option value="divisible">Divisible (Hierarchical)</option>
+                  <option value="capacity">Capacity Based (Pools/Nets)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Conditional Logic Fields */}
+          <div className="space-y-4">
+            {formData.logicType === 'shared' && (
+              <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl space-y-4">
+                <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                  <Info className="h-4 w-4" /> Shared Court Configuration
+                </h4>
+                <div>
+                  <label className="block text-xs font-bold text-blue-600 uppercase mb-2">Shared Resource Group</label>
+                  <select
+                    value={formData.sharedGroupId}
+                    onChange={(e) => handleSharedGroupChange(e.target.value)}
+                    className="w-full px-4 py-2 bg-white border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 transition-all font-medium"
+                  >
+                    <option value="">Select Group</option>
+                    {sharedGroups.map(group => (
+                      <option key={group.id} value={group.id}>{group.name}</option>
+                    ))}
+                    <option value="new">+ Create New Group</option>
+                  </select>
+                  <p className="mt-1 text-[10px] text-blue-400">Courts in the same group share physical space and block each other.</p>
+                </div>
+              </div>
+            )}
+
+            {formData.logicType === 'capacity' && (
+              <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
+                 <h4 className="text-sm font-bold text-purple-800 flex items-center gap-2 mb-3">
+                  <Info className="h-4 w-4" /> Capacity Configuration
+                </h4>
+                <label className="block text-xs font-bold text-purple-600 uppercase mb-2">Member Limit (per slot)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.capacityLimit}
+                  onChange={(e) => setFormData({ ...formData, capacityLimit: e.target.value })}
+                  className="w-full px-4 py-2 bg-white border border-purple-200 rounded-lg text-sm outline-none focus:border-purple-500 transition-all font-medium"
+                />
+              </div>
+            )}
+
+            {formData.logicType === 'divisible' && (
+              <div className="p-4 bg-green-50 border border-green-100 rounded-xl space-y-4">
+                <h4 className="text-sm font-bold text-green-800 flex items-center gap-2">
+                  <Info className="h-4 w-4" /> Divisible Ground Configuration
+                </h4>
+                
+                {/* Units Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-green-600 uppercase">Core Units (e.g., A, B, C)</label>
+                    <button type="button" onClick={addUnit} className="text-[10px] font-bold text-green-700 bg-white px-2 py-0.5 rounded border border-green-200 hover:bg-green-50 transition-colors">
+                      + Add Unit
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(formData.units || []).map((unit) => (
+                      <div key={`unit-${unit.name}`} className="flex items-center gap-1 bg-white border border-green-200 pl-3 pr-1 py-1 rounded-lg shadow-sm">
+                        <span className="text-sm font-medium text-slate-700">{unit.name}</span>
+                        <button type="button" onClick={() => removeUnit((formData.units || []).findIndex(u => u.name === unit.name))} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {(formData.units || []).length === 0 && <span className="text-[10px] text-slate-400 italic">No units added yet</span>}
+                  </div>
+                </div>
+
+                {/* Division Modes Section */}
+                <div className="space-y-2 pt-2 border-t border-green-100">
+                   <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-green-600 uppercase">Division Modes (Combinations)</label>
+                    <button type="button" onClick={addDivisionMode} className="text-[10px] font-bold text-green-700 bg-white px-2 py-0.5 rounded border border-green-200 hover:bg-green-50 transition-colors">
+                      + Add Mode
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {(formData.divisionModes || []).map((mode, idx) => (
+                      <div key={`mode-${idx}-${mode.name}`} className="p-3 bg-white border border-green-100 rounded-lg space-y-3 shadow-sm">
+                         <div className="flex items-center justify-between gap-4">
+                            <input 
+                              placeholder="e.g. 6-a-side" 
+                              value={mode.name}
+                              onChange={(e) => updateMode(idx, 'name', e.target.value)}
+                              className="text-sm font-bold border-b border-slate-100 focus:border-green-500 outline-none p-1 flex-1 text-slate-700"
+                            />
+                            <button type="button" onClick={() => removeMode(idx)} className="text-slate-300 hover:text-red-500 transition-colors">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                         </div>
+                         <div className="flex flex-wrap gap-3 p-1">
+                            {(formData.units || []).map((unit) => (
+                              <label key={`mode-unit-${idx}-${unit.name}`} className="flex items-center gap-2 cursor-pointer group">
+                                <input 
+                                  type="checkbox" 
+                                  checked={mode.unitNames.includes(unit.name)}
+                                  onChange={() => toggleUnitInMode(idx, unit.name)}
+                                  className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+                                />
+                                <span className="text-xs font-semibold text-slate-600 group-hover:text-green-700">{unit.name}</span>
+                              </label>
+                            ))}
+                         </div>
+                      </div>
+                    ))}
+                    {(formData.divisionModes || []).length === 0 && <p className="text-[10px] text-slate-400 italic text-center py-2">Define division modes once units are added</p>}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Price & Active Status */}
@@ -354,7 +653,37 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
           </div>
         </div>
 
-        {/* Amenities section removed as per requirement */}
+        {/* Rental Items Section */}
+        <section>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 ml-1">Available Rental Items</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+             {allRentalItems.filter(ri => !ri.branch_id || ri.branch_id === formData.branchId).map(item => (
+                <label key={item.id} className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.rentalItemIds.includes(item.id) ? 'bg-green-50 border-green-500 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-200 shadow-sm'}`}>
+                   <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${formData.rentalItemIds.includes(item.id) ? 'bg-green-600 border-green-600' : 'bg-white border-slate-300'}`}>
+                         {formData.rentalItemIds.includes(item.id) && <Plus className="h-3.5 w-3.5 text-white rotate-45" />}
+                      </div>
+                      <span className="text-sm font-bold text-slate-700">{item.name}</span>
+                   </div>
+                   <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">₹{item.price_per_booking}</span>
+                   <input 
+                      type="checkbox" 
+                      className="hidden"
+                      checked={formData.rentalItemIds.includes(item.id)}
+                      onChange={() => {
+                         const current = formData.rentalItemIds;
+                         if (current.includes(item.id)) {
+                            setFormData(prev => ({ ...prev, rentalItemIds: current.filter(id => id !== item.id) }));
+                         } else {
+                            setFormData(prev => ({ ...prev, rentalItemIds: [...current, item.id] }));
+                         }
+                      }}
+                   />
+                </label>
+             ))}
+             {allRentalItems.length === 0 && <p className="text-xs text-slate-400 italic col-span-2 text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">No rental items configured</p>}
+          </div>
+        </section>
 
         <div className="h-px bg-slate-200 my-4" />
 

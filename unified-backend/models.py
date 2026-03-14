@@ -101,6 +101,26 @@ class GameType(Base):
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class FacilityType(Base):
+    __tablename__ = "admin_facility_types"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    name = Column(String(255), nullable=False) # 'Turf', 'Court', 'Pool', 'Table', 'Nets'
+    short_code = Column(String(50), nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class SharedGroup(Base):
+    """Groups multiple courts that share the same physical inventory/space"""
+    __tablename__ = "admin_shared_groups"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    branch_id = Column(UUID(as_uuid=True), ForeignKey("admin_branches.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    
+    branch = relationship("Branch")
+    courts = relationship("Court", back_populates="shared_group")
+
 class Amenity(Base):
     __tablename__ = "admin_amenities"
     id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
@@ -166,8 +186,16 @@ class Court(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
     branch_id = Column(UUID(as_uuid=True), ForeignKey("admin_branches.id", ondelete="CASCADE"), nullable=False)
     game_type_id = Column(UUID(as_uuid=True), ForeignKey("admin_game_types.id", ondelete="CASCADE"), nullable=False)
+    facility_type_id = Column(UUID(as_uuid=True), ForeignKey("admin_facility_types.id"), nullable=True)
+    
     name = Column(String(255), nullable=False)
+    logic_type = Column(String(50), default='independent') # 'independent', 'shared', 'divisible', 'capacity'
+    shared_group_id = Column(UUID(as_uuid=True), ForeignKey("admin_shared_groups.id"), nullable=True)
+    capacity_limit = Column(Integer, default=1) # Member limit (e.g., 20 for pool)
+    
     price_per_hour = Column(DECIMAL(10, 2), nullable=False)
+    price_overrides = Column(JSONB, nullable=True) # { "sport_name": price } for shared courts
+    
     price_conditions = Column(JSONB)
     unavailability_slots = Column(JSONB)
     images = Column(ARRAY(Text))
@@ -180,8 +208,50 @@ class Court(Base):
 
     branch = relationship("Branch", back_populates="courts")
     game_type = relationship("GameType")
-    # bookings = relationship("Booking", back_populates="court", primaryjoin="Booking.court_id==Court.id")
-    # reviews = relationship("Review", back_populates="court", cascade="all, delete-orphan", primaryjoin="Review.court_id==Court.id")
+    facility_type = relationship("FacilityType")
+    shared_group = relationship("SharedGroup", back_populates="courts")
+    units = relationship("CourtUnit", back_populates="court", cascade="all, delete-orphan")
+    division_modes = relationship("DivisionMode", back_populates="court", cascade="all, delete-orphan")
+    rental_items = relationship("RentalItem", secondary="admin_court_rental_items")
+
+class CourtUnit(Base):
+    """The smallest bookable part of a divisible court (e.g., A, B, C, D)"""
+    __tablename__ = "admin_court_units"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    court_id = Column(UUID(as_uuid=True), ForeignKey("admin_courts.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(50), nullable=False) # 'A', 'B', '1', etc.
+    
+    court = relationship("Court", back_populates="units")
+
+class DivisionMode(Base):
+    """A configuration for booking a set of units (e.g., '10-a-side' uses A+B+C+D)"""
+    __tablename__ = "admin_division_modes"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    court_id = Column(UUID(as_uuid=True), ForeignKey("admin_courts.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False) # '6-a-side', '10-a-side', etc.
+    
+    court = relationship("Court", back_populates="division_modes")
+    units = relationship("CourtUnit", secondary="admin_division_mode_units")
+
+class DivisionModeUnit(Base):
+    __tablename__ = "admin_division_mode_units"
+    mode_id = Column(UUID(as_uuid=True), ForeignKey("admin_division_modes.id", ondelete="CASCADE"), primary_key=True)
+    unit_id = Column(UUID(as_uuid=True), ForeignKey("admin_court_units.id", ondelete="CASCADE"), primary_key=True)
+
+class CourtRentalItem(Base):
+    __tablename__ = "admin_court_rental_items"
+    court_id = Column(UUID(as_uuid=True), ForeignKey("admin_courts.id", ondelete="CASCADE"), primary_key=True)
+    rental_item_id = Column(UUID(as_uuid=True), ForeignKey("admin_rental_items.id", ondelete="CASCADE"), primary_key=True)
+
+class RentalItem(Base):
+    __tablename__ = "admin_rental_items"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    branch_id = Column(UUID(as_uuid=True), ForeignKey("admin_branches.id", ondelete="CASCADE"), nullable=True)
+    name = Column(String(255), nullable=False)
+    price_per_booking = Column(DECIMAL(10, 2), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class Coupon(Base):
     __tablename__ = "admin_coupons"
@@ -398,6 +468,9 @@ class Booking(Base):
     playo_order_id = Column(String(255), nullable=True, index=True)
     playo_booking_id = Column(String(255), nullable=True, index=True)
     booking_source = Column(String(50), default='direct')  # 'direct', 'playo', 'admin'
+    
+    # Advanced Booking Fields
+    division_mode_id = Column(UUID(as_uuid=True), ForeignKey("admin_division_modes.id"), nullable=True)
     
     created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())

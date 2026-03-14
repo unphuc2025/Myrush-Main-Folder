@@ -97,6 +97,12 @@ async def create_court(
     terms_and_conditions: Optional[str] = Form(None),
     amenities: Optional[str] = Form(None),
     is_active: bool = Form(True),
+    logic_type: str = Form('independent'),
+    facility_type_id: Optional[str] = Form(None),
+    shared_group_id: Optional[str] = Form(None),
+    capacity_limit: int = Form(1),
+    price_overrides: Optional[str] = Form(None),
+    rental_item_ids: Optional[str] = Form(None),
     images: Optional[List[UploadFile]] = File(None),
     videos: Optional[List[UploadFile]] = File(None),
     db: Session = Depends(get_db),
@@ -203,13 +209,26 @@ async def create_court(
         amenities=amenities_data,
         images=image_urls if image_urls else None,
         videos=video_urls if video_urls else None,
-        is_active=is_active
+        is_active=is_active,
+        logic_type=logic_type,
+        facility_type_id=facility_type_id if facility_type_id and facility_type_id != "null" else None,
+        shared_group_id=shared_group_id if shared_group_id and shared_group_id != "null" else None,
+        capacity_limit=capacity_limit,
+        price_overrides=json.loads(price_overrides) if price_overrides else None
     )
     db.add(db_court)
     db.commit()
     db.refresh(db_court)
     
-    # Notify partners about recurring schedule
+    # Associate Rental Items
+    if rental_item_ids:
+        try:
+            ids = json.loads(rental_item_ids)
+            if ids:
+                items = db.query(models.RentalItem).filter(models.RentalItem.id.in_(ids)).all()
+                db_court.rental_items = items
+                db.commit()
+        except: pass
     try:
         for day in range(7):
             for hour in range(24):
@@ -235,6 +254,12 @@ async def update_court(
     videos: Optional[List[UploadFile]] = File(None),
     existing_images: Optional[List[str]] = Form(None),
     existing_videos: Optional[List[str]] = Form(None),
+    logic_type: Optional[str] = Form(None),
+    facility_type_id: Optional[str] = Form(None),
+    shared_group_id: Optional[str] = Form(None),
+    capacity_limit: Optional[int] = Form(None),
+    price_overrides: Optional[str] = Form(None),
+    rental_item_ids: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     _ = Depends(PermissionChecker("Manage Courts", "edit")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
@@ -322,6 +347,22 @@ async def update_court(
     db_court.images = image_urls if image_urls else None
     db_court.videos = video_urls if video_urls else None
     db_court.is_active = is_active
+    
+    if logic_type is not None: db_court.logic_type = logic_type
+    if facility_type_id is not None: db_court.facility_type_id = facility_type_id if facility_type_id != "null" else None
+    if shared_group_id is not None: db_court.shared_group_id = shared_group_id if shared_group_id != "null" else None
+    if capacity_limit is not None: db_court.capacity_limit = capacity_limit
+    if price_overrides is not None: 
+        try: db_court.price_overrides = json.loads(price_overrides)
+        except: pass
+
+    # Update Rental Items
+    if rental_item_ids is not None:
+        try:
+            ids = json.loads(rental_item_ids)
+            items = db.query(models.RentalItem).filter(models.RentalItem.id.in_(ids)).all()
+            db_court.rental_items = items
+        except: pass
 
     db.commit()
     db.refresh(db_court)

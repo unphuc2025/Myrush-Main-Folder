@@ -144,6 +144,48 @@ class Amenity(AmenityBase):
     class Config:
         from_attributes = True
 
+class FacilityTypeBase(BaseModel):
+    name: str
+    short_code: Optional[str] = None
+    is_active: Optional[bool] = True
+
+class FacilityTypeCreate(FacilityTypeBase):
+    pass
+
+class FacilityType(FacilityTypeBase):
+    id: str
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class SharedGroupBase(BaseModel):
+    branch_id: str
+    name: str
+
+class SharedGroupCreate(SharedGroupBase):
+    pass
+
+class SharedGroup(SharedGroupBase):
+    id: str
+    created_at: Optional[datetime] = None
+
+    @field_validator('id', 'branch_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
 class BranchBase(BaseModel):
     city_id: str
     area_id: str
@@ -203,8 +245,13 @@ class BranchListResponse(BaseModel):
 class CourtBase(BaseModel):
     branch_id: str
     game_type_id: str
+    facility_type_id: Optional[str] = None
     name: str
+    logic_type: Optional[str] = 'independent' # 'independent', 'shared', 'divisible', 'capacity'
+    shared_group_id: Optional[str] = None
+    capacity_limit: Optional[int] = 1
     price_per_hour: Decimal
+    price_overrides: Optional[Dict[str, float]] = None
     price_conditions: Optional[Any] = None
     unavailability_slots: Optional[Any] = None
     images: Optional[List[str]] = []
@@ -213,6 +260,74 @@ class CourtBase(BaseModel):
     amenities: Optional[List[str]] = []
     is_active: Optional[bool] = True
 
+class CourtUnitBase(BaseModel):
+    court_id: str
+    name: str
+
+class CourtUnitCreate(CourtUnitBase):
+    pass
+
+class CourtUnit(CourtUnitBase):
+    id: str
+
+    @field_validator('id', 'court_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class DivisionModeBase(BaseModel):
+    court_id: str
+    name: str
+    unit_ids: List[str]
+
+class DivisionModeCreate(DivisionModeBase):
+    pass
+
+class DivisionMode(BaseModel):
+    id: str
+    court_id: str
+    name: str
+    units: List[CourtUnit] = []
+
+    @field_validator('id', 'court_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class RentalItemBase(BaseModel):
+    branch_id: Optional[str] = None
+    name: str
+    price_per_booking: Decimal
+    is_active: Optional[bool] = True
+
+class RentalItemCreate(RentalItemBase):
+    pass
+
+class RentalItem(RentalItemBase):
+    id: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
 class CourtCreate(CourtBase):
     pass
 
@@ -220,6 +335,11 @@ class Court(CourtBase):
     id: str
     branch: Optional[Branch] = None
     game_type: Optional[GameType] = None
+    facility_type: Optional[FacilityType] = None
+    shared_group: Optional[SharedGroup] = None
+    units: Optional[List[CourtUnit]] = []
+    division_modes: Optional[List[DivisionMode]] = []
+    rental_items: Optional[List[RentalItem]] = []
 
     @field_validator('id', 'branch_id', 'game_type_id', mode='before')
     @classmethod
@@ -710,6 +830,7 @@ class BookingCreate(BaseModel):
     coupon_code: Optional[str] = None
     status: Optional[str] = None
     payment_status: Optional[str] = None
+    division_mode_id: Optional[str] = None
     
     # Razorpay Fields
     razorpay_order_id: Optional[str] = None
@@ -745,6 +866,7 @@ class BookingResponse(BaseModel):
     total_amount: Decimal
     status: str
     payment_status: str
+    division_mode_id: Optional[UUID] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
@@ -786,6 +908,7 @@ class Booking(BaseModel):
     coupon_code: Optional[str] = None
     status: str
     payment_status: str
+    division_mode_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

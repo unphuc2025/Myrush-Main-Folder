@@ -624,6 +624,47 @@ export const cmsApi = {
     })
 };
 
+// Facility Management APIs
+export const facilityTypesApi = {
+    getAll: () => apiRequest('/facilities/types'),
+    create: (data) => apiRequest('/facilities/types', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+};
+
+export const sharedGroupsApi = {
+    getAll: (branchId = null) => apiRequest(`/facilities/shared-groups${branchId ? `?branch_id=${branchId}` : ''}`),
+    create: (data) => apiRequest('/facilities/shared-groups', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+};
+
+export const rentalItemsApi = {
+    getAll: () => apiRequest('/facilities/rental-items'),
+    create: (data) => apiRequest('/facilities/rental-items', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+};
+
+export const courtUnitsApi = {
+    getByCourt: (courtId) => apiRequest(`/facilities/${courtId}/units`),
+    create: (courtId, data) => apiRequest(`/facilities/${courtId}/units`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+};
+
+export const divisionModesApi = {
+    getByCourt: (courtId) => apiRequest(`/facilities/${courtId}/division-modes`),
+    create: (courtId, data) => apiRequest(`/facilities/${courtId}/division-modes`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+};
+
 // Site Settings API
 export const settingsApi = {
     get: () => apiRequest('/settings'),
