@@ -462,7 +462,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
 
           {/* Conditional Logic Fields */}
           <div className="space-y-4">
-            {formData.logicType === 'shared' && (
+            {['shared', 'divisible'].includes(formData.logicType) && (
               <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl space-y-4">
                 <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2">
                   <Info className="h-4 w-4" /> Shared Court Configuration

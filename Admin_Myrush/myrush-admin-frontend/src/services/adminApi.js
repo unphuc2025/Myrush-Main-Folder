@@ -287,11 +287,10 @@ export const courtsApi = {
                 'Authorization': `Bearer ${token}`,
             },
             body: formData
-        }).then(res => {
+        }).then(async res => {
             if (!res.ok) {
-                return res.json().then(err => {
-                    throw new Error(err.error || 'Failed to create court');
-                });
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.detail || errorData.error || 'Failed to create court');
             }
             return res.json();
         });
@@ -304,8 +303,11 @@ export const courtsApi = {
                 'Authorization': `Bearer ${token}`,
             },
             body: formData
-        }).then(res => {
-            if (!res.ok) throw new Error('Failed to update court');
+        }).then(async res => {
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.detail || errorData.error || 'Failed to update court');
+            }
             return res.json();
         });
     },
