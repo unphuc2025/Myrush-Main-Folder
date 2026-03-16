@@ -425,16 +425,39 @@ def delete_court(
              raise HTTPException(status_code=403, detail="Access denied to this court's branch")
     if not db_court:
         raise HTTPException(status_code=404, detail="Court not found")
-    
+    # Check for associations that would block deletion or cause integrity issues
+    booking_count = db.query(models.Booking).filter(models.Booking.court_id == court_id).count()
+    if booking_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete court '{db_court.name}' because it has {booking_count} associated booking(s). Please delete the bookings first or deactivate the court."
+        )
+
+    playo_order_count = db.query(models.PlayoOrder).filter(models.PlayoOrder.court_id == court_id).count()
+    if playo_order_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete court '{db_court.name}' because it has {playo_order_count} associated Playo order(s). Please resolve these orders first or deactivate the court."
+        )
+
+    tournament_count = db.query(models.Tournament).filter(models.Tournament.court_id == str(court_id)).count()
+    if tournament_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete court '{db_court.name}' because it is associated with {tournament_count} tournament(s). Please update the tournaments first or deactivate the court."
+        )
+
     try:
         db.delete(db_court)
         db.commit()
-        return {"message": "Court deleted successfully"}
-    except IntegrityError:
+        return {"message": f"Court '{db_court.name}' deleted successfully"}
+    except IntegrityError as e:
         db.rollback()
+        # Fallback for other constraints not caught above
+        error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
         raise HTTPException(
             status_code=400,
-            detail="Cannot delete this court because it has associated bookings. Please delete the bookings first or deactivate the court."
+            detail=f"Constraint violation: Could not delete court. It might still be referenced by other records. (Error: {error_msg})"
         )
     except Exception as e:
         db.rollback()

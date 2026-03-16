@@ -261,7 +261,7 @@ class CourtBase(BaseModel):
     is_active: Optional[bool] = True
 
 class CourtUnitBase(BaseModel):
-    court_id: str
+    court_id: Optional[str] = None
     name: str
 
 class CourtUnitCreate(CourtUnitBase):
@@ -281,7 +281,7 @@ class CourtUnit(CourtUnitBase):
         from_attributes = True
 
 class DivisionModeBase(BaseModel):
-    court_id: str
+    court_id: Optional[str] = None
     name: str
     unit_ids: List[str]
 
@@ -341,7 +341,7 @@ class Court(CourtBase):
     division_modes: Optional[List[DivisionMode]] = []
     rental_items: Optional[List[RentalItem]] = []
 
-    @field_validator('id', 'branch_id', 'game_type_id', mode='before')
+    @field_validator('id', 'branch_id', 'game_type_id', 'facility_type_id', 'shared_group_id', mode='before')
     @classmethod
     def convert_uuid_to_str(cls, v):
         if isinstance(v, UUID):

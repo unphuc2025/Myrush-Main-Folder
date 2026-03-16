@@ -285,11 +285,19 @@ def validate_booking_rules(db: Session, court_id: str, booking_date: date, start
         if not target_mode:
             raise HTTPException(status_code=404, detail="Selected division mode not found.")
         
-        target_unit_ids = {str(u.id) for u in target_mode.units}
+        target_unit_names = {u.name.strip().upper() for u in target_mode.units}
         
-        # 2. Check all bookings on this specific court
+        # 2. Identify courts to check (Self + Others in Shared Group)
+        if court.shared_group_id:
+            # If in a shared group, check all courts in that group
+            shared_court_ids = [str(c.id) for c in court.shared_group.courts]
+            print(f"[RULES CHECK] Divisible court belongs to shared group. Checking courts: {shared_court_ids}")
+        else:
+            shared_court_ids = [str(court_id)]
+
+        # 3. Check all bookings on identified courts
         existing_bookings = db.query(Booking).filter(
-            Booking.court_id == court_id,
+            Booking.court_id.in_(shared_court_ids),
             Booking.booking_date == booking_date,
             Booking.status != 'cancelled'
         ).all()
@@ -304,13 +312,23 @@ def validate_booking_rules(db: Session, court_id: str, booking_date: date, start
                 # Time overlaps, now check units
                 if not b.division_mode_id:
                     # If an old booking has no mode, assume it blocks everything (full court)
-                    raise HTTPException(status_code=409, detail="A full court booking already exists during this slot.")
+                    # Get court name for better error
+                    b_court = db.query(Court).filter(Court.id == b.court_id).first()
+                    raise HTTPException(
+                        status_code=409, 
+                        detail=f"A full booking on '{b_court.name if b_court else 'court'}' already exists during this slot."
+                    )
                 
                 b_mode = db.query(DivisionMode).filter(DivisionMode.id == b.division_mode_id).first()
                 if b_mode:
-                    b_unit_ids = {str(u.id) for u in b_mode.units}
-                    if target_unit_ids.intersection(b_unit_ids):
-                        raise HTTPException(status_code=409, detail=f"Conflict: Units {', '.join([u.name for u in b_mode.units])} are currently in use.")
+                    # Cross-court unit matching is by NAME
+                    b_unit_names = {u.name.strip().upper() for u in b_mode.units}
+                    overlap_units = target_unit_names.intersection(b_unit_names)
+                    if overlap_units:
+                        b_court = db.query(Court).filter(Court.id == b.court_id).first()
+                        raise HTTPException(
+                            status_code=409, 
+                            detail=f"Conflict: Units {', '.join(overlap_units)} are currently in use by a booking on '{b_court.name if b_court else 'another sport'}'.")
 
     else:
         # Standard Independent blocking
