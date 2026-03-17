@@ -22,6 +22,7 @@ function CourtSlotsCalendar() {
   const [loading, setLoading] = useState(true);
   const [selectedCourt, setSelectedCourt] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null); // Used for popup editing
+  const [selectedDateEnd, setSelectedDateEnd] = useState(null); // Range end
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [slots, setSlots] = useState({});
 
@@ -100,36 +101,38 @@ function CourtSlotsCalendar() {
       return true;
     }) : [];
 
+    // Pre-process court conditions to avoid redundant work inside the date loop
+    const courtDataMap = filteredCourts.map(court => {
+      let priceConditions = court.price_conditions || [];
+      if (typeof priceConditions === 'string') {
+        try { priceConditions = JSON.parse(priceConditions); } catch (e) { priceConditions = []; }
+      }
+      
+      const formattedGlobalConditions = globalConditions.map(gc => ({
+        ...gc,
+        days: gc.days || (gc.condition_type === 'recurring' ? gc.days : []),
+        dates: gc.dates || (gc.condition_type === 'date' ? gc.dates : []),
+        slotFrom: gc.slot_from,
+        slotTo: gc.slot_to,
+        price: gc.price
+      }));
+
+      return {
+        id: court.id,
+        pricePerHour: court.price_per_hour,
+        conditions: [...formattedGlobalConditions, ...priceConditions]
+      };
+    });
+
     // Build slots for each date by aggregating
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
-      const dayOfWeekFull = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][date.getDay()];
-      const dayOfWeekShort = dayOfWeekFull.toLowerCase().substring(0, 3);
       const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
       const aggregatedSlots = {};
 
-      // In Bulk Mode, we only want to show OVERRIDES (Template view)
-      // This makes it a "Separate Calendar" for adjustments
-      filteredCourts.forEach(court => {
-        let priceConditions = court.price_conditions || [];
-        if (typeof priceConditions === 'string') {
-          try { priceConditions = JSON.parse(priceConditions); } catch (e) { priceConditions = []; }
-        }
-
-        const formattedGlobalConditions = globalConditions.map(gc => ({
-          ...gc,
-          days: gc.days || (gc.condition_type === 'recurring' ? gc.days : []),
-          dates: gc.dates || (gc.condition_type === 'date' ? gc.dates : []),
-          slotFrom: gc.slot_from,
-          slotTo: gc.slot_to,
-          price: gc.price
-        }));
-
-        const allConditions = [...formattedGlobalConditions, ...priceConditions];
-
+      courtDataMap.forEach(court => {
         // Filter ONLY date-specific overrides for Bulk Mode display
-        const dateSpecificSlots = allConditions.filter(pc => pc.dates && pc.dates.includes(dateKey));
+        const dateSpecificSlots = court.conditions.filter(pc => pc.dates && pc.dates.includes(dateKey));
 
         dateSpecificSlots.forEach(cond => {
           const condFrom = cond.slotFrom || cond.slot_from || '';
@@ -334,7 +337,10 @@ function CourtSlotsCalendar() {
         }
       });
 
-      daySlots = daySlots.filter(slot => !disabledTimes.has(slot.slotFrom));
+      daySlots = daySlots.map(slot => ({
+        ...slot,
+        isBlocked: disabledTimes.has(slot.slotFrom)
+      }));
 
       slotsByDate[dateKey] = daySlots.sort((a, b) => a.slotFrom.localeCompare(b.slotFrom));
     }
@@ -374,6 +380,22 @@ function CourtSlotsCalendar() {
     return `${year}-${month}-${day}`;
   };
 
+  const getDatesInRange = (start, end) => {
+    if (!start || !end) return [];
+    const dates = [];
+    let current = new Date(start);
+    const stop = new Date(end);
+    // Reset hours to avoid overlap issues
+    current.setHours(0,0,0,0);
+    stop.setHours(0,0,0,0);
+    
+    while (current <= stop) {
+      dates.push(getDateKey(new Date(current)));
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  };
+
   // --- Modal Actions ---
 
   const handleDayClick = (date) => {
@@ -384,11 +406,13 @@ function CourtSlotsCalendar() {
 
   const openSlotEdit = (date, slot) => {
     setSelectedDate(date);
+    setSelectedDateEnd(date);
     setEditingSlot(slot);
     setTempEditData({
       slotFrom: slot.slotFrom,
       slotTo: slot.slotTo,
-      price: slot.price
+      price: slot.price,
+      actionType: 'update'
     });
     setIsAddingNew(false);
     setShowDayDetail(false);
@@ -396,37 +420,129 @@ function CourtSlotsCalendar() {
 
   const openAddSlot = (date) => {
     setSelectedDate(date);
+    setSelectedDateEnd(date);
     setEditingSlot(null);
     setTempEditData({
       slotFrom: '09:00',
       slotTo: '09:30',
-      price: selectedCourt?.price_per_hour || ''
+      price: selectedCourt?.price_per_hour || '',
+      actionType: 'update'
     });
     setIsAddingNew(true);
     setShowDayDetail(false);
   };
 
+  const toggleSlotBlockStatus = async (date, slot) => {
+    if (!selectedCourt) return;
+    const dateKey = getDateKey(date);
+
+    try {
+      setSaving(true);
+      const freshCourt = courts.find(c => c.id === selectedCourt.id) || selectedCourt;
+      let unavailability = [];
+      try {
+        unavailability = typeof freshCourt.unavailability_slots === 'string'
+          ? JSON.parse(freshCourt.unavailability_slots)
+          : (freshCourt.unavailability_slots || []);
+      } catch (e) { unavailability = []; }
+
+      let updatedUnavailability = [...unavailability];
+
+      if (slot.isBlocked) {
+        updatedUnavailability = updatedUnavailability.filter(un => {
+          const isDateMatch = un.dates && un.dates.includes(dateKey);
+          const isTimeMatch = un.times && un.times.includes(slot.slotFrom);
+          return !(isDateMatch && isTimeMatch);
+        });
+      } else {
+        updatedUnavailability.push({
+          type: 'date',
+          dates: [dateKey],
+          times: [slot.slotFrom]
+        });
+      }
+
+      const formData = new FormData();
+      formData.append('name', freshCourt.name);
+      formData.append('branch_id', freshCourt.branch_id);
+      formData.append('game_type_id', freshCourt.game_type_id);
+      formData.append('price_per_hour', freshCourt.price_per_hour);
+      formData.append('is_active', freshCourt.is_active);
+      if (freshCourt.price_conditions) formData.append('price_conditions', typeof freshCourt.price_conditions === 'string' ? freshCourt.price_conditions : JSON.stringify(freshCourt.price_conditions));
+      formData.append('unavailability_slots', JSON.stringify(updatedUnavailability));
+
+      if (freshCourt.terms_and_conditions) formData.append('terms_and_conditions', freshCourt.terms_and_conditions);
+      if (freshCourt.amenities) {
+        const amData = typeof freshCourt.amenities === 'string' ? freshCourt.amenities : JSON.stringify(freshCourt.amenities);
+        formData.append('amenities', amData);
+      }
+      if (freshCourt.images) {
+        const imgs = typeof freshCourt.images === 'string' ? JSON.parse(freshCourt.images) : freshCourt.images;
+        if (Array.isArray(imgs)) imgs.forEach(img => formData.append('existing_images', img));
+      }
+      if (freshCourt.videos) {
+        const vids = typeof freshCourt.videos === 'string' ? JSON.parse(freshCourt.videos) : freshCourt.videos;
+        if (Array.isArray(vids)) vids.forEach(vid => formData.append('existing_videos', vid));
+      }
+
+      await courtsApi.update(selectedCourt.id, formData);
+      await refreshCourts();
+
+      if (selectedCourt) {
+        const refreshed = await courtsApi.getById(selectedCourt.id);
+        setSelectedCourt(refreshed);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update slot status.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleCommitChange = async () => {
     if (!selectedDate) return;
     const dateKey = getDateKey(selectedDate);
+    const dateKeyEnd = getDateKey(selectedDateEnd || selectedDate);
+    const isRange = dateKey !== dateKeyEnd;
 
     try {
       setSaving(true);
       if (bulkEditMode) {
-        await courtsApi.bulkUpdateSlots(
-          dateKey,
-          tempEditData.slotFrom,
-          tempEditData.slotTo,
-          tempEditData.price,
-          selectedBranchId || null,
-          null,
-          !isAddingNew && editingSlot ? editingSlot.slotFrom : null,
-          !isAddingNew && editingSlot ? editingSlot.slotTo : null
-        );
+        if (tempEditData.actionType === 'block') {
+          // Range Blocking
+          const dates = isRange ? getDatesInRange(selectedDate, selectedDateEnd) : [dateKey];
+          await courtsApi.bulkBlockSlots(
+            dates,
+            tempEditData.slotFrom,
+            tempEditData.slotTo,
+            true, // isBlocked
+            selectedBranchId || null
+          );
+        } else {
+          // Range Price Update
+          const dates = isRange ? getDatesInRange(selectedDate, selectedDateEnd) : [dateKey];
+          await courtsApi.bulkUpdateSlots(
+            dates,
+            tempEditData.slotFrom,
+            tempEditData.slotTo,
+            tempEditData.price,
+            selectedBranchId || null,
+            null,
+            !isAddingNew && editingSlot ? editingSlot.slotFrom : null,
+            !isAddingNew && editingSlot ? editingSlot.slotTo : null
+          );
+        }
         await refreshCourts();
         closeModal();
       } else {
-        // Single Court Logic - Need to handle Price Condition Array manually
+        // Single Court Logic (Modified to support blocking from same modal if desired)
+        if (tempEditData.actionType === 'block') {
+           await toggleSlotBlockStatus(selectedDate, { slotFrom: tempEditData.slotFrom, isBlocked: false });
+           closeModal();
+           return;
+        }
+        
         const freshCourt = courts.find(c => c.id === selectedCourt.id) || selectedCourt;
         let existingConditions = [];
         try {
@@ -485,29 +601,19 @@ function CourtSlotsCalendar() {
         formData.append('price_conditions', JSON.stringify(updatedConditions));
         formData.append('unavailability_slots', JSON.stringify(updatedUnavailability));
 
-        // Preserve Terms
-        if (freshCourt.terms_and_conditions) {
-          formData.append('terms_and_conditions', freshCourt.terms_and_conditions);
-        }
-
-        // Preserve Amenities
+        // Preserve Terms, Amenities, Media...
+        if (freshCourt.terms_and_conditions) formData.append('terms_and_conditions', freshCourt.terms_and_conditions);
         if (freshCourt.amenities) {
           const amData = typeof freshCourt.amenities === 'string' ? freshCourt.amenities : JSON.stringify(freshCourt.amenities);
           formData.append('amenities', amData);
         }
-
-        // Preserve Media
         if (freshCourt.images) {
           const imgs = typeof freshCourt.images === 'string' ? JSON.parse(freshCourt.images) : freshCourt.images;
-          if (Array.isArray(imgs)) {
-            imgs.forEach(img => formData.append('existing_images', img));
-          }
+          if (Array.isArray(imgs)) imgs.forEach(img => formData.append('existing_images', img));
         }
         if (freshCourt.videos) {
           const vids = typeof freshCourt.videos === 'string' ? JSON.parse(freshCourt.videos) : freshCourt.videos;
-          if (Array.isArray(vids)) {
-            vids.forEach(vid => formData.append('existing_videos', vid));
-          }
+          if (Array.isArray(vids)) vids.forEach(vid => formData.append('existing_videos', vid));
         }
 
         const refreshedCourt = await courtsApi.update(selectedCourt.id, formData);
@@ -808,10 +914,12 @@ function CourtSlotsCalendar() {
                           {daySlots.slice(0, 6).map((slot, sIdx) => (
                             <div
                               key={sIdx}
-                              onClick={(e) => { e.stopPropagation(); openSlotEdit(date, slot); }}
-                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border truncate transition-colors ${slot.isDateSpecific
-                                ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
-                                : 'bg-green-600 text-white border-green-700 hover:bg-green-700'
+                              onClick={(e) => { e.stopPropagation(); !slot.isBlocked && openSlotEdit(date, slot); }}
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border truncate transition-colors ${slot.isBlocked 
+                                ? 'bg-slate-100 text-slate-400 border-slate-200 line-through'
+                                : (slot.isDateSpecific
+                                  ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
+                                  : 'bg-green-600 text-white border-green-700 hover:bg-green-700')
                                 }`}
                             >
                               {formatTime12Hour(slot.slotFrom)} - {formatTime12Hour(slot.slotTo)}
@@ -861,31 +969,82 @@ function CourtSlotsCalendar() {
       {/* --- Edit Modal --- */}
       {(editingSlot || isAddingNew) && selectedDate && (
         <Modal title={isAddingNew ? `Add Slot on ${selectedDate.toDateString()}` : `Edit Slot (${formatTime12Hour(tempEditData.slotFrom)})`} onClose={closeModal}>
-          {/* ... existing edit modal content ... */}
           <div className="space-y-6">
+            {bulkEditMode && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">From Date</label>
+                  <input
+                    type="date"
+                    value={getDateKey(selectedDate)}
+                    onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg font-bold text-slate-900 focus:border-green-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">To Date</label>
+                  <input
+                    type="date"
+                    value={getDateKey(selectedDateEnd || selectedDate)}
+                    onChange={(e) => setSelectedDateEnd(new Date(e.target.value))}
+                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg font-bold text-slate-900 focus:border-green-500 outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Start</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Start Time</label>
                 <LocalTimePicker value={tempEditData.slotFrom} onChange={v => setTempEditData(p => ({ ...p, slotFrom: v }))} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">End</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">End Time</label>
                 <LocalTimePicker value={tempEditData.slotTo} onChange={v => setTempEditData(p => ({ ...p, slotTo: v }))} />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Price</label>
-              <div className="relative">
-                <span className="absolute left-3 top-2.5 text-slate-400 font-bold">₹</span>
-                <input
-                  type="number"
-                  value={tempEditData.price}
-                  onChange={e => setTempEditData(p => ({ ...p, price: e.target.value }))}
-                  className="w-full pl-8 pr-4 py-2 border-2 border-slate-200 rounded-lg font-bold text-slate-900 focus:border-green-500 outline-none"
-                />
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Action Type</label>
+              <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+                <button
+                  onClick={() => setTempEditData(p => ({ ...p, actionType: 'update' }))}
+                  className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${tempEditData.actionType === 'update' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Update Price
+                </button>
+                <button
+                  onClick={() => setTempEditData(p => ({ ...p, actionType: 'block' }))}
+                  className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${tempEditData.actionType === 'block' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Block Slot
+                </button>
               </div>
             </div>
+
+            {tempEditData.actionType === 'update' && (
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">New Price</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-slate-400 font-bold">₹</span>
+                  <input
+                    type="number"
+                    value={tempEditData.price}
+                    onChange={e => setTempEditData(p => ({ ...p, price: e.target.value }))}
+                    className="w-full pl-8 pr-4 py-2 border-2 border-slate-200 rounded-lg font-bold text-slate-900 focus:border-green-500 outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {tempEditData.actionType === 'block' && (
+              <div className="p-4 bg-red-50 border border-red-100 rounded-xl">
+                <p className="text-xs text-red-700 font-bold">
+                  <span className="uppercase tracking-widest mr-2">[Notice]</span>
+                  This will mark the selected slot as unavailable for booking on the chosen date(s).
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-3 pt-4 border-t border-slate-100">
               {!isAddingNew && (
@@ -935,14 +1094,13 @@ function CourtSlotsCalendar() {
                 {(bulkEditMode ? masterSlots[getDateKey(selectedDate)] : slots[getDateKey(selectedDate)])?.map((slot, idx) => (
                   <div
                     key={idx}
-                    onClick={() => openSlotEdit(selectedDate, slot)}
-                    className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer group hover:shadow-md ${slot.isDateSpecific
-                      ? 'bg-blue-50 border-blue-200 hover:border-blue-500'
-                      : 'bg-slate-50 border-slate-200 hover:border-green-500'
+                    className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all group hover:shadow-md ${slot.isBlocked 
+                      ? 'bg-slate-100 border-slate-300 opacity-60' 
+                      : (slot.isDateSpecific ? 'bg-blue-50 border-blue-200 hover:border-blue-500 cursor-pointer' : 'bg-slate-50 border-slate-200 hover:border-green-500 cursor-pointer')
                       }`}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-lg ${slot.isDateSpecific ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'}`}>
+                    <div className="flex items-center gap-4" onClick={() => !slot.isBlocked && openSlotEdit(selectedDate, slot)}>
+                      <div className={`p-2 rounded-lg ${slot.isBlocked ? 'bg-slate-400 text-white' : (slot.isDateSpecific ? 'bg-blue-600 text-white' : 'bg-green-600 text-white')}`}>
                         <Clock className="h-5 w-5" />
                       </div>
                       <div>
@@ -950,16 +1108,34 @@ function CourtSlotsCalendar() {
                           {formatTime12Hour(slot.slotFrom)} - {formatTime12Hour(slot.slotTo)}
                         </div>
                         <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mt-0.5">
-                          {slot.isDateSpecific ? 'Custom Override' : (slot.isDefault ? 'Standard Slot' : 'Recurring Override')}
+                          {slot.isBlocked ? 'Blocked Slot' : (slot.isDateSpecific ? 'Custom Override' : (slot.isDefault ? 'Standard Slot' : 'Recurring Override'))}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-right">
-                      <div>
-                        <div className="text-sm font-black text-slate-900">₹{slot.price}</div>
-                        <div className="text-[10px] text-slate-400 font-bold uppercase">Price</div>
-                      </div>
-                      <Edit2 className="h-4 w-4 text-slate-400 group-hover:text-green-600" />
+                      {!slot.isBlocked && (
+                        <div onClick={() => openSlotEdit(selectedDate, slot)} className="cursor-pointer">
+                          <div className="text-sm font-black text-slate-900">₹{slot.price}</div>
+                          <div className="text-[10px] text-slate-400 font-bold uppercase">Price</div>
+                        </div>
+                      )}
+                      
+                      {/* One-click Block/Unblock Button */}
+                      {!bulkEditMode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSlotBlockStatus(selectedDate, slot);
+                          }}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors flex bg-white ${slot.isBlocked ? 'text-green-700 border-green-200 hover:bg-green-50' : 'text-red-600 border-red-200 hover:bg-red-50'}`}
+                        >
+                          {slot.isBlocked ? 'Unblock' : 'Block Slot'}
+                        </button>
+                      )}
+                      
+                      {!slot.isBlocked && (
+                        <Edit2 onClick={() => openSlotEdit(selectedDate, slot)} className="h-4 w-4 text-slate-400 group-hover:text-green-600 cursor-pointer" />
+                      )}
                     </div>
                   </div>
                 ))}

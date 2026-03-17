@@ -314,11 +314,17 @@ export const courtsApi = {
     delete: (id) => apiRequest(`/courts/${id}`, {
         method: 'DELETE'
     }),
-    bulkUpdateSlots: (date, slotFrom, slotTo, price, branchId = null, gameTypeId = null, originalSlotFrom = null, originalSlotTo = null) => {
+    bulkUpdateSlots: (dateOrDates, slotFrom, slotTo, price, branchId = null, gameTypeId = null, originalSlotFrom = null, originalSlotTo = null) => {
         const formData = new FormData();
-        formData.append('date', date);
-        formData.append('slot_from', slotFrom);
-        formData.append('slot_to', slotTo);
+        
+        if (Array.isArray(dateOrDates)) {
+            formData.append('dates', JSON.stringify(dateOrDates));
+        } else {
+            formData.append('date', dateOrDates);
+        }
+
+        formData.append('slot_from', slot_from || slotFrom); // Support both snake_case and camelCase
+        formData.append('slot_to', slot_to || slotTo);
         formData.append('price', price);
         if (branchId) formData.append('branch_id', branchId);
         if (gameTypeId) formData.append('game_type_id', gameTypeId);
@@ -341,9 +347,15 @@ export const courtsApi = {
             return res.json();
         });
     },
-    bulkDeleteSlots: (date, slotFrom, slotTo, branchId = null, gameTypeId = null) => {
+    bulkDeleteSlots: (dateOrDates, slotFrom, slotTo, branchId = null, gameTypeId = null) => {
         const formData = new FormData();
-        formData.append('date', date);
+        
+        if (Array.isArray(dateOrDates)) {
+            formData.append('dates', JSON.stringify(dateOrDates));
+        } else {
+            formData.append('date', dateOrDates);
+        }
+
         formData.append('slot_from', slotFrom);
         formData.append('slot_to', slotTo);
         if (branchId) formData.append('branch_id', branchId);
@@ -360,6 +372,37 @@ export const courtsApi = {
             if (!res.ok) {
                 return res.json().then(err => {
                     throw new Error(err.detail || 'Failed to bulk delete slots');
+                });
+            }
+            return res.json();
+        });
+    },
+    bulkBlockSlots: (dateOrDates, slotFrom, slotTo, isBlocked, branchId = null, gameTypeId = null) => {
+        const formData = new FormData();
+        
+        if (Array.isArray(dateOrDates)) {
+            formData.append('dates', JSON.stringify(dateOrDates));
+        } else {
+            formData.append('dates', JSON.stringify([dateOrDates]));
+        }
+
+        formData.append('slot_from', slotFrom);
+        formData.append('slot_to', slotTo);
+        formData.append('is_blocked', String(is_blocked));
+        if (branchId) formData.append('branch_id', branchId);
+        if (gameTypeId) formData.append('game_type_id', gameTypeId);
+
+        const token = localStorage.getItem('admin_token');
+        return fetch(`${API_BASE}/courts/bulk-block-slots`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            body: formData
+        }).then(res => {
+            if (!res.ok) {
+                return res.json().then(err => {
+                    throw new Error(err.detail || 'Failed to bulk block slots');
                 });
             }
             return res.json();

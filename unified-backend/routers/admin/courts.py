@@ -465,7 +465,8 @@ def delete_court(
 
 @router.post("/bulk-update-slots")
 async def bulk_update_slots(
-    date: str = Form(...),
+    date: Optional[str] = Form(None), # Backward compatibility
+    dates: Optional[str] = Form(None), # NEW: JSON array of dates
     slot_from: str = Form(...),
     slot_to: str = Form(...),
     price: str = Form(...),
@@ -477,10 +478,21 @@ async def bulk_update_slots(
     _ = Depends(PermissionChecker("Manage Courts", "edit")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ) -> dict:
-    """Bulk update slots for all courts (or filtered by branch/game_type) for a specific date"""
+    """Bulk update slots for all courts (or filtered by branch/game_type) for multiple dates"""
     try:
-        # Parse the date
-        date_key = date
+        # Parse the dates
+        date_list = []
+        if dates:
+            try:
+                date_list = json.loads(dates)
+                if not isinstance(date_list, list):
+                    date_list = [str(dates)]
+            except:
+                date_list = [str(dates)]
+        elif date:
+            date_list = [date]
+        else:
+            raise HTTPException(status_code=400, detail="Date or Dates is required")
 
         # Get all courts (optionally filtered)
         query = db.query(models.Court).filter(models.Court.is_active == True)
@@ -515,22 +527,23 @@ async def bulk_update_slots(
                 except:
                     price_conditions = []
 
-            # Filter OUT any existing date-specific slot for this EXACT date and the TARGET time (original or new)
-            price_conditions = [
-                pc for pc in price_conditions 
-                if not (pc.get('dates') and date_key in pc.get('dates', []) and pc.get('slotFrom') == from_to_match[0] and pc.get('slotTo') == from_to_match[1])
-            ]
+            for date_key in date_list:
+                # Filter OUT any existing date-specific slot for this EXACT date and the TARGET time (original or new)
+                price_conditions = [
+                    pc for pc in price_conditions 
+                    if not (pc.get('dates') and date_key in pc.get('dates', []) and pc.get('slotFrom') == from_to_match[0] and pc.get('slotTo') == from_to_match[1])
+                ]
 
-            # Create new date-specific slot
-            new_slot = {
-                'id': f"{date_key}-{slot_from}-{slot_to}-{uuid.uuid4().hex[:6]}",
-                'type': 'date',
-                'dates': [date_key],
-                'slotFrom': slot_from,
-                'slotTo': slot_to,
-                'price': price
-            }
-            price_conditions.append(new_slot)
+                # Create new date-specific slot
+                new_slot = {
+                    'id': f"{date_key}-{slot_from}-{slot_to}-{uuid.uuid4().hex[:6]}",
+                    'type': 'date',
+                    'dates': [date_key],
+                    'slotFrom': slot_from,
+                    'slotTo': slot_to,
+                    'price': price
+                }
+                price_conditions.append(new_slot)
 
             # Update court
             court.price_conditions = price_conditions
@@ -541,7 +554,7 @@ async def bulk_update_slots(
         return {
             "message": f"Successfully updated slots for {updated_count} courts",
             "updated_count": updated_count,
-            "date": date_key,
+            "dates": date_list,
             "slot_from": slot_from,
             "slot_to": slot_to,
             "price": price
@@ -555,7 +568,8 @@ async def bulk_update_slots(
 
 @router.post("/bulk-delete-slots")
 async def bulk_delete_slots(
-    date: str = Form(...),
+    date: Optional[str] = Form(None),
+    dates: Optional[str] = Form(None),
     slot_from: str = Form(...),
     slot_to: str = Form(...),
     branch_id: Optional[str] = Form(None),
@@ -564,8 +578,18 @@ async def bulk_delete_slots(
     _ = Depends(PermissionChecker("Manage Courts", "edit")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
-    """Bulk delete slots for all courts (or filtered) for a specific date and time (Bug 4)"""
+    """Bulk delete slots for multiple courts and dates"""
     try:
+        # Parse the dates
+        date_list = []
+        if dates:
+            try:
+                date_list = json.loads(dates)
+                if not isinstance(date_list, list): date_list = [str(dates)]
+            except: date_list = [str(dates)]
+        elif date: date_list = [date]
+        else: raise HTTPException(status_code=400, detail="Date or Dates is required")
+
         # Get all courts (optionally filtered)
         query = db.query(models.Court).filter(models.Court.is_active == True)
         
@@ -590,14 +614,17 @@ async def bulk_delete_slots(
                 try: price_conditions = json.loads(price_conditions)
                 except: price_conditions = []
 
-            # Filter OUT matching slots
-            new_conditions = [
-                pc for pc in price_conditions 
-                if not (pc.get('dates') and date in pc.get('dates', []) and pc.get('slotFrom') == slot_from and pc.get('slotTo') == slot_to)
-            ]
+            original_len = len(price_conditions)
+            
+            for date_key in date_list:
+                # Filter OUT matching slots
+                price_conditions = [
+                    pc for pc in price_conditions 
+                    if not (pc.get('dates') and date_key in pc.get('dates', []) and pc.get('slotFrom') == slot_from and pc.get('slotTo') == slot_to)
+                ]
 
-            if len(new_conditions) != len(price_conditions):
-                court.price_conditions = new_conditions
+            if len(price_conditions) != original_len:
+                court.price_conditions = price_conditions
                 flag_modified(court, "price_conditions")
                 deleted_count += 1
 
@@ -606,3 +633,84 @@ async def bulk_delete_slots(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error deleting slots: {str(e)}")
+
+@router.post("/bulk-block-slots")
+async def bulk_block_slots(
+    dates: str = Form(...), # JSON array [ "2024-12-01", ... ]
+    slot_from: str = Form(...),
+    slot_to: str = Form(...),
+    is_blocked: str = Form("true"), # Use string as Form often receives it this way
+    branch_id: Optional[str] = Form(None),
+    game_type_id: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker("Manage Courts", "edit")),
+    branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
+):
+    """Bulk block or unblock slots across multiple courts and dates"""
+    try:
+        # Parse dates
+        try:
+            date_list = json.loads(dates)
+            if not isinstance(date_list, list): date_list = [str(dates)]
+        except: date_list = [str(dates)]
+
+        block_status = is_blocked.lower() == "true"
+            
+        # Get all courts (optionally filtered)
+        query = db.query(models.Court).filter(models.Court.is_active == True)
+        
+        # Security & Filtering
+        if branch_filter is not None:
+             if branch_id:
+                 if branch_id not in branch_filter: raise HTTPException(status_code=403, detail="Access denied")
+                 query = query.filter(models.Court.branch_id == branch_id)
+             else:
+                 query = query.filter(models.Court.branch_id.in_(branch_filter))
+        elif branch_id:
+            query = query.filter(models.Court.branch_id == branch_id)
+            
+        if game_type_id:
+            query = query.filter(models.Court.game_type_id == game_type_id)
+            
+        courts = query.all()
+        updated_count = 0
+        
+        for court in courts:
+            unavailability = court.unavailability_slots or []
+            if isinstance(unavailability, str):
+                try: unavailability = json.loads(unavailability)
+                except: unavailability = []
+                
+            updated_unavailability = list(unavailability)
+            
+            for date_key in date_list:
+                if block_status:
+                    # Add block
+                    exists = any(
+                        un.get('dates') and date_key in un.get('dates', []) and 
+                        un.get('times') and slot_from in un.get('times', [])
+                        for un in updated_unavailability
+                    )
+                    if not exists:
+                        updated_unavailability.append({
+                            'type': 'date',
+                            'dates': [date_key],
+                            'times': [slot_from]
+                        })
+                else:
+                    # Remove block
+                    updated_unavailability = [
+                        un for un in updated_unavailability
+                        if not (un.get('dates') and date_key in un.get('dates', []) and 
+                                un.get('times') and slot_from in un.get('times', []))
+                    ]
+            
+            court.unavailability_slots = updated_unavailability
+            flag_modified(court, "unavailability_slots")
+            updated_count += 1
+            
+        db.commit()
+        return {"message": f"Successfully updated block status for {updated_count} courts", "updated_count": updated_count}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error bulk blocking slots: {str(e)}")
