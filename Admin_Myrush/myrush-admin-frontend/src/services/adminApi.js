@@ -287,11 +287,10 @@ export const courtsApi = {
                 'Authorization': `Bearer ${token}`,
             },
             body: formData
-        }).then(res => {
+        }).then(async res => {
             if (!res.ok) {
-                return res.json().then(err => {
-                    throw new Error(err.error || 'Failed to create court');
-                });
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.detail || errorData.error || 'Failed to create court');
             }
             return res.json();
         });
@@ -304,19 +303,28 @@ export const courtsApi = {
                 'Authorization': `Bearer ${token}`,
             },
             body: formData
-        }).then(res => {
-            if (!res.ok) throw new Error('Failed to update court');
+        }).then(async res => {
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.detail || errorData.error || 'Failed to update court');
+            }
             return res.json();
         });
     },
     delete: (id) => apiRequest(`/courts/${id}`, {
         method: 'DELETE'
     }),
-    bulkUpdateSlots: (date, slotFrom, slotTo, price, branchId = null, gameTypeId = null, originalSlotFrom = null, originalSlotTo = null) => {
+    bulkUpdateSlots: (dateOrDates, slotFrom, slotTo, price, branchId = null, gameTypeId = null, originalSlotFrom = null, originalSlotTo = null) => {
         const formData = new FormData();
-        formData.append('date', date);
-        formData.append('slot_from', slotFrom);
-        formData.append('slot_to', slotTo);
+        
+        if (Array.isArray(dateOrDates)) {
+            formData.append('dates', JSON.stringify(dateOrDates));
+        } else {
+            formData.append('date', dateOrDates);
+        }
+
+        formData.append('slot_from', slot_from || slotFrom); // Support both snake_case and camelCase
+        formData.append('slot_to', slot_to || slotTo);
         formData.append('price', price);
         if (branchId) formData.append('branch_id', branchId);
         if (gameTypeId) formData.append('game_type_id', gameTypeId);
@@ -339,9 +347,15 @@ export const courtsApi = {
             return res.json();
         });
     },
-    bulkDeleteSlots: (date, slotFrom, slotTo, branchId = null, gameTypeId = null) => {
+    bulkDeleteSlots: (dateOrDates, slotFrom, slotTo, branchId = null, gameTypeId = null) => {
         const formData = new FormData();
-        formData.append('date', date);
+        
+        if (Array.isArray(dateOrDates)) {
+            formData.append('dates', JSON.stringify(dateOrDates));
+        } else {
+            formData.append('date', dateOrDates);
+        }
+
         formData.append('slot_from', slotFrom);
         formData.append('slot_to', slotTo);
         if (branchId) formData.append('branch_id', branchId);
@@ -358,6 +372,37 @@ export const courtsApi = {
             if (!res.ok) {
                 return res.json().then(err => {
                     throw new Error(err.detail || 'Failed to bulk delete slots');
+                });
+            }
+            return res.json();
+        });
+    },
+    bulkBlockSlots: (dateOrDates, slotFrom, slotTo, isBlocked, branchId = null, gameTypeId = null) => {
+        const formData = new FormData();
+        
+        if (Array.isArray(dateOrDates)) {
+            formData.append('dates', JSON.stringify(dateOrDates));
+        } else {
+            formData.append('dates', JSON.stringify([dateOrDates]));
+        }
+
+        formData.append('slot_from', slotFrom);
+        formData.append('slot_to', slotTo);
+        formData.append('is_blocked', String(is_blocked));
+        if (branchId) formData.append('branch_id', branchId);
+        if (gameTypeId) formData.append('game_type_id', gameTypeId);
+
+        const token = localStorage.getItem('admin_token');
+        return fetch(`${API_BASE}/courts/bulk-block-slots`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            body: formData
+        }).then(res => {
+            if (!res.ok) {
+                return res.json().then(err => {
+                    throw new Error(err.detail || 'Failed to bulk block slots');
                 });
             }
             return res.json();
@@ -621,6 +666,47 @@ export const cmsApi = {
     }),
     delete: (id) => apiRequest(`/cms/${id}`, {
         method: 'DELETE'
+    })
+};
+
+// Facility Management APIs
+export const facilityTypesApi = {
+    getAll: () => apiRequest('/facilities/types'),
+    create: (data) => apiRequest('/facilities/types', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+};
+
+export const sharedGroupsApi = {
+    getAll: (branchId = null) => apiRequest(`/facilities/shared-groups${branchId ? `?branch_id=${branchId}` : ''}`),
+    create: (data) => apiRequest('/facilities/shared-groups', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+};
+
+export const rentalItemsApi = {
+    getAll: () => apiRequest('/facilities/rental-items'),
+    create: (data) => apiRequest('/facilities/rental-items', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+};
+
+export const courtUnitsApi = {
+    getByCourt: (courtId) => apiRequest(`/facilities/${courtId}/units`),
+    create: (courtId, data) => apiRequest(`/facilities/${courtId}/units`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+};
+
+export const divisionModesApi = {
+    getByCourt: (courtId) => apiRequest(`/facilities/${courtId}/division-modes`),
+    create: (courtId, data) => apiRequest(`/facilities/${courtId}/division-modes`, {
+        method: 'POST',
+        body: JSON.stringify(data)
     })
 };
 

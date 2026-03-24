@@ -177,7 +177,8 @@ from routers.admin import (
     roles,
     cms as admin_cms,
     site_settings as admin_site_settings,
-    playo_tokens
+    playo_tokens,
+    facilities
 )
 
 # Import media proxy router (serves private S3 files via server-side AWS credentials)
@@ -207,6 +208,7 @@ app.include_router(admin_faq.router, prefix="/api/admin", tags=["Admin FAQ"])
 app.include_router(admin_cms.router, prefix="/api/admin", tags=["Admin CMS"])
 app.include_router(admin_site_settings.router, prefix="/api/admin", tags=["Admin Site Settings"])
 app.include_router(playo_tokens.router, prefix="/api/admin", tags=["Admin Playo Tokens"])
+app.include_router(facilities.router, prefix="/api/admin", tags=["Admin Facilities"])
 
 # ============================================================================
 # IMPORT AND INCLUDE USER ROUTERS

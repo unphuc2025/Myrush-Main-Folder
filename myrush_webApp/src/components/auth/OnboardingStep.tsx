@@ -3,6 +3,7 @@ import { apiClient } from '../../api/client';
 import { profileApi, type City, type GameType } from '../../api/profile';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 import { MultiSelectDropdown } from '../ui/MultiSelectDropdown';
 
 interface OnboardingStepProps {
@@ -13,6 +14,7 @@ interface OnboardingStepProps {
 
 export const OnboardingStep: React.FC<OnboardingStepProps> = ({ phone, token, onSuccess }) => {
     const { login } = useAuth();
+    const { showAlert } = useNotification();
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [age, setAge] = useState('');
@@ -41,11 +43,11 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({ phone, token, on
 
     const handleComplete = async () => {
         if (!fullName.trim() || !age.trim() || !selectedCityId) {
-            alert('Please fill in your name, age, and city.');
+            showAlert('Please fill in your name, age, and city.', 'warning');
             return;
         }
         if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-             alert('Please enter a valid email address.');
+             showAlert('Please enter a valid email address.', 'warning');
              return;
         }
         setIsSaving(true);
@@ -68,7 +70,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({ phone, token, on
             });
             onSuccess();
         } catch (error) {
-            alert('Failed to save profile. Please try again.');
+            showAlert('Failed to save profile. Please try again.', 'error');
         } finally {
             setIsSaving(false);
         }

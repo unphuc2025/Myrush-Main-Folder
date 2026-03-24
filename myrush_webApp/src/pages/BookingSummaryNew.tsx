@@ -5,6 +5,7 @@ import { TopNav } from '../components/TopNav';
 import { bookingsApi } from '../api/bookings';
 import { couponsApi } from '../api/coupons';
 import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaBuilding, FaFutbol } from 'react-icons/fa';
+import { useNotification } from '../context/NotificationContext';
 
 import './BookingSummaryNew.css';
 
@@ -25,6 +26,7 @@ export const BookingSummaryNew: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const bookingData = location.state as BookingSummaryState;
+    const { showAlert } = useNotification();
 
     const [players] = useState(bookingData?.players || 2);
     const [couponCode, setCouponCode] = useState('');
@@ -44,7 +46,7 @@ export const BookingSummaryNew: React.FC = () => {
 
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) {
-            alert('Please enter a coupon code');
+            showAlert('Please enter a coupon code', 'warning');
             return;
         }
 
@@ -53,14 +55,14 @@ export const BookingSummaryNew: React.FC = () => {
             if (response.success && response.data.valid) {
                 setAppliedCoupon(couponCode.toUpperCase());
                 setDiscount(response.data.discount_percentage || 0);
-                alert(response.data.message || 'Coupon applied successfully!');
+                showAlert(response.data.message || 'Coupon applied successfully!', 'success');
                 setCouponCode('');
             } else {
-                alert(response.data.message || 'Invalid coupon code');
+                showAlert(response.data.message || 'Invalid coupon code', 'error');
             }
         } catch (error) {
             console.error('Coupon validation error:', error);
-            alert('Failed to validate coupon. Please try again.');
+            showAlert('Failed to validate coupon. Please try again.', 'error');
         }
     };
 
@@ -92,13 +94,13 @@ export const BookingSummaryNew: React.FC = () => {
             });
 
             if (res.success) {
-                alert('Booking Confirmed Successfully!');
+                showAlert('Booking Confirmed Successfully!', 'success');
                 navigate('/bookings');
             } else {
-                alert('Booking failed. Please try again.');
+                showAlert('Booking failed. Please try again.', 'error');
             }
         } catch (e) {
-            alert('Error processing booking.');
+            showAlert('Error processing booking.', 'error');
         } finally {
             setSubmitting(false);
         }

@@ -4,12 +4,14 @@ import { apiClient } from '../api/client';
 import { profileApi } from '../api/profile';
 import type { City, GameType } from '../api/profile';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { MultiSelectDropdown } from '../components/ui/MultiSelectDropdown';
 
 export const ProfileSetup: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { login } = useAuth();
+    const { showAlert } = useNotification();
 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [fullName, setFullName] = useState('');
@@ -86,12 +88,12 @@ export const ProfileSetup: React.FC = () => {
 
     const handleContinue = async () => {
         if (!fullName.trim() || !age.trim() || !city.trim()) {
-            alert('Please enter your full name, age, and city.');
+            showAlert('Please enter your full name, age, and city.', 'warning');
             return;
         }
         if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            alert('Please enter a valid email address.');
-            return;
+             showAlert('Please enter a valid email address.', 'warning');
+             return;
         }
 
         if (isSaving) return;
@@ -116,7 +118,7 @@ export const ProfileSetup: React.FC = () => {
             });
             navigate('/dashboard');
         } catch (error: any) {
-            alert(error?.response?.data?.detail || 'Something went wrong while saving your profile.');
+            showAlert(error?.response?.data?.detail || 'Something went wrong while saving your profile.', 'error');
         } finally {
             setIsSaving(false);
         }

@@ -156,6 +156,47 @@ def get_venue_hours(opening_hours: Any, booking_date: date) -> tuple:
 
     return start_h, end_h
 
+def ensure_slots_for_date(db: Session, court_id: Any, booking_date: date):
+    import models
+    existing_slots = db.query(models.Slot).filter(
+        models.Slot.court_id == court_id,
+        models.Slot.slot_date == booking_date
+    ).all()
+    
+    if len(existing_slots) < 48:
+        existing_times = {s.start_time.strftime("%H:%M") for s in existing_slots}
+        new_slots = []
+        for i in range(48):
+            h_start = i * 0.5
+            hh = int(h_start)
+            mm = int((h_start % 1) * 60)
+            t_str = f"{hh:02d}:{mm:02d}"
+            
+            if t_str not in existing_times:
+                s_time = time(hh, mm)
+                ehh = int((i + 1) * 0.5) % 24
+                emm = int((((i + 1) * 0.5) % 1) * 60)
+                e_time = time(ehh, emm)
+                new_slots.append(
+                    models.Slot(
+                        court_id=court_id,
+                        slot_date=booking_date,
+                        start_time=s_time,
+                        end_time=e_time,
+                        occupied_mask=0
+                    )
+                )
+        if new_slots:
+            db.bulk_save_objects(new_slots)
+            db.commit()
+            
+        existing_slots = db.query(models.Slot).filter(
+            models.Slot.court_id == court_id,
+            models.Slot.slot_date == booking_date
+        ).all()
+    
+    return {s.start_time.strftime("%H:%M"): s for s in existing_slots}
+
 def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -> Dict[str, Dict[str, Any]]:
     """
     30-Minute Slot Engine. 
@@ -168,6 +209,11 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
     
     day_short = booking_date.strftime("%a").lower()
     date_str = booking_date.isoformat()
+    
+    # NEW: Fetch DB Slots & Slices
+    slots_db_map = ensure_slots_for_date(db, court_id, booking_date)
+    sport_slices = db.query(models.SportSlice).filter(models.SportSlice.court_id == court_id).all()
+    slices_data = [{"id": str(s.id), "name": s.name, "mask": s.mask, "sport_id": str(s.sport_id), "price_per_hour": float(s.price_per_hour) if s.price_per_hour is not None else None} for s in sport_slices]
     
     court_rules = court.price_conditions or []
     if isinstance(court_rules, str):
@@ -252,16 +298,34 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
             
             if not is_blocked:
                 base_price = float(court.price_per_hour)
-                # Slot is 30 mins, but the price is per slot as per requirement
                 price = float(matched_rule.get('price', base_price)) if matched_rule else base_price
                 
                 ehh = int(h_end)
                 emm = int((h_end % 1) * 60)
+                
+                # Fetch Bitmask State
+                slot_row = slots_db_map.get(time_key)
+                occupied = slot_row.occupied_mask if slot_row else 0
+                
+                slices_status = []
+                for s in slices_data:
+                    slices_status.append({
+                        "id": s["id"],
+                        "name": s["name"],
+                        "mask": s["mask"],
+                        "sport_id": s["sport_id"],
+                        "price_per_hour": s.get("price_per_hour"),
+                        "status": "BOOKED" if (occupied & s["mask"]) != 0 else "AVAILABLE"
+                    })
+                
                 allowed_slots[time_key] = {
                     "price": price,
                     "is_blocked": False,
                     "end_time": f"{ehh:02d}:{emm:02d}",
-                    "source": matched_rule.get('source', 'venue_hours') if matched_rule else 'venue_hours'
+                    "source": matched_rule.get('source', 'venue_hours') if matched_rule else 'venue_hours',
+                    "slot_id": str(slot_row.id) if slot_row else None,
+                    "occupied_mask": occupied,
+                    "slices": slices_status
                 }
 
     print(f"[SLOT ENGINE] 30-MIN MODEL: Found {len(allowed_slots)} slots for {booking_date}")

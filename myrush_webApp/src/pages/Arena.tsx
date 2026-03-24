@@ -9,6 +9,7 @@ import ScrollIndicator from '../components/ScrollIndicator';
 import { FaMapMarkerAlt, FaClock, FaUsers, FaStar, FaArrowRight } from "react-icons/fa";
 import { venuesApi } from '../api/venues';
 import { getSportIcon } from '../utils/sportIcons';
+import { useNotification } from '../context/NotificationContext';
 
 
 const FALLBACK_IMAGES = [
@@ -22,6 +23,7 @@ const FALLBACK_IMAGES = [
 
 export const Arena: React.FC = () => {
     const navigate = useNavigate();
+    const { showAlert } = useNotification();
 
     // --- Types ---
     interface Venue {
@@ -176,14 +178,14 @@ export const Arena: React.FC = () => {
                 message: formData.message
             });
             if (response.data.success) {
-                alert(response.data.message);
+                showAlert(response.data.message, 'success');
                 setFormData({ firstName: '', lastName: '', email: '', countryCode: '+91', phone: '', message: '' });
                 setFormErrors({});
             } else {
-                alert('Message failed to send. Please try again.');
+                showAlert('Message failed to send. Please try again.', 'error');
             }
         } catch (err) {
-            alert('Error sending message. Please try again.');
+            showAlert('Error sending message. Please try again.', 'error');
         } finally {
             setIsSubmittingForm(false);
         }
@@ -323,16 +325,20 @@ export const Arena: React.FC = () => {
                                     ↗ Open Full Screen
                                 </a>
                             </div>
-                            <iframe
-                                key={activeTour}
-                                src={TOUR_LIST[activeTour].url}
-                                title={`Rush Arena ${TOUR_LIST[activeTour].label} — 360° Virtual Tour`}
-                                width="100%"
-                                style={{ height: 'calc(100% - 40px)', border: 0 }}
-                                allow="fullscreen; accelerometer; gyroscope"
-                                allowFullScreen
-                                loading="lazy"
-                            />
+                            <div className="relative w-full" style={{ height: 'calc(100% - 40px)' }}>
+                                {TOUR_LIST.map((tour, i) => (
+                                    <iframe
+                                        key={i}
+                                        src={tour.url}
+                                        title={`Rush Arena ${tour.label} — 360° Virtual Tour`}
+                                        className={`absolute inset-0 w-full h-full border-0 transition-opacity duration-500 ${
+                                            activeTour === i ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                                        }`}
+                                        allow="fullscreen; accelerometer; gyroscope"
+                                        allowFullScreen
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </motion.div>
                 </div>

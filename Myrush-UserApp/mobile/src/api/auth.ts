@@ -5,6 +5,7 @@ export interface User {
     id: string;
     email: string;
     phone_number?: string;
+    full_name?: string; // Added full_name
     first_name: string;
     last_name: string;
     city?: string; // Added city

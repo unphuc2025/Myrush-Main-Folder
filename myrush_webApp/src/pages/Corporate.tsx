@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { PhoneInput } from '../components/ui/PhoneInput';
 import { apiClient } from '../api/client';
 import ScrollIndicator from '../components/ScrollIndicator';
+import { useNotification } from '../context/NotificationContext';
 
 
 export const Corporate: React.FC = () => {
@@ -50,6 +51,7 @@ export const Corporate: React.FC = () => {
 
     const { scrollY } = useScroll();
     const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+    const { showAlert } = useNotification();
 
     // Form State
     const [formData, setFormData] = React.useState({
@@ -106,7 +108,7 @@ export const Corporate: React.FC = () => {
                 message: `Designation: ${formData.designation}`
             });
             if (response.data.success) {
-                alert(response.data.message);
+                showAlert(response.data.message, 'success');
                 setFormData({
                     firstName: '',
                     lastName: '',
@@ -118,10 +120,10 @@ export const Corporate: React.FC = () => {
                 });
                 setFormErrors({});
             } else {
-                alert('Message failed to send. Please try again.');
+                showAlert('Message failed to send. Please try again.', 'error');
             }
         } catch (err) {
-            alert('Error sending message. Please try again.');
+            showAlert('Error sending message. Please try again.', 'error');
         } finally {
             setIsSubmittingForm(false);
         }

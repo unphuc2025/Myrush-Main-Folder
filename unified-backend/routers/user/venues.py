@@ -579,12 +579,13 @@ def get_venue_slots(
                 is_available = h_float not in booked_slots
                 
                 time_key = slot_time # "HH:MM"
+                slot_key = f"{c_id}_{time_key}"
                 
                 update = False
-                if time_key not in consolidated_slots:
+                if slot_key not in consolidated_slots:
                     update = True
                 else:
-                    existing = consolidated_slots[time_key]
+                    existing = consolidated_slots[slot_key]
                     if is_available and not existing['available']:
                         update = True
                     elif is_available and existing['available']:
@@ -607,7 +608,7 @@ def get_venue_slots(
                     ampm_e = "AM" if h_e < 12 or h_e == 24 else "PM"
                     if h_e == 24: ampm_e = "AM"
                     
-                    consolidated_slots[time_key] = {
+                    consolidated_slots[slot_key] = {
                         "time": time_key,
                         "display_time": f"{sh_disp:02d}:{m:02d} {ampm_s} - {eh_disp:02d}:{m_e:02d} {ampm_e}",
                         "price": details['price'],
@@ -616,7 +617,10 @@ def get_venue_slots(
                         "current_court_rating": float(court.get('court_rating') or 0),
                         "current_court_reviews": int(court.get('court_reviews') or 0),
                         "available": is_available,
-                        "slot_id": details.get('id', 'default')
+                        "slot_id": details.get('slot_id'),
+                        "occupied_mask": details.get('occupied_mask', 0),
+                        "total_zones": details.get('total_zones', 1),
+                        "slices": details.get('slices', [])
                     }
                             
 

@@ -25,12 +25,14 @@ if SQLALCHEMY_DATABASE_URL:
 # Create engine with connection pooling for PostgreSQL/Supabase
 if "postgresql" in SQLALCHEMY_DATABASE_URL or "supabase" in SQLALCHEMY_DATABASE_URL:
     # PostgreSQL/Supabase-specific configuration
-    # Using NullPool as per original configuration to avoid connection issues on free tier
-    from sqlalchemy.pool import NullPool
+    # Using small pool to keep connections reuse high while respecting Supabase limits
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
-        poolclass=NullPool,
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=15, # Fail faster if pool is full
         pool_pre_ping=True,
+        connect_args={'connect_timeout': 10}, # TCP connection timeout
         echo=False
     )
 else:

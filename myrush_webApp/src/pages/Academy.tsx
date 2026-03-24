@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { TopNav } from '../components/TopNav';
 import { FaCalendarAlt, FaChartLine, FaCheckCircle, FaUserGraduate, FaClock } from 'react-icons/fa';
+import { useNotification } from '../context/NotificationContext';
 
 export const Academy: React.FC = () => {
     const { isAuthenticated } = useAuth();
@@ -39,13 +40,14 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
     const [experience, setExperience] = useState('Beginner');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { user } = useAuth(); // Get user details if available
+    const { showAlert } = useNotification();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Basic validation
         if (!sport || !experience) {
-            alert('Please select both sport and experience level');
+            showAlert('Please select both sport and experience level', 'warning');
             return;
         }
 
@@ -63,14 +65,14 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
             });
 
             if (response.data.success) {
-                alert('Application Submitted Successfully!');
+                showAlert('Application Submitted Successfully!', 'success');
                 onEnroll();
             } else {
-                alert('Failed to submit application. Please try again.');
+                showAlert('Failed to submit application. Please try again.', 'error');
             }
         } catch (error) {
             console.error('Academy submission error:', error);
-            alert('An error occurred. Please try again.');
+            showAlert('An error occurred. Please try again.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -300,6 +302,7 @@ const AcademyDashboard: React.FC = () => {
 // --- GUEST VIEW: LANDING PAGE ---
 const AcademyLanding: React.FC = () => {
     const { scrollY } = useScroll();
+    const { showAlert } = useNotification();
     const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
 
     // Trial Form State
@@ -360,7 +363,7 @@ const AcademyLanding: React.FC = () => {
                 message: "Trial Registration Application"
             });
             if (response.data.success) {
-                alert(response.data.message);
+                showAlert(response.data.message, 'success');
                 setTrialData({
                     kidFirstName: '',
                     kidLastName: '',
@@ -372,10 +375,10 @@ const AcademyLanding: React.FC = () => {
                 });
                 setTrialErrors({});
             } else {
-                alert('Registration failed. Please try again.');
+                showAlert('Registration failed. Please try again.', 'error');
             }
         } catch (err) {
-            alert('Error submitting registration. Please try again.');
+            showAlert('Error submitting registration. Please try again.', 'error');
         } finally {
             setIsSubmittingTrial(false);
         }

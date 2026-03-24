@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getSportIcon } from '../utils/sportIcons';
@@ -12,12 +12,25 @@ import { VenueImageGallery } from '../components/VenueImageGallery';
 import { FaMapMarkerAlt, FaStar, FaClock, FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart } from 'react-icons/fa';
 import { getAmenityIcon } from '../utils/amenityIcons';
 import { useFavorites } from '../context/FavoritesContext';
+import { useNotification } from '../context/NotificationContext';
+interface SportSlice {
+    id: string;
+    sport_id: string;
+    name: string;
+    mask: number;
+}
+
 interface Slot {
     time: string;
     display_time: string;
     price: number;
     available: boolean;
+    court_id?: string;
     court_name?: string;
+    slot_id?: string;
+    occupied_mask?: number;
+    total_zones?: number;
+    slices?: SportSlice[];
 }
 
 // --- Sub-Components ---
@@ -30,6 +43,7 @@ export const VenueDetailsPage: React.FC = () => {
     const location = useLocation();
     const { isAuthenticated, openAuthModal } = useAuth();
     const { isFavorite, toggleFavorite } = useFavorites();
+    const { showAlert } = useNotification();
 
     // Venue Data State
     const [venue, setVenue] = useState<Venue | null>(null);
@@ -59,6 +73,101 @@ export const VenueDetailsPage: React.FC = () => {
 
     // Game Type Selection State
     const [selectedSport, setSelectedSport] = useState<string>('');
+    const [selectedSliceId, setSelectedSliceId] = useState<string>('');
+
+    // Derived configuration options (Slices) based on selected sport
+    const availableConfigurations = useMemo(() => {
+        const configs: { courtId: string; totalZones: number; slice: SportSlice | 'full'; label: string; minPrice: number }[] = [];
+        const courtsMap = new Map<string, { totalZones: number; slices: Map<string, SportSlice>; minPrice: number; name: string }>();
+        
+        availableSlots.forEach(slot => {
+            if (!slot.court_id) return;
+            if (!courtsMap.has(slot.court_id)) {
+                courtsMap.set(slot.court_id, {
+                    totalZones: slot.total_zones || 1,
+                    slices: new Map(),
+                    minPrice: slot.price,
+                    name: slot.court_name || 'Court'
+                });
+            }
+            const cInfo = courtsMap.get(slot.court_id)!;
+            if (slot.price < cInfo.minPrice) cInfo.minPrice = slot.price;
+            
+            if (slot.slices && slot.slices.length > 0) {
+                slot.slices.forEach(sl => cInfo.slices.set(sl.id, sl));
+            }
+        });
+
+        courtsMap.forEach((cInfo, courtId) => {
+            if (cInfo.slices.size > 0) {
+                cInfo.slices.forEach(sl => {
+                    configs.push({
+                        courtId,
+                        totalZones: cInfo.totalZones,
+                        slice: sl,
+                        label: `${cInfo.name.replace('Court', '').trim() || 'Court'} - ${sl.name}`,
+                        minPrice: cInfo.minPrice
+                    });
+                });
+            } else {
+                 configs.push({
+                    courtId,
+                    totalZones: cInfo.totalZones,
+                    slice: 'full',
+                    label: cInfo.name || 'Full Court',
+                    minPrice: cInfo.minPrice
+                });
+            }
+        });
+        
+        return configs;
+    }, [availableSlots]);
+
+    // Auto-select first configuration when available changes
+    useEffect(() => {
+        if (availableConfigurations.length > 0) {
+             const exists = availableConfigurations.some(c => (c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id) === selectedSliceId);
+             if (!exists) {
+                 const first = availableConfigurations[0];
+                 setSelectedSliceId(first.slice === 'full' ? `full-${first.courtId}` : (first.slice as SportSlice).id);
+             }
+        } else {
+             setSelectedSliceId('');
+        }
+    }, [availableConfigurations]);
+
+    // Derived slots based on selected config
+    const filteredSlots = useMemo(() => {
+        if (!selectedSliceId) return []; 
+        
+        const config = availableConfigurations.find(c => 
+            (c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id) === selectedSliceId
+        );
+        
+        if (!config) return [];
+        
+        return availableSlots.filter(slot => {
+            if (slot.court_id !== config.courtId) return false;
+            
+            if (config.slice === 'full') {
+                 const fullMask = (1 << (slot.total_zones || 1)) - 1;
+                 return ((slot.occupied_mask || 0) & fullMask) === 0;
+            } else {
+                 const sl = config.slice as SportSlice;
+                 return ((slot.occupied_mask || 0) & sl.mask) === 0;
+            }
+        }).map(slot => {
+            const sl = config.slice as SportSlice;
+            const newPrice = (config.slice !== 'full' && sl.price_per_hour && sl.price_per_hour > 0) 
+                ? (sl.price_per_hour / 2.0)
+                : undefined;
+                
+            return {
+                ...slot,
+                price: newPrice !== undefined ? newPrice : slot.price
+            };
+        });
+    }, [availableSlots, selectedSliceId, availableConfigurations]);
 
     // Talking Lands virtual tour URLs — keyed by venue (branch) ID
     const VIRTUAL_TOUR_URLS: Record<string, string> = {
@@ -178,15 +287,20 @@ export const VenueDetailsPage: React.FC = () => {
 
     const handleBooking = () => {
         if (!venue || !id || selectedSlots.length === 0) {
-            alert('Please select at least one time slot');
+            showAlert('Please select at least one time slot', 'warning');
             return;
         }
 
         // Enforce 1-hour minimum booking (2 x 30min slots)
         if (selectedSlots.length < 2) {
-            alert('Minimum booking duration is 1 hour (Please select at least 2 consecutive slots)');
+            showAlert('Minimum booking duration is 1 hour (Please select at least 2 consecutive slots)', 'warning');
             return;
         }
+
+        const currentConfig = availableConfigurations.find(c => (c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id) === selectedSliceId);
+        const sliceMask = currentConfig 
+            ? (currentConfig.slice === 'full' ? ((1 << currentConfig.totalZones) - 1) : (currentConfig.slice as SportSlice).mask)
+            : 0;
 
         const bookingState = {
             venueId: id,
@@ -196,7 +310,9 @@ export const VenueDetailsPage: React.FC = () => {
             selectedSlots: selectedSlots,
             selectedSport: selectedSport,
             totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0),
-            numPlayers: numPlayers
+            numPlayers: numPlayers,
+            courtId: currentConfig?.courtId,
+            sliceMask: sliceMask
         };
 
         if (!isAuthenticated) {
@@ -301,19 +417,14 @@ export const VenueDetailsPage: React.FC = () => {
                                     {venue.game_type.split(',').map((sport, idx) => {
                                         const s = sport.trim();
                                         if (!s) return null;
-                                        const isSelected = selectedSport === s;
                                         return (
-                                            <button
+                                            <div
                                                 key={idx}
-                                                onClick={() => setSelectedSport(s)}
-                                                className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all border-2 ${isSelected
-                                                    ? 'bg-primary text-white border-primary shadow-lg'
-                                                    : 'bg-white border-gray-400 text-gray-700 shadow-sm transition-all'
-                                                    }`}
+                                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 text-sm font-bold shadow-sm"
                                             >
-                                                {getSportIcon(s, "w-4 h-4")}
+                                                {getSportIcon(s, "w-4 h-4 text-primary")}
                                                 <span>{s}</span>
-                                            </button>
+                                            </div>
                                         );
                                     })}
                                 </div>
@@ -544,6 +655,63 @@ export const VenueDetailsPage: React.FC = () => {
                                     </div>
                                 )}
 
+                                {/* Slice Selector / Mini-Map */}
+                                {availableConfigurations.length > 0 && (
+                                    <div className="mb-6">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-0.5 h-4 bg-primary rounded-full"></div>
+                                            <span className="text-base font-bold text-gray-800 leading-none">Court Configuration (Size)</span>
+                                        </div>
+                                        <div className="flex flex-col gap-3">
+                                            {availableConfigurations.map((config, idx) => {
+                                                const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
+                                                const isSelected = selectedSliceId === configId;
+                                                const mask = config.slice === 'full' ? ((1 << config.totalZones) - 1) : (config.slice as SportSlice).mask;
+                                                
+                                                return (
+                                                    <button
+                                                        key={`config-${idx}`}
+                                                        onClick={() => {
+                                                            setSelectedSliceId(configId);
+                                                            setSelectedSlots([]); // Clear time slots when changing config
+                                                        }}
+                                                        className={`flex items-center justify-between p-3 rounded-xl transition-all border-2 w-full text-left ${isSelected
+                                                            ? 'bg-primary/5 border-primary shadow-sm'
+                                                            : 'bg-white border-gray-200 hover:border-gray-300'
+                                                            }`}
+                                                    >
+                                                        <div>
+                                                            <div className={`font-bold text-sm ${isSelected ? 'text-primary' : 'text-gray-800'}`}>
+                                                                {config.label}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 mt-1 font-medium">From ₹{config.minPrice} / hr</div>
+                                                        </div>
+                                                        
+                                                        {/* Mini-Map rendering of the bitmask */}
+                                                        {config.totalZones > 1 && (
+                                                            <div className="flex gap-1 p-1 bg-gray-50 rounded-lg border border-gray-100 opacity-90">
+                                                                {Array.from({ length: config.totalZones }).map((_, zoneIndex) => {
+                                                                    const isZoneInSlice = (mask & (1 << zoneIndex)) !== 0;
+                                                                    return (
+                                                                        <div 
+                                                                            key={`zone-${zoneIndex}`}
+                                                                            className={`w-4 h-7 rounded flex items-center justify-center text-[9px] font-black ${
+                                                                                isZoneInSlice ? 'bg-primary text-white shadow-sm' : 'bg-gray-200 text-gray-400'
+                                                                            }`}
+                                                                        >
+                                                                            {zoneIndex + 1}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Date Selector (Horizontal) */}
                                 <div className="mb-8">
                                     <div className="flex justify-between items-center mb-4">
@@ -621,14 +789,14 @@ export const VenueDetailsPage: React.FC = () => {
                                     </div>
                                     {loadingSlots ? (
                                         <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
-                                    ) : availableSlots.length === 0 ? (
+                                    ) : filteredSlots.length === 0 ? (
                                         <div className="text-center py-6 text-gray-400 text-xs font-medium">
                                             <FaClock className="mx-auto mb-2 text-lg opacity-30" />
                                             No slots available
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-2 no-scrollbar">
-                                            {availableSlots.map(slot => {
+                                            {filteredSlots.map(slot => {
                                                 const isSel = selectedSlots.some(s => s.display_time === slot.display_time);
                                                 return (
                                                     <button

@@ -9,6 +9,7 @@ import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
 import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye, FaChevronRight, FaFutbol, FaCalendarAlt, FaMapMarkerAlt, FaHeart } from 'react-icons/fa';
 import { useFavorites } from '../context/FavoritesContext';
+import { useNotification } from '../context/NotificationContext';
 
 export const Profile: React.FC = () => {
     const navigate = useNavigate();
@@ -30,6 +31,7 @@ export const Profile: React.FC = () => {
     const [reviewText, setReviewText] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
     const [searchParams] = useSearchParams();
+    const { showAlert } = useNotification();
 
     // Sync activeMobileSection with query parameter
     useEffect(() => {
@@ -232,7 +234,7 @@ export const Profile: React.FC = () => {
 
     const handleSubmitReview = async (bookingId: string, courtId: string) => {
         if (selectedRating === 0) {
-            alert('Please select a rating');
+            showAlert('Please select a rating', 'warning');
             return;
         }
 
@@ -248,14 +250,14 @@ export const Profile: React.FC = () => {
             setShowRatingModal(null);
             setSelectedRating(0);
             setReviewText('');
-            alert('Review submitted successfully!');
+            showAlert('Review submitted successfully!', 'success');
 
             // Refresh reviews if we're in reviews view
             if (currentView === 'reviews') {
                 fetchReviews();
             }
         } else {
-            alert('Failed to submit review. Please try again.');
+            showAlert('Failed to submit review. Please try again.', 'error');
         }
     };
 

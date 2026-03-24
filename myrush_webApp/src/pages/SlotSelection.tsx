@@ -4,6 +4,7 @@ import { venuesApi } from '../api/venues';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { FaCalendarAlt } from 'react-icons/fa';
+import { useNotification } from '../context/NotificationContext';
 
 interface Slot {
     time: string;
@@ -15,6 +16,7 @@ interface Slot {
 export const SlotSelection: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { showAlert } = useNotification();
 
     // Parse query params
     const searchParams = new URLSearchParams(location.search);
@@ -68,7 +70,7 @@ export const SlotSelection: React.FC = () => {
 
     const handleConfirm = () => {
         if (selectedSlots.length < 2) {
-            alert('Minimum booking duration is 1 hour (2 slots).');
+            showAlert('Minimum booking duration is 1 hour (2 slots).', 'warning');
             return;
         }
         // Navigate to booking summary

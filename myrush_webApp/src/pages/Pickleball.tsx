@@ -7,6 +7,7 @@ import { FaCalendarCheck } from 'react-icons/fa';
 import { PublicNav } from '../components/PublicNav';
 import ScrollIndicator from '../components/ScrollIndicator';
 import pickleballHero from '../assets/image copy.png';
+import { useNotification } from '../context/NotificationContext';
 
 
 const LocationCard: React.FC<{ loc: any, idx: number, navigate: any }> = ({ loc, idx, navigate }) => {
@@ -82,6 +83,7 @@ const LocationCard: React.FC<{ loc: any, idx: number, navigate: any }> = ({ loc,
 
 export const Pickleball: React.FC = () => {
     const navigate = useNavigate();
+    const { showAlert } = useNotification();
 
     const locations = [
         {
@@ -176,14 +178,14 @@ export const Pickleball: React.FC = () => {
             });
 
             if (response.data.success) {
-                alert(response.data.message);
+                showAlert(response.data.message, 'success');
                 setFormData({ firstName: '', lastName: '', email: '', message: '' });
                 setFormErrors({});
             } else {
-                alert('Error sending message. Please try again.');
+                showAlert('Error sending message. Please try again.', 'error');
             }
         } catch (err) {
-            alert('Error sending message. Please try again.');
+            showAlert('Error sending message. Please try again.', 'error');
         } finally {
             setIsSubmittingForm(false);
         }

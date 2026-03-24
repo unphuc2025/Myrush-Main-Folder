@@ -27,7 +27,7 @@ import {
   Bar,
   Legend
 } from 'recharts';
-import { bookingsApi, branchesApi, usersApi } from '../services/adminApi';
+import { bookingsApi, branchesApi, usersApi, courtsApi } from '../services/adminApi';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -36,9 +36,13 @@ function Dashboard() {
     totalRevenue: 0,
     totalBookings: 0,
     activeVenues: 0,
-    totalUsers: 0
+    totalUsers: 0,
+    todayBookings: 0,
+    todayRevenue: 0
   });
   const [revenueData, setRevenueData] = useState([]);
+  const [revenueData30Days, setRevenueData30Days] = useState([]);
+  const [revenueTimeframe, setRevenueTimeframe] = useState('7days');
   const [selectedDay, setSelectedDay] = useState(null);
   const [statusData, setStatusData] = useState([]);
   const [recentBookings, setRecentBookings] = useState([]);
@@ -55,16 +59,18 @@ function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [bookings, venues, users] = await Promise.all([
+      const [bookings, venues, users, courts] = await Promise.all([
         bookingsApi.getAll(),
         branchesApi.getAll(),
-        usersApi.getAll()
+        usersApi.getAll(),
+        courtsApi.getAll()
       ]);
 
       console.log('Dashboard Debug - Bookings:', bookings);
       console.log('Dashboard Debug - Users:', users);
+      console.log('Dashboard Debug - Courts:', courts);
 
-      processDashboardData(bookings, venues, users);
+      processDashboardData(bookings, venues, users, courts);
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
     } finally {
@@ -72,7 +78,7 @@ function Dashboard() {
     }
   };
 
-  const processDashboardData = (bookings, venues, users) => {
+  const processDashboardData = (bookings, venues, users, courts) => {
     // 1. Key Metrics
     const totalRevenue = (Array.isArray(bookings) ? bookings : bookings.items || []).reduce((sum, booking) => {
       // Use total_amount from API, handling potential string/decimal formats
@@ -85,23 +91,46 @@ function Dashboard() {
       return status === 'confirmed' || status === 'completed' ? sum + amount : sum;
     }, 0);
 
-    const activeVenues = (Array.isArray(venues) ? venues : venues.items || []).filter(v => v.is_active).length;
+    const activeVenues = (Array.isArray(venues) ? venues : (venues && venues.items) || []).filter(v => v.is_active).length;
+    const bookingsList = Array.isArray(bookings) ? bookings : (bookings && bookings.items) || [];
+    const usersCount = Array.isArray(users) ? users.length : (users && users.total) || (users && users.items ? users.items.length : 0);
+
+    // Today's Metrics
+    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local timezone
+    const todayBookingsArr = bookingsList.filter(b => b.booking_date === todayStr);
+    const todayRevenue = todayBookingsArr.reduce((sum, booking) => {
+      const amountStr = String(booking.total_amount || booking.price || '0').replace(/[^0-9.]/g, '');
+      const amount = parseFloat(amountStr) || 0;
+      const status = (booking.status || '').toLowerCase();
+      return status === 'confirmed' || status === 'completed' ? sum + amount : sum;
+    }, 0);
+
+    // Occupancy Rate (Approximate: Booked minutes / Total potential minutes)
+    // Handle both array and paginated response formats for courts
+    const courtsList = Array.isArray(courts) ? courts : (courts && courts.items) || [];
+    const activeCourtsList = courtsList.filter(c => c.is_active);
+    const totalDurationToday = todayBookingsArr.reduce((sum, b) => {
+      if (b.total_duration_minutes) return sum + b.total_duration_minutes;
+      if (b.time_slots && b.time_slots.length > 0) {
+        return sum + (b.time_slots.length * 30); // 30 mins per slot
+      }
+      return sum + 60; // Default 1 hour
+    }, 0);
+    const totalPotentialMinutes = activeCourtsList.length * 12 * 60; // Assumed 12 hours operation
+    const todayOccupancy = totalPotentialMinutes > 0 ? Math.min(100, Math.round((totalDurationToday / totalPotentialMinutes) * 100)) : 0;
 
     setStats({
       totalRevenue,
-      totalBookings: bookings.length,
+      totalBookings: bookingsList.length,
       activeVenues,
-      totalUsers: Array.isArray(users) ? users.length : (users.total || (users.items ? users.items.length : 0))
+      totalUsers: usersCount,
+      todayBookings: todayBookingsArr.length,
+      todayRevenue,
+      todayOccupancy
     });
 
-    // 2. Revenue Chart Data (Last 7 Days)
-    const last7Days = [...Array(7)].map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (6 - i));
-      return d.toISOString().split('T')[0]; // YYYY-MM-DD
-    });
-
-    const revenueMap = (Array.isArray(bookings) ? bookings : bookings.items || []).reduce((acc, booking) => {
+    // 2. Revenue Chart Data
+    const revenueMap = bookingsList.reduce((acc, booking) => {
       const date = booking.booking_date; // Assuming booking_date is YYYY-MM-DD
       if (!acc[date]) acc[date] = 0;
       const status = (booking.status || '').toLowerCase();
@@ -112,14 +141,33 @@ function Dashboard() {
       return acc;
     }, {});
 
-    const chartData = last7Days.map(date => ({
+    // Last 7 Days
+    const last7Days = [...Array(7)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d.toISOString().split('T')[0]; // YYYY-MM-DD
+    });
+
+    const chartData7 = last7Days.map(date => ({
       name: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       revenue: revenueMap[date] || 0
     }));
-    setRevenueData(chartData);
+    setRevenueData(chartData7);
+
+    // Last 30 Days
+    const last30Days = [...Array(30)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (29 - i));
+      return d.toISOString().split('T')[0];
+    });
+
+    const chartData30 = last30Days.map(date => ({
+      name: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      revenue: revenueMap[date] || 0
+    }));
+    setRevenueData30Days(chartData30);
 
     // 3. Status Distribution (Pie Chart)
-    const bookingsList = Array.isArray(bookings) ? bookings : bookings.items || [];
     const statusCounts = bookingsList.reduce((acc, booking) => {
       const status = booking.status || 'unknown';
       acc[status] = (acc[status] || 0) + 1;
@@ -183,12 +231,12 @@ function Dashboard() {
         <div className="space-y-8">
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {/* Revenue Card */}
+            {/* Today's Revenue Card */}
             <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-4 md:p-6 text-white shadow-lg shadow-green-200">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-green-100 font-medium mb-1">Total Revenue</p>
-                  <h3 className="text-3xl font-bold">{formatCurrency(stats.totalRevenue)}</h3>
+                  <p className="text-green-100 font-medium mb-1">Today's Revenue</p>
+                  <h3 className="text-3xl font-bold">{formatCurrency(stats.todayRevenue)}</h3>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
                   <DollarSign className="h-6 w-6" />
@@ -196,16 +244,16 @@ function Dashboard() {
               </div>
               <div className="mt-4 flex items-center text-sm text-green-50">
                 <TrendingUp className="h-4 w-4 mr-1" />
-                <span>Lifetime Earnings</span>
+                <span>Today's earnings</span>
               </div>
             </div>
 
-            {/* Bookings Card */}
+            {/* Today's Bookings Card */}
             <div className="bg-white rounded-2xl p-4 md:p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-slate-500 font-medium mb-1">Total Bookings</p>
-                  <h3 className="text-3xl font-bold text-slate-900">{stats.totalBookings}</h3>
+                  <p className="text-slate-500 font-medium mb-1">Today's Bookings</p>
+                  <h3 className="text-3xl font-bold text-slate-900">{stats.todayBookings}</h3>
                 </div>
                 <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
                   <Calendar className="h-6 w-6" />
@@ -213,11 +261,11 @@ function Dashboard() {
               </div>
               <div className="mt-4 flex items-center text-sm text-green-600">
                 <Activity className="h-4 w-4 mr-1" />
-                <span>Active System</span>
+                <span>Active today</span>
               </div>
             </div>
 
-            {/* Venues Card */}
+            {/* Active Venues Card */}
             <div className="bg-white rounded-2xl p-4 md:p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start">
                 <div>
@@ -230,23 +278,29 @@ function Dashboard() {
               </div>
               <div className="mt-4 flex items-center text-sm text-purple-600">
                 <ArrowUpRight className="h-4 w-4 mr-1" />
-                <span>operational</span>
+                <span>Operational</span>
               </div>
             </div>
 
-            {/* Users Card */}
+            {/* Occupancy Rate Card */}
             <div className="bg-white rounded-2xl p-4 md:p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-slate-500 font-medium mb-1">Registered Users</p>
-                  <h3 className="text-3xl font-bold text-slate-900">{stats.totalUsers}</h3>
+                  <p className="text-slate-500 font-medium mb-1">Occupancy Rate</p>
+                  <h3 className="text-3xl font-bold text-slate-900">{stats.todayOccupancy}%</h3>
                 </div>
                 <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
-                  <Users className="h-6 w-6" />
+                  <Activity className="h-6 w-6" />
                 </div>
               </div>
-              <div className="mt-4 flex items-center text-sm font-medium text-slate-600">
-                <span>Total user base</span>
+              <div className="mt-4 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div 
+                  className="bg-orange-500 h-full transition-all duration-1000 ease-out" 
+                  style={{ width: `${stats.todayOccupancy}%` }}
+                />
+              </div>
+              <div className="mt-2 flex items-center text-[10px] font-medium text-slate-500">
+                <span>Today's capacity used</span>
               </div>
             </div>
           </div>
@@ -258,7 +312,20 @@ function Dashboard() {
               <div className="flex justify-between items-end mb-6">
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">Revenue Trend</h3>
-                  <p className="text-sm text-slate-500">Earnings over the last 7 days</p>
+                  <div className="flex items-center gap-2 mt-2 bg-slate-100 p-1 rounded-lg inline-flex">
+                    <button 
+                      onClick={() => { setRevenueTimeframe('7days'); setSelectedDay(null); }}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${revenueTimeframe === '7days' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      7 Days
+                    </button>
+                    <button 
+                      onClick={() => { setRevenueTimeframe('30days'); setSelectedDay(null); }}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${revenueTimeframe === '30days' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      30 Days
+                    </button>
+                  </div>
                 </div>
                 {selectedDay && (
                   <div className="text-right animate-in fade-in slide-in-from-right-2">
@@ -270,7 +337,7 @@ function Dashboard() {
               <div className="h-80 w-full overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
-                    data={revenueData}
+                    data={revenueTimeframe === '7days' ? revenueData : revenueData30Days}
                     style={{ outline: 'none' }}
                     onClick={(data) => {
                       if (data && data.activePayload && data.activePayload[0]) {

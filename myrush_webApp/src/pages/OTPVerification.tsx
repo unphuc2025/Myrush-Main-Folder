@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { FaArrowLeft } from 'react-icons/fa';
+import { useNotification } from '../context/NotificationContext';
 
 export const OTPVerification: React.FC = () => {
     const [otp, setOtp] = useState(['', '', '', '', '']);
@@ -15,6 +16,7 @@ export const OTPVerification: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { login, isAuthenticated } = useAuth();
+    const { showAlert } = useNotification();
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -98,9 +100,9 @@ export const OTPVerification: React.FC = () => {
         setError('');
         try {
             await apiClient.post('/auth/send-otp', { phone_number: phone });
-            alert('OTP resent successfully');
+            showAlert('OTP resent successfully', 'success');
         } catch (error) {
-            alert('Failed to resend OTP');
+            showAlert('Failed to resend OTP', 'error');
         }
     };
 
