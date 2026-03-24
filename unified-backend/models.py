@@ -192,6 +192,7 @@ class Court(Base):
     logic_type = Column(String(50), default='independent') # 'independent', 'shared', 'divisible', 'capacity'
     shared_group_id = Column(UUID(as_uuid=True), ForeignKey("admin_shared_groups.id"), nullable=True)
     capacity_limit = Column(Integer, default=1) # Member limit (e.g., 20 for pool)
+    total_zones = Column(Integer, default=1)
     
     price_per_hour = Column(DECIMAL(10, 2), nullable=False)
     price_overrides = Column(JSONB, nullable=True) # { "sport_name": price } for shared courts
@@ -210,33 +211,45 @@ class Court(Base):
     game_type = relationship("GameType")
     facility_type = relationship("FacilityType")
     shared_group = relationship("SharedGroup", back_populates="courts")
-    units = relationship("CourtUnit", back_populates="court", cascade="all, delete-orphan")
-    division_modes = relationship("DivisionMode", back_populates="court", cascade="all, delete-orphan")
+    zones = relationship("CourtZone", back_populates="court", cascade="all, delete-orphan")
+    sport_slices = relationship("SportSlice", back_populates="court", cascade="all, delete-orphan")
     rental_items = relationship("RentalItem", secondary="admin_court_rental_items")
 
-class CourtUnit(Base):
-    """The smallest bookable part of a divisible court (e.g., A, B, C, D)"""
-    __tablename__ = "admin_court_units"
+class CourtZone(Base):
+    __tablename__ = "admin_court_zones"
     id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
     court_id = Column(UUID(as_uuid=True), ForeignKey("admin_courts.id", ondelete="CASCADE"), nullable=False)
-    name = Column(String(50), nullable=False) # 'A', 'B', '1', etc.
+    zone_index = Column(Integer, nullable=False)
+    zone_name = Column(String(50), nullable=False)
     
-    court = relationship("Court", back_populates="units")
+    court = relationship("Court", back_populates="zones")
+    __table_args__ = (UniqueConstraint('court_id', 'zone_index', name='unique_court_zone'),)
 
-class DivisionMode(Base):
-    """A configuration for booking a set of units (e.g., '10-a-side' uses A+B+C+D)"""
-    __tablename__ = "admin_division_modes"
+class SportSlice(Base):
+    __tablename__ = "admin_sport_slices"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    sport_id = Column(UUID(as_uuid=True), ForeignKey("admin_game_types.id", ondelete="CASCADE"), nullable=False)
+    court_id = Column(UUID(as_uuid=True), ForeignKey("admin_courts.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(100), nullable=False)
+    mask = Column(Integer, nullable=False)
+    price_per_hour = Column(DECIMAL(10, 2), nullable=True)
+    
+    court = relationship("Court", back_populates="sport_slices")
+    sport = relationship("GameType")
+    __table_args__ = (UniqueConstraint('sport_id', 'court_id', 'name', name='unique_sport_court_slice'),)
+
+class Slot(Base):
+    __tablename__ = "slots"
     id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid)
     court_id = Column(UUID(as_uuid=True), ForeignKey("admin_courts.id", ondelete="CASCADE"), nullable=False)
-    name = Column(String(255), nullable=False) # '6-a-side', '10-a-side', etc.
+    slot_date = Column(Date, nullable=False)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+    occupied_mask = Column(Integer, default=0)
+    version = Column(Integer, default=0)
     
-    court = relationship("Court", back_populates="division_modes")
-    units = relationship("CourtUnit", secondary="admin_division_mode_units")
-
-class DivisionModeUnit(Base):
-    __tablename__ = "admin_division_mode_units"
-    mode_id = Column(UUID(as_uuid=True), ForeignKey("admin_division_modes.id", ondelete="CASCADE"), primary_key=True)
-    unit_id = Column(UUID(as_uuid=True), ForeignKey("admin_court_units.id", ondelete="CASCADE"), primary_key=True)
+    court = relationship("Court")
+    __table_args__ = (UniqueConstraint('court_id', 'slot_date', 'start_time', name='unique_court_slot'),)
 
 class CourtRentalItem(Base):
     __tablename__ = "admin_court_rental_items"
@@ -470,7 +483,8 @@ class Booking(Base):
     booking_source = Column(String(50), default='direct')  # 'direct', 'playo', 'admin'
     
     # Advanced Booking Fields
-    division_mode_id = Column(UUID(as_uuid=True), ForeignKey("admin_division_modes.id"), nullable=True)
+    slot_id = Column(UUID(as_uuid=True), ForeignKey("slots.id"), nullable=True)
+    slice_mask = Column(Integer, nullable=True)
     
     created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())

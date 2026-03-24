@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text, and_, or_
-from typing import Annotated, List, Dict, Any
+from typing import Annotated, List, Dict, Any, Optional
 import razorpay
 import os
 import hmac
@@ -30,14 +30,21 @@ RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
-def verify_slot_availability(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]]):
+def verify_slot_availability(
+    db: Session, 
+    court_id: str, 
+    booking_date: date, 
+    requested_slots: List[Dict[str, Any]],
+    slice_mask: int = None
+):
     """
     Check if any of the requested slots are already booked OR blocked by admin OR outside venue hours.
+    Now uses bitmasks for precision.
     """
     if not requested_slots:
         return
         
-    from utils.booking_utils import generate_allowed_slots_map, get_booked_slots, safe_parse_time_float
+    from utils.booking_utils import generate_allowed_slots_map, safe_parse_time_float
 
     # 1. Generate Authoritative Allowed Slots (Venue Hours + Pricing + Admin Blocks)
     allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
@@ -45,16 +52,7 @@ def verify_slot_availability(db: Session, court_id: str, booking_date: date, req
     if not allowed_slots_map:
         raise HTTPException(status_code=400, detail="The venue is closed or not configured for this date.")
 
-    # 2. Fetch Active Bookings to find occupied slots
-    active_bookings = db.query(models.Booking).filter(
-        models.Booking.court_id == court_id,
-        models.Booking.booking_date == booking_date,
-        models.Booking.status != 'cancelled'
-    ).all()
-    
-    booked_times = get_booked_slots(active_bookings)
-
-    # 3. Validate requested slots
+    # 3. Validate requested slots against Admin blocks and overall availability
     for slot in requested_slots:
         time_str = slot.get('start_time') or slot.get('time')
         if not time_str: continue
@@ -73,10 +71,12 @@ def verify_slot_availability(db: Session, court_id: str, booking_date: date, req
         if server_slot['is_blocked']:
             raise HTTPException(status_code=400, detail=f"Slot {time_str} has been blocked by Admin.")
             
-        if h_f in booked_times:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Slot {time_str} is already booked.")
+        # Check Bitmask Overlap
+        if slice_mask is not None and server_slot.get('occupied_mask') is not None:
+             if (server_slot['occupied_mask'] & slice_mask) != 0:
+                  raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Slot {time_str} is already booked.")
 
-def calculate_authoritative_price(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]], number_of_players: int) -> float:
+def calculate_authoritative_price(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict], number_of_players: int = 1, slice_mask: Optional[int] = None) -> float:
     """
     Calculate the total price based on unified slot generation engine.
     Logic: Sum(Slot Prices) * Number of Players
@@ -86,6 +86,16 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
     # 1. Generate Slots Map to get correct prices
     allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
     
+    # 1.5 Fetch Slice Override Price
+    slice_price = None
+    if slice_mask is not None:
+        sp_slice = db.query(models.SportSlice).filter(
+            models.SportSlice.court_id == court_id,
+            models.SportSlice.mask == slice_mask
+        ).first()
+        if sp_slice and sp_slice.price_per_hour is not None:
+            slice_price = float(sp_slice.price_per_hour)
+
     total_slot_price = 0.0
     print(f"[PRICE_DEBUG] Starting calculation for {len(requested_slots)} slots, players={number_of_players}")
     
@@ -102,7 +112,8 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
         
         # Use price from map if available, else default (though validation should have caught it)
         if norm_start in allowed_slots_map:
-            slot_price = float(allowed_slots_map[norm_start]['price'])
+            default_map_price = float(allowed_slots_map[norm_start]['price'])
+            slot_price = (slice_price / 2.0) if slice_price is not None else default_map_price
             total_slot_price += slot_price
             print(f"[PRICE_DEBUG] Slot {norm_start}: Price {slot_price}")
         else:
@@ -110,7 +121,7 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
             # Fallback to court base price if absolutely necessary
             court = db.query(models.Court).filter(models.Court.id == court_id).first()
             if court:
-                slot_price = float(court.price_per_hour)
+                slot_price = (slice_price / 2.0) if slice_price is not None else (float(court.price_per_hour) / 2.0)
                 total_slot_price += slot_price
                 print(f"[PRICE_DEBUG] Fallback Slot {norm_start}: Price {slot_price}")
 
@@ -149,7 +160,7 @@ def create_payment_order(
     print(f"[PAYMENTS DEBUG] Creating order for user {current_user.id}, court {booking_details.court_id}, date {booking_details.booking_date}")
     print(f"[PAYMENTS DEBUG] Provided slots: {booking_details.time_slots}")
     try:
-        verify_slot_availability(db, booking_details.court_id, booking_details.booking_date, booking_details.time_slots)
+        verify_slot_availability(db, booking_details.court_id, booking_details.booking_date, booking_details.time_slots, booking_details.slice_mask)
     except HTTPException as e:
         print(f"[PAYMENTS DEBUG] Availability check failed: {e.detail}")
         raise e
@@ -164,7 +175,8 @@ def create_payment_order(
             booking_details.court_id, 
             booking_details.booking_date, 
             booking_details.time_slots, 
-            booking_details.number_of_players or 1
+            booking_details.number_of_players or 1,
+            booking_details.slice_mask
         )
         print(f"[PAYMENTS DEBUG] Calculated Base Price: {server_base_price}")
     except Exception as e:

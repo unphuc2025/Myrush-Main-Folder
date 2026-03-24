@@ -27,7 +27,7 @@ import {
   Bar,
   Legend
 } from 'recharts';
-import { bookingsApi, branchesApi, usersApi } from '../services/adminApi';
+import { bookingsApi, branchesApi, usersApi, courtsApi } from '../services/adminApi';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -59,16 +59,18 @@ function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [bookings, venues, users] = await Promise.all([
+      const [bookings, venues, users, courts] = await Promise.all([
         bookingsApi.getAll(),
         branchesApi.getAll(),
-        usersApi.getAll()
+        usersApi.getAll(),
+        courtsApi.getAll()
       ]);
 
       console.log('Dashboard Debug - Bookings:', bookings);
       console.log('Dashboard Debug - Users:', users);
+      console.log('Dashboard Debug - Courts:', courts);
 
-      processDashboardData(bookings, venues, users);
+      processDashboardData(bookings, venues, users, courts);
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
     } finally {
@@ -76,7 +78,7 @@ function Dashboard() {
     }
   };
 
-  const processDashboardData = (bookings, venues, users) => {
+  const processDashboardData = (bookings, venues, users, courts) => {
     // 1. Key Metrics
     const totalRevenue = (Array.isArray(bookings) ? bookings : bookings.items || []).reduce((sum, booking) => {
       // Use total_amount from API, handling potential string/decimal formats
@@ -89,9 +91,9 @@ function Dashboard() {
       return status === 'confirmed' || status === 'completed' ? sum + amount : sum;
     }, 0);
 
-    const activeVenues = (Array.isArray(venues) ? venues : venues.items || []).filter(v => v.is_active).length;
-    const bookingsList = Array.isArray(bookings) ? bookings : bookings.items || [];
-    const usersCount = Array.isArray(users) ? users.length : (users.total || (users.items ? users.items.length : 0));
+    const activeVenues = (Array.isArray(venues) ? venues : (venues && venues.items) || []).filter(v => v.is_active).length;
+    const bookingsList = Array.isArray(bookings) ? bookings : (bookings && bookings.items) || [];
+    const usersCount = Array.isArray(users) ? users.length : (users && users.total) || (users && users.items ? users.items.length : 0);
 
     // Today's Metrics
     const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local timezone
@@ -103,13 +105,28 @@ function Dashboard() {
       return status === 'confirmed' || status === 'completed' ? sum + amount : sum;
     }, 0);
 
+    // Occupancy Rate (Approximate: Booked minutes / Total potential minutes)
+    // Handle both array and paginated response formats for courts
+    const courtsList = Array.isArray(courts) ? courts : (courts && courts.items) || [];
+    const activeCourtsList = courtsList.filter(c => c.is_active);
+    const totalDurationToday = todayBookingsArr.reduce((sum, b) => {
+      if (b.total_duration_minutes) return sum + b.total_duration_minutes;
+      if (b.time_slots && b.time_slots.length > 0) {
+        return sum + (b.time_slots.length * 30); // 30 mins per slot
+      }
+      return sum + 60; // Default 1 hour
+    }, 0);
+    const totalPotentialMinutes = activeCourtsList.length * 12 * 60; // Assumed 12 hours operation
+    const todayOccupancy = totalPotentialMinutes > 0 ? Math.min(100, Math.round((totalDurationToday / totalPotentialMinutes) * 100)) : 0;
+
     setStats({
       totalRevenue,
       totalBookings: bookingsList.length,
       activeVenues,
       totalUsers: usersCount,
       todayBookings: todayBookingsArr.length,
-      todayRevenue
+      todayRevenue,
+      todayOccupancy
     });
 
     // 2. Revenue Chart Data
@@ -265,19 +282,25 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Total Revenue Card */}
+            {/* Occupancy Rate Card */}
             <div className="bg-white rounded-2xl p-4 md:p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-slate-500 font-medium mb-1">Total Revenue</p>
-                  <h3 className="text-3xl font-bold text-slate-900">{formatCurrency(stats.totalRevenue)}</h3>
+                  <p className="text-slate-500 font-medium mb-1">Occupancy Rate</p>
+                  <h3 className="text-3xl font-bold text-slate-900">{stats.todayOccupancy}%</h3>
                 </div>
                 <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
-                  <DollarSign className="h-6 w-6" />
+                  <Activity className="h-6 w-6" />
                 </div>
               </div>
-              <div className="mt-4 flex items-center text-sm font-medium text-slate-600">
-                <span>Lifetime earnings</span>
+              <div className="mt-4 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div 
+                  className="bg-orange-500 h-full transition-all duration-1000 ease-out" 
+                  style={{ width: `${stats.todayOccupancy}%` }}
+                />
+              </div>
+              <div className="mt-2 flex items-center text-[10px] font-medium text-slate-500">
+                <span>Today's capacity used</span>
               </div>
             </div>
           </div>

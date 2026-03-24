@@ -11,6 +11,8 @@ export interface CreateBookingPayload {
     teamName?: string;
     specialRequests?: string;
     timeSlots?: any[];
+    slotIds?: string[];
+    sliceMask?: number;
     originalAmount?: number;
     discountAmount?: number;
     couponCode?: string;
@@ -31,6 +33,8 @@ export const bookingsApi = {
         startTime: string;
         durationMinutes: number;
         timeSlots: any[];
+        slotIds: string[];
+        sliceMask: number;
         numberOfPlayers: number;
         couponCode?: string;
     }) => {
@@ -41,6 +45,8 @@ export const bookingsApi = {
                 start_time: data.startTime,
                 duration_minutes: data.durationMinutes,
                 time_slots: data.timeSlots,
+                slot_ids: data.slotIds,
+                slice_mask: data.sliceMask,
                 number_of_players: data.numberOfPlayers,
                 coupon_code: data.couponCode
             };
@@ -74,6 +80,8 @@ export const bookingsApi = {
                 team_name: bookingData.teamName,
                 special_requests: bookingData.specialRequests,
                 time_slots: bookingData.timeSlots,
+                slot_ids: bookingData.slotIds,
+                slice_mask: bookingData.sliceMask,
                 original_amount: bookingData.originalAmount,
                 discount_amount: bookingData.discountAmount,
                 coupon_code: bookingData.couponCode,

@@ -185,17 +185,16 @@ def set_default_payment_method(db: Session, payment_method_id: str, user_id: str
         return db_payment_method
     return None
 
-def validate_booking_rules(db: Session, court_id: str, booking_date: date, start_time: time, end_time: time, user_id: str, division_mode_id: Optional[str] = None, number_of_players: int = 1):
+def validate_booking_rules(db: Session, court_id: str, booking_date: date, start_time: time, end_time: time, user_id: str, slice_mask: Optional[int] = None, number_of_players: int = 1):
     """
-    Validate various constraints before allowing a booking.
-    Updated to handle Shared, Divisible, and Capacity logic types.
+    Validate basic constraints before allowing a booking.
+    Overlapping/collision is now handled ATOMICALLY via bitmasking during create_booking.
     """
-    from utils.booking_utils import get_now_ist, get_booked_slots
+    from utils.booking_utils import get_now_ist
     from fastapi import HTTPException
-    from models import Booking, Court, DivisionMode, FacilityType
+    from models import Booking, Court
     
     now_ist = get_now_ist()
-    print(f"[RULES CHECK] Validating rules: user={user_id}, court={court_id}, date={booking_date}, time={start_time} to {end_time}")
 
     # Fetch court info
     court = db.query(Court).filter(Court.id == court_id).first()
@@ -223,129 +222,12 @@ def validate_booking_rules(db: Session, court_id: str, booking_date: date, start
     if is_pool:
         if duration_h < 1.0:
             raise HTTPException(status_code=400, detail="Pool bookings must be at least 1 hour.")
-        # Optional: strictly 1-hour slots? User said "pool must always use one-hour slots"
         if duration_h != 1.0:
             raise HTTPException(status_code=400, detail="Pool bookings must be exactly 1 hour.")
     elif duration_h < 1.0:
         raise HTTPException(status_code=400, detail="Minimum booking duration is 1 hour.")
 
-    # --- Rule 3: Conflict Check based on Logic Type ---
-    
-    if court.logic_type == 'capacity':
-        # Pool/Capacity check: allow multiple bookings up to limit
-        total_booked_players = 0
-        existing_bookings = db.query(Booking).filter(
-            Booking.court_id == court_id,
-            Booking.booking_date == booking_date,
-            Booking.status != 'cancelled'
-        ).all()
-        
-        for b in existing_bookings:
-            # Check overlap
-            b_start = b.start_time.hour + (b.start_time.minute / 60.0)
-            b_end = b.end_time.hour + (b.end_time.minute / 60.0)
-            if b_end == 0: b_end = 24.0
-            
-            # Simple overlap check: max(start) < min(end)
-            if max(start_f, b_start) < min(end_f, b_end):
-                total_booked_players += (b.number_of_players or 1)
-        
-        if total_booked_players + number_of_players > court.capacity_limit:
-            raise HTTPException(status_code=409, detail=f"Capacity limit reached. Only {court.capacity_limit - total_booked_players} spots left.")
-
-    elif court.logic_type == 'shared':
-        # Shared Group blocking (e.g. Rajajinagar Turf)
-        if not court.shared_group_id:
-             # Fallback to independent if no group defined
-             shared_court_ids = [court_id]
-        else:
-             shared_court_ids = [str(c.id) for c in court.shared_group.courts]
-        
-        existing_bookings = db.query(Booking).filter(
-            Booking.court_id.in_(shared_court_ids),
-            Booking.booking_date == booking_date,
-            Booking.status != 'cancelled'
-        ).all()
-        
-        booked_slots = get_booked_slots(existing_bookings)
-        curr = start_f
-        while curr < end_f:
-            if (curr % 24) in booked_slots:
-                # Find which sport booked it for better message
-                raise HTTPException(status_code=409, detail=f"Conflict: The facility is already occupied by another booking during this slot.")
-            curr += 0.5
-
-    elif court.logic_type == 'divisible':
-        # Divisible Grounds (e.g. Cooke Town)
-        # 1. Get units for the requested mode
-        if not division_mode_id:
-            raise HTTPException(status_code=400, detail="Division mode must be selected for this court.")
-        
-        target_mode = db.query(DivisionMode).filter(DivisionMode.id == division_mode_id).first()
-        if not target_mode:
-            raise HTTPException(status_code=404, detail="Selected division mode not found.")
-        
-        target_unit_names = {u.name.strip().upper() for u in target_mode.units}
-        
-        # 2. Identify courts to check (Self + Others in Shared Group)
-        if court.shared_group_id:
-            # If in a shared group, check all courts in that group
-            shared_court_ids = [str(c.id) for c in court.shared_group.courts]
-            print(f"[RULES CHECK] Divisible court belongs to shared group. Checking courts: {shared_court_ids}")
-        else:
-            shared_court_ids = [str(court_id)]
-
-        # 3. Check all bookings on identified courts
-        existing_bookings = db.query(Booking).filter(
-            Booking.court_id.in_(shared_court_ids),
-            Booking.booking_date == booking_date,
-            Booking.status != 'cancelled'
-        ).all()
-        
-        for b in existing_bookings:
-            # Check time overlap
-            b_start = b.start_time.hour + (b.start_time.minute / 60.0)
-            b_end = b.end_time.hour + (b.end_time.minute / 60.0)
-            if b_end == 0: b_end = 24.0
-            
-            if max(start_f, b_start) < min(end_f, b_end):
-                # Time overlaps, now check units
-                if not b.division_mode_id:
-                    # If an old booking has no mode, assume it blocks everything (full court)
-                    # Get court name for better error
-                    b_court = db.query(Court).filter(Court.id == b.court_id).first()
-                    raise HTTPException(
-                        status_code=409, 
-                        detail=f"A full booking on '{b_court.name if b_court else 'court'}' already exists during this slot."
-                    )
-                
-                b_mode = db.query(DivisionMode).filter(DivisionMode.id == b.division_mode_id).first()
-                if b_mode:
-                    # Cross-court unit matching is by NAME
-                    b_unit_names = {u.name.strip().upper() for u in b_mode.units}
-                    overlap_units = target_unit_names.intersection(b_unit_names)
-                    if overlap_units:
-                        b_court = db.query(Court).filter(Court.id == b.court_id).first()
-                        raise HTTPException(
-                            status_code=409, 
-                            detail=f"Conflict: Units {', '.join(overlap_units)} are currently in use by a booking on '{b_court.name if b_court else 'another sport'}'.")
-
-    else:
-        # Standard Independent blocking
-        existing_bookings = db.query(Booking).filter(
-            Booking.court_id == court_id,
-            Booking.booking_date == booking_date,
-            Booking.status != 'cancelled'
-        ).all()
-        
-        booked_slots = get_booked_slots(existing_bookings)
-        curr = start_f
-        while curr < end_f:
-            if (curr % 24) in booked_slots:
-                raise HTTPException(status_code=409, detail=f"Conflict: Slot starting at {curr % 24:0.1f} is already booked.")
-            curr += 0.5
-
-    # --- Rule 4: User Overlap Check ---
+    # --- Rule 3: User Overlap Check ---
     user_bookings = db.query(Booking).filter(
         Booking.user_id == user_id,
         Booking.booking_date == booking_date,
@@ -359,7 +241,7 @@ def validate_booking_rules(db: Session, court_id: str, booking_date: date, start
         if max(start_f, b_start) < min(end_f, b_end):
             raise HTTPException(status_code=400, detail="You already have another booking during this time.")
 
-    print("[RULES CHECK] All rules passed.")
+    print("[RULES CHECK] Basic validation passed. Collisions checked atomically.")
 
 
 def validate_court_configuration(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]], number_of_players: int, expected_total_amount: float):
@@ -540,28 +422,22 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         from uuid import UUID
         c_uuid = UUID(str(booking.court_id))
 
-        # --- ATOMIC LOCKING ---
-        # Acquire row-level lock on the court to serialize validation and creation.
-        # This prevents two concurrent requests from seeing the same slot as available.
-        print(f"[CRUD BOOKING] Acquiring lock for court {c_uuid}")
-        db.query(models.Court).filter(models.Court.id == c_uuid).with_for_update().first()
-
-        # --- VALIDATE BOOKING RULES (Double Booking, etc.) ---
-        # Run strict validation before proceeding
+        # --- ATOMIC LOCKING & VALIDATION (BITMASKING) ---
+        print(f"[CRUD BOOKING] Acquiring slots for court {c_uuid}")
+        
+        # 1. Basic Rules
         validate_booking_rules(
             db=db,
-            court_id=c_uuid, # Pass as UUID to match model
+            court_id=str(c_uuid),
             booking_date=booking.booking_date,
             start_time=start_time_val,
             end_time=end_time_val,
             user_id=user_id,
-            division_mode_id=booking.division_mode_id,
+            slice_mask=booking.slice_mask,
             number_of_players=booking.number_of_players or 1
         )
 
-
-        # --- VALIDATE CONFIGURATION (Business Hours, Admin Blocks, Price) ---
-        print(f"[CRUD BOOKING] Validating config with original_amount={original_amount}")
+        # 2. Config & Price
         validate_court_configuration(
             db=db,
             court_id=str(c_uuid),
@@ -574,6 +450,27 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         user_exists = db.query(models.User).filter(models.User.id == user_id).first()
         if not user_exists:
             raise ValueError(f"User {user_id} not found")
+
+        # 3. Fast Atomic Bitwise Allocation
+        if booking.slot_ids and booking.slice_mask is not None:
+            from sqlalchemy import text
+            for slot_id in booking.slot_ids:
+                result = db.execute(
+                    text("""
+                    UPDATE slots
+                    SET occupied_mask = occupied_mask | :mask
+                    WHERE id = :slot_id
+                    AND (occupied_mask & :mask) = 0
+                    RETURNING id
+                    """),
+                    {"slot_id": slot_id, "mask": booking.slice_mask}
+                )
+                if not result.fetchone():
+                    db.rollback()
+                    raise ValueError(f"Conflict: Slot is no longer available for the requested part of the field.")
+        else:
+            # Fallback legacy lock for independent courts not using bitmask UI yet
+            db.query(models.Court).filter(models.Court.id == c_uuid).with_for_update().first()
 
         # 4. Create Booking
         booking_data = {
@@ -589,7 +486,8 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             "discount_amount": discount_amount,
             "total_amount": total_amount,
             "coupon_code": booking.coupon_code,
-            "division_mode_id": booking.division_mode_id,
+            "slice_mask": booking.slice_mask,
+            "slot_id": str(booking.slot_ids[0]) if booking.slot_ids else None,
             
             # Deprecated Columns (Populated for backward compatibility)
             "start_time": start_time_val,
