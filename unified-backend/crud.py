@@ -423,8 +423,19 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         c_uuid = UUID(str(booking.court_id))
 
         # --- ATOMIC LOCKING & VALIDATION (BITMASKING) ---
-        print(f"[CRUD BOOKING] Acquiring slots for court {c_uuid}")
-        
+        # Acquire row-level lock on the court to serialize validation and creation.
+        # This prevents two concurrent requests from seeing the same slot as available.
+        print(f"[CRUD BOOKING] Acquiring slots/lock for court {c_uuid}")
+        db.query(models.Court).filter(models.Court.id == c_uuid).with_for_update().first()
+
+        # --- FRAUD CHECK: DOUBLE SPEND / REPLAY ATTACK ---
+        if booking.razorpay_payment_id:
+            from fastapi import HTTPException
+            existing_payment = db.query(models.Booking).filter(models.Booking.payment_id == booking.razorpay_payment_id).first()
+            if existing_payment:
+                print(f"[FRAUD ALERT] Payment ID {booking.razorpay_payment_id} already used for Booking {existing_payment.id}!")
+                raise HTTPException(status_code=409, detail="Transaction already processed. This payment receipt has already been used.")
+
         # 1. Basic Rules
         validate_booking_rules(
             db=db,
@@ -608,6 +619,29 @@ def cancel_booking(db: Session, booking_id: str, user_id: str):
     # Check if cancellation is within 1 hour of start time
     if booking_start - now_ist < timedelta(hours=1):
         raise HTTPException(status_code=400, detail="Cancellations are only allowed up to 1 hour before the booked time.")
+
+    # --- PROCESS AUTOMATED REFUND ---
+    if db_booking.payment_status == 'paid' and db_booking.payment_id:
+        import razorpay
+        import os
+        try:
+            print(f"[CRUD] Initiating automatic refund for booking {booking_id}, payment {db_booking.payment_id}")
+            client = razorpay.Client(auth=(os.getenv("RAZORPAY_KEY_ID"), os.getenv("RAZORPAY_KEY_SECRET")))
+            
+            refund_amount_paise = int(db_booking.total_amount * 100)
+            
+            refund = client.payment.refund(db_booking.payment_id, {
+                "amount": refund_amount_paise,
+                "notes": {
+                    "reason": "User cancelled booking",
+                    "booking_id": str(db_booking.id)
+                }
+            })
+            print(f"[CRUD] Successfully processed refund: {refund.get('id')}")
+            db_booking.payment_status = 'refunded'
+        except Exception as e:
+            print(f"[CRUD] Razorpay Refund Error: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to process automatic refund: {str(e)}. Please contact support.")
 
     # Update status
     db_booking.status = 'cancelled'
