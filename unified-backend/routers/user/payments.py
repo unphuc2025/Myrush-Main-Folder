@@ -328,22 +328,17 @@ async def razorpay_webhook(
             print(f"[WEBHOOK] Captured Payment: {payment_id} for Order: {order_id}, Amount: {amount}")
             print(f"[WEBHOOK] Payment Notes: {notes}")
             
-            # --- VRIKSHA API INVOCATION FOR PHONE PURCHASES ---
-            item_type = notes.get("item_type")
-            if item_type == "PHONE":
-                import requests
-                # The host provided by Vriksha to assign the phone number/credits
-                vriksha_url = "https://tester-webhook.vriksha.ai/api/webhooks/razorpay"
-                try:
-                    # Forwarding the exact webhook data to Vriksha so they know payment succeeded
-                    print(f"[WEBHOOK-VRIKSHA] Forwarding PHONE purchase {payment_id} to Vriksha API")
-                    # We send a POST request with the JSON data
-                    vriksha_response = requests.post(vriksha_url, json=data, timeout=10)
-                    print(f"[WEBHOOK-VRIKSHA] Vriksha Response Status: {vriksha_response.status_code}")
-                except Exception as e:
-                    print(f"[WEBHOOK-VRIKSHA] ERROR calling Vriksha API: {str(e)}")
-            else:
-                 print("[WEBHOOK] Payment is not a PHONE purchase. Future Action: trigger sports booking creation here if user dropped off.")
+            # --- VRIKSHA API INVOCATION ---
+            import requests
+            vriksha_url = "https://tester-webhook.vriksha.ai/api/webhooks/razorpay"
+            try:
+                # Forwarding the exact webhook data to Vriksha so they know payment succeeded
+                print(f"[WEBHOOK-VRIKSHA] Forwarding Web App purchase {payment_id} to Vriksha API")
+                # We send a POST request with the JSON data
+                vriksha_response = requests.post(vriksha_url, json=data, timeout=10)
+                print(f"[WEBHOOK-VRIKSHA] Vriksha Response Status: {vriksha_response.status_code}")
+            except Exception as e:
+                print(f"[WEBHOOK-VRIKSHA] ERROR calling Vriksha API: {str(e)}")
             # --------------------------------------------------
             
         elif event == "payment.failed":
