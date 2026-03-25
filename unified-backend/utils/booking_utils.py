@@ -213,7 +213,7 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
     # NEW: Fetch DB Slots & Slices
     slots_db_map = ensure_slots_for_date(db, court_id, booking_date)
     sport_slices = db.query(models.SportSlice).filter(models.SportSlice.court_id == court_id).all()
-    slices_data = [{"id": str(s.id), "name": s.name, "mask": s.mask, "sport_id": str(s.sport_id), "price_per_hour": float(s.price_per_hour) if s.price_per_hour is not None else None} for s in sport_slices]
+    slices_data = [{"id": str(s.id), "name": s.name, "mask": s.mask, "sport_id": str(s.sport_id), "sport_name": s.sport.name if s.sport else None, "price_per_hour": float(s.price_per_hour) if s.price_per_hour is not None else None} for s in sport_slices]
     
     court_rules = court.price_conditions or []
     if isinstance(court_rules, str):
