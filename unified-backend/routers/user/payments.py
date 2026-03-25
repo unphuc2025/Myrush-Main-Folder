@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import text, and_, or_
 from typing import Annotated, List, Dict, Any
@@ -27,6 +27,7 @@ router = APIRouter(
 # Ensure these are set in your .env file
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET")
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
@@ -263,6 +264,85 @@ def verify_payment(
         raise HTTPException(status_code=400, detail="Payment signature verification failed")
     except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/webhook")
+async def razorpay_webhook(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Razorpay Webhook endpoint for secure server-to-server payment verification.
+    """
+    if not RAZORPAY_WEBHOOK_SECRET:
+         print("[WEBHOOK] WARNING: RAZORPAY_WEBHOOK_SECRET not configured in .env!")
+         raise HTTPException(status_code=500, detail="Webhook secret not configured")
+
+    body_bytes = await request.body()
+    body_str = body_bytes.decode('utf-8')
+    signature = request.headers.get("x-razorpay-signature")
+
+    if not signature:
+         print("[WEBHOOK] Error: Missing x-razorpay-signature header")
+         raise HTTPException(status_code=400, detail="Missing signature")
+
+    print(f"[WEBHOOK] Received event, validating signature {signature[:10]}...")
+
+    try:
+        # Verify the webhook signature against our secret
+        client.utility.verify_webhook_signature(body_str, signature, RAZORPAY_WEBHOOK_SECRET)
+    except razorpay.errors.SignatureVerificationError:
+        print("[WEBHOOK] Signature verification failed!")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    except Exception as e:
+        print(f"[WEBHOOK] Verification error: {e}")
+        raise HTTPException(status_code=400, detail="Signature verification error")
+
+    # If we got here, the request genuinely came from Razorpay
+    try:
+        data = json.loads(body_str)
+        event = data.get("event")
+        payload = data.get("payload", {})
+        
+        print(f"[WEBHOOK] Verified event: {event}")
+        
+        if event == "payment.captured":
+            payment_entity = payload.get("payment", {}).get("entity", {})
+            order_id = payment_entity.get("order_id")
+            payment_id = payment_entity.get("id")
+            amount = payment_entity.get("amount")
+            # The 'notes' contains internal_order_id, item_cost, item_type (e.g. "PHONE")
+            notes = payment_entity.get("notes", {})
+            
+            print(f"[WEBHOOK] Captured Payment: {payment_id} for Order: {order_id}, Amount: {amount}")
+            print(f"[WEBHOOK] Payment Notes: {notes}")
+            
+            # --- VRIKSHA API INVOCATION FOR PHONE PURCHASES ---
+            item_type = notes.get("item_type")
+            if item_type == "PHONE":
+                import requests
+                # The host provided by Vriksha to assign the phone number/credits
+                vriksha_url = "https://tester-webhook.vriksha.ai/api/webhooks/razorpay"
+                try:
+                    # Forwarding the exact webhook data to Vriksha so they know payment succeeded
+                    print(f"[WEBHOOK-VRIKSHA] Forwarding PHONE purchase {payment_id} to Vriksha API")
+                    # We send a POST request with the JSON data
+                    vriksha_response = requests.post(vriksha_url, json=data, timeout=10)
+                    print(f"[WEBHOOK-VRIKSHA] Vriksha Response Status: {vriksha_response.status_code}")
+                except Exception as e:
+                    print(f"[WEBHOOK-VRIKSHA] ERROR calling Vriksha API: {str(e)}")
+            else:
+                 print("[WEBHOOK] Payment is not a PHONE purchase. Future Action: trigger sports booking creation here if user dropped off.")
+            # --------------------------------------------------
+            
+        elif event == "payment.failed":
+            print("[WEBHOOK] Payment failed event received.")
+            
+        # Razorpay expects a simple 200 OK on successful webhook receipt
+        return {"status": "success", "message": f"Webhook {event} processed successfully"}
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
 
 # ============================================================================
 # PAYMENT METHOD MANAGEMENT

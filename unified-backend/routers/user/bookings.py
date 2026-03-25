@@ -36,11 +36,19 @@ def create_booking(
                     'razorpay_signature': booking.razorpay_signature
                 })
                 print("[BOOKINGS API] Payment Signature Verified")
-                booking.payment_status = "paid" # Mark as paid
                 
-                # Optional: Fetch order from Razorpay to verify amount match?
-                # For now, signature verification confirms payment for THAT order ID.
-                # Use server-side validation during order creation to ensure amount was correct.
+                # --- FRAUD CHECK: AMOUNT MATCH ---
+                fetch_order = client.order.fetch(booking.razorpay_order_id)
+                # Calculate what the frontend is asking us to confirm
+                total_from_frontend = float(booking.original_amount or 0) - float(booking.discount_amount or 0)
+                expected_paise = int(total_from_frontend * 100)
+                
+                if fetch_order['amount'] != expected_paise:
+                     print(f"[FRAUD ALERT] Amount mismatch! Razorpay Order was for {fetch_order['amount']} but booking payload claims {expected_paise}")
+                     raise HTTPException(status_code=400, detail="Amount mismatch. Payment verification failed due to security policies.")
+                # ---------------------------------
+                
+                booking.payment_status = "paid" # Mark as paid
                 
             except razorpay.errors.SignatureVerificationError:
                 print("[BOOKINGS API] Payment Signature Verification Failed")

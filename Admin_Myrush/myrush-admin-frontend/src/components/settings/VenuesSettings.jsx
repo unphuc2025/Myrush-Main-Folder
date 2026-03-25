@@ -947,47 +947,48 @@ function VenuesSettings() {
                   </div>
                 </div>
               )}
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-200">
-                  <div className="text-xs text-slate-500 font-medium">
-                    Showing <span className="font-bold text-slate-700">{Math.min((page - 1) * pageSize + 1, totalItems)}</span> to <span className="font-bold text-slate-700">{Math.min(page * pageSize, totalItems)}</span> of <span className="font-bold text-slate-700">{totalItems}</span> venues
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
-                    >
-                      Prev
-                    </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1)
-                      .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-                      .map((p, i, arr) => (
-                        <div key={p} className="flex">
-                          {i > 0 && arr[i - 1] !== p - 1 && <span className="px-1 text-slate-300">...</span>}
-                          <button
-                            onClick={() => setPage(p)}
-                            className={`w-8 h-8 rounded text-xs font-bold transition-all ${page === p ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 border border-slate-200 bg-white'}`}
-                          >
-                            {p}
-                          </button>
-                        </div>
-                      ))}
-                    <button
-                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                      className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-xl border-x">
+          <div className="text-xs text-slate-500 font-medium font-sans">
+            Showing <span className="font-bold text-slate-700">{Math.min((page - 1) * pageSize + 1, totalItems)}</span> to <span className="font-bold text-slate-700">{Math.min(page * pageSize, totalItems)}</span> of <span className="font-bold text-slate-700">{totalItems}</span> venues
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+            >
+              Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+              .map((p, i, arr) => (
+                <div key={p} className="flex">
+                  {i > 0 && arr[i - 1] !== p - 1 && <span className="px-1 text-slate-300">...</span>}
+                  <button
+                    onClick={() => setPage(p)}
+                    className={`w-8 h-8 rounded text-xs font-bold transition-all ${page === p ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 border border-slate-200 bg-white'}`}
+                  >
+                    {p}
+                  </button>
+                </div>
+              ))}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Drawer Form */}
       <Drawer
