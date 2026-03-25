@@ -118,7 +118,7 @@ def toggle_game_type_status(game_type_id: str, db: Session = Depends(get_db)):
     db.refresh(db_game_type)
     return db_game_type
 
-@router.delete("/{game_type_id}")
+@router.delete("/{game_type_id}", dependencies=[Depends(PermissionChecker("Manage Sports", "delete"))])
 def delete_game_type(game_type_id: str, db: Session = Depends(get_db)):
     """Delete a game type"""
     db_game_type = db.query(models.GameType).filter(models.GameType.id == game_type_id).first()

@@ -476,7 +476,20 @@ def get_venue_slots(
             court_query += " AND ac.id = :court_id"
             params['court_id'] = target_court_id
         elif game_type:
-            court_query += " AND agt.name ILIKE :game_type"
+            # Include courts where:
+            # (a) Primary game_type matches the selected sport, OR
+            # (b) The court has sport_slices registered for the selected sport
+            # This supports multi-sport courts (e.g., one turf with Football + Box Cricket slices)
+            court_query += """
+                AND (
+                    agt.name ILIKE :game_type
+                    OR EXISTS (
+                        SELECT 1 FROM admin_sport_slices ss
+                        JOIN admin_game_types sgt ON ss.sport_id = sgt.id
+                        WHERE ss.court_id = ac.id AND sgt.name ILIKE :game_type
+                    )
+                )
+            """
             params['game_type'] = f"%{game_type}%"
             
         court_res = db.execute(text(court_query), params).fetchall()
@@ -579,12 +592,13 @@ def get_venue_slots(
                 is_available = h_float not in booked_slots
                 
                 time_key = slot_time # "HH:MM"
+                slot_key = f"{c_id}_{time_key}"
                 
                 update = False
-                if time_key not in consolidated_slots:
+                if slot_key not in consolidated_slots:
                     update = True
                 else:
-                    existing = consolidated_slots[time_key]
+                    existing = consolidated_slots[slot_key]
                     if is_available and not existing['available']:
                         update = True
                     elif is_available and existing['available']:
@@ -607,7 +621,7 @@ def get_venue_slots(
                     ampm_e = "AM" if h_e < 12 or h_e == 24 else "PM"
                     if h_e == 24: ampm_e = "AM"
                     
-                    consolidated_slots[time_key] = {
+                    consolidated_slots[slot_key] = {
                         "time": time_key,
                         "display_time": f"{sh_disp:02d}:{m:02d} {ampm_s} - {eh_disp:02d}:{m_e:02d} {ampm_e}",
                         "price": details['price'],
@@ -616,7 +630,10 @@ def get_venue_slots(
                         "current_court_rating": float(court.get('court_rating') or 0),
                         "current_court_reviews": int(court.get('court_reviews') or 0),
                         "available": is_available,
-                        "slot_id": details.get('id', 'default')
+                        "slot_id": details.get('slot_id'),
+                        "occupied_mask": details.get('occupied_mask', 0),
+                        "total_zones": details.get('total_zones', 1),
+                        "slices": details.get('slices', [])
                     }
                             
 

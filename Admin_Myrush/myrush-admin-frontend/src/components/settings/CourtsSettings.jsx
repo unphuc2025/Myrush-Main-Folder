@@ -625,6 +625,45 @@ function CourtViewModal({ court, onClose }) {
           </div>
         </div>
 
+        {/* Divisible Configuration */}
+        {court.logic_type === 'divisible' && (
+          <div className="space-y-4">
+            <h3 className="font-bold text-slate-900 border-b pb-2 flex items-center justify-between">
+              Divisible Configuration
+              <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Total Zones: {court.total_zones || 0}</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(court.sport_slices || []).map((slice, sIdx) => (
+                <div key={`view-slice-${sIdx}`} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800">{slice.name}</h4>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">{slice.sport_name || court.game_type?.name}</p>
+                    </div>
+                    <span className="text-sm font-bold text-green-600">₹{slice.price_per_hour || court.price_per_hour}</span>
+                  </div>
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                    {Array.from({ length: court.total_zones || 0 }).map((_, zIdx) => {
+                      const isActive = (slice.mask & (1 << zIdx));
+                      return (
+                        <div 
+                          key={`vz-${sIdx}-${zIdx}`}
+                          className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold border ${isActive ? 'bg-green-100 border-green-200 text-green-700' : 'bg-white border-slate-100 text-slate-300'}`}
+                        >
+                          {zIdx + 1}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {(!court.sport_slices || court.sport_slices.length === 0) && (
+                <p className="text-xs text-slate-400 italic py-2 text-center col-span-2">No sport slices configured</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Status Badge */}
         <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
           <span className="text-sm font-medium text-slate-700">Current Status:</span>

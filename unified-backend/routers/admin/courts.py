@@ -101,6 +101,8 @@ async def create_court(
     facility_type_id: Optional[str] = Form(None),
     shared_group_id: Optional[str] = Form(None),
     capacity_limit: int = Form(1),
+    total_zones: int = Form(1),
+    sport_slices: Optional[str] = Form(None),
     price_overrides: Optional[str] = Form(None),
     rental_item_ids: Optional[str] = Form(None),
     images: Optional[List[UploadFile]] = File(None),
@@ -214,9 +216,36 @@ async def create_court(
         facility_type_id=facility_type_id if facility_type_id and facility_type_id != "null" else None,
         shared_group_id=shared_group_id if shared_group_id and shared_group_id != "null" else None,
         capacity_limit=capacity_limit,
+        total_zones=total_zones,
         price_overrides=json.loads(price_overrides) if price_overrides else None
     )
     db.add(db_court)
+    db.flush()
+    
+    # Add CourtZones based on total_zones
+    if logic_type == 'divisible' or total_zones > 1:
+        for i in range(total_zones):
+            db.add(models.CourtZone(
+                court_id=db_court.id, 
+                zone_index=i, 
+                zone_name=f"Zone {i+1}"
+            ))
+
+    # Add SportSlices
+    if sport_slices:
+        try:
+            slices_data = json.loads(sport_slices)
+            for sl in slices_data:
+                db.add(models.SportSlice(
+                    court_id=db_court.id,
+                    sport_id=sl.get("sport_id", game_type_id),
+                    name=sl.get("name"),
+                    mask=sl.get("mask"),
+                    price_per_hour=sl.get("price_per_hour")
+                ))
+        except Exception as e:
+            print(f"Error parsing sport slices: {e}")
+
     db.commit()
     db.refresh(db_court)
     
@@ -258,6 +287,8 @@ async def update_court(
     facility_type_id: Optional[str] = Form(None),
     shared_group_id: Optional[str] = Form(None),
     capacity_limit: Optional[int] = Form(None),
+    total_zones: Optional[int] = Form(None),
+    sport_slices: Optional[str] = Form(None),
     price_overrides: Optional[str] = Form(None),
     rental_item_ids: Optional[str] = Form(None),
     db: Session = Depends(get_db),
@@ -352,9 +383,39 @@ async def update_court(
     if facility_type_id is not None: db_court.facility_type_id = facility_type_id if facility_type_id != "null" else None
     if shared_group_id is not None: db_court.shared_group_id = shared_group_id if shared_group_id != "null" else None
     if capacity_limit is not None: db_court.capacity_limit = capacity_limit
+    if total_zones is not None: db_court.total_zones = total_zones
     if price_overrides is not None: 
         try: db_court.price_overrides = json.loads(price_overrides)
         except: pass
+
+    # Update SportSlices and zones if provided
+    if sport_slices is not None:
+        try:
+            # Clear existing slices and recreate
+            db.query(models.SportSlice).filter(models.SportSlice.court_id == db_court.id).delete()
+            
+            slices_data = json.loads(sport_slices)
+            for sl in slices_data:
+                db.add(models.SportSlice(
+                    court_id=db_court.id,
+                    sport_id=sl.get("sport_id", game_type_id),
+                    name=sl.get("name"),
+                    mask=sl.get("mask"),
+                    price_per_hour=sl.get("price_per_hour")
+                ))
+        except Exception as e:
+            print(f"Error parsing sport slices: {e}")
+            
+    if total_zones is not None:
+        # Clear existing zones and recreate
+        db.query(models.CourtZone).filter(models.CourtZone.court_id == db_court.id).delete()
+        if (logic_type == 'divisible' if logic_type is not None else db_court.logic_type == 'divisible') or total_zones > 1:
+            for i in range(total_zones):
+                db.add(models.CourtZone(
+                    court_id=db_court.id, 
+                    zone_index=i, 
+                    zone_name=f"Zone {i+1}"
+                ))
 
     # Update Rental Items
     if rental_item_ids is not None:

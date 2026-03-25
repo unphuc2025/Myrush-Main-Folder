@@ -35,9 +35,9 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
     logicType: 'independent', // independent, shared, divisible, capacity
     sharedGroupId: '',
     capacityLimit: 1,
+    totalZones: 1,
+    sportSlices: [],
     priceOverrides: {},
-    units: [],
-    divisionModes: [],
     rentalItemIds: []
   });
 
@@ -69,12 +69,8 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
           while (typeof unavailabilitySlots === 'string') {
             try { unavailabilitySlots = JSON.parse(unavailabilitySlots); } catch (e) { console.error('Error parsing unavailability slots', e); break; }
           }
-          
-          const courtUnits = initialData.units || [];
-          const divisionModes = (initialData.division_modes || []).map(mode => ({
-             name: mode.name,
-             unitNames: (mode.units || []).map(u => u.name)
-          }));
+
+          // division modes & units removed in bitmask architecture
 
           setFormData({
             name: initialData.name,
@@ -94,9 +90,9 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
             logicType: initialData.logic_type || 'independent',
             sharedGroupId: initialData.shared_group_id || '',
             capacityLimit: initialData.capacity_limit || 1,
+            totalZones: initialData.total_zones || 1,
+            sportSlices: initialData.sport_slices || [],
             priceOverrides: initialData.price_overrides || {},
-            units: courtUnits,
-            divisionModes: divisionModes,
             rentalItemIds: (initialData.rental_items || []).map(ri => ri.id)
           });
         }
@@ -175,7 +171,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
       )
     }));
   };
-  
+
   const handleSharedGroupChange = async (val) => {
     if (val === 'new') {
       const name = window.prompt("Enter new Shared Group name:");
@@ -194,89 +190,39 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
     }
   };
 
-  const addUnit = () => {
-    const name = window.prompt("Enter Unit Name (e.g. A, B, C):");
-    if (name) {
-      setFormData(prev => ({
-        ...prev,
-        units: [...(prev.units || []), { name }]
-      }));
-    }
+  const addSportSlice = () => {
+    setFormData(prev => ({
+      ...prev,
+      sportSlices: [...prev.sportSlices, { name: '', mask: 0, price_per_hour: '' }]
+    }));
   };
 
-  const removeUnit = (index) => {
+  const updateSportSlice = (index, field, value) => {
     setFormData(prev => {
-      const unitName = prev.units[index].name;
-      return {
-        ...prev,
-        units: prev.units.filter((_, i) => i !== index),
-        divisionModes: (prev.divisionModes || []).map(mode => ({
-          ...mode,
-          unitNames: mode.unitNames.filter(name => name !== unitName)
-        }))
+      const newSlices = [...prev.sportSlices];
+      newSlices[index] = { ...newSlices[index], [field]: value };
+      return { ...prev, sportSlices: newSlices };
+    });
+  };
+
+  const toggleZoneInSlice = (sliceIndex, zoneIndex) => {
+    setFormData(prev => {
+      const newSlices = [...prev.sportSlices];
+      const currentMask = Number(newSlices[sliceIndex].mask) || 0;
+      const zoneBit = 1 << zoneIndex;
+      newSlices[sliceIndex] = {
+        ...newSlices[sliceIndex],
+        mask: currentMask ^ zoneBit
       };
+      return { ...prev, sportSlices: newSlices };
     });
   };
 
-  const addDivisionMode = () => {
+  const removeSportSlice = (index) => {
     setFormData(prev => ({
       ...prev,
-      divisionModes: [...(prev.divisionModes || []), { name: '', unitNames: [] }]
+      sportSlices: prev.sportSlices.filter((_, i) => i !== index)
     }));
-  };
-
-  const updateMode = (index, field, value) => {
-    setFormData(prev => {
-      const newModes = [...(prev.divisionModes || [])];
-      newModes[index] = { ...newModes[index], [field]: value };
-      return { ...prev, divisionModes: newModes };
-    });
-  };
-
-  const toggleUnitInMode = (modeIdx, unitName) => {
-    setFormData(prev => {
-      const newModes = [...(prev.divisionModes || [])];
-      const mode = { ...newModes[modeIdx] };
-      if (mode.unitNames.includes(unitName)) {
-        mode.unitNames = mode.unitNames.filter(n => n !== unitName);
-      } else {
-        mode.unitNames = [...mode.unitNames, unitName];
-      }
-      newModes[modeIdx] = mode;
-      return { ...prev, divisionModes: newModes };
-    });
-  };
-
-  const removeMode = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      divisionModes: (prev.divisionModes || []).filter((_, i) => i !== index)
-    }));
-  };
-
-  const saveDivisibleSettings = async (courtId) => {
-    if (formData.logicType !== 'divisible') return;
-
-    // Create Units
-    const unitPromises = (formData.units || []).map(unit => 
-      courtUnitsApi.create(courtId, unit)
-    );
-    const createdUnits = await Promise.all(unitPromises);
-    
-    // Create Modes
-    const modePromises = (formData.divisionModes || []).map(mode => {
-      // Map unit names to created unit IDs
-      const unitIds = mode.unitNames.map(name => {
-        const u = createdUnits.find(cu => cu.name === name);
-        return u?.id;
-      }).filter(Boolean);
-      
-      return divisionModesApi.create(courtId, {
-        name: mode.name,
-        unit_ids: unitIds
-      });
-    });
-    await Promise.all(modePromises);
   };
 
   const handleSubmit = async (e) => {
@@ -295,10 +241,12 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
       submitData.append('price_per_hour', formData.defaultPrice);
       submitData.append('is_active', formData.isActive);
       submitData.append('logic_type', formData.logicType);
-      
+
       if (formData.facilityTypeId) submitData.append('facility_type_id', formData.facilityTypeId);
       if (formData.sharedGroupId) submitData.append('shared_group_id', formData.sharedGroupId);
       if (formData.capacityLimit) submitData.append('capacity_limit', formData.capacityLimit);
+      submitData.append('total_zones', formData.totalZones);
+      if (formData.sportSlices?.length > 0) submitData.append('sport_slices', JSON.stringify(formData.sportSlices));
       if (formData.priceOverrides) submitData.append('price_overrides', JSON.stringify(formData.priceOverrides));
       if (formData.rentalItemIds) submitData.append('rental_item_ids', JSON.stringify(formData.rentalItemIds));
 
@@ -324,9 +272,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
         result = await courtsApi.create(submitData);
       }
 
-      if (formData.logicType === 'divisible') {
-        await saveDivisibleSettings(result.id);
-      }
+      // Divisible logic removed from here as it is now supported transactionally via 'sport_slices' within courtsApi
 
       onSuccess();
     } catch (err) {
@@ -487,7 +433,7 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
 
             {formData.logicType === 'capacity' && (
               <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
-                 <h4 className="text-sm font-bold text-purple-800 flex items-center gap-2 mb-3">
+                <h4 className="text-sm font-bold text-purple-800 flex items-center gap-2 mb-3">
                   <Info className="h-4 w-4" /> Capacity Configuration
                 </h4>
                 <label className="block text-xs font-bold text-purple-600 uppercase mb-2">Member Limit (per slot)</label>
@@ -504,68 +450,87 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
             {formData.logicType === 'divisible' && (
               <div className="p-4 bg-green-50 border border-green-100 rounded-xl space-y-4">
                 <h4 className="text-sm font-bold text-green-800 flex items-center gap-2">
-                  <Info className="h-4 w-4" /> Divisible Ground Configuration
+                  <Info className="h-4 w-4" /> Court Zoning & Slices Configuration
                 </h4>
-                
-                {/* Units Section */}
+
+                {/* Total Zones */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-green-600 uppercase">Core Units (e.g., A, B, C)</label>
-                    <button type="button" onClick={addUnit} className="text-[10px] font-bold text-green-700 bg-white px-2 py-0.5 rounded border border-green-200 hover:bg-green-50 transition-colors">
-                      + Add Unit
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {(formData.units || []).map((unit) => (
-                      <div key={`unit-${unit.name}`} className="flex items-center gap-1 bg-white border border-green-200 pl-3 pr-1 py-1 rounded-lg shadow-sm">
-                        <span className="text-sm font-medium text-slate-700">{unit.name}</span>
-                        <button type="button" onClick={() => removeUnit((formData.units || []).findIndex(u => u.name === unit.name))} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {(formData.units || []).length === 0 && <span className="text-[10px] text-slate-400 italic">No units added yet</span>}
-                  </div>
+                  <label className="text-xs font-bold text-green-600 uppercase">Total Physical Zones (Indivisible Units)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="32"
+                    value={formData.totalZones}
+                    onChange={(e) => setFormData({ ...formData, totalZones: parseInt(e.target.value) || 1 })}
+                    className="w-full sm:w-1/3 px-4 py-2 bg-white border border-green-200 rounded-lg text-sm outline-none focus:border-green-500 transition-all font-medium"
+                  />
+                  <p className="text-[10px] text-green-600">The total number of zones this court is divided into linearly.</p>
                 </div>
 
                 {/* Division Modes Section */}
-                <div className="space-y-2 pt-2 border-t border-green-100">
-                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-green-600 uppercase">Division Modes (Combinations)</label>
-                    <button type="button" onClick={addDivisionMode} className="text-[10px] font-bold text-green-700 bg-white px-2 py-0.5 rounded border border-green-200 hover:bg-green-50 transition-colors">
-                      + Add Mode
+                <div className="space-y-4 pt-4 border-t border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-xs font-bold text-green-600 uppercase">Available Playing Modes (Sport Slices)</label>
+                      <p className="text-[10px] text-green-700/70 font-medium">Define which sports can be played and what zones they occupy.</p>
+                    </div>
+                    <button type="button" onClick={addSportSlice} className="text-[10px] font-bold text-green-700 bg-white px-3 py-1.5 rounded-lg border border-green-200 hover:bg-green-100 transition-colors shadow-sm">
+                      + Add Booking Option
                     </button>
                   </div>
-                  <div className="space-y-3">
-                    {(formData.divisionModes || []).map((mode, idx) => (
-                      <div key={`mode-${idx}-${mode.name}`} className="p-3 bg-white border border-green-100 rounded-lg space-y-3 shadow-sm">
-                         <div className="flex items-center justify-between gap-4">
-                            <input 
-                              placeholder="e.g. 6-a-side" 
-                              value={mode.name}
-                              onChange={(e) => updateMode(idx, 'name', e.target.value)}
-                              className="text-sm font-bold border-b border-slate-100 focus:border-green-500 outline-none p-1 flex-1 text-slate-700"
-                            />
-                            <button type="button" onClick={() => removeMode(idx)} className="text-slate-300 hover:text-red-500 transition-colors">
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                         </div>
-                         <div className="flex flex-wrap gap-3 p-1">
-                            {(formData.units || []).map((unit) => (
-                              <label key={`mode-unit-${idx}-${unit.name}`} className="flex items-center gap-2 cursor-pointer group">
-                                <input 
-                                  type="checkbox" 
-                                  checked={mode.unitNames.includes(unit.name)}
-                                  onChange={() => toggleUnitInMode(idx, unit.name)}
-                                  className="rounded border-slate-300 text-green-600 focus:ring-green-500"
-                                />
-                                <span className="text-xs font-semibold text-slate-600 group-hover:text-green-700">{unit.name}</span>
-                              </label>
-                            ))}
-                         </div>
+                  <div className="space-y-4">
+                    {formData.sportSlices.map((slice, idx) => (
+                      <div key={`slice-${idx}`} className="p-4 bg-white border border-green-200 rounded-xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center gap-2 sm:gap-3 w-full">
+                          <input
+                            placeholder="Name (e.g. 10-a-side)"
+                            value={slice.name}
+                            onChange={(e) => updateSportSlice(idx, 'name', e.target.value)}
+                            className="text-sm font-bold border border-slate-200 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none px-3 py-2 flex-1 min-w-0 text-slate-700 rounded-lg"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="Price(₹)"
+                            value={slice.price_per_hour ?? ''}
+                            onChange={(e) => updateSportSlice(idx, 'price_per_hour', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                            className="text-sm font-bold border border-slate-200 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none px-2 sm:px-3 py-2 w-20 sm:w-24 shrink-0 text-slate-700 rounded-lg bg-slate-50"
+                          />
+                          <button type="button" onClick={() => removeSportSlice(idx)} className="shrink-0 h-[38px] w-[38px] flex items-center justify-center text-slate-400 hover:text-white hover:bg-red-500 transition-colors rounded-lg border border-transparent hover:border-red-600 group">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        {/* Visual Grid Selector */}
+                        <div className="pt-2">
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Select Required Zones (Interactive Grid)</label>
+                          <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-100 rounded-xl max-w-2xl overflow-x-auto">
+                            {Array.from({ length: formData.totalZones }).map((_, zoneIndex) => {
+                              const isSelected = (slice.mask & (1 << zoneIndex)) !== 0;
+                              return (
+                                <button
+                                  type="button"
+                                  key={`zone-${idx}-${zoneIndex}`}
+                                  onClick={() => toggleZoneInSlice(idx, zoneIndex)}
+                                  className={`flex-1 min-w-[3rem] max-w-[4rem] aspect-square rounded-lg border-2 flex flex-col items-center justify-center transition-all ${isSelected
+                                    ? 'bg-gradient-to-br from-green-500 to-green-600 border-green-700 text-white shadow-inner transform scale-95'
+                                    : 'bg-white border-slate-200 text-slate-400 hover:border-green-300 hover:text-green-500 hover:bg-green-50'
+                                    }`}
+                                >
+                                  <span className="text-xs uppercase tracking-tight font-bold opacity-80">Zone</span>
+                                  <span className="text-lg font-black leading-none">{zoneIndex + 1}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
                     ))}
-                    {(formData.divisionModes || []).length === 0 && <p className="text-[10px] text-slate-400 italic text-center py-2">Define division modes once units are added</p>}
+                    {formData.sportSlices.length === 0 && (
+                      <div className="p-6 border-2 border-dashed border-green-200 bg-green-50/50 rounded-xl text-center text-sm font-medium text-green-700">
+                        No playing modes configured yet. Add an option to define how customers can book this court.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -657,31 +622,31 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
         <section>
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 ml-1">Available Rental Items</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-             {allRentalItems.filter(ri => !ri.branch_id || ri.branch_id === formData.branchId).map(item => (
-                <label key={item.id} className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.rentalItemIds.includes(item.id) ? 'bg-green-50 border-green-500 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-200 shadow-sm'}`}>
-                   <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${formData.rentalItemIds.includes(item.id) ? 'bg-green-600 border-green-600' : 'bg-white border-slate-300'}`}>
-                         {formData.rentalItemIds.includes(item.id) && <Plus className="h-3.5 w-3.5 text-white rotate-45" />}
-                      </div>
-                      <span className="text-sm font-bold text-slate-700">{item.name}</span>
-                   </div>
-                   <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">₹{item.price_per_booking}</span>
-                   <input 
-                      type="checkbox" 
-                      className="hidden"
-                      checked={formData.rentalItemIds.includes(item.id)}
-                      onChange={() => {
-                         const current = formData.rentalItemIds;
-                         if (current.includes(item.id)) {
-                            setFormData(prev => ({ ...prev, rentalItemIds: current.filter(id => id !== item.id) }));
-                         } else {
-                            setFormData(prev => ({ ...prev, rentalItemIds: [...current, item.id] }));
-                         }
-                      }}
-                   />
-                </label>
-             ))}
-             {allRentalItems.length === 0 && <p className="text-xs text-slate-400 italic col-span-2 text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">No rental items configured</p>}
+            {allRentalItems.filter(ri => !ri.branch_id || ri.branch_id === formData.branchId).map(item => (
+              <label key={item.id} className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.rentalItemIds.includes(item.id) ? 'bg-green-50 border-green-500 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-200 shadow-sm'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${formData.rentalItemIds.includes(item.id) ? 'bg-green-600 border-green-600' : 'bg-white border-slate-300'}`}>
+                    {formData.rentalItemIds.includes(item.id) && <Plus className="h-3.5 w-3.5 text-white rotate-45" />}
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">{item.name}</span>
+                </div>
+                <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">₹{item.price_per_booking}</span>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={formData.rentalItemIds.includes(item.id)}
+                  onChange={() => {
+                    const current = formData.rentalItemIds;
+                    if (current.includes(item.id)) {
+                      setFormData(prev => ({ ...prev, rentalItemIds: current.filter(id => id !== item.id) }));
+                    } else {
+                      setFormData(prev => ({ ...prev, rentalItemIds: [...current, item.id] }));
+                    }
+                  }}
+                />
+              </label>
+            ))}
+            {allRentalItems.length === 0 && <p className="text-xs text-slate-400 italic col-span-2 text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">No rental items configured</p>}
           </div>
         </section>
 

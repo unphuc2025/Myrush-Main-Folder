@@ -95,10 +95,18 @@ def toggle_user_status(user_id: str, db: Session = Depends(get_db)):
 @router.delete("/{user_id}", dependencies=[Depends(PermissionChecker("User Management", "delete"))])
 def delete_user(user_id: str, db: Session = Depends(get_db)):
     """Delete a user"""
+    from sqlalchemy.exc import IntegrityError
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    db.delete(user)
-    db.commit()
+    try:
+        db.delete(user)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot delete this user because they have associated records (e.g., bookings or transactions). Please deactivate the user instead."
+        )
     return {"message": "User deleted successfully"}

@@ -250,6 +250,7 @@ class CourtBase(BaseModel):
     logic_type: Optional[str] = 'independent' # 'independent', 'shared', 'divisible', 'capacity'
     shared_group_id: Optional[str] = None
     capacity_limit: Optional[int] = 1
+    total_zones: Optional[int] = 1
     price_per_hour: Decimal
     price_overrides: Optional[Dict[str, float]] = None
     price_conditions: Optional[Any] = None
@@ -331,14 +332,32 @@ class RentalItem(RentalItemBase):
 class CourtCreate(CourtBase):
     pass
 
+class SportSliceResponse(BaseModel):
+    id: str
+    sport_id: str
+    name: str
+    mask: int
+    price_per_hour: Optional[float] = None
+
+    @field_validator('id', 'sport_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        from uuid import UUID
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+
 class Court(CourtBase):
     id: str
     branch: Optional[Branch] = None
     game_type: Optional[GameType] = None
     facility_type: Optional[FacilityType] = None
     shared_group: Optional[SharedGroup] = None
-    units: Optional[List[CourtUnit]] = []
-    division_modes: Optional[List[DivisionMode]] = []
+    sport_slices: Optional[List[SportSliceResponse]] = []
     rental_items: Optional[List[RentalItem]] = []
 
     @field_validator('id', 'branch_id', 'game_type_id', 'facility_type_id', 'shared_group_id', mode='before')
@@ -825,12 +844,13 @@ class BookingCreate(BaseModel):
     total_amount: Optional[float] = None # Allow frontend to specify total
     # New Multi-slot fields
     time_slots: Optional[List[dict]] = None
+    slot_ids: Optional[List[str]] = None # IDs mapping to slots table
     original_amount: Optional[float] = None
     discount_amount: Optional[float] = 0
     coupon_code: Optional[str] = None
     status: Optional[str] = None
     payment_status: Optional[str] = None
-    division_mode_id: Optional[str] = None
+    slice_mask: Optional[int] = None
     
     # Razorpay Fields
     razorpay_order_id: Optional[str] = None

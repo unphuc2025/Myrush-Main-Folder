@@ -13,12 +13,26 @@ import { FaMapMarkerAlt, FaStar, FaClock, FaChevronLeft, FaChevronRight, FaHeart
 import { getAmenityIcon } from '../utils/amenityIcons';
 import { useFavorites } from '../context/FavoritesContext';
 import { useNotification } from '../context/NotificationContext';
+interface SportSlice {
+    id: string;
+    sport_id: string;
+    sport_name?: string;
+    name: string;
+    mask: number;
+    price_per_hour?: number;
+}
+
 interface Slot {
     time: string;
     display_time: string;
     price: number;
     available: boolean;
+    court_id?: string;
     court_name?: string;
+    slot_id?: string;
+    occupied_mask?: number;
+    total_zones?: number;
+    slices?: SportSlice[];
 }
 
 // --- Sub-Components ---
@@ -61,6 +75,108 @@ export const VenueDetailsPage: React.FC = () => {
 
     // Game Type Selection State
     const [selectedSport, setSelectedSport] = useState<string>('');
+    const [selectedSliceId, setSelectedSliceId] = useState<string>('');
+
+    // Derived configuration options (Slices) based on selected sport
+    const availableConfigurations = useMemo(() => {
+        const configs: { courtId: string; totalZones: number; slice: SportSlice | 'full'; label: string; minPrice: number }[] = [];
+        const courtsMap = new Map<string, { totalZones: number; slices: Map<string, SportSlice>; minPrice: number; name: string }>();
+        
+        availableSlots.forEach(slot => {
+            if (!slot.court_id) return;
+            if (!courtsMap.has(slot.court_id)) {
+                courtsMap.set(slot.court_id, {
+                    totalZones: slot.total_zones || 1,
+                    slices: new Map(),
+                    minPrice: slot.price,
+                    name: slot.court_name || 'Court'
+                });
+            }
+            const cInfo = courtsMap.get(slot.court_id)!;
+            if (slot.price < cInfo.minPrice) cInfo.minPrice = slot.price;
+            
+            if (slot.slices && slot.slices.length > 0) {
+                slot.slices.forEach(sl => {
+                    // Only include slices that match the selected sport
+                    const sliceSport = (sl.sport_name || '').toLowerCase();
+                    const activeSport = (selectedSport || '').toLowerCase();
+                    if (!activeSport || sliceSport === activeSport || sliceSport.includes(activeSport) || activeSport.includes(sliceSport)) {
+                        cInfo.slices.set(sl.id, sl);
+                    }
+                });
+            }
+        });
+
+        courtsMap.forEach((cInfo, courtId) => {
+            if (cInfo.slices.size > 0) {
+                cInfo.slices.forEach(sl => {
+                    configs.push({
+                        courtId,
+                        totalZones: cInfo.totalZones,
+                        slice: sl,
+                        label: `${cInfo.name.replace('Court', '').trim() || 'Court'} - ${sl.name}`,
+                        minPrice: cInfo.minPrice
+                    });
+                });
+            } else {
+                 configs.push({
+                    courtId,
+                    totalZones: cInfo.totalZones,
+                    slice: 'full',
+                    label: cInfo.name || 'Full Court',
+                    minPrice: cInfo.minPrice
+                });
+            }
+        });
+        
+        return configs;
+    }, [availableSlots]);
+
+    // Auto-select first configuration when available changes
+    useEffect(() => {
+        if (availableConfigurations.length > 0) {
+             const exists = availableConfigurations.some(c => (c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id) === selectedSliceId);
+             if (!exists) {
+                 const first = availableConfigurations[0];
+                 setSelectedSliceId(first.slice === 'full' ? `full-${first.courtId}` : (first.slice as SportSlice).id);
+             }
+        } else {
+             setSelectedSliceId('');
+        }
+    }, [availableConfigurations]);
+
+    // Derived slots based on selected config
+    const filteredSlots = useMemo(() => {
+        if (!selectedSliceId) return []; 
+        
+        const config = availableConfigurations.find(c => 
+            (c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id) === selectedSliceId
+        );
+        
+        if (!config) return [];
+        
+        return availableSlots.filter(slot => {
+            if (slot.court_id !== config.courtId) return false;
+            
+            if (config.slice === 'full') {
+                 const fullMask = (1 << (slot.total_zones || 1)) - 1;
+                 return ((slot.occupied_mask || 0) & fullMask) === 0;
+            } else {
+                 const sl = config.slice as SportSlice;
+                 return ((slot.occupied_mask || 0) & sl.mask) === 0;
+            }
+        }).map(slot => {
+            const sl = config.slice as SportSlice;
+            const newPrice = (config.slice !== 'full' && sl.price_per_hour && sl.price_per_hour > 0) 
+                ? (sl.price_per_hour / 2.0)
+                : undefined;
+                
+            return {
+                ...slot,
+                price: newPrice !== undefined ? newPrice : slot.price
+            };
+        });
+    }, [availableSlots, selectedSliceId, availableConfigurations]);
 
     // Talking Lands virtual tour URLs — keyed by venue (branch) ID
     const VIRTUAL_TOUR_URLS: Record<string, string> = {
@@ -190,6 +306,11 @@ export const VenueDetailsPage: React.FC = () => {
             return;
         }
 
+        const currentConfig = availableConfigurations.find(c => (c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id) === selectedSliceId);
+        const sliceMask = currentConfig 
+            ? (currentConfig.slice === 'full' ? ((1 << currentConfig.totalZones) - 1) : (currentConfig.slice as SportSlice).mask)
+            : 0;
+
         const bookingState = {
             venueId: id,
             venueName: venue?.court_name,
@@ -198,7 +319,9 @@ export const VenueDetailsPage: React.FC = () => {
             selectedSlots: selectedSlots,
             selectedSport: selectedSport,
             totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0),
-            numPlayers: numPlayers
+            numPlayers: numPlayers,
+            courtId: currentConfig?.courtId,
+            sliceMask: sliceMask
         };
 
         if (!isAuthenticated) {
@@ -541,6 +664,99 @@ export const VenueDetailsPage: React.FC = () => {
                                     </div>
                                 )}
 
+                                {/* Court & Size Selector (Redesigned) */}
+                                {availableConfigurations.length > 0 && (() => {
+                                    // Group configurations by court
+                                    const courtGroups = availableConfigurations.reduce((acc, config) => {
+                                        const courtName = config.label.split(' - ')[0] || 'Court';
+                                        if (!acc[config.courtId]) {
+                                            acc[config.courtId] = { courtId: config.courtId, courtName, slices: [] };
+                                        }
+                                        acc[config.courtId].slices.push(config);
+                                        return acc;
+                                    }, {} as Record<string, { courtId: string; courtName: string; slices: typeof availableConfigurations }>);
+
+                                    return (
+                                        <div className="mb-6">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="w-0.5 h-4 bg-primary rounded-full"></div>
+                                                <span className="text-base font-bold text-gray-800 leading-none">
+                                                    Select Court & Size
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col gap-3">
+                                                {Object.values(courtGroups).map((group) => {
+                                                    const isAnySliceSelected = group.slices.some(config => {
+                                                        const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
+                                                        return selectedSliceId === configId;
+                                                    });
+
+                                                    return (
+                                                        <div
+                                                            key={group.courtId}
+                                                            className={`rounded-xl border-2 p-3 transition-all ${isAnySliceSelected ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white'}`}
+                                                        >
+                                                            {/* Court Name Header */}
+                                                            <div className="flex items-center gap-2 mb-3">
+                                                                <div className={`w-2 h-2 rounded-full ${isAnySliceSelected ? 'bg-primary' : 'bg-gray-300'}`}></div>
+                                                                <span className={`text-sm font-bold ${isAnySliceSelected ? 'text-primary' : 'text-gray-700'}`}>
+                                                                    {group.courtName}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Slice chips */}
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {group.slices.map((config, idx) => {
+                                                                    const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
+                                                                    const isSelected = selectedSliceId === configId;
+                                                                    const mask = config.slice === 'full' ? ((1 << config.totalZones) - 1) : (config.slice as SportSlice).mask;
+                                                                    const sliceLabel = config.slice === 'full' ? 'Full Court' : (config.slice as SportSlice).name;
+
+                                                                    return (
+                                                                        <button
+                                                                            key={`chip-${idx}`}
+                                                                            onClick={() => { setSelectedSliceId(configId); setSelectedSlots([]); }}
+                                                                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-xs font-bold transition-all ${isSelected
+                                                                                ? 'bg-primary text-white border-primary shadow-md'
+                                                                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40 hover:text-primary'
+                                                                            }`}
+                                                                        >
+                                                                            <span>{sliceLabel}</span>
+                                                                            <span className={`font-semibold ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                                                                                ₹{config.minPrice}/hr
+                                                                            </span>
+                                                                            {/* Mini bitmask zones */}
+                                                                            {config.totalZones > 1 && (
+                                                                                <div className="flex gap-0.5 ml-1">
+                                                                                    {Array.from({ length: config.totalZones }).map((_, zoneIndex) => {
+                                                                                        const isZoneInSlice = (mask & (1 << zoneIndex)) !== 0;
+                                                                                        return (
+                                                                                            <div
+                                                                                                key={`z-${zoneIndex}`}
+                                                                                                className={`w-3 h-4 rounded-sm text-[7px] font-black flex items-center justify-center ${isZoneInSlice
+                                                                                                    ? isSelected ? 'bg-white/30 text-white' : 'bg-primary/20 text-primary'
+                                                                                                    : isSelected ? 'bg-white/10 text-white/30' : 'bg-gray-200 text-gray-300'
+                                                                                                }`}
+                                                                                            >
+                                                                                                {zoneIndex + 1}
+                                                                                            </div>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+
                                 {/* Date Selector (Horizontal) */}
                                 <div className="mb-8">
                                     <div className="flex justify-between items-center mb-4">
@@ -618,14 +834,14 @@ export const VenueDetailsPage: React.FC = () => {
                                     </div>
                                     {loadingSlots ? (
                                         <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
-                                    ) : availableSlots.length === 0 ? (
+                                    ) : filteredSlots.length === 0 ? (
                                         <div className="text-center py-6 text-gray-400 text-xs font-medium">
                                             <FaClock className="mx-auto mb-2 text-lg opacity-30" />
                                             No slots available
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-2 no-scrollbar">
-                                            {availableSlots.map(slot => {
+                                            {filteredSlots.map(slot => {
                                                 const isSel = selectedSlots.some(s => s.display_time === slot.display_time);
                                                 return (
                                                     <button
