@@ -244,7 +244,7 @@ def validate_booking_rules(db: Session, court_id: str, booking_date: date, start
     print("[RULES CHECK] Basic validation passed. Collisions checked atomically.")
 
 
-def validate_court_configuration(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]], number_of_players: int, expected_total_amount: float):
+def validate_court_configuration(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]], number_of_players: int, expected_total_amount: float, slice_mask: Optional[int] = None):
     """
     Ensures the requested slots exist in the court's configuration and the price is correct.
     """
@@ -275,10 +275,23 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: date,
              raise HTTPException(status_code=400, detail="This slot has been blocked by Admin.")
             
         expected_price = float(server_slot['price'])
+        
+        # If a slice is being booked, use its specific price if defined
+        if slice_mask is not None:
+            slice_info = next((s for s in server_slot.get('slices', []) if s['mask'] == slice_mask), None)
+            if slice_info and slice_info.get('price_per_hour') is not None:
+                # Slot price is for 30 mins, so we use price_per_hour / 2
+                expected_price = float(slice_info['price_per_hour']) / 2.0
+            elif slice_info:
+                # Fallback: if slice has no custom price, it might be using bitmask of total_zones
+                # But typically slices have their own price. 
+                pass
+
         provided_price = float(req.get('price', 0))
         
         # Allow small rounding difference
         if abs(expected_price - provided_price) > 5.0:
+             print(f"[CONFIG CHECK FAIL] Price mismatch at {r_start}: Expected {expected_price}, Got {provided_price}")
              raise HTTPException(status_code=400, detail=f"Price mismatch for slot {r_start}")
              
         calculated_total_base += expected_price
@@ -455,7 +468,8 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             booking_date=booking.booking_date,
             requested_slots=time_slots,
             expected_total_amount=original_amount,
-            number_of_players=booking.number_of_players or 2
+            number_of_players=booking.number_of_players or 2,
+            slice_mask=booking.slice_mask
         )
         
         user_exists = db.query(models.User).filter(models.User.id == user_id).first()
