@@ -16,8 +16,10 @@ import { useNotification } from '../context/NotificationContext';
 interface SportSlice {
     id: string;
     sport_id: string;
+    sport_name?: string;
     name: string;
     mask: number;
+    price_per_hour?: number;
 }
 
 interface Slot {
@@ -94,7 +96,14 @@ export const VenueDetailsPage: React.FC = () => {
             if (slot.price < cInfo.minPrice) cInfo.minPrice = slot.price;
             
             if (slot.slices && slot.slices.length > 0) {
-                slot.slices.forEach(sl => cInfo.slices.set(sl.id, sl));
+                slot.slices.forEach(sl => {
+                    // Only include slices that match the selected sport
+                    const sliceSport = (sl.sport_name || '').toLowerCase();
+                    const activeSport = (selectedSport || '').toLowerCase();
+                    if (!activeSport || sliceSport === activeSport || sliceSport.includes(activeSport) || activeSport.includes(sliceSport)) {
+                        cInfo.slices.set(sl.id, sl);
+                    }
+                });
             }
         });
 
@@ -655,62 +664,98 @@ export const VenueDetailsPage: React.FC = () => {
                                     </div>
                                 )}
 
-                                {/* Slice Selector / Mini-Map */}
-                                {availableConfigurations.length > 0 && (
-                                    <div className="mb-6">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <div className="w-0.5 h-4 bg-primary rounded-full"></div>
-                                            <span className="text-base font-bold text-gray-800 leading-none">Court Configuration (Size)</span>
-                                        </div>
-                                        <div className="flex flex-col gap-3">
-                                            {availableConfigurations.map((config, idx) => {
-                                                const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
-                                                const isSelected = selectedSliceId === configId;
-                                                const mask = config.slice === 'full' ? ((1 << config.totalZones) - 1) : (config.slice as SportSlice).mask;
-                                                
-                                                return (
-                                                    <button
-                                                        key={`config-${idx}`}
-                                                        onClick={() => {
-                                                            setSelectedSliceId(configId);
-                                                            setSelectedSlots([]); // Clear time slots when changing config
-                                                        }}
-                                                        className={`flex items-center justify-between p-3 rounded-xl transition-all border-2 w-full text-left ${isSelected
-                                                            ? 'bg-primary/5 border-primary shadow-sm'
-                                                            : 'bg-white border-gray-200 hover:border-gray-300'
-                                                            }`}
-                                                    >
-                                                        <div>
-                                                            <div className={`font-bold text-sm ${isSelected ? 'text-primary' : 'text-gray-800'}`}>
-                                                                {config.label}
+                                {/* Court & Size Selector (Redesigned) */}
+                                {availableConfigurations.length > 0 && (() => {
+                                    // Group configurations by court
+                                    const courtGroups = availableConfigurations.reduce((acc, config) => {
+                                        const courtName = config.label.split(' - ')[0] || 'Court';
+                                        if (!acc[config.courtId]) {
+                                            acc[config.courtId] = { courtId: config.courtId, courtName, slices: [] };
+                                        }
+                                        acc[config.courtId].slices.push(config);
+                                        return acc;
+                                    }, {} as Record<string, { courtId: string; courtName: string; slices: typeof availableConfigurations }>);
+
+                                    return (
+                                        <div className="mb-6">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="w-0.5 h-4 bg-primary rounded-full"></div>
+                                                <span className="text-base font-bold text-gray-800 leading-none">
+                                                    Select Court & Size
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col gap-3">
+                                                {Object.values(courtGroups).map((group) => {
+                                                    const isAnySliceSelected = group.slices.some(config => {
+                                                        const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
+                                                        return selectedSliceId === configId;
+                                                    });
+
+                                                    return (
+                                                        <div
+                                                            key={group.courtId}
+                                                            className={`rounded-xl border-2 p-3 transition-all ${isAnySliceSelected ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white'}`}
+                                                        >
+                                                            {/* Court Name Header */}
+                                                            <div className="flex items-center gap-2 mb-3">
+                                                                <div className={`w-2 h-2 rounded-full ${isAnySliceSelected ? 'bg-primary' : 'bg-gray-300'}`}></div>
+                                                                <span className={`text-sm font-bold ${isAnySliceSelected ? 'text-primary' : 'text-gray-700'}`}>
+                                                                    {group.courtName}
+                                                                </span>
                                                             </div>
-                                                            <div className="text-xs text-gray-500 mt-1 font-medium">From ₹{config.minPrice} / hr</div>
-                                                        </div>
-                                                        
-                                                        {/* Mini-Map rendering of the bitmask */}
-                                                        {config.totalZones > 1 && (
-                                                            <div className="flex gap-1 p-1 bg-gray-50 rounded-lg border border-gray-100 opacity-90">
-                                                                {Array.from({ length: config.totalZones }).map((_, zoneIndex) => {
-                                                                    const isZoneInSlice = (mask & (1 << zoneIndex)) !== 0;
+
+                                                            {/* Slice chips */}
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {group.slices.map((config, idx) => {
+                                                                    const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
+                                                                    const isSelected = selectedSliceId === configId;
+                                                                    const mask = config.slice === 'full' ? ((1 << config.totalZones) - 1) : (config.slice as SportSlice).mask;
+                                                                    const sliceLabel = config.slice === 'full' ? 'Full Court' : (config.slice as SportSlice).name;
+
                                                                     return (
-                                                                        <div 
-                                                                            key={`zone-${zoneIndex}`}
-                                                                            className={`w-4 h-7 rounded flex items-center justify-center text-[9px] font-black ${
-                                                                                isZoneInSlice ? 'bg-primary text-white shadow-sm' : 'bg-gray-200 text-gray-400'
+                                                                        <button
+                                                                            key={`chip-${idx}`}
+                                                                            onClick={() => { setSelectedSliceId(configId); setSelectedSlots([]); }}
+                                                                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-xs font-bold transition-all ${isSelected
+                                                                                ? 'bg-primary text-white border-primary shadow-md'
+                                                                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40 hover:text-primary'
                                                                             }`}
                                                                         >
-                                                                            {zoneIndex + 1}
-                                                                        </div>
+                                                                            <span>{sliceLabel}</span>
+                                                                            <span className={`font-semibold ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                                                                                ₹{config.minPrice}/hr
+                                                                            </span>
+                                                                            {/* Mini bitmask zones */}
+                                                                            {config.totalZones > 1 && (
+                                                                                <div className="flex gap-0.5 ml-1">
+                                                                                    {Array.from({ length: config.totalZones }).map((_, zoneIndex) => {
+                                                                                        const isZoneInSlice = (mask & (1 << zoneIndex)) !== 0;
+                                                                                        return (
+                                                                                            <div
+                                                                                                key={`z-${zoneIndex}`}
+                                                                                                className={`w-3 h-4 rounded-sm text-[7px] font-black flex items-center justify-center ${isZoneInSlice
+                                                                                                    ? isSelected ? 'bg-white/30 text-white' : 'bg-primary/20 text-primary'
+                                                                                                    : isSelected ? 'bg-white/10 text-white/30' : 'bg-gray-200 text-gray-300'
+                                                                                                }`}
+                                                                                            >
+                                                                                                {zoneIndex + 1}
+                                                                                            </div>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+                                                                            )}
+                                                                        </button>
                                                                     );
                                                                 })}
                                                             </div>
-                                                        )}
-                                                    </button>
-                                                );
-                                            })}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    );
+                                })()}
+
 
                                 {/* Date Selector (Horizontal) */}
                                 <div className="mb-8">
