@@ -476,7 +476,20 @@ def get_venue_slots(
             court_query += " AND ac.id = :court_id"
             params['court_id'] = target_court_id
         elif game_type:
-            court_query += " AND agt.name ILIKE :game_type"
+            # Include courts where:
+            # (a) Primary game_type matches the selected sport, OR
+            # (b) The court has sport_slices registered for the selected sport
+            # This supports multi-sport courts (e.g., one turf with Football + Box Cricket slices)
+            court_query += """
+                AND (
+                    agt.name ILIKE :game_type
+                    OR EXISTS (
+                        SELECT 1 FROM admin_sport_slices ss
+                        JOIN admin_game_types sgt ON ss.sport_id = sgt.id
+                        WHERE ss.court_id = ac.id AND sgt.name ILIKE :game_type
+                    )
+                )
+            """
             params['game_type'] = f"%{game_type}%"
             
         court_res = db.execute(text(court_query), params).fetchall()
