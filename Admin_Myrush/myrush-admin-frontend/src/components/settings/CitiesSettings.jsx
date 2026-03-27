@@ -102,8 +102,9 @@ function CitiesSettings() {
         console.error('Error deleting city:', err);
         const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
           ? 'You do not have access to delete cities.'
-          : 'Failed to delete city';
+          : (err.message || 'Failed to delete city');
         setError(errorMsg);
+        alert(errorMsg);
       }
     }
   };
@@ -117,8 +118,9 @@ function CitiesSettings() {
         console.error('Error deleting area:', err);
         const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
           ? 'You do not have access to delete areas.'
-          : 'Failed to delete area';
+          : (err.message || 'Failed to delete area');
         setError(errorMsg);
+        alert(errorMsg);
       }
     }
   };

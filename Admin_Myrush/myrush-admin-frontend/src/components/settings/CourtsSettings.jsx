@@ -190,8 +190,9 @@ function CourtsSettings() {
         console.error('Error deleting court:', err);
         const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
           ? 'You do not have access to delete courts.'
-          : 'Failed to delete court';
+          : (err.message || 'Failed to delete court');
         setError(errorMsg);
+        alert(errorMsg); // Show alert so user doesn't miss it if scrolled down
       }
     }
   };

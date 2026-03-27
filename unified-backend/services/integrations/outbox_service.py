@@ -21,7 +21,7 @@ class OutboxService:
             max_attempts=5
         )
         db.add(event)
-        db.commit()
+        db.flush()
         return event
 
     @staticmethod
