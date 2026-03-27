@@ -272,12 +272,28 @@ def get_available_slots(
         if not allowed_slots_map:
             return {"court_id": court_id, "date": date, "slots": [], "message": "Venue is closed or not configured."}
 
+        from models import Court, Booking
+        court = db.query(Court).filter(Court.id == court_id).first()
+        if not court:
+            raise HTTPException(status_code=404, detail="Court not found")
+            
         # 3. Fetch Active Bookings to find occupied slots
-        active_bookings = db.query(models.Booking).filter(
-            models.Booking.court_id == uuid.UUID(str(court_id)),
-            models.Booking.booking_date == booking_date,
-            models.Booking.status != 'cancelled'
-        ).all()
+        # Use shared_group_id if available for robust cross-sport detection
+        if court.shared_group_id:
+            # IMPORTANT: Fetch bookings for ALL courts in this shared group
+            group_courts = db.query(models.Court.id).filter(models.Court.shared_group_id == court.shared_group_id).all()
+            all_court_ids_in_group = [gc[0] for gc in group_courts]
+            active_bookings = db.query(models.Booking).filter(
+                models.Booking.court_id.in_(all_court_ids_in_group),
+                models.Booking.booking_date == booking_date,
+                models.Booking.status != 'cancelled'
+            ).all()
+        else:
+            active_bookings = db.query(models.Booking).filter(
+                models.Booking.court_id == uuid.UUID(str(court_id)),
+                models.Booking.booking_date == booking_date,
+                models.Booking.status != 'cancelled'
+            ).all()
         
         booked_slots = get_booked_slots(active_bookings)
         
@@ -287,16 +303,9 @@ def get_available_slots(
         is_today = (booking_date == now_ist.date())
 
         for h_str, details in sorted(allowed_slots_map.items()):
-            # Extract hour float for business logic checks
-            h_float = safe_parse_time_float(h_str)
-            
-            # Skip Admin Blocked slots
-            if details['is_blocked']: continue
-            
-            # Skip already booked slots
-            if h_float in booked_slots: continue
-
             # Format time for display (12-hour format)
+            h_float = safe_parse_time_float(h_str)
+            is_available = h_float not in booked_slots
             h = int(h_float)
             m = int((h_float % 1) * 60)
             
@@ -315,10 +324,13 @@ def get_available_slots(
 
             all_slots.append({
                 "time": h_str,
-                "display_time": f"{sh_disp:02d}:{m:02d} {ampm_s} - {eh_disp:02d}:{m_e:02d} {ampm_e}",
-                "price": details['price'],
-                "available": True,
-                "slot_id": f"slot_{h_str.replace(':', '')}" # Synthetic ID
+                "occupied_mask": details.get('occupied_mask', 0),
+                "total_zones": details.get('total_zones', 1),
+                "logic_type": court.logic_type if court else 'independent',
+                "slices": details.get('slices', []),
+                "is_available": is_available,
+                "is_admin_blocked": details.get('is_blocked', False),
+                "slot_id": details.get('slot_id') or f"slot_{h_str.replace(':', '')}",
             })
 
         return {"court_id": court_id, "date": date, "slots": all_slots}
