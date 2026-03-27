@@ -28,6 +28,7 @@ except (AttributeError, Exception):
 
 # Import our error handling middleware and utilities
 from middleware.error_handler import ErrorHandlerMiddleware
+from middleware.response_handler import ResponseHandlerMiddleware
 from utils.logger import logger
 from utils.error_alert_service import configure_error_alerts as configure_alerts
 
@@ -83,6 +84,9 @@ async def log_requests(request: Request, call_next):
 
 # Add error handling middleware FIRST so it runs AFTER CORS
 app.add_middleware(ErrorHandlerMiddleware)
+
+# Add response standardization middleware
+app.add_middleware(ResponseHandlerMiddleware)
 
 # CORS Configuration (added LAST so it runs FIRST for preflight OPTIONS)
 app.add_middleware(

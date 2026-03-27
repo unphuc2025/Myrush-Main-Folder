@@ -401,6 +401,52 @@ class DistrictAdapter(BaseIntegrationAdapter):
             "requestId": f"req-B-{uuid.uuid4().hex[:8]}"
         }
 
+    def format_court_schedule_webhook(self, court: models.Court, action: str) -> Dict[str, Any]:
+        """
+        Maps a full court schedule change to a single bulk District Type A webhook.
+        Processes all 7 days and 24 hours (168 hourly slots = 336 half-hour slots).
+        """
+        branch = court.branch
+        if not branch:
+            branch = self.db.query(models.Branch).get(court.branch_id)
+            
+        all_courts = self.db.query(models.Court).filter(
+            models.Court.branch_id == branch.id,
+            models.Court.game_type_id == court.game_type_id
+        ).order_by(models.Court.created_at).all()
+        
+        court_index = 0
+        for i, c in enumerate(all_courts):
+            if str(c.id) == str(court.id):
+                court_index = i
+                break
+        
+        webhook_data = []
+        for day in range(7):
+            for hour in range(24):
+                # District uses 30-min slots
+                slot_indices = [hour * 2, hour * 2 + 1]
+                for slot_idx in slot_indices:
+                    slot_entry = {
+                        "courtNumber": str(court_index),
+                        "slotNumber": str(slot_idx),
+                        "count": "1",
+                        "sport": court.game_type.name,
+                        "facilityName": branch.name,
+                        "day": str(day)
+                    }
+                    # For recurring changes from create/update court, we don't necessarily send a specific price 
+                    # for every slot unless we calculate it. Usually 'update' action tells them to re-fetch.
+                    webhook_data.append(slot_entry)
+
+        return {
+            "sourceType": "inventory",
+            "action": action,
+            "data": webhook_data,
+            "timestamp": int(datetime.utcnow().timestamp()),
+            "requestId": f"req-A-bulk-{uuid.uuid4().hex[:8]}"
+        }
+
     def format_recurring_webhook(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
         """Maps internal change to District Type A recurring modification"""
         branch = self.db.query(models.Branch).get(event_data['branch_id'])
@@ -417,7 +463,8 @@ class DistrictAdapter(BaseIntegrationAdapter):
                 court_index = i
                 break
         
-        hour = event_data['hour']
+        slot_start = event_data['slot_start']
+        hour = int(slot_start)
         slot_indices = [hour * 2, hour * 2 + 1]
         webhook_data = []
         for slot_idx in slot_indices:
