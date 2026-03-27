@@ -564,21 +564,33 @@ def get_venue_slots(
                             try: disabled_hours.add(safe_parse_hour(t))
                             except: pass
             
-            # Use centralized robust booked_slots logic from booking_utils
-            active_bookings = db.query(models.Booking).filter(
-                models.Booking.court_id == uuid.UUID(c_id),
-                models.Booking.booking_date == booking_date,
-                models.Booking.status != 'cancelled'
-            ).all()
+            from utils.booking_utils import generate_allowed_slots_map, get_booked_slots
+            
+            # Fetch relevant bookings for conflict detection
+            # Use shared_group_id if available, regardless of logic_type for safety
+            group_id = court.get('shared_group_id')
+            if group_id:
+                # IMPORTANT: Fetch bookings for ALL courts in this shared group
+                group_courts = db.query(models.Court.id).filter(models.Court.shared_group_id == group_id).all()
+                all_court_ids_in_group = [gc[0] for gc in group_courts]
+                active_bookings = db.query(models.Booking).filter(
+                    models.Booking.court_id.in_(all_court_ids_in_group),
+                    models.Booking.booking_date == booking_date,
+                    models.Booking.status != 'cancelled'
+                ).all()
+            else:
+                active_bookings = db.query(models.Booking).filter(
+                    models.Booking.court_id == uuid.UUID(c_id),
+                    models.Booking.booking_date == booking_date,
+                    models.Booking.status != 'cancelled'
+                ).all()
+                
             booked_slots = get_booked_slots(active_bookings)
+            allowed_slots_map = generate_allowed_slots_map(db, c_id, booking_date)
             
             # D. Merge to Consolidated
             now = datetime.now()
             is_today = (booking_date == now.date())
-
-            # Generate 30-min slots based on allowed_map (from booking_utils)
-            from utils.booking_utils import generate_allowed_slots_map
-            allowed_slots_map = generate_allowed_slots_map(db, c_id, booking_date)
 
             for slot_time, details in allowed_slots_map.items():
                 if details['is_blocked']: continue
@@ -623,22 +635,23 @@ def get_venue_slots(
                     
                     consolidated_slots[slot_key] = {
                         "time": time_key,
-                        "display_time": f"{sh_disp:02d}:{m:02d} {ampm_s} - {eh_disp:02d}:{m_e:02d} {ampm_e}",
+                        "display_time": details['display_time'],
                         "price": details['price'],
-                        "court_id": c_id,
-                        "court_name": court.get('name', ''),
-                        "current_court_rating": float(court.get('court_rating') or 0),
-                        "current_court_reviews": int(court.get('court_reviews') or 0),
+                        "is_admin_blocked": details['is_blocked'],
                         "available": is_available,
-                        "slot_id": details.get('slot_id'),
+                        "court_id": c_id,
+                        "court_name": court['name'],
+                        "facility_type": court.get('facility_type', {}).get('name', 'standard'),
                         "occupied_mask": details.get('occupied_mask', 0),
                         "total_zones": details.get('total_zones', 1),
-                        "slices": details.get('slices', [])
+                        "logic_type": court.get('logic_type', 'independent'),
+                        "slices": details.get('slices', []),
+                        "is_available": is_available,
                     }
                             
 
-        # Filter to only available slots
-        final_slots = sorted([slot for slot in consolidated_slots.values() if slot['available']], key=lambda x: x['time'])
+        # Return all slots to allow frontend to show "Blocked" state
+        final_slots = sorted(consolidated_slots.values(), key=lambda x: x['time'])
         
         return {
             "venue_id": venue_id,
@@ -652,6 +665,61 @@ def get_venue_slots(
         print(f"[VENUES API] Error: {e}")
         import traceback
         traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{venue_id}/zones")
+def get_venue_zones(
+    venue_id: str,
+    game_type: Optional[str] = None,
+    db: Session = Depends(database.get_db)
+):
+    """
+    Returns all configured playing modes (SportSlice zones) for divisible courts in a venue.
+    These are used to populate the 'Select Court & Size' dropdown.
+    """
+    try:
+        courts = db.query(models.Court).filter(
+            models.Court.branch_id == venue_id,
+            models.Court.is_active == True,
+        ).all()
+
+        result = []
+        for court in courts:
+            # Only include divisible courts (or any court that has slices)
+            slices = db.query(models.SportSlice).filter(
+                models.SportSlice.court_id == court.id
+            ).all()
+
+            if not slices:
+                continue
+
+            # Filter by game_type if provided
+            filtered_slices = slices
+            if game_type:
+                gt_lower = game_type.lower()
+                filtered_slices = [
+                    s for s in slices
+                    if (s.sport and s.sport.name.lower() == gt_lower)
+                    or (s.sport and gt_lower in s.sport.name.lower())
+                ] or slices  # fallback to all if no match
+
+            for s in filtered_slices:
+                result.append({
+                    "court_id": str(court.id),
+                    "court_name": court.name,
+                    "logic_type": court.logic_type,
+                    "total_zones": court.total_zones,
+                    "slice_id": str(s.id),
+                    "slice_name": s.name,
+                    "mask": s.mask,
+                    "sport_id": str(s.sport_id),
+                    "sport_name": s.sport.name if s.sport else None,
+                    "price_per_hour": float(s.price_per_hour) if s.price_per_hour else None,
+                })
+
+        return {"venue_id": venue_id, "zones": result}
+    except Exception as e:
+        import traceback; traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/seed", response_model=List[schemas.VenueResponse])

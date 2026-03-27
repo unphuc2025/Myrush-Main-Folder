@@ -127,6 +127,10 @@ export const venuesApi = {
                     display_time: string;
                     price: number;
                     available: boolean;
+                    is_admin_blocked?: boolean;
+                    occupied_mask?: number;
+                    total_zones?: number;
+                    logic_type?: string;
                 }>;
             }>(`/courts/${courtId}/available-slots?date=${date}`);
 
@@ -163,6 +167,10 @@ export const venuesApi = {
                     price: number;
                     available: boolean;
                     court_id: string;
+                    is_admin_blocked?: boolean;
+                    occupied_mask?: number;
+                    total_zones?: number;
+                    logic_type?: string;
                 }>;
             }>(endpoint);
 
@@ -177,6 +185,35 @@ export const venuesApi = {
                 data: null,
                 error: error.message,
             };
+        }
+    },
+
+    /**
+     * Get all configured playing modes (zones) for divisible courts in a venue
+     */
+    getVenueZones: async (venueId: string, gameType?: string) => {
+        try {
+            let endpoint = `/venues/${venueId}/zones`;
+            if (gameType) endpoint += `?game_type=${encodeURIComponent(gameType)}`;
+            const response = await apiClient.get<{
+                venue_id: string;
+                zones: Array<{
+                    court_id: string;
+                    court_name: string;
+                    logic_type: string;
+                    total_zones: number;
+                    slice_id: string;
+                    slice_name: string;
+                    mask: number;
+                    sport_id: string;
+                    sport_name?: string;
+                    price_per_hour?: number;
+                }>;
+            }>(endpoint);
+            return { success: true, data: response.data };
+        } catch (error: any) {
+            console.error('[VENUES API] Error fetching zones:', error);
+            return { success: false, data: null, error: error.message };
         }
     },
 
