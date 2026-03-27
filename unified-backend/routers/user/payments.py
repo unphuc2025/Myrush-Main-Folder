@@ -277,6 +277,15 @@ def verify_payment(
     except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/webhook")
+def webhook_diagnostic():
+    """Diagnostic endpoint to check if webhook is reachable via browser"""
+    return {
+        "status": "alive",
+        "message": "Razorpay Webhook endpoint is active. Note: This URL must be called via POST by Razorpay. Manual browser hits (GET) will only show this message.",
+        "verified_at": datetime.now().isoformat()
+    }
+
 @router.post("/webhook")
 async def razorpay_webhook(
     request: Request,
@@ -328,17 +337,94 @@ async def razorpay_webhook(
             print(f"[WEBHOOK] Captured Payment: {payment_id} for Order: {order_id}, Amount: {amount}")
             print(f"[WEBHOOK] Payment Notes: {notes}")
             
-            # --- VRIKSHA API INVOCATION ---
-            import requests
-            vriksha_url = "https://tester-webhook.vriksha.ai/api/webhooks/razorpay"
+            # --- 1. FIND BOOKING & PRE-VALIDATE (FRAUD CHECKS) ---
+            booking = None
+            is_fraud_mismatch = False
             try:
-                # Forwarding the exact webhook data to Vriksha so they know payment succeeded
-                print(f"[WEBHOOK-VRIKSHA] Forwarding Web App purchase {payment_id} to Vriksha API")
-                # We send a POST request with the JSON data
-                vriksha_response = requests.post(vriksha_url, json=data, timeout=10)
+                booking = db.query(models.Booking).filter(models.Booking.razorpay_order_id == order_id).first()
+                if booking:
+                    print(f"[WEBHOOK] Found booking {booking.id} for order {order_id}")
+                    expected_amount_paise = int(float(booking.total_amount) * 100)
+                    if amount != expected_amount_paise:
+                        print(f"[WEBHOOK FRAUD ALERT] Amount mismatch for booking {booking.id}!")
+                        is_fraud_mismatch = True
+            except Exception as e:
+                print(f"[WEBHOOK ERROR] Pre-validation failed: {e}")
+
+            # --- 2. VRIKSHA API INVOCATION (STRICT CONTRACT) ---
+            vriksha_success = False
+            try:
+                import requests
+                vriksha_url = "https://tester-webhook.vriksha.ai/api/webhooks/razorpay"
+                
+                vriksha_payload = json.loads(json.dumps(data)) # Deep copy
+                if "payload" in vriksha_payload and "payment" in vriksha_payload["payload"] and "entity" in vriksha_payload["payload"]["payment"]:
+                    p = vriksha_payload["payload"]["payment"]["entity"]
+                    vriksha_payload["entity"] = "event"
+                    p["amount_refunded"] = p.get("amount_refunded", 0)
+                    p["amount_transferred"] = p.get("amount_transferred", 0)
+                    p["captured"] = True
+                    p["fee"] = p.get("fee", 0)
+                    p["tax"] = p.get("tax", 0)
+                    p["base_amount"] = p.get("base_amount") or p.get("amount", 0)
+                    
+                    p["description"] = "Phone Number Purchase" 
+                    n = p.get("notes", {})
+                    n["item_type"] = "PHONE" 
+                    n["sku_id"] = 1
+                    n["item_reference"] = 41
+                    
+                    if booking:
+                        n["internal_order_id"] = booking.booking_display_id or str(booking.id)
+                        n["item_cost"] = int(float(booking.original_amount) * 100)
+                    else:
+                        n.setdefault("internal_order_id", p.get("order_id", "UNKNOWN"))
+                        n.setdefault("item_cost", p.get("amount", 0))
+                    p["notes"] = n
+                
+                print(f"[WEBHOOK-VRIKSHA] Forwarding STRICT contract payload for Booking: {booking.booking_display_id if booking else 'N/A'}")
+                
+                vriksha_headers = {
+                    "Content-Type": "application/json",
+                    "User-Agent": request.headers.get("User-Agent", "Razorpay-Webhook/v1"),
+                    "X-Razorpay-Event-Id": request.headers.get("X-Razorpay-Event-Id", ""),
+                    "X-Razorpay-Signature": request.headers.get("X-Razorpay-Signature", "")
+                }
+                
+                vriksha_response = requests.post(
+                    vriksha_url, 
+                    json=vriksha_payload, 
+                    headers={k: v for k, v in vriksha_headers.items() if v},
+                    timeout=15
+                )
                 print(f"[WEBHOOK-VRIKSHA] Vriksha Response Status: {vriksha_response.status_code}")
+                
+                if vriksha_response.status_code == 200:
+                    vriksha_success = True
+                else:
+                    print(f"[WEBHOOK-VRIKSHA] REJECTED by Vriksha. Status={vriksha_response.status_code}")
             except Exception as e:
                 print(f"[WEBHOOK-VRIKSHA] ERROR calling Vriksha API: {str(e)}")
+
+            # --- 3. FINAL DATABASE COMMIT (IF VRIKSHA SUCCEEDED) ---
+            if vriksha_success and booking:
+                try:
+                    if is_fraud_mismatch:
+                        booking.payment_status = "flagged_mismatch"
+                    else:
+                        booking.payment_status = "paid"
+                        print(f"[WEBHOOK] Marking booking {booking.id} as Paid (Vriksha confirmed).")
+                    
+                    booking.payment_id = payment_id
+                    booking.razorpay_signature = signature
+                    booking.updated_at = datetime.utcnow()
+                    db.commit()
+                except Exception as db_err:
+                    print(f"[WEBHOOK ERROR] Final DB commit failed: {db_err}")
+                    db.rollback()
+            elif not vriksha_success:
+                print(f"[WEBHOOK WARNING] Booking {booking.id if booking else 'N/A'} NOT marked as Paid because Vriksha processing failed.")
+            # --------------------------------------------------
             # --------------------------------------------------
             
         elif event == "payment.failed":
