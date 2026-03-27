@@ -228,6 +228,9 @@ def validate_booking_rules(db: Session, court_id: str, booking_date: date, start
         raise HTTPException(status_code=400, detail="Minimum booking duration is 1 hour.")
 
     # --- Rule 3: User Overlap Check ---
+    from utils.booking_utils import safe_parse_time_float
+    import json
+    
     user_bookings = db.query(Booking).filter(
         Booking.user_id == user_id,
         Booking.booking_date == booking_date,
@@ -235,9 +238,26 @@ def validate_booking_rules(db: Session, court_id: str, booking_date: date, start
     ).all()
     
     for b in user_bookings:
-        b_start = b.start_time.hour + (b.start_time.minute / 60.0)
-        b_end = b.end_time.hour + (b.end_time.minute / 60.0)
-        if b_end == 0: b_end = 24.0
+        # Robustly extract start/end time
+        if b.start_time:
+            b_start = b.start_time.hour + (b.start_time.minute / 60.0)
+            b_end = (b.end_time.hour + (b.end_time.minute / 60.0)) if b.end_time else (b_start + 0.5)
+        else:
+            # Fallback to time_slots JSON
+            t_slots = b.time_slots
+            if isinstance(t_slots, str):
+                try: t_slots = json.loads(t_slots)
+                except: t_slots = []
+            
+            if t_slots and isinstance(t_slots, list):
+                s_str = t_slots[0].get('start_time') or t_slots[0].get('time')
+                e_str = t_slots[-1].get('end_time')
+                b_start = safe_parse_time_float(s_str)
+                b_end = safe_parse_time_float(e_str) if e_str else (b_start + 0.5)
+            else:
+                continue
+
+        if b_end == 0 or b_end == 24.0: b_end = 24.0
         if max(start_f, b_start) < min(end_f, b_end):
             raise HTTPException(status_code=400, detail="You already have another booking during this time.")
 
@@ -276,16 +296,9 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: date,
             
         expected_price = float(server_slot['price'])
         
-        # If a slice is being booked, use its specific price if defined
-        if slice_mask is not None:
-            slice_info = next((s for s in server_slot.get('slices', []) if s['mask'] == slice_mask), None)
-            if slice_info and slice_info.get('price_per_hour') is not None:
-                # Slot price is for 30 mins, so we use price_per_hour / 2
-                expected_price = float(slice_info['price_per_hour']) / 2.0
-            elif slice_info:
-                # Fallback: if slice has no custom price, it might be using bitmask of total_zones
-                # But typically slices have their own price. 
-                pass
+        # NEW: Sum slice prices if mask provided, otherwise use default from slot engine
+        from utils.booking_utils import calculate_multi_slice_price
+        expected_price = calculate_multi_slice_price(server_slot, slice_mask or 0, float(server_slot['price']))
 
         provided_price = float(req.get('price', 0))
         

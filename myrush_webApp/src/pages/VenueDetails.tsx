@@ -84,7 +84,7 @@ export const VenueDetailsPage: React.FC = () => {
 
     // Game Type Selection State
     const [selectedSport, setSelectedSport] = useState<string>('');
-    const [selectedSliceId, setSelectedSliceId] = useState<string>('');
+    const [selectedSliceIds, setSelectedSliceIds] = useState<string[]>([]);
 
     // Dedicated zones state fetched from /venues/{id}/zones
     type VenueZone = { court_id: string; court_name: string; logic_type: string; total_zones: number; slice_id: string; slice_name: string; mask: number; sport_id: string; sport_name?: string; price_per_hour?: number; };
@@ -113,9 +113,7 @@ export const VenueDetailsPage: React.FC = () => {
             courtZonesMap.forEach((zones, courtId) => {
                 const court = zones[0];
                 const courtDisplayName = court.court_name.replace('Court', '').trim() || 'Court';
-                const minPrice = availableSlots.filter(s => s.court_id === courtId).reduce((min, s) => Math.min(min, s.price), Infinity);
-                const effectivePrice = isFinite(minPrice) ? minPrice : (court.price_per_hour || 0);
-
+                
                 // Add each matching zone as an option
                 zones.forEach(z => {
                     finalConfigs.push({
@@ -123,29 +121,33 @@ export const VenueDetailsPage: React.FC = () => {
                         totalZones: court.total_zones || 1,
                         slice: { id: z.slice_id, name: z.slice_name, mask: z.mask, sport_id: z.sport_id, sport_name: z.sport_name, price_per_hour: z.price_per_hour } as SportSlice,
                         label: z.slice_name,
-                        minPrice: effectivePrice
+                        minPrice: z.price_per_hour || court.price_per_hour || 0
                     });
                 });
 
-                // Full Court option for this sport's court
-                finalConfigs.push({
-                    courtId,
-                    totalZones: court.total_zones || 1,
-                    slice: 'full',
-                    label: `${courtDisplayName} - Full Court`,
-                    minPrice: effectivePrice
-                });
+                // Only add "Full Court" if no slice already covers all zones (mask check)
+                const fullMask = (1 << (court.total_zones || 1)) - 1;
+                const hasFullSlice = zones.some(z => z.mask === fullMask);
+                
+                if (!hasFullSlice) {
+                    finalConfigs.push({
+                        courtId,
+                        totalZones: court.total_zones || 1,
+                        slice: 'full',
+                        label: `Full Court`,
+                        minPrice: court.price_per_hour || 0
+                    });
+                }
             });
         } else {
             // Fallback: aggregate from slot data
-            const courtsMap = new Map<string, { totalZones: number; logicType: string; slices: Map<string, SportSlice>; minPrice: number; name: string }>();
+            const courtsMap = new Map<string, { totalZones: number; logicType: string; slices: Map<string, SportSlice>; basePrice: number; name: string }>();
             availableSlots.forEach(slot => {
                 if (!slot.court_id) return;
                 if (!courtsMap.has(slot.court_id)) {
-                    courtsMap.set(slot.court_id, { totalZones: slot.total_zones || 1, logicType: slot.logic_type || (slot as any).logicType || 'independent', slices: new Map(), minPrice: slot.price, name: slot.court_name || 'Court' });
+                    courtsMap.set(slot.court_id, { totalZones: slot.total_zones || 1, logicType: slot.logic_type || (slot as any).logicType || 'independent', slices: new Map(), basePrice: slot.price, name: slot.court_name || 'Court' });
                 }
                 const cInfo = courtsMap.get(slot.court_id)!;
-                if (slot.price < cInfo.minPrice) cInfo.minPrice = slot.price;
                 if (slot.slices) {
                     slot.slices.forEach(sl => {
                         const sliceSport = (sl.sport_name || '').toLowerCase();
@@ -158,11 +160,18 @@ export const VenueDetailsPage: React.FC = () => {
             });
             courtsMap.forEach((cInfo, courtId) => {
                 const dn = cInfo.name.replace('Court', '').trim() || 'Court';
+                const fullMask = (1 << cInfo.totalZones) - 1;
+                let hasFullSlice = false;
+
                 if (cInfo.slices.size > 0) {
-                    cInfo.slices.forEach(sl => finalConfigs.push({ courtId, totalZones: cInfo.totalZones, slice: sl, label: sl.name, minPrice: cInfo.minPrice }));
-                    finalConfigs.push({ courtId, totalZones: cInfo.totalZones, slice: 'full', label: `${dn} - Full Court`, minPrice: cInfo.minPrice });
-                } else {
-                    finalConfigs.push({ courtId, totalZones: cInfo.totalZones, slice: 'full', label: cInfo.name, minPrice: cInfo.minPrice });
+                    cInfo.slices.forEach(sl => {
+                        if (sl.mask === fullMask) hasFullSlice = true;
+                        finalConfigs.push({ courtId, totalZones: cInfo.totalZones, slice: sl, label: sl.name, minPrice: sl.price_per_hour || cInfo.basePrice });
+                    });
+                }
+                
+                if (!hasFullSlice) {
+                    finalConfigs.push({ courtId, totalZones: cInfo.totalZones, slice: 'full', label: `Full Court`, minPrice: cInfo.basePrice });
                 }
             });
         }
@@ -173,60 +182,85 @@ export const VenueDetailsPage: React.FC = () => {
     // Auto-select first configuration when available changes
     useEffect(() => {
         if (availableConfigurations.length > 0) {
-             const exists = availableConfigurations.some(c => (c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id) === selectedSliceId);
-             if (!selectedSliceId || !exists) {
+             const anyExist = selectedSliceIds.some(id => 
+                 availableConfigurations.some(c => (c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id) === id)
+             );
+             if (selectedSliceIds.length === 0 || !anyExist) {
                  const first = availableConfigurations[0];
-                 setSelectedSliceId(first.slice === 'full' ? `full-${first.courtId}` : (first.slice as SportSlice).id);
+                 const firstId = first.slice === 'full' ? `full-${first.courtId}` : (first.slice as SportSlice).id;
+                 setSelectedSliceIds([firstId]);
              }
-        } else {
-             setSelectedSliceId('');
+        } else if (selectedSliceIds.length > 0) {
+             setSelectedSliceIds([]);
         }
-    }, [availableConfigurations, selectedSliceId]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [availableConfigurations]);
     
-    const selectedConfig = useMemo(() => {
-        return availableConfigurations.find(c => 
-            (c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id) === selectedSliceId
+    const selectedConfigs = useMemo(() => {
+        return availableConfigurations.filter(c => 
+            selectedSliceIds.includes(c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id)
         );
-    }, [availableConfigurations, selectedSliceId]);
+    }, [availableConfigurations, selectedSliceIds]);
 
     // Derived slots based on selected config
     const filteredSlots = useMemo(() => {
-        if (!selectedSliceId) return []; 
+        if (selectedSliceIds.length === 0) return []; 
         
-        const config = availableConfigurations.find(c => 
-            (c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id) === selectedSliceId
+        // Group selected configurations by court to handle masks correctly
+        const selectedConfigs = availableConfigurations.filter(c => 
+            selectedSliceIds.includes(c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id)
         );
         
-        if (!config) return [];
+        if (selectedConfigs.length === 0) return [];
         
-        return availableSlots.filter(slot => {
-            return slot.court_id === config.courtId;
-        }).map(slot => {
-            // Extract data with fallback for naming conventions
-            const zones = slot.total_zones ?? slot.totalZones ?? 1;
-            const occ = slot.occupied_mask ?? slot.occupiedMask ?? 0;
-            const isAdminBlocked = slot.is_admin_blocked ?? slot.isAdminBlocked ?? false;
+        // Use the first selected court as the "base" for the time grid
+        // (Assuming all courts have synchronous slot timings as per user: "timing will be same")
+        const primaryCourtId = selectedConfigs[0].courtId;
+        const primarySlots = availableSlots.filter(s => s.court_id === primaryCourtId);
+
+        return primarySlots.map(pSlot => {
+            let isBlocked = false;
+            let totalPrice = 0;
             
-            const sl = config.slice as SportSlice;
-            const mask = config.slice === 'full' 
-                ? (1 << (zones || 1)) - 1 
-                : sl.mask;
-            
-            const isBlocked = slot.available === false || 
-                             isAdminBlocked === true || 
-                             (occ > 0 && (zones <= 1 ? true : (occ & mask) !== 0));
-            
-            const newPrice = (config.slice !== 'full' && sl.price_per_hour && sl.price_per_hour > 0) 
-                ? (sl.price_per_hour / 2.0)
-                : undefined;
+            // Check availability across ALL selected configurations for this time slot
+            selectedConfigs.forEach(config => {
+                const courtSlots = availableSlots.filter(s => s.court_id === config.courtId && s.time === pSlot.time);
+                const slot = courtSlots[0];
                 
+                if (!slot) {
+                    isBlocked = true;
+                    return;
+                }
+
+                const zones = slot.total_zones ?? slot.totalZones ?? 1;
+                const occ = slot.occupied_mask ?? slot.occupiedMask ?? 0;
+                const isAdminBlocked = slot.is_admin_blocked ?? slot.isAdminBlocked ?? false;
+                
+                const sl = config.slice as SportSlice;
+                const mask = config.slice === 'full' 
+                    ? (1 << (zones || 1)) - 1 
+                    : sl.mask;
+                
+                const blocked = slot.available === false || 
+                               isAdminBlocked === true || 
+                               (occ > 0 && (zones <= 1 ? true : (occ & mask) !== 0));
+                
+                if (blocked) isBlocked = true;
+                
+                const slicePrice = (config.slice !== 'full' && sl.price_per_hour && sl.price_per_hour > 0) 
+                    ? (sl.price_per_hour / 2.0)
+                    : (slot.price || 0);
+                
+                totalPrice += slicePrice;
+            });
+
             return {
-                ...slot,
+                ...pSlot,
                 isBlocked,
-                price: newPrice !== undefined ? newPrice : slot.price
+                price: totalPrice
             };
         });
-    }, [availableSlots, selectedSliceId, availableConfigurations]);
+    }, [availableSlots, selectedSliceIds, availableConfigurations]);
 
     // Talking Lands virtual tour URLs — keyed by venue (branch) ID
     const VIRTUAL_TOUR_URLS: Record<string, string> = {
@@ -372,11 +406,6 @@ export const VenueDetailsPage: React.FC = () => {
             return;
         }
 
-        const currentConfig = availableConfigurations.find(c => (c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id) === selectedSliceId);
-        const sliceMask = currentConfig 
-            ? (currentConfig.slice === 'full' ? ((1 << currentConfig.totalZones) - 1) : (currentConfig.slice as SportSlice).mask)
-            : 0;
-
         const bookingState = {
             venueId: id,
             venueName: venue?.court_name,
@@ -386,8 +415,11 @@ export const VenueDetailsPage: React.FC = () => {
             selectedSport: selectedSport,
             totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0),
             numPlayers: numPlayers,
-            courtId: currentConfig?.courtId,
-            sliceMask: sliceMask
+            selectedConfigs: selectedConfigs.map(c => ({
+                courtId: c.courtId,
+                sliceId: c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id,
+                sliceMask: c.slice === 'full' ? ((1 << c.totalZones) - 1) : (c.slice as SportSlice).mask
+            }))
         };
 
         if (!isAuthenticated) {
@@ -749,17 +781,21 @@ export const VenueDetailsPage: React.FC = () => {
                                                         <FaBorderAll className="text-lg" />
                                                     </div>
                                                     <div>
-                                                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Court Configuration</div>
+                                                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Court Configurations</div>
                                                         <div className="text-sm font-bold text-gray-900 leading-tight">
-                                                            {selectedConfig?.label || 'Select Configuration'}
+                                                            {selectedConfigs.length === 0 
+                                                                ? 'Select Configurations' 
+                                                                : selectedConfigs.length === 1 
+                                                                    ? selectedConfigs[0].label 
+                                                                    : `${selectedConfigs.length} Selected`}
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    {selectedConfig && (
+                                                    {selectedConfigs.length > 0 && (
                                                         <div className="text-right transition-all animate-in fade-in slide-in-from-right-2">
-                                                            <div className="text-[10px] font-bold text-primary uppercase tracking-tight">Starting From</div>
-                                                            <div className="text-sm font-black text-gray-900">₹{selectedConfig.minPrice}/hr</div>
+                                                            <div className="text-[10px] font-bold text-primary uppercase tracking-tight">Total Hourly</div>
+                                                            <div className="text-sm font-black text-gray-900">₹{selectedConfigs.reduce((sum, c) => sum + c.minPrice, 0)}/hr</div>
                                                         </div>
                                                     )}
                                                     <FaChevronDown className={`text-gray-400 transition-transform duration-300 ${isConfigDropdownOpen ? 'rotate-180' : ''}`} />
@@ -778,26 +814,49 @@ export const VenueDetailsPage: React.FC = () => {
                                                         <div className="max-h-[320px] overflow-y-auto no-scrollbar py-2">
                                                             {availableConfigurations.map((config, idx) => {
                                                                 const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
-                                                                const isSelected = selectedSliceId === configId;
+                                                                const isSelected = selectedSliceIds.includes(configId);
                                                                 const mask = config.slice === 'full' ? ((1 << config.totalZones) - 1) : (config.slice as SportSlice).mask;
+                                                                
+                                                                // Dynamic Blocking Logic: Check if this config overlaps with any ALREADY selected config on the SAME court
+                                                                const isConflict = !isSelected && selectedConfigs.some(sc => 
+                                                                    sc.courtId === config.courtId && 
+                                                                    (((sc.slice === 'full' ? (1 << sc.totalZones) - 1 : (sc.slice as SportSlice).mask) & mask) !== 0)
+                                                                );
+
                                                                 const sliceLabel = config.slice === 'full' ? 'Full Court' : (config.slice as SportSlice).name;
                                                                 const courtName = config.label.split(' - ')[0] || 'Court';
 
                                                                 return (
                                                                     <button
                                                                         key={`drop-${idx}`}
+                                                                        disabled={isConflict}
                                                                         onClick={() => {
-                                                                            setSelectedSliceId(configId);
+                                                                            setSelectedSliceIds(prev => 
+                                                                                prev.includes(configId) 
+                                                                                    ? prev.filter(id => id !== configId) 
+                                                                                    : [...prev, configId]
+                                                                            );
                                                                             setSelectedSlots([]);
-                                                                            setIsConfigDropdownOpen(false);
                                                                         }}
-                                                                        className={`w-full flex items-center justify-between px-5 py-4 transition-all ${isSelected ? 'bg-primary/5' : 'hover:bg-gray-50'}`}
+                                                                        className={`w-full flex items-center justify-between px-5 py-4 transition-all ${isSelected ? 'bg-primary/5' : isConflict ? 'opacity-40 cursor-not-allowed bg-gray-50' : 'hover:bg-gray-50'}`}
                                                                     >
                                                                         <div className="flex items-center gap-4">
-                                                                            <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-primary animate-pulse' : 'bg-transparent'}`}></div>
+                                                                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary' : isConflict ? 'bg-gray-200 border-gray-200' : 'bg-transparent border-gray-300'}`}>
+                                                                                {isSelected && (
+                                                                                    <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                                                                                    </svg>
+                                                                                )}
+                                                                                {isConflict && (
+                                                                                    <div className="w-1.5 h-0.5 bg-gray-400 rounded-full"></div>
+                                                                                )}
+                                                                            </div>
                                                                             <div className="text-left">
-                                                                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{courtName}</div>
-                                                                                <div className={`text-sm font-bold ${isSelected ? 'text-primary' : 'text-gray-900'}`}>{sliceLabel}</div>
+                                                                                {courtName.toLowerCase() !== sliceLabel.toLowerCase() && (
+                                                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{courtName}</div>
+                                                                                )}
+                                                                                <div className={`text-sm font-bold ${isSelected ? 'text-primary' : isConflict ? 'text-gray-400' : 'text-gray-900'}`}>{sliceLabel} - ₹{config.minPrice}/hr</div>
+                                                                                {isConflict && <div className="text-[9px] font-bold text-red-400 uppercase tracking-tighter mt-0.5">Conflicting Zones</div>}
                                                                                 
                                                                                 {config.totalZones > 1 && (
                                                                                     <div className="flex gap-0.5 mt-1.5">
@@ -904,7 +963,7 @@ export const VenueDetailsPage: React.FC = () => {
                                     </div>
                                     {loadingSlots ? (
                                         <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
-                                    ) : !selectedSliceId ? (
+                                    ) : selectedSliceIds.length === 0 ? (
                                         <div className="text-center py-10 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100 text-gray-400 text-xs font-bold uppercase tracking-widest">
                                             <FaBorderAll className="mx-auto mb-3 text-2xl opacity-10" />
                                             Please select court first

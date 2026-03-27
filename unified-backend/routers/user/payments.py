@@ -87,16 +87,6 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
     # 1. Generate Slots Map to get correct prices
     allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
     
-    # 1.5 Fetch Slice Override Price
-    slice_price = None
-    if slice_mask is not None:
-        sp_slice = db.query(models.SportSlice).filter(
-            models.SportSlice.court_id == court_id,
-            models.SportSlice.mask == slice_mask
-        ).first()
-        if sp_slice and sp_slice.price_per_hour is not None:
-            slice_price = float(sp_slice.price_per_hour)
-
     total_slot_price = 0.0
     print(f"[PRICE_DEBUG] Starting calculation for {len(requested_slots)} slots, players={number_of_players}")
     
@@ -109,14 +99,19 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
         if ":" not in norm_start:
             h = int(h_f)
             m = int((h_f % 1) * 60)
-            norm_start = f"{h:02d}:{m:02d}"
+            norm_start = f"{h:02d}:{m:02d}" 
         
         # Use price from map if available, else default (though validation should have caught it)
         if norm_start in allowed_slots_map:
-            default_map_price = float(allowed_slots_map[norm_start]['price'])
-            slot_price = (slice_price / 2.0) if slice_price is not None else default_map_price
+            server_slot = allowed_slots_map[norm_start]
+            default_map_price = float(server_slot['price'])
+            
+            # NEW: Sum slice prices if mask provided, otherwise use default
+            from utils.booking_utils import calculate_multi_slice_price
+            slot_price = calculate_multi_slice_price(server_slot, slice_mask or 0, default_map_price)
+            
             total_slot_price += slot_price
-            print(f"[PRICE_DEBUG] Slot {norm_start}: Price {slot_price}")
+            print(f"[PRICE_DEBUG] Slot {norm_start}: Price {slot_price} (Mask={slice_mask})")
         else:
             print(f"[PRICE_DEBUG] Slot {norm_start} not found in map. Falling back.")
             # Fallback to court base price if absolutely necessary

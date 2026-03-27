@@ -104,11 +104,19 @@ def get_venues(
                     WHERE abgt.branch_id = ab.id
                 ) as game_types,
                 
-                -- Min Price from Courts
+                -- Min Price from Courts/Slices
                 (
-                    SELECT MIN(ac.price_per_hour)
-                    FROM admin_courts ac
-                    WHERE ac.branch_id = ab.id AND ac.is_active = true
+                    SELECT MIN(val)
+                    FROM (
+                        SELECT ac.price_per_hour AS val
+                        FROM admin_courts ac
+                        WHERE ac.branch_id = ab.id AND ac.is_active = true
+                        UNION ALL
+                        SELECT ss.price_per_hour AS val
+                        FROM admin_sport_slices ss
+                        JOIN admin_courts ac ON ss.court_id = ac.id
+                        WHERE ac.branch_id = ab.id AND ac.is_active = true AND ss.price_per_hour IS NOT NULL
+                    ) AS prices
                 ) as min_price,
 
                 -- Aggregated Ratings for Branch (from all courts in branch)
@@ -271,9 +279,17 @@ def get_venue(venue_id: str, db: Session = Depends(database.get_db)):
                 
                 -- Min Price
                 (
-                    SELECT MIN(ac.price_per_hour)
-                    FROM admin_courts ac
-                    WHERE ac.branch_id = ab.id AND ac.is_active = true
+                    SELECT MIN(val)
+                    FROM (
+                        SELECT ac.price_per_hour AS val
+                        FROM admin_courts ac
+                        WHERE ac.branch_id = ab.id AND ac.is_active = true
+                        UNION ALL
+                        SELECT ss.price_per_hour AS val
+                        FROM admin_sport_slices ss
+                        JOIN admin_courts ac ON ss.court_id = ac.id
+                        WHERE ac.branch_id = ab.id AND ac.is_active = true AND ss.price_per_hour IS NOT NULL
+                    ) AS prices
                 ) as min_price,
 
                 -- Aggregated Ratings for Branch
@@ -601,7 +617,16 @@ def get_venue_slots(
                 if is_today and h_float < (now.hour + now.minute/60.0):
                     continue
                 
-                is_available = h_float not in booked_slots
+                # Granular Availability Check
+                # A slot is considered available if at least one zone/slice is free.
+                occupied_mask = details.get('occupied_mask', 0)
+                total_zones = details.get('total_zones', 1)
+                full_mask = (1 << total_zones) - 1
+                
+                if total_zones > 1:
+                    is_available = (occupied_mask & full_mask) < full_mask
+                else:
+                    is_available = h_float not in booked_slots
                 
                 time_key = slot_time # "HH:MM"
                 slot_key = f"{c_id}_{time_key}"
