@@ -243,7 +243,7 @@ export const VenueDetailsPage: React.FC = () => {
                 
                 const blocked = slot.available === false || 
                                isAdminBlocked === true || 
-                               (occ > 0 && (zones <= 1 ? true : (occ & mask) !== 0));
+                               (occ > 0 && (occ & mask) !== 0);
                 
                 if (blocked) isBlocked = true;
                 
@@ -732,7 +732,6 @@ export const VenueDetailsPage: React.FC = () => {
                                     <p className="text-sm text-gray-400 font-semibold">Select date, time & confirm</p>
                                 </div>
 
-                                {/* Game Type Selector */}
                                 {venue?.game_type && (
                                     <div className="mb-6">
                                         <div className="flex items-center gap-2 mb-3">
@@ -761,8 +760,6 @@ export const VenueDetailsPage: React.FC = () => {
                                         </div>
                                     </div>
                                 )}
-
-                                {availableConfigurations.length > 0 && (
                                     <div className="mb-8">
                                         <div className="flex items-center gap-2 mb-3">
                                             <div className="w-0.5 h-4 bg-primary rounded-full"></div>
@@ -781,10 +778,10 @@ export const VenueDetailsPage: React.FC = () => {
                                                         <FaBorderAll className="text-lg" />
                                                     </div>
                                                     <div>
-                                                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Court Configurations</div>
+                                                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Court Setup</div>
                                                         <div className="text-sm font-bold text-gray-900 leading-tight">
                                                             {selectedConfigs.length === 0 
-                                                                ? 'Select Configurations' 
+                                                                ? '--Select Court--' 
                                                                 : selectedConfigs.length === 1 
                                                                     ? selectedConfigs[0].label 
                                                                     : `${selectedConfigs.length} Selected`}
@@ -793,14 +790,44 @@ export const VenueDetailsPage: React.FC = () => {
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     {selectedConfigs.length > 0 && (
-                                                        <div className="text-right transition-all animate-in fade-in slide-in-from-right-2">
-                                                            <div className="text-[10px] font-bold text-primary uppercase tracking-tight">Total Hourly</div>
+                                                        <div className="text-right transition-all animate-in fade-in slide-in-from-right-2 mr-2">
+                                                            <div className="text-[10px] font-bold text-primary uppercase tracking-tight leading-none mb-0.5">Total Hourly</div>
                                                             <div className="text-sm font-black text-gray-900">₹{selectedConfigs.reduce((sum, c) => sum + c.minPrice, 0)}/hr</div>
                                                         </div>
                                                     )}
                                                     <FaChevronDown className={`text-gray-400 transition-transform duration-300 ${isConfigDropdownOpen ? 'rotate-180' : ''}`} />
                                                 </div>
                                             </button>
+
+                                            {/* Selection Chips below selector */}
+                                            {selectedConfigs.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    {selectedConfigs.map((config, idx) => {
+                                                        const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
+                                                        return (
+                                                            <div 
+                                                                key={`chip-${idx}`}
+                                                                className="flex items-center gap-2 pl-3 pr-2 py-2 bg-primary/5 rounded-xl border border-primary/20 shadow-sm transition-all hover:border-primary/40 group"
+                                                            >
+                                                                <span className="text-xs font-bold text-primary/80 uppercase tracking-tight">{config.label}</span>
+                                                                <button 
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const newIds = selectedSliceIds.filter(id => id !== configId);
+                                                                        setSelectedSliceIds(newIds);
+                                                                        setSelectedSlots([]);
+                                                                    }}
+                                                                    className="p-1 rounded-md text-primary/40 hover:text-red-500 hover:bg-red-50 transition-all"
+                                                                >
+                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
 
                                             <AnimatePresence>
                                                 {isConfigDropdownOpen && (
@@ -811,68 +838,57 @@ export const VenueDetailsPage: React.FC = () => {
                                                         transition={{ duration: 0.2, ease: "easeOut" }}
                                                         className="absolute z-[100] top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-gray-100 shadow-2xl shadow-gray-200/50 overflow-hidden"
                                                     >
-                                                        <div className="max-h-[320px] overflow-y-auto no-scrollbar py-2">
+                                                        <div className="max-h-[320px] overflow-y-auto no-scrollbar p-2 space-y-1">
+                                                            <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">Available Configurations</div>
                                                             {availableConfigurations.map((config, idx) => {
                                                                 const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
                                                                 const isSelected = selectedSliceIds.includes(configId);
                                                                 const mask = config.slice === 'full' ? ((1 << config.totalZones) - 1) : (config.slice as SportSlice).mask;
                                                                 
-                                                                // Dynamic Blocking Logic: Check if this config overlaps with any ALREADY selected config on the SAME court
                                                                 const isConflict = !isSelected && selectedConfigs.some(sc => 
                                                                     sc.courtId === config.courtId && 
                                                                     (((sc.slice === 'full' ? (1 << sc.totalZones) - 1 : (sc.slice as SportSlice).mask) & mask) !== 0)
                                                                 );
-
-                                                                const sliceLabel = config.slice === 'full' ? 'Full Court' : (config.slice as SportSlice).name;
-                                                                const courtName = config.label.split(' - ')[0] || 'Court';
 
                                                                 return (
                                                                     <button
                                                                         key={`drop-${idx}`}
                                                                         disabled={isConflict}
                                                                         onClick={() => {
-                                                                            setSelectedSliceIds(prev => 
-                                                                                prev.includes(configId) 
-                                                                                    ? prev.filter(id => id !== configId) 
-                                                                                    : [...prev, configId]
-                                                                            );
+                                                                            const newIds = selectedSliceIds.includes(configId) 
+                                                                                ? selectedSliceIds.filter(id => id !== configId) 
+                                                                                : [...selectedSliceIds, configId];
+                                                                            setSelectedSliceIds(newIds);
                                                                             setSelectedSlots([]);
                                                                         }}
-                                                                        className={`w-full flex items-center justify-between px-5 py-4 transition-all ${isSelected ? 'bg-primary/5' : isConflict ? 'opacity-40 cursor-not-allowed bg-gray-50' : 'hover:bg-gray-50'}`}
+                                                                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all border-2 ${
+                                                                            isSelected 
+                                                                                ? 'bg-primary/5 text-primary border-primary shadow-sm' 
+                                                                                : isConflict 
+                                                                                    ? 'opacity-40 cursor-not-allowed bg-gray-50 border-transparent' 
+                                                                                    : 'bg-white text-gray-800 border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                                                                        }`}
                                                                     >
                                                                         <div className="flex items-center gap-4">
-                                                                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary' : isConflict ? 'bg-gray-200 border-gray-200' : 'bg-transparent border-gray-300'}`}>
-                                                                                {isSelected && (
-                                                                                    <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
-                                                                                    </svg>
-                                                                                )}
-                                                                                {isConflict && (
-                                                                                    <div className="w-1.5 h-0.5 bg-gray-400 rounded-full"></div>
-                                                                                )}
+                                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                                                                <FaBorderAll className="text-sm" />
                                                                             </div>
                                                                             <div className="text-left">
-                                                                                {courtName.toLowerCase() !== sliceLabel.toLowerCase() && (
-                                                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{courtName}</div>
-                                                                                )}
-                                                                                <div className={`text-sm font-bold ${isSelected ? 'text-primary' : isConflict ? 'text-gray-400' : 'text-gray-900'}`}>{sliceLabel} - ₹{config.minPrice}/hr</div>
-                                                                                {isConflict && <div className="text-[9px] font-bold text-red-400 uppercase tracking-tighter mt-0.5">Conflicting Zones</div>}
-                                                                                
-                                                                                {config.totalZones > 1 && (
-                                                                                    <div className="flex gap-0.5 mt-1.5">
-                                                                                        {Array.from({ length: config.totalZones }).map((_, zIdx) => {
-                                                                                            const isIn = (mask & (1 << zIdx)) !== 0;
-                                                                                            return (
-                                                                                                <div key={zIdx} className={`w-2.5 h-3.5 rounded-[2px] ${isIn ? 'bg-primary/20' : 'bg-gray-100'}`}></div>
-                                                                                            );
-                                                                                        })}
-                                                                                    </div>
-                                                                                )}
+                                                                                <span className={`text-sm font-bold block ${isSelected ? 'text-primary' : 'text-gray-900'}`}>
+                                                                                    {config.label}
+                                                                                </span>
+                                                                                {isConflict && <span className="text-[9px] font-bold text-red-500 uppercase">Conflicts with selection</span>}
                                                                             </div>
                                                                         </div>
-                                                                        <div className="text-right">
-                                                                            <div className="text-xs font-black text-gray-900 tracking-tight">₹{config.minPrice}</div>
-                                                                            <div className="text-[9px] font-bold text-gray-400 uppercase">Per Hour</div>
+                                                                        <div className="flex items-center gap-3">
+                                                                            <span className={`text-xs font-black ${isSelected ? 'text-primary' : 'text-gray-500'}`}>₹{config.minPrice}/hr</span>
+                                                                            {isSelected && (
+                                                                                <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                                                                                    </svg>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </button>
                                                                 );
@@ -883,7 +899,7 @@ export const VenueDetailsPage: React.FC = () => {
                                             </AnimatePresence>
                                         </div>
                                     </div>
-                                )}
+
 
 
                                 {/* Date Selector (Horizontal) */}

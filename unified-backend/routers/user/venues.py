@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 import models, schemas, database
 from utils.booking_utils import get_booked_slots, safe_parse_time_float
 from schemas import resolve_path
@@ -481,6 +481,7 @@ def get_venue_slots(
         court_query = """
             SELECT 
                 ac.id, ac.name, ac.price_per_hour, ac.price_conditions, ac.unavailability_slots, agt.name as game_type,
+                ac.shared_group_id, ac.total_zones, ac.logic_type,
                 (SELECT ROUND(AVG(rating)::numeric, 1) FROM reviews r WHERE r.court_id = ac.id AND r.is_active = true) as court_rating,
                 (SELECT COUNT(*) FROM reviews r WHERE r.court_id = ac.id AND r.is_active = true) as court_reviews
             FROM admin_courts ac
@@ -582,26 +583,7 @@ def get_venue_slots(
             
             from utils.booking_utils import generate_allowed_slots_map, get_booked_slots
             
-            # Fetch relevant bookings for conflict detection
-            # Use shared_group_id if available, regardless of logic_type for safety
-            group_id = court.get('shared_group_id')
-            if group_id:
-                # IMPORTANT: Fetch bookings for ALL courts in this shared group
-                group_courts = db.query(models.Court.id).filter(models.Court.shared_group_id == group_id).all()
-                all_court_ids_in_group = [gc[0] for gc in group_courts]
-                active_bookings = db.query(models.Booking).filter(
-                    models.Booking.court_id.in_(all_court_ids_in_group),
-                    models.Booking.booking_date == booking_date,
-                    models.Booking.status != 'cancelled'
-                ).all()
-            else:
-                active_bookings = db.query(models.Booking).filter(
-                    models.Booking.court_id == uuid.UUID(c_id),
-                    models.Booking.booking_date == booking_date,
-                    models.Booking.status != 'cancelled'
-                ).all()
-                
-            booked_slots = get_booked_slots(active_bookings)
+            # Fetch dynamic slot map which now includes aggregated occupancy from 'booking' table
             allowed_slots_map = generate_allowed_slots_map(db, c_id, booking_date)
             
             # D. Merge to Consolidated
@@ -618,15 +600,15 @@ def get_venue_slots(
                     continue
                 
                 # Granular Availability Check
-                # A slot is considered available if at least one zone/slice is free.
+                # A slot is considered available if it's NOT blocked by the consolidated mask.
                 occupied_mask = details.get('occupied_mask', 0)
                 total_zones = details.get('total_zones', 1)
-                full_mask = (1 << total_zones) - 1
                 
-                if total_zones > 1:
-                    is_available = (occupied_mask & full_mask) < full_mask
-                else:
-                    is_available = h_float not in booked_slots
+                # Logic: If any zones are booked, we check if ALL zones are booked to determine 'is_available'
+                # But for the consolidated list, we just pass the mask and slices.
+                # The frontend actually does the heavy lifting with masks now.
+                full_mask = (1 << total_zones) - 1
+                is_available = (occupied_mask & full_mask) < full_mask
                 
                 time_key = slot_time # "HH:MM"
                 slot_key = f"{c_id}_{time_key}"
