@@ -17,7 +17,16 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // Handle standardized backend response: { code, status, data }
+        if (response.data && response.data.status === 'success' && 'data' in response.data) {
+            return {
+                ...response,
+                data: response.data.data
+            };
+        }
+        return response;
+    },
     (error) => {
         console.error('API Error:', error.response?.data || error.message);
         if (error.response?.status === 401) {

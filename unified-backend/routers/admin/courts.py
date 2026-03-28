@@ -259,11 +259,9 @@ async def create_court(
                 db.commit()
         except: pass
     try:
-        for day in range(7):
-            for hour in range(24):
-                IntegrationOrchestrator.notify_recurring_change(db, str(db_court.id), day, hour, "update")
+        IntegrationOrchestrator.notify_court_schedule_change(db, str(db_court.id), "update")
     except Exception as e:
-        print(f"Recurring notification failed: {e}")
+        print(f"Bulk schedule notification failed: {e}")
 
     return db_court
 
@@ -428,13 +426,11 @@ async def update_court(
     db.commit()
     db.refresh(db_court)
     
-    # Notify partners about recurring schedule changes
+    # Notify partners about recurring schedule changes (Bulk)
     try:
-        for day in range(7):
-            for hour in range(24):
-                IntegrationOrchestrator.notify_recurring_change(db, str(db_court.id), day, hour, "update")
+        IntegrationOrchestrator.notify_court_schedule_change(db, str(db_court.id), "update")
     except Exception as e:
-        print(f"Recurring notification failed: {e}")
+        print(f"Bulk schedule notification failed: {e}")
 
     return db_court
 
@@ -458,12 +454,10 @@ def toggle_court_status(
     db.commit()
     db.refresh(db_court)
     
-    # Notify partners about recurring schedule (available/block toggle)
+    # Notify partners about recurring schedule (available/block toggle) - Bulk
     try:
         status_action = "available" if db_court.is_active else "block"
-        for day in range(7):
-            for hour in range(24):
-                IntegrationOrchestrator.notify_recurring_change(db, str(db_court.id), day, hour, status_action)
+        IntegrationOrchestrator.notify_court_schedule_change(db, str(db_court.id), status_action)
     except Exception as e:
         print(f"Toggle notification failed: {e}")
 

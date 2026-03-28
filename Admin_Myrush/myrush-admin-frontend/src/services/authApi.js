@@ -11,7 +11,15 @@ export async function loginAdmin(mobile, password) {
       body: JSON.stringify({ mobile, password }),
     });
 
-    const data = await response.json();
+    const result = await response.json();
+    // Standardized wrapper support
+    const data = (result && typeof result === 'object' && 'status' in result && 'data' in result) ? result.data : result;
+    
+    // Add success flag for legacy compatibility if original was successful
+    if (response.ok && result.status === 'success' && typeof data === 'object') {
+      data.success = true;
+    }
+    
     return { response, data };
   } catch (error) {
     throw new Error('Network error: ' + error.message);

@@ -56,8 +56,9 @@ function AmenitiesSettings() {
         console.error('Error deleting amenity:', err);
         const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
           ? 'You do not have access to delete amenities.'
-          : 'Failed to delete amenity';
+          : (err.message || 'Failed to delete amenity');
         setError(errorMsg);
+        alert(errorMsg);
       }
     }
   };

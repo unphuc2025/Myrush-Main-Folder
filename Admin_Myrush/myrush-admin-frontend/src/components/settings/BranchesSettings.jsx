@@ -256,7 +256,9 @@ function BranchesSettings() {
         await fetchAllData();
       } catch (err) {
         console.error('Error deleting branch:', err);
-        setError('Failed to delete branch');
+        const errorMsg = err.message || 'Failed to delete branch';
+        setError(errorMsg);
+        alert(errorMsg);
       }
     }
   };

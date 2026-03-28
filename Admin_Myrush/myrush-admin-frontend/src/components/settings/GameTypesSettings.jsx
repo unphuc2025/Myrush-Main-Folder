@@ -56,8 +56,9 @@ function GameTypesSettings() {
         console.error('Error deleting game type:', err);
         const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))
           ? 'You do not have access to delete sports.'
-          : 'Failed to delete game type';
+          : (err.message || 'Failed to delete game type');
         setError(errorMsg);
+        alert(errorMsg);
       }
     }
   };

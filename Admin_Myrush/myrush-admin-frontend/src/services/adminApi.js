@@ -35,7 +35,7 @@ export const sanitizeImageUrl = (url) => {
 
 const apiCache = new Map();
 
-async function apiRequest(url, options = {}) {
+export async function apiRequest(url, options = {}) {
     const token = localStorage.getItem('admin_token');
     const method = options.method || 'GET';
     const isGet = method.toUpperCase() === 'GET';
@@ -57,7 +57,7 @@ async function apiRequest(url, options = {}) {
         ...options.headers
     };
 
-    if (!isGet && !headers['Content-Type']) {
+    if (!isGet && !headers['Content-Type'] && !(options.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json';
     }
 
@@ -72,7 +72,8 @@ async function apiRequest(url, options = {}) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || (typeof errorData.detail === 'object' ? JSON.stringify(errorData.detail) : errorData.detail) || `API Error: ${response.status} ${response.statusText}`);
+            const errorMessage = errorData.detail || errorData.message || (typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error)) || `API Error: ${response.status} ${response.statusText}`;
+            throw new Error(errorMessage);
         }
 
         if (response.status === 204) return null;
@@ -85,13 +86,20 @@ async function apiRequest(url, options = {}) {
             result = await response.text();
         }
 
+        // Standardized wrapper support: automatically unwrap .data if it exists
+        // (but only if it's the new standard format with status/code/timestamp)
+        let finalResult = result;
+        if (result && typeof result === 'object' && 'status' in result && 'data' in result) {
+            finalResult = result.data;
+        }
+
         if (useCache) {
-            apiCache.set(url, result);
+            apiCache.set(url, finalResult);
             // Auto-clear cache after 30 seconds for local consistency
             setTimeout(() => apiCache.delete(url), 30000);
         }
 
-        return result;
+        return finalResult;
     } catch (error) {
         console.error('API Request failed:', error);
         throw error;
@@ -148,36 +156,14 @@ export const areasApi = {
 export const gameTypesApi = {
     getAll: () => apiRequest('/game-types'),
     getById: (id) => apiRequest(`/game-types/${id}`),
-    create: (formData) => {
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/game-types`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-            body: formData
-        }).then(res => {
-            if (!res.ok) {
-                return res.json().then(err => {
-                    throw new Error(err.error || 'Failed to create game type');
-                });
-            }
-            return res.json();
-        });
-    },
-    update: (id, formData) => {
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/game-types/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-            body: formData
-        }).then(res => {
-            if (!res.ok) throw new Error('Failed to update game type');
-            return res.json();
-        });
-    },
+    create: (formData) => apiRequest('/game-types', {
+        method: 'POST',
+        body: formData
+    }),
+    update: (id, formData) => apiRequest(`/game-types/${id}`, {
+        method: 'PUT',
+        body: formData
+    }),
     delete: (id) => apiRequest(`/game-types/${id}`, {
         method: 'DELETE'
     })
@@ -187,36 +173,14 @@ export const gameTypesApi = {
 export const amenitiesApi = {
     getAll: () => apiRequest('/amenities'),
     getById: (id) => apiRequest(`/amenities/${id}`),
-    create: (formData) => {
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/amenities`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-            body: formData
-        }).then(res => {
-            if (!res.ok) {
-                return res.json().then(err => {
-                    throw new Error(err.error || 'Failed to create amenity');
-                });
-            }
-            return res.json();
-        });
-    },
-    update: (id, formData) => {
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/amenities/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-            body: formData
-        }).then(res => {
-            if (!res.ok) throw new Error('Failed to update amenity');
-            return res.json();
-        });
-    },
+    create: (formData) => apiRequest('/amenities', {
+        method: 'POST',
+        body: formData
+    }),
+    update: (id, formData) => apiRequest(`/amenities/${id}`, {
+        method: 'PUT',
+        body: formData
+    }),
     delete: (id) => apiRequest(`/amenities/${id}`, {
         method: 'DELETE'
     })
@@ -235,32 +199,14 @@ export const branchesApi = {
     },
     getByCity: (cityId) => apiRequest(`/branches/city/${cityId}`),
     getById: (id) => apiRequest(`/branches/${id}`),
-    create: (formData) => {
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/branches`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-            body: formData
-        }).then(res => {
-            if (!res.ok) throw new Error('Failed to create branch');
-            return res.json();
-        });
-    },
-    update: (id, formData) => {
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/branches/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-            body: formData
-        }).then(res => {
-            if (!res.ok) throw new Error('Failed to update branch');
-            return res.json();
-        });
-    },
+    create: (formData) => apiRequest('/branches', {
+        method: 'POST',
+        body: formData
+    }),
+    update: (id, formData) => apiRequest(`/branches/${id}`, {
+        method: 'PUT',
+        body: formData
+    }),
     delete: (id) => apiRequest(`/branches/${id}`, {
         method: 'DELETE'
     })
@@ -279,38 +225,14 @@ export const courtsApi = {
         return apiRequest(`/courts${query ? `?${query}` : ''}`);
     },
     getById: (id) => apiRequest(`/courts/${id}`),
-    create: (formData) => {
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/courts`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-            body: formData
-        }).then(async res => {
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || errorData.error || 'Failed to create court');
-            }
-            return res.json();
-        });
-    },
-    update: (id, formData) => {
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/courts/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-            body: formData
-        }).then(async res => {
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || errorData.error || 'Failed to update court');
-            }
-            return res.json();
-        });
-    },
+    create: (formData) => apiRequest('/courts', {
+        method: 'POST',
+        body: formData
+    }),
+    update: (id, formData) => apiRequest(`/courts/${id}`, {
+        method: 'PUT',
+        body: formData
+    }),
     delete: (id) => apiRequest(`/courts/${id}`, {
         method: 'DELETE'
     }),
@@ -323,28 +245,17 @@ export const courtsApi = {
             formData.append('date', dateOrDates);
         }
 
-        formData.append('slot_from', slot_from || slotFrom); // Support both snake_case and camelCase
-        formData.append('slot_to', slot_to || slotTo);
+        formData.append('slot_from', slotFrom);
+        formData.append('slot_to', slotTo);
         formData.append('price', price);
         if (branchId) formData.append('branch_id', branchId);
         if (gameTypeId) formData.append('game_type_id', gameTypeId);
         if (originalSlotFrom) formData.append('original_slot_from', originalSlotFrom);
         if (originalSlotTo) formData.append('original_slot_to', originalSlotTo);
 
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/courts/bulk-update-slots`, {
+        return apiRequest('/courts/bulk-update-slots', {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
             body: formData
-        }).then(res => {
-            if (!res.ok) {
-                return res.json().then(err => {
-                    throw new Error(err.detail || 'Failed to bulk update slots');
-                });
-            }
-            return res.json();
         });
     },
     bulkDeleteSlots: (dateOrDates, slotFrom, slotTo, branchId = null, gameTypeId = null) => {
@@ -361,20 +272,9 @@ export const courtsApi = {
         if (branchId) formData.append('branch_id', branchId);
         if (gameTypeId) formData.append('game_type_id', gameTypeId);
 
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/courts/bulk-delete-slots`, {
+        return apiRequest('/courts/bulk-delete-slots', {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
             body: formData
-        }).then(res => {
-            if (!res.ok) {
-                return res.json().then(err => {
-                    throw new Error(err.detail || 'Failed to bulk delete slots');
-                });
-            }
-            return res.json();
         });
     },
     bulkBlockSlots: (dateOrDates, slotFrom, slotTo, isBlocked, branchId = null, gameTypeId = null) => {
@@ -388,24 +288,13 @@ export const courtsApi = {
 
         formData.append('slot_from', slotFrom);
         formData.append('slot_to', slotTo);
-        formData.append('is_blocked', String(is_blocked));
+        formData.append('is_blocked', String(isBlocked));
         if (branchId) formData.append('branch_id', branchId);
         if (gameTypeId) formData.append('game_type_id', gameTypeId);
 
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/courts/bulk-block-slots`, {
+        return apiRequest('/courts/bulk-block-slots', {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
             body: formData
-        }).then(res => {
-            if (!res.ok) {
-                return res.json().then(err => {
-                    throw new Error(err.detail || 'Failed to bulk block slots');
-                });
-            }
-            return res.json();
         });
     }
 };
@@ -416,19 +305,18 @@ export const globalPriceConditionsApi = {
     create: (days, dates, slotFrom, slotTo, price, conditionType = 'recurring') => {
         const formData = new FormData();
 
-        // Validate and prepare data
         if (conditionType === 'date') {
             if (!dates || !Array.isArray(dates) || dates.length === 0) {
                 throw new Error('At least one date is required for date-specific condition');
             }
             formData.append('dates', JSON.stringify(dates));
-            formData.append('days', '[]'); // Empty for date type
+            formData.append('days', '[]');
         } else {
             if (!days || !Array.isArray(days) || days.length === 0) {
                 throw new Error('At least one day is required for recurring condition');
             }
             formData.append('days', JSON.stringify(days));
-            formData.append('dates', '[]'); // Empty for recurring type
+            formData.append('dates', '[]');
         }
 
         formData.append('slot_from', slotFrom || '');
@@ -436,29 +324,9 @@ export const globalPriceConditionsApi = {
         formData.append('price', price || '');
         formData.append('condition_type', conditionType);
 
-        console.log('Sending FormData:', {
-            conditionType,
-            days: conditionType === 'recurring' ? JSON.stringify(days) : '[]',
-            dates: conditionType === 'date' ? JSON.stringify(dates) : '[]',
-            slot_from: slotFrom,
-            slot_to: slotTo,
-            price: price
-        });
-
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/global-price-conditions`, {
+        return apiRequest('/global-price-conditions', {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
             body: formData
-        }).then(async res => {
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({ detail: 'Unknown error' }));
-                console.error('API Error:', errorData);
-                throw new Error(errorData.detail || 'Failed to create global price condition');
-            }
-            return res.json();
         });
     },
     update: (id, data) => {
@@ -471,16 +339,9 @@ export const globalPriceConditionsApi = {
         if (data.price !== undefined) formData.append('price', data.price);
         if (data.is_active !== undefined) formData.append('is_active', data.is_active);
 
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/global-price-conditions/${id}`, {
+        return apiRequest(`/global-price-conditions/${id}`, {
             method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
             body: formData
-        }).then(res => {
-            if (!res.ok) throw new Error('Failed to update global price condition');
-            return res.json();
         });
     },
     delete: (id) => apiRequest(`/global-price-conditions/${id}`, {
@@ -713,23 +574,10 @@ export const divisionModesApi = {
 // Site Settings API
 export const settingsApi = {
     get: () => apiRequest('/settings'),
-    update: (formData) => {
-        const token = localStorage.getItem('admin_token');
-        return fetch(`${API_BASE}/settings`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                // Content-Type not set to let browser handle multipart/form-data boundary
-            },
-            body: formData
-        }).then(async res => {
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || 'Failed to update settings');
-            }
-            return res.json();
-        });
-    }
+    update: (formData) => apiRequest('/settings', {
+        method: 'PUT',
+        body: formData
+    })
 };
 
 // Playo Token Management API

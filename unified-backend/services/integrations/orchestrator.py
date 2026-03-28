@@ -55,6 +55,26 @@ class IntegrationOrchestrator:
                 logger.error(f"Failed to queue inventory update for partner {partner.name}: {e}", exc_info=True)
 
     @staticmethod
+    def notify_court_schedule_change(db: Session, court_id: str, action: str):
+        """
+        Triggered when a court is created or updated.
+        Sends the FULL 7-day schedule in a single bulk webhook (District Type A).
+        """
+        court = db.query(models.Court).get(court_id)
+        if not court: return
+
+        partners = db.query(models.Partner).filter(models.Partner.is_active == True).all()
+        for partner in partners:
+            try:
+                if partner.name.lower() == 'district':
+                    adapter = DistrictAdapter(db, str(partner.id))
+                    payload = adapter.format_court_schedule_webhook(court, action)
+                    OutboxService.queue_inventory_update(db, str(partner.id), payload)
+                    logger.info(f"Queued BULK schedule update for {partner.name} - Court: {court.name}")
+            except Exception as e:
+                logger.error(f"Failed to queue bulk recurring update: {e}")
+
+    @staticmethod
     def notify_recurring_change(db: Session, court_id: str, day: int, slot_start: float, action: str, price: float = None):
         """
         Triggered when recurring schedules or prices change (District Type A).

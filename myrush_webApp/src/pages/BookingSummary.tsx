@@ -29,6 +29,11 @@ interface LocationState {
     numPlayers?: number;
     courtId?: string;
     sliceMask?: number;
+    selectedConfigs?: {
+        courtId: string;
+        sliceId: string;
+        sliceMask: number;
+    }[];
 }
 
 export const BookingSummary: React.FC = () => {
@@ -129,6 +134,9 @@ export const BookingSummary: React.FC = () => {
             const durationMinutes = sortedSlots.length * 30;
             const slotIds = state.selectedSlots.map(s => s.slot_id).filter(Boolean) as string[];
 
+            const calculatedSliceMask = state.selectedConfigs?.reduce((acc, c) => acc | c.sliceMask, 0) || state.sliceMask || 0;
+            const targetCourtId = state.selectedConfigs?.[0]?.courtId || state.courtId || state.selectedSlots[0]?.court_id || state.venueId;
+
             if (durationMinutes < 60) {
                 showAlert('Minimum booking duration is 1 hour (2 slots).', 'warning');
                 setSubmitting(false);
@@ -136,13 +144,13 @@ export const BookingSummary: React.FC = () => {
             }
 
             const orderRes = await bookingsApi.createPaymentOrder({
-                courtId: state.courtId || state.selectedSlots[0]?.court_id || state.venueId,
+                courtId: targetCourtId,
                 bookingDate: state.date,
                 startTime: startTime,
                 durationMinutes: durationMinutes,
                 timeSlots: state.selectedSlots,
                 slotIds: slotIds,
-                sliceMask: state.sliceMask || 0,
+                sliceMask: calculatedSliceMask,
                 numberOfPlayers: numPlayers,
                 couponCode: couponCode
             });
@@ -168,7 +176,7 @@ export const BookingSummary: React.FC = () => {
                 handler: async function (response: any) {
                     try {
                         const payload = {
-                            courtId: state.courtId || state.selectedSlots[0]?.court_id || state.venueId,
+                            courtId: targetCourtId,
                             bookingDate: state.date,
                             startTime: startTime,
                             durationMinutes: durationMinutes,
@@ -177,7 +185,7 @@ export const BookingSummary: React.FC = () => {
                             teamName: teamName,
                             timeSlots: state.selectedSlots,
                             slotIds: slotIds,
-                            sliceMask: state.sliceMask || 0,
+                            sliceMask: calculatedSliceMask,
                             totalAmount: totalAmount,
                             originalAmount: slotsCost + platformFee,
                             discountAmount: discount,

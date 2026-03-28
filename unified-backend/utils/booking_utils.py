@@ -373,7 +373,7 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
                 
                 # Fetch Bitmask State
                 slot_row = slots_db_map.get(time_key)
-                if court.logic_type == 'shared' and court.shared_group_id:
+                if court.shared_group_id:
                     occupied = group_aggregate_masks.get(time_key, 0)
                 else:
                     occupied = slot_row.occupied_mask if slot_row else 0
@@ -405,7 +405,7 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
                 allowed_slots[time_key] = {
                     "time": time_key,
                     "display_time": f"{sh_disp:02d}:{mm:02d} {ampm_s} - {eh_disp:02d}:{m_e:02d} {ampm_e}",
-                    "price": float(matched_rule['price']) if matched_rule else float(court.price_per_hour),
+                    "price": (float(matched_rule['price']) if matched_rule else float(court.price_per_hour)) / 2.0,
                     "is_blocked": is_blocked,
                     "source": matched_rule.get('source', 'venue_hours') if matched_rule else 'venue_hours',
                     "slot_id": str(slot_row.id) if slot_row else None,
@@ -424,3 +424,46 @@ def validate_booking_duration(slots: list):
     from fastapi import HTTPException
     if not slots or len(slots) < 2:
         raise HTTPException(status_code=400, detail="Minimum booking duration is 1 hour (2 slots).")
+
+def calculate_multi_slice_price(server_slot: dict, slice_mask: int, default_base_price: float) -> float:
+    """
+    Sum the prices of all slices that match the given mask.
+    If no slices are provided or mask is 0, use the base price.
+    """
+    if not slice_mask:
+        return default_base_price
+    
+    slices = server_slot.get('slices', [])
+    if not slices:
+        return default_base_price
+    
+    # 1. Look for an exact mask match (e.g., "Full Court")
+    exact_match = next((s for s in slices if s['mask'] == slice_mask), None)
+    if exact_match and exact_match.get('price_per_hour') is not None:
+        return float(exact_match['price_per_hour']) / 2.0
+        
+    # 2. Sum disjoint individual slices
+    total_price = 0.0
+    matched_any = False
+    
+    # We iterate through the slices to find the "smallest" units.
+    # Slices with single-bit masks are prioritized for summing to avoid double counting
+    # if a larger aggregate slice exists but doesn't exactly match the multi-select mask.
+    for s in slices:
+        s_mask = s.get('mask', 0)
+        # Check if this slice is a subset of the requested mask
+        if s_mask > 0 and (s_mask & slice_mask) == s_mask:
+             # Check if it's a "leaf" slice (single bit) - this is a heuristic
+             # for multi-court venues where users select Court 1, Court 2, etc.
+             # If the mask has only one bit set, it's definitely a leaf.
+             is_single_bit = (s_mask & (s_mask - 1)) == 0
+             if is_single_bit:
+                 if s.get('price_per_hour') is not None:
+                     total_price += float(s['price_per_hour']) / 2.0
+                     matched_any = True
+    
+    if matched_any:
+        return total_price
+        
+    # 3. Final Fallback
+    return default_base_price
