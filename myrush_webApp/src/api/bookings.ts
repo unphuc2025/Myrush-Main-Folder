@@ -21,6 +21,8 @@ export interface CreateBookingPayload {
     razorpay_payment_id?: string;
     razorpay_order_id?: string;
     razorpay_signature?: string;
+    numCourts?: number;
+    courtName?: string;
 }
 
 export const bookingsApi = {
@@ -51,17 +53,32 @@ export const bookingsApi = {
                 coupon_code: data.couponCode
             };
             const response = await apiClient.post('/payments/create-order', payload);
-            return {
-                success: true,
-                data: response.data
-            };
+            return { success: true, data: response.data };
         } catch (error: any) {
             console.error('[BOOKINGS API] Exception creating payment order:', error);
-            return {
-                success: false,
-                data: null,
-                error: error.message || 'Failed to initiate payment'
-            };
+            return { success: false, data: null, error: error.message || 'Failed to initiate payment' };
+        }
+    },
+
+    createMultiCourtOrder: async (data: {
+        configs: { courtId: string; sliceMask: number }[];
+        bookingDate: string;
+        timeSlots: any[];
+        numberOfPlayers: number;
+        couponCode?: string;
+    }) => {
+        try {
+            const response = await apiClient.post('/payments/create-multi-order', {
+                configs: data.configs,
+                bookingDate: data.bookingDate,
+                timeSlots: data.timeSlots,
+                numberOfPlayers: data.numberOfPlayers,
+                couponCode: data.couponCode
+            });
+            return { success: true, data: response.data };
+        } catch (error: any) {
+            console.error('[BOOKINGS API] Exception creating multi-court payment order:', error);
+            return { success: false, data: null, error: error.message || 'Failed to initiate payment' };
         }
     },
     /**
@@ -89,7 +106,8 @@ export const bookingsApi = {
                 // Razorpay Fields
                 razorpay_payment_id: bookingData.razorpay_payment_id,
                 razorpay_order_id: bookingData.razorpay_order_id,
-                razorpay_signature: bookingData.razorpay_signature
+                razorpay_signature: bookingData.razorpay_signature,
+                num_courts: bookingData.numCourts
             };
 
             const response = await apiClient.post('/bookings/', payload);

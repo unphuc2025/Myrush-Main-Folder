@@ -87,16 +87,6 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
     # 1. Generate Slots Map to get correct prices
     allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
     
-    # 1.5 Fetch Slice Override Price
-    slice_price = None
-    if slice_mask is not None:
-        sp_slice = db.query(models.SportSlice).filter(
-            models.SportSlice.court_id == court_id,
-            models.SportSlice.mask == slice_mask
-        ).first()
-        if sp_slice and sp_slice.price_per_hour is not None:
-            slice_price = float(sp_slice.price_per_hour)
-
     total_slot_price = 0.0
     print(f"[PRICE_DEBUG] Starting calculation for {len(requested_slots)} slots, players={number_of_players}")
     
@@ -109,14 +99,19 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
         if ":" not in norm_start:
             h = int(h_f)
             m = int((h_f % 1) * 60)
-            norm_start = f"{h:02d}:{m:02d}"
+            norm_start = f"{h:02d}:{m:02d}" 
         
         # Use price from map if available, else default (though validation should have caught it)
         if norm_start in allowed_slots_map:
-            default_map_price = float(allowed_slots_map[norm_start]['price'])
-            slot_price = (slice_price / 2.0) if slice_price is not None else default_map_price
+            server_slot = allowed_slots_map[norm_start]
+            default_map_price = float(server_slot['price'])
+            
+            # NEW: Sum slice prices if mask provided, otherwise use default
+            from utils.booking_utils import calculate_multi_slice_price
+            slot_price = calculate_multi_slice_price(server_slot, slice_mask or 0, default_map_price)
+            
             total_slot_price += slot_price
-            print(f"[PRICE_DEBUG] Slot {norm_start}: Price {slot_price}")
+            print(f"[PRICE_DEBUG] Slot {norm_start}: Price {slot_price} (Mask={slice_mask})")
         else:
             print(f"[PRICE_DEBUG] Slot {norm_start} not found in map. Falling back.")
             # Fallback to court base price if absolutely necessary
@@ -246,6 +241,79 @@ def create_payment_order(
     except Exception as e:
         print(f"Razorpay Error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create payment order")
+
+
+@router.post("/create-multi-order")
+def create_multi_court_payment_order(
+    payload: dict,
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db)
+):
+    """
+    Create a single Razorpay order covering multiple court configs.
+    Accepts: { configs: [{courtId, sliceMask}], bookingDate, timeSlots, numberOfPlayers, couponCode }
+    """
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        raise HTTPException(status_code=500, detail="Payment gateway not configured")
+
+    configs = payload.get("configs", [])
+    booking_date_str = payload.get("bookingDate")
+    time_slots = payload.get("timeSlots", [])
+    number_of_players = payload.get("numberOfPlayers", 1)
+    coupon_code = payload.get("couponCode")
+
+    if not configs or not booking_date_str:
+        raise HTTPException(status_code=400, detail="Missing configs or bookingDate")
+
+    from datetime import date as dt_date
+    booking_date = dt_date.fromisoformat(booking_date_str)
+
+    # Calculate combined price across all courts
+    total_price = 0.0
+    for cfg in configs:
+        court_id = cfg.get("courtId")
+        slice_mask = cfg.get("sliceMask", 0)
+        if not court_id:
+            continue
+        verify_slot_availability(db, court_id, booking_date, time_slots, slice_mask)
+        price = calculate_authoritative_price(db, court_id, booking_date, time_slots, number_of_players, slice_mask)
+        total_price += price
+        print(f"[MULTI-ORDER] Court {court_id}: price={price}")
+
+    print(f"[MULTI-ORDER] Combined total price: {total_price}")
+
+    PLATFORM_FEE = 0.0
+    discount_amount = 0.0
+    if coupon_code:
+        discount_amount = validate_authoritative_coupon(db, coupon_code, total_price, str(current_user.id))
+
+    final_amount = max(0.0, total_price + PLATFORM_FEE - discount_amount)
+    amount_in_paise = int(final_amount * 100)
+
+    try:
+        order_data = {
+            "amount": amount_in_paise,
+            "currency": "INR",
+            "receipt": f"rcptm_{int(datetime.now().timestamp())}",
+            "notes": {
+                "user_id": str(current_user.id),
+                "num_courts": len(configs),
+                "date": str(booking_date)
+            }
+        }
+        order = client.order.create(data=order_data)
+        return {
+            "id": order["id"],
+            "amount": order["amount"],
+            "currency": order["currency"],
+            "key_id": RAZORPAY_KEY_ID,
+            "server_calculated_amount": final_amount,
+            "breakdown": {"base": total_price, "fee": PLATFORM_FEE, "discount": discount_amount}
+        }
+    except Exception as e:
+        print(f"Razorpay Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create payment order")
+
 
 @router.post("/verify")
 def verify_payment(

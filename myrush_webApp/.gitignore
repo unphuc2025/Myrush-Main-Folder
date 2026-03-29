@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 .env
+dist.zip
+dist.tar.gz
 
 # Editor directories and files
 .vscode/*

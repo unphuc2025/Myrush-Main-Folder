@@ -2,7 +2,7 @@
 
 **Target Server:** `65.0.195.149`  
 **User:** `ec2-user`  
-**Key File:** `C:\Users\ajayp\Downloads\host\dev_ec2`  
+**Key File:** `C:\Users\Z BOOK\Downloads\host\dev_ec2`  
 
 ---
 
@@ -17,7 +17,7 @@ Since GitHub authentication is tricky on the server without setup, we will direc
    (This copies your `unified-backend` folder to the server's home directory)
 
 ```powershell
-scp -i "C:\Users\ajayp\Downloads\host\dev_ec2" -r "C:\Users\ajayp\Desktop\myrush-Main-folder\unified-backend" ec2-user@65.0.195.149:/home/ec2-user/myrush-backend
+scp -i "C:\Users\Z BOOK\Downloads\host\dev_ec2" -r "C:\Users\Z BOOK\Desktop\myrush-Main-folder\unified-backend" ec2-user@65.0.195.149:/home/ec2-user/myrush-backend
 ```
 
 *If it asks about fingerprint, type `yes`.*
@@ -29,7 +29,7 @@ scp -i "C:\Users\ajayp\Downloads\host\dev_ec2" -r "C:\Users\ajayp\Desktop\myrush
 **1. SSH into the server:**
 
 ```powershell
-ssh -i "C:\Users\ajayp\Downloads\host\dev_ec2" ec2-user@65.0.195.149
+ssh -i "C:\Users\Z BOOK\Downloads\host\dev_ec2" ec2-user@65.0.195.149
 ```
 
 **2. Update and Install Requirements:**

@@ -156,56 +156,83 @@ def get_venue_hours(opening_hours: Any, booking_date: date) -> tuple:
 
     return start_h, end_h
 
-def get_aggregated_group_mask(db: Session, shared_group_id: Any, booking_date: date) -> Dict[str, int]:
+def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group_id: Any = None, court_id: Any = None) -> Dict[str, int]:
     """
-    Calculate the aggregate occupied mask for all courts in a shared group.
+    Calculate the aggregate occupied mask for a shared group OR a specific court.
+    This ensures that the 'booking' table is the single source of truth,
+    avoiding synchronization issues with the cached 'occupied_mask' in the 'slots' table.
     Returns a mapping of "HH:MM" -> mask.
     """
     import models
     from uuid import UUID
     
-    # 1. Find all courts in the group
-    group_courts = db.query(models.Court.id).filter(models.Court.shared_group_id == shared_group_id).all()
-    court_ids = [c[0] for c in group_courts]
-    
+    # 1. Identify all courts that should contribute to this mask
+    if shared_group_id:
+        from uuid import UUID
+        cid_query = db.query(models.Court.id).filter(models.Court.shared_group_id == (UUID(str(shared_group_id)) if shared_group_id else None))
+        group_courts = cid_query.all()
+        court_ids = [c[0] for c in group_courts]
+    elif court_id:
+        court_ids = [court_id]
+    else:
+        return {}
+
     if not court_ids:
         return {}
 
-    # 2. Fetch all active bookings for this group with their court's total_zones
-    # This join ensures we can calculate a full-court mask if slice_mask is missing
-    group_bookings = db.query(
-        models.Booking, 
-        models.Court.total_zones
-    ).join(
-        models.Court, 
-        models.Booking.court_id == models.Court.id
-    ).filter(
-        models.Court.shared_group_id == shared_group_id,
-        models.Booking.booking_date == booking_date,
-        models.Booking.status != 'cancelled'
-    ).all()
+    # 2. Fetch all active bookings for these courts using RAW SQL as fail-safe for ORM issues
+    # Join with admin_courts to get total_zones
+    from sqlalchemy import text
+    sql = text("""
+        SELECT b.slice_mask, b.time_slots, c.total_zones, b.id, c.logic_type, c.capacity_limit, b.number_of_players
+        FROM booking b
+        LEFT JOIN admin_courts c ON b.court_id = c.id
+        WHERE b.court_id = ANY(CAST(:c_ids AS uuid[]))
+        AND b.booking_date = CAST(:d AS date)
+        AND b.status != 'cancelled'
+    """)
+    
+    group_bookings = db.execute(sql, {"c_ids": [str(cid) for cid in court_ids], "d": str(booking_date)}).fetchall()
 
-    # 3. Build a map of 30-min slots
+    # 3. Build a map of 48 x 30-min slots
     aggregate_masks = {}
+    aggregate_players = {}
     for i in range(48):
         h = i * 0.5
         time_key = f"{int(h):02d}:{int((h % 1) * 60):02d}"
         aggregate_masks[time_key] = 0
+        aggregate_players[time_key] = 0
 
     # 4. Populate with booking masks
-    for b, total_zones in group_bookings:
+    for b_slice_mask, b_time_slots, c_total_zones, b_id, c_logic_type, c_capacity_limit, b_number_of_players in group_bookings:
         # Determine the mask for this booking
-        # If slice_mask is missing, assume it's a full-court booking
-        mask = getattr(b, 'slice_mask', None)
+        mask = b_slice_mask
         if mask is None or mask == 0:
-            mask = (1 << (total_zones or 1)) - 1
+            mask = (1 << (c_total_zones or 1)) - 1
+            
+        n_players = b_number_of_players or 1
+        is_capacity = (c_logic_type == 'capacity')
         
-        t_slots = b.time_slots
+        t_slots = b_time_slots
         if isinstance(t_slots, str):
-            try: t_slots = json.loads(t_slots)
-            except: t_slots = []
+            try: 
+                import json
+                parsed = json.loads(t_slots)
+                if isinstance(parsed, (list, dict)):
+                    t_slots = parsed
+            except: pass
         
-        if t_slots and isinstance(t_slots, list):
+        def apply_to_slot(tk):
+            if is_capacity:
+                aggregate_players[tk] += n_players
+                # Fallback to mask if limit reached
+                limit = c_capacity_limit or 1
+                if aggregate_players[tk] >= limit:
+                    aggregate_masks[tk] |= (mask or 0)
+            else:
+                aggregate_masks[tk] |= (mask or 0)
+
+        if isinstance(t_slots, list):
             for slot in t_slots:
                 if isinstance(slot, dict):
                     t_str = slot.get('start_time') or slot.get('time') or slot.get('start')
@@ -214,10 +241,26 @@ def get_aggregated_group_mask(db: Session, shared_group_id: Any, booking_date: d
                             f = safe_parse_time_float(t_str)
                             tk = f"{int(f):02d}:{int((f % 1) * 60):02d}"
                             if tk in aggregate_masks:
-                                aggregate_masks[tk] |= (mask or 0)
+                                apply_to_slot(tk)
                         except: pass
+        elif isinstance(t_slots, str) and "-" in t_slots:
+            # Handle legacy range format like "11:00:00-12:00:00"
+            try:
+                start_part = t_slots.split("-")[0].strip()
+                start_f = safe_parse_time_float(start_part)
+                end_part = t_slots.split("-")[1].strip()
+                end_f = safe_parse_time_float(end_part)
+                
+                # Assume 30-min increments for legacy ranges
+                curr = start_f
+                while curr < end_f:
+                    tk = f"{int(curr):02d}:{int((curr % 1) * 60):02d}"
+                    if tk in aggregate_masks:
+                        apply_to_slot(tk)
+                    curr += 0.5
+            except: pass
     
-    return aggregate_masks
+    return aggregate_masks, aggregate_players
 
 def ensure_slots_for_date(db: Session, court_id: Any, booking_date: date):
     import models
@@ -278,11 +321,21 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
     sport_slices = db.query(models.SportSlice).filter(models.SportSlice.court_id == court_id).all()
     slices_data = [{"id": str(s.id), "name": s.name, "mask": s.mask, "sport_id": str(s.sport_id), "sport_name": s.sport.name if s.sport else None, "price_per_hour": float(s.price_per_hour) if s.price_per_hour is not None else None} for s in sport_slices]
     
-    court_rules = court.price_conditions or []
-    if isinstance(court_rules, str):
-        try: court_rules = json.loads(court_rules)
-        except: court_rules = []
+    price_rules = court.price_conditions or []
+    if isinstance(price_rules, str):
+        try: price_rules = json.loads(price_rules)
+        except: price_rules = []
     
+    # NEW: Fetch Consolidated Occupied Mask (Source of Truth)
+    # This replaces the need for per-court caching in the 'slots' table
+    # or separate group aggregation calls.
+    group_aggregate_masks, group_aggregate_players = get_consolidated_occupied_mask(
+        db, 
+        booking_date, 
+        shared_group_id=court.shared_group_id,
+        court_id=court.id if not court.shared_group_id else None
+    )
+
     global_rules_query = db.query(models.GlobalPriceCondition).filter(models.GlobalPriceCondition.is_active == True).all()
     global_rules = []
     for gr in global_rules_query:
@@ -299,10 +352,6 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
     branch = db.query(models.Branch).filter(models.Branch.id == court.branch_id).first()
     v_start, v_end = get_venue_hours(branch.opening_hours if branch else None, booking_date)
     
-    # NEW: Aggregated Mask for Shared Logic
-    group_aggregate_masks = {}
-    if court.logic_type == 'shared' and court.shared_group_id:
-        group_aggregate_masks = get_aggregated_group_mask(db, court.shared_group_id, booking_date)
 
     # Generate 48 slots
     for i in range(0, 48):
@@ -317,14 +366,14 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
         
         # Priority: Court Date > Court Day > Global Date > Global Day
         # 1. Court Date
-        for pc in court_rules:
+        for pc in price_rules:
             if date_str in (pc.get('dates') or []):
                 if safe_parse_time_float(pc.get('slotFrom')) <= h_start < (safe_parse_time_float(pc.get('slotTo')) or 24.0):
                     matched_rule = pc; matched_rule['source'] = 'court_date'; break
         
         # 2. Court Day
         if not matched_rule:
-            for pc in court_rules:
+            for pc in price_rules:
                 if day_short in [d.lower()[:3] for d in (pc.get('days') or [])]:
                     if safe_parse_time_float(pc.get('slotFrom')) <= h_start < (safe_parse_time_float(pc.get('slotTo')) or 24.0):
                         matched_rule = pc; matched_rule['source'] = 'court_day'; break
@@ -371,12 +420,10 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
                 ehh = int(h_end)
                 emm = int((h_end % 1) * 60)
                 
-                # Fetch Bitmask State
+                # Fetch Consolidated Bitmask State
+                occupied = group_aggregate_masks.get(time_key, 0)
+                booked_capacity = group_aggregate_players.get(time_key, 0)
                 slot_row = slots_db_map.get(time_key)
-                if court.logic_type == 'shared' and court.shared_group_id:
-                    occupied = group_aggregate_masks.get(time_key, 0)
-                else:
-                    occupied = slot_row.occupied_mask if slot_row else 0
                 
                 total_zones = court.total_zones or 1
                 
@@ -405,11 +452,14 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
                 allowed_slots[time_key] = {
                     "time": time_key,
                     "display_time": f"{sh_disp:02d}:{mm:02d} {ampm_s} - {eh_disp:02d}:{m_e:02d} {ampm_e}",
-                    "price": float(matched_rule['price']) if matched_rule else float(court.price_per_hour),
+                    "price": (float(matched_rule['price']) if matched_rule else float(court.price_per_hour)) / 2.0,
                     "is_blocked": is_blocked,
                     "source": matched_rule.get('source', 'venue_hours') if matched_rule else 'venue_hours',
                     "slot_id": str(slot_row.id) if slot_row else None,
                     "occupied_mask": occupied,
+                    "booked_capacity": booked_capacity,
+                    "capacity_limit": court.capacity_limit or 1,
+                    "logic_type": court.logic_type or 'independent',
                     "total_zones": total_zones,
                     "slices": slices_status
                 }
@@ -424,3 +474,46 @@ def validate_booking_duration(slots: list):
     from fastapi import HTTPException
     if not slots or len(slots) < 2:
         raise HTTPException(status_code=400, detail="Minimum booking duration is 1 hour (2 slots).")
+
+def calculate_multi_slice_price(server_slot: dict, slice_mask: int, default_base_price: float) -> float:
+    """
+    Sum the prices of all slices that match the given mask.
+    If no slices are provided or mask is 0, use the base price.
+    """
+    if not slice_mask:
+        return default_base_price
+    
+    slices = server_slot.get('slices', [])
+    if not slices:
+        return default_base_price
+    
+    # 1. Look for an exact mask match (e.g., "Full Court")
+    exact_match = next((s for s in slices if s['mask'] == slice_mask), None)
+    if exact_match and exact_match.get('price_per_hour') is not None:
+        return float(exact_match['price_per_hour']) / 2.0
+        
+    # 2. Sum disjoint individual slices
+    total_price = 0.0
+    matched_any = False
+    
+    # We iterate through the slices to find the "smallest" units.
+    # Slices with single-bit masks are prioritized for summing to avoid double counting
+    # if a larger aggregate slice exists but doesn't exactly match the multi-select mask.
+    for s in slices:
+        s_mask = s.get('mask', 0)
+        # Check if this slice is a subset of the requested mask
+        if s_mask > 0 and (s_mask & slice_mask) == s_mask:
+             # Check if it's a "leaf" slice (single bit) - this is a heuristic
+             # for multi-court venues where users select Court 1, Court 2, etc.
+             # If the mask has only one bit set, it's definitely a leaf.
+             is_single_bit = (s_mask & (s_mask - 1)) == 0
+             if is_single_bit:
+                 if s.get('price_per_hour') is not None:
+                     total_price += float(s['price_per_hour']) / 2.0
+                     matched_any = True
+    
+    if matched_any:
+        return total_price
+        
+    # 3. Final Fallback
+    return default_base_price

@@ -856,6 +856,11 @@ class BookingCreate(BaseModel):
     razorpay_order_id: Optional[str] = None
     razorpay_payment_id: Optional[str] = None
     razorpay_signature: Optional[str] = None
+    
+    # Multi-court booking: number of courts in the combined payment
+    # Used by backend to scale price validation when one Razorpay order covers multiple courts
+    num_courts: Optional[int] = 1
+    court_name: Optional[str] = None
 
 class BookingResponse(BaseModel):
     """Response model for bookings"""
@@ -893,6 +898,7 @@ class BookingResponse(BaseModel):
     # Enriched venue fields (populated via JOIN in get_bookings)
     venue_name: Optional[str] = None
     venue_location: Optional[str] = None
+    court_name: Optional[str] = None
 
     class Config:
         from_attributes = True
