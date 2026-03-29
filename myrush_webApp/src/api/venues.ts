@@ -200,6 +200,7 @@ export const venuesApi = {
                 zones: Array<{
                     court_id: string;
                     court_name: string;
+                    court_game_type?: string;
                     logic_type: string;
                     total_zones: number;
                     slice_id: string;

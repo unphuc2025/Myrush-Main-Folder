@@ -24,6 +24,7 @@ interface Booking {
     created_at: string;
     time_slots?: any[];
     court_id?: string;
+    court_name?: string;
 }
 
 interface ReviewData {
@@ -237,7 +238,7 @@ export const MyBookings: React.FC = () => {
                                 </div>
 
                                 <div className="card-body-modern">
-                                    <h3 className="venue-name">{booking.venue_name}</h3>
+                                    <h3 className="venue-name">{booking.venue_name}{booking.court_name && booking.court_name !== booking.venue_name && <span className="block text-xs font-normal text-gray-500">{booking.court_name}</span>}</h3>
                                     <p className="location-text text-primary flex items-center gap-1"><FaMapMarkerAlt className="text-primary" /> {booking.venue_location}</p>
 
                                     <div className="booking-details">

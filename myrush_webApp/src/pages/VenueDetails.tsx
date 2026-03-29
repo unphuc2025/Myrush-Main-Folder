@@ -40,6 +40,8 @@ interface Slot {
     isAdminBlocked?: boolean; // Handle potential camelCase transformation
     slices?: SportSlice[];
     isBlocked?: boolean;
+    booked_capacity?: number;
+    capacity_limit?: number;
 }
 
 // --- Sub-Components ---
@@ -81,13 +83,14 @@ export const VenueDetailsPage: React.FC = () => {
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [isConfigDropdownOpen, setIsConfigDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const [numPlayers, setNumPlayers] = useState(1);
 
     // Game Type Selection State
     const [selectedSport, setSelectedSport] = useState<string>('');
     const [selectedSliceIds, setSelectedSliceIds] = useState<string[]>([]);
 
     // Dedicated zones state fetched from /venues/{id}/zones
-    type VenueZone = { court_id: string; court_name: string; logic_type: string; total_zones: number; slice_id: string; slice_name: string; mask: number; sport_id: string; sport_name?: string; price_per_hour?: number; };
+    type VenueZone = { court_id: string; court_name: string; court_game_type?: string; logic_type: string; total_zones: number; slice_id: string; slice_name: string; mask: number; sport_id: string; sport_name?: string; price_per_hour?: number; };
     const [venueZones, setVenueZones] = useState<VenueZone[]>([]);
 
     // Derived configuration options: prefer dedicated venueZones if available, fall back to slot aggregation
@@ -112,7 +115,6 @@ export const VenueDetailsPage: React.FC = () => {
 
             courtZonesMap.forEach((zones, courtId) => {
                 const court = zones[0];
-                const courtDisplayName = court.court_name.replace('Court', '').trim() || 'Court';
                 
                 // Add each matching zone as an option
                 zones.forEach(z => {
@@ -125,11 +127,15 @@ export const VenueDetailsPage: React.FC = () => {
                     });
                 });
 
-                // Only add "Full Court" if no slice already covers all zones (mask check)
+                // Only add "Full Court" if no slice already covers all zones (mask check) AND the parent court matches the sport
                 const fullMask = (1 << (court.total_zones || 1)) - 1;
                 const hasFullSlice = zones.some(z => z.mask === fullMask);
                 
-                if (!hasFullSlice) {
+                const activeSport = (selectedSport || '').toLowerCase();
+                const parentSport = (court.court_game_type || '').toLowerCase();
+                const parentMatch = !activeSport || parentSport.includes(activeSport) || activeSport.includes(parentSport);
+
+                if (!hasFullSlice && parentMatch) {
                     finalConfigs.push({
                         courtId,
                         totalZones: court.total_zones || 1,
@@ -141,11 +147,11 @@ export const VenueDetailsPage: React.FC = () => {
             });
         } else {
             // Fallback: aggregate from slot data
-            const courtsMap = new Map<string, { totalZones: number; logicType: string; slices: Map<string, SportSlice>; basePrice: number; name: string }>();
+            const courtsMap = new Map<string, { totalZones: number; logicType: string; gameType: string; slices: Map<string, SportSlice>; basePrice: number; name: string }>();
             availableSlots.forEach(slot => {
                 if (!slot.court_id) return;
                 if (!courtsMap.has(slot.court_id)) {
-                    courtsMap.set(slot.court_id, { totalZones: slot.total_zones || 1, logicType: slot.logic_type || (slot as any).logicType || 'independent', slices: new Map(), basePrice: slot.price, name: slot.court_name || 'Court' });
+                    courtsMap.set(slot.court_id, { totalZones: slot.total_zones || 1, logicType: slot.logic_type || (slot as any).logicType || 'independent', gameType: (slot as any).game_type || '', slices: new Map(), basePrice: slot.price, name: slot.court_name || 'Court' });
                 }
                 const cInfo = courtsMap.get(slot.court_id)!;
                 if (slot.slices) {
@@ -159,7 +165,6 @@ export const VenueDetailsPage: React.FC = () => {
                 }
             });
             courtsMap.forEach((cInfo, courtId) => {
-                const dn = cInfo.name.replace('Court', '').trim() || 'Court';
                 const fullMask = (1 << cInfo.totalZones) - 1;
                 let hasFullSlice = false;
 
@@ -170,7 +175,11 @@ export const VenueDetailsPage: React.FC = () => {
                     });
                 }
                 
-                if (!hasFullSlice) {
+                const activeSport = (selectedSport || '').toLowerCase();
+                const parentSport = (cInfo.gameType || '').toLowerCase();
+                const parentMatch = !activeSport || parentSport.includes(activeSport) || activeSport.includes(parentSport);
+                
+                if (!hasFullSlice && parentMatch) {
                     finalConfigs.push({ courtId, totalZones: cInfo.totalZones, slice: 'full', label: `Full Court`, minPrice: cInfo.basePrice });
                 }
             });
@@ -204,6 +213,52 @@ export const VenueDetailsPage: React.FC = () => {
 
     // Derived slots based on selected config
     const filteredSlots = useMemo(() => {
+        const isCapacity = availableSlots.some(s => s.logic_type === 'capacity');
+        
+        if (isCapacity) {
+            // For capacity courts, we don't need a specific configuration selected.
+            // However, a venue might have multiple capacity-based courts (e.g. Pool 1, Pool 2).
+            // We group them by display_time so we have unique slots in the UI and aggregate their capacities.
+            const grouped = new Map<string, any>();
+            
+            availableSlots.forEach(pSlot => {
+                if (!grouped.has(pSlot.display_time)) {
+                    grouped.set(pSlot.display_time, {
+                        ...pSlot,
+                        booked_capacity: pSlot.booked_capacity || 0,
+                        capacity_limit: pSlot.capacity_limit || 1,
+                        is_admin_blocked: pSlot.is_admin_blocked || pSlot.isAdminBlocked || false,
+                        available: pSlot.available,
+                        court_ids: [pSlot.court_id]
+                    });
+                } else {
+                    const existing = grouped.get(pSlot.display_time);
+                    existing.booked_capacity += (pSlot.booked_capacity || 0);
+                    existing.capacity_limit += (pSlot.capacity_limit || 1);
+                    existing.court_ids.push(pSlot.court_id);
+                    // If at least one court is available, mark aggregated slot as available
+                    if (pSlot.available) existing.available = true;
+                }
+            });
+
+            return Array.from(grouped.values()).map(pSlot => {
+                let isBlocked = pSlot.isBlocked || pSlot.available === false || pSlot.is_admin_blocked === true;
+                let slicePrice = pSlot.price || 0;
+                
+                const remaining = pSlot.capacity_limit - pSlot.booked_capacity;
+                if (remaining < numPlayers) {
+                    isBlocked = true;
+                }
+                slicePrice = slicePrice * numPlayers;
+                
+                return {
+                    ...pSlot,
+                    isBlocked,
+                    price: slicePrice
+                };
+            });
+        }
+    
         if (selectedSliceIds.length === 0) return []; 
         
         // Group selected configurations by court to handle masks correctly
@@ -247,7 +302,7 @@ export const VenueDetailsPage: React.FC = () => {
                 
                 if (blocked) isBlocked = true;
                 
-                const slicePrice = (config.slice !== 'full' && sl.price_per_hour && sl.price_per_hour > 0) 
+                let slicePrice = (config.slice !== 'full' && sl.price_per_hour && sl.price_per_hour > 0) 
                     ? (sl.price_per_hour / 2.0)
                     : (slot.price || 0);
                 
@@ -260,7 +315,7 @@ export const VenueDetailsPage: React.FC = () => {
                 price: totalPrice
             };
         });
-    }, [availableSlots, selectedSliceIds, availableConfigurations]);
+    }, [availableSlots, selectedSliceIds, availableConfigurations, numPlayers]);
 
     // Talking Lands virtual tour URLs — keyed by venue (branch) ID
     const VIRTUAL_TOUR_URLS: Record<string, string> = {
@@ -272,8 +327,12 @@ export const VenueDetailsPage: React.FC = () => {
     const venueVirtualTourUrl = id ? VIRTUAL_TOUR_URLS[id] : undefined;
 
     // Booking Summary State
-    const [numPlayers] = useState(1);
     const [teamName, setTeamName] = useState('');
+    
+    // Determine if the selected sport is capacity-based
+    const isCapacityBased = useMemo(() => {
+        return availableSlots.some(s => s.logic_type === 'capacity');
+    }, [availableSlots]);
 
 
 
@@ -417,6 +476,7 @@ export const VenueDetailsPage: React.FC = () => {
             numPlayers: numPlayers,
             selectedConfigs: selectedConfigs.map(c => ({
                 courtId: c.courtId,
+                label: c.label,
                 sliceId: c.slice === 'full' ? `full-${c.courtId}` : (c.slice as SportSlice).id,
                 sliceMask: c.slice === 'full' ? ((1 << c.totalZones) - 1) : (c.slice as SportSlice).mask
             }))
@@ -760,6 +820,8 @@ export const VenueDetailsPage: React.FC = () => {
                                         </div>
                                     </div>
                                 )}
+                                
+                                {!isCapacityBased && (
                                     <div className="mb-8">
                                         <div className="flex items-center gap-2 mb-3">
                                             <div className="w-0.5 h-4 bg-primary rounded-full"></div>
@@ -781,10 +843,10 @@ export const VenueDetailsPage: React.FC = () => {
                                                         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Court Setup</div>
                                                         <div className="text-sm font-bold text-gray-900 leading-tight">
                                                             {selectedConfigs.length === 0 
-                                                                ? '--Select Court--' 
+                                                                ? <span>--Select Court--</span> 
                                                                 : selectedConfigs.length === 1 
-                                                                    ? selectedConfigs[0].label 
-                                                                    : `${selectedConfigs.length} Selected`}
+                                                                    ? <span>{selectedConfigs[0].label}</span> 
+                                                                    : <span>{selectedConfigs.length} Selected</span>}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -899,6 +961,32 @@ export const VenueDetailsPage: React.FC = () => {
                                             </AnimatePresence>
                                         </div>
                                     </div>
+                                )}
+
+                                {isCapacityBased && (
+                                    <div className="mb-8">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-0.5 h-4 bg-primary rounded-full"></div>
+                                            <span className="text-base font-bold text-gray-800 leading-none">Number of Members</span>
+                                        </div>
+                                        <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-xl border border-gray-100 w-fit">
+                                            <button 
+                                                onClick={() => setNumPlayers(Math.max(1, numPlayers - 1))}
+                                                className={`w-10 h-10 rounded-lg bg-white shadow-sm border border-gray-200 flex items-center justify-center text-gray-600 transition-colors ${numPlayers <= 1 ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary hover:text-primary'}`}
+                                                disabled={numPlayers <= 1}
+                                            >
+                                                <span className="text-xl font-medium leading-none mb-1">-</span>
+                                            </button>
+                                            <span className="text-xl font-bold text-gray-900 w-8 text-center">{numPlayers}</span>
+                                            <button 
+                                                onClick={() => setNumPlayers(numPlayers + 1)}
+                                                className="w-10 h-10 rounded-lg bg-white shadow-sm border border-gray-200 flex items-center justify-center text-gray-600 hover:border-primary hover:text-primary transition-colors"
+                                            >
+                                                <span className="text-xl font-medium leading-none mb-0.5">+</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
 
 
@@ -979,15 +1067,15 @@ export const VenueDetailsPage: React.FC = () => {
                                     </div>
                                     {loadingSlots ? (
                                         <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
-                                    ) : selectedSliceIds.length === 0 ? (
+                                    ) : (!isCapacityBased && selectedSliceIds.length === 0) ? (
                                         <div className="text-center py-10 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100 text-gray-400 text-xs font-bold uppercase tracking-widest">
                                             <FaBorderAll className="mx-auto mb-3 text-2xl opacity-10" />
-                                            Please select court first
+                                            <span>Please select court first</span>
                                         </div>
                                     ) : filteredSlots.length === 0 ? (
                                         <div className="text-center py-10 text-gray-400 text-xs font-bold uppercase tracking-widest">
                                             <FaClock className="mx-auto mb-3 text-2xl opacity-10" />
-                                            No slots available
+                                            <span>No slots available</span>
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-2 no-scrollbar">
@@ -1018,7 +1106,7 @@ export const VenueDetailsPage: React.FC = () => {
                                                         <span className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${
                                                             isBlocked ? 'text-gray-400' : isSel ? 'text-white/80' : 'text-gray-400'
                                                         }`}>
-                                                            {isBlocked ? 'Blocked' : 'Available'}
+                                                            {isBlocked ? <span>Blocked</span> : <span>Available</span>}
                                                         </span>
                                                         <span className={`text-xs font-bold leading-none ${isSel ? 'text-white' : isBlocked ? 'text-gray-300 line-through' : 'text-gray-800'}`}>
                                                             {slot.display_time}

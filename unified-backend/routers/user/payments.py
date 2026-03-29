@@ -242,6 +242,79 @@ def create_payment_order(
         print(f"Razorpay Error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create payment order")
 
+
+@router.post("/create-multi-order")
+def create_multi_court_payment_order(
+    payload: dict,
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db)
+):
+    """
+    Create a single Razorpay order covering multiple court configs.
+    Accepts: { configs: [{courtId, sliceMask}], bookingDate, timeSlots, numberOfPlayers, couponCode }
+    """
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        raise HTTPException(status_code=500, detail="Payment gateway not configured")
+
+    configs = payload.get("configs", [])
+    booking_date_str = payload.get("bookingDate")
+    time_slots = payload.get("timeSlots", [])
+    number_of_players = payload.get("numberOfPlayers", 1)
+    coupon_code = payload.get("couponCode")
+
+    if not configs or not booking_date_str:
+        raise HTTPException(status_code=400, detail="Missing configs or bookingDate")
+
+    from datetime import date as dt_date
+    booking_date = dt_date.fromisoformat(booking_date_str)
+
+    # Calculate combined price across all courts
+    total_price = 0.0
+    for cfg in configs:
+        court_id = cfg.get("courtId")
+        slice_mask = cfg.get("sliceMask", 0)
+        if not court_id:
+            continue
+        verify_slot_availability(db, court_id, booking_date, time_slots, slice_mask)
+        price = calculate_authoritative_price(db, court_id, booking_date, time_slots, number_of_players, slice_mask)
+        total_price += price
+        print(f"[MULTI-ORDER] Court {court_id}: price={price}")
+
+    print(f"[MULTI-ORDER] Combined total price: {total_price}")
+
+    PLATFORM_FEE = 0.0
+    discount_amount = 0.0
+    if coupon_code:
+        discount_amount = validate_authoritative_coupon(db, coupon_code, total_price, str(current_user.id))
+
+    final_amount = max(0.0, total_price + PLATFORM_FEE - discount_amount)
+    amount_in_paise = int(final_amount * 100)
+
+    try:
+        order_data = {
+            "amount": amount_in_paise,
+            "currency": "INR",
+            "receipt": f"rcptm_{int(datetime.now().timestamp())}",
+            "notes": {
+                "user_id": str(current_user.id),
+                "num_courts": len(configs),
+                "date": str(booking_date)
+            }
+        }
+        order = client.order.create(data=order_data)
+        return {
+            "id": order["id"],
+            "amount": order["amount"],
+            "currency": order["currency"],
+            "key_id": RAZORPAY_KEY_ID,
+            "server_calculated_amount": final_amount,
+            "breakdown": {"base": total_price, "fee": PLATFORM_FEE, "discount": discount_amount}
+        }
+    except Exception as e:
+        print(f"Razorpay Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create payment order")
+
+
 @router.post("/verify")
 def verify_payment(
     payment_data: dict,

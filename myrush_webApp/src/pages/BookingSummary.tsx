@@ -31,6 +31,7 @@ interface LocationState {
     sliceMask?: number;
     selectedConfigs?: {
         courtId: string;
+        label: string;
         sliceId: string;
         sliceMask: number;
     }[];
@@ -132,10 +133,6 @@ export const BookingSummary: React.FC = () => {
             const sortedSlots = [...state.selectedSlots].sort((a, b) => a.time.localeCompare(b.time));
             const startTime = sortedSlots[0].time;
             const durationMinutes = sortedSlots.length * 30;
-            const slotIds = state.selectedSlots.map(s => s.slot_id).filter(Boolean) as string[];
-
-            const calculatedSliceMask = state.selectedConfigs?.reduce((acc, c) => acc | c.sliceMask, 0) || state.sliceMask || 0;
-            const targetCourtId = state.selectedConfigs?.[0]?.courtId || state.courtId || state.selectedSlots[0]?.court_id || state.venueId;
 
             if (durationMinutes < 60) {
                 showAlert('Minimum booking duration is 1 hour (2 slots).', 'warning');
@@ -143,20 +140,39 @@ export const BookingSummary: React.FC = () => {
                 return;
             }
 
-            const orderRes = await bookingsApi.createPaymentOrder({
-                courtId: targetCourtId,
-                bookingDate: state.date,
-                startTime: startTime,
-                durationMinutes: durationMinutes,
-                timeSlots: state.selectedSlots,
-                slotIds: slotIds,
-                sliceMask: calculatedSliceMask,
-                numberOfPlayers: numPlayers,
-                couponCode: couponCode
-            });
+            const configs = state.selectedConfigs && state.selectedConfigs.length > 0
+                ? state.selectedConfigs
+                : [{ courtId: state.courtId || state.selectedSlots[0]?.court_id || state.venueId, label: state.venueName || 'Standard Arena', sliceId: 'full', sliceMask: state.sliceMask || 0 }];
+
+            const numCourts = configs.length;
+            const slotIds = state.selectedSlots.map(s => s.slot_id).filter(Boolean) as string[];
+
+            // --- Create one Razorpay order for the TOTAL combined amount ---
+            let orderRes;
+            if (numCourts > 1) {
+                orderRes = await bookingsApi.createMultiCourtOrder({
+                    configs: configs.map(c => ({ courtId: c.courtId, sliceMask: c.sliceMask })),
+                    bookingDate: state.date,
+                    timeSlots: sortedSlots,
+                    numberOfPlayers: numPlayers,
+                    couponCode: couponCode || undefined
+                });
+            } else {
+                orderRes = await bookingsApi.createPaymentOrder({
+                    courtId: configs[0].courtId,
+                    bookingDate: state.date,
+                    startTime: startTime,
+                    durationMinutes: durationMinutes,
+                    timeSlots: sortedSlots,
+                    slotIds: slotIds,
+                    sliceMask: configs[0].sliceMask,
+                    numberOfPlayers: numPlayers,
+                    couponCode: couponCode || undefined
+                });
+            }
 
             if (!orderRes.success || !orderRes.data) {
-                showAlert('Failed to initiate payment: ' + (orderRes.data?.detail || 'Unknown error'), 'error');
+                showAlert('Failed to initiate payment: ' + ((orderRes as any).error || 'Unknown error'), 'error');
                 setSubmitting(false);
                 return;
             }
@@ -175,35 +191,62 @@ export const BookingSummary: React.FC = () => {
                 order_id: order_id,
                 handler: async function (response: any) {
                     try {
-                        const payload = {
-                            courtId: targetCourtId,
-                            bookingDate: state.date,
-                            startTime: startTime,
-                            durationMinutes: durationMinutes,
-                            numberOfPlayers: numPlayers,
-                            pricePerHour: sortedSlots[0].price,
-                            teamName: teamName,
-                            timeSlots: state.selectedSlots,
-                            slotIds: slotIds,
-                            sliceMask: calculatedSliceMask,
-                            totalAmount: totalAmount,
-                            originalAmount: slotsCost + platformFee,
-                            discountAmount: discount,
-                            couponCode: appliedCouponCode || undefined,
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_signature: response.razorpay_signature
-                        };
+                        // Per-court splits
+                        const perCourtOriginalAmount = (slotsCost + platformFee) / numCourts;
+                        const perCourtDiscount = discount / numCourts;
+                        const perCourtTotal = totalAmount / numCourts;
 
-                        const res = await bookingsApi.createBooking(payload);
+                        const results = [];
+                        for (let i = 0; i < configs.length; i++) {
+                            const config = configs[i];
+                            const isFirst = i === 0;
+                            // Build per-court slots with proportional price
+                            const slotsForCourt = sortedSlots.map(s => ({
+                                ...s,
+                                price: s.price / numCourts
+                            }));
 
-                        if (res.success) {
+                            // The first booking carries the FULL Razorpay payment info.
+                            // The backend fraud check validates order_amount == original_amount - discount.
+                            // For multi-court, the order was created for the combined total.
+                            // So first booking sends the full combined amounts; rest have no Razorpay fields.
+                            // First booking uses full combined amount to match Razorpay order.
+                            // Subsequent bookings use their individual amounts and numCourts=1
+                            // to avoid double-scaling in the backend price validator.
+                            const payload = {
+                                courtId: config.courtId,
+                                bookingDate: state.date,
+                                startTime: slotsForCourt[0]?.time || startTime,
+                                durationMinutes: slotsForCourt.length * 30 || durationMinutes,
+                                numberOfPlayers: numPlayers,
+                                pricePerHour: slotsForCourt[0]?.price || sortedSlots[0].price,
+                                teamName: teamName,
+                                timeSlots: slotsForCourt,
+                                slotIds: slotIds,
+                                sliceMask: config.sliceMask,
+                                courtName: config.label,
+                                totalAmount: isFirst ? totalAmount : perCourtTotal,
+                                originalAmount: isFirst ? (slotsCost + platformFee) : perCourtOriginalAmount,
+                                discountAmount: isFirst ? discount : perCourtDiscount,
+                                couponCode: appliedCouponCode || undefined,
+                                razorpay_payment_id: isFirst ? response.razorpay_payment_id : undefined,
+                                razorpay_order_id: isFirst ? response.razorpay_order_id : undefined,
+                                razorpay_signature: isFirst ? response.razorpay_signature : undefined,
+                                numCourts: isFirst ? numCourts : 1
+                            };
+
+                            const res = await bookingsApi.createBooking(payload);
+                            results.push(res);
+                        }
+
+                        const allOk = results.every(r => r.success);
+                        if (allOk) {
                             showAlert('Booking Confirmed! 🎉', 'success');
-                            // Navigate to bookings — VenueDetails will auto-refetch slots
-                            // on window focus when user returns, hiding the booked slot.
                             navigate('/bookings', { state: { bookingSuccess: true } });
                         } else {
-                            showAlert('Payment successful but booking creation failed. ' + (res.data?.detail || ''), 'error');
+                            const failedIdx = results.findIndex(r => !r.success);
+                            const errDetail = results[failedIdx]?.data?.detail || (results[failedIdx] as any)?.error || '';
+                            showAlert('Payment successful but booking creation failed. ' + errDetail, 'error');
                         }
                     } catch (err: any) {
                         showAlert('Error confirming booking: ' + err.message, 'error');
@@ -282,9 +325,18 @@ export const BookingSummary: React.FC = () => {
                                             </div>
                                         </div>
                                         <div className="space-y-1">
-                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">COURT</div>
+                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">COURT{state.selectedConfigs && state.selectedConfigs.length > 1 ? 'S' : ''}</div>
                                             <div className="text-sm font-semibold text-gray-900">
-                                                {state.selectedSlots[0]?.court_name || 'Standard Arena'}
+                                                {state.selectedConfigs && state.selectedConfigs.length > 0
+                                                    ? (() => {
+                                                        // Build a display name for each unique court from the slots
+                                                        const courtNames = state.selectedConfigs.map(c => {
+                                                            const slot = state.selectedSlots.find((s: any) => (s as any).court_id === c.courtId);
+                                                            return (slot as any)?.court_name || c.courtId.slice(-6);
+                                                        });
+                                                        return courtNames.join(', ');
+                                                    })()
+                                                    : state.selectedSlots[0]?.court_name || 'Standard Arena'}
                                             </div>
                                         </div>
                                         <div className="space-y-1">
@@ -309,7 +361,8 @@ export const BookingSummary: React.FC = () => {
 
                             <div className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {state.selectedSlots.map((slot, idx) => (
+                                    {/* Deduplicate slots by display_time for multi-court view */}
+                                    {Array.from(new Map(state.selectedSlots.map(slot => [slot.display_time, slot])).values()).map((slot, idx) => (
                                         <div key={idx} className="flex justify-between items-center bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-gray-200">
@@ -386,7 +439,7 @@ export const BookingSummary: React.FC = () => {
                                             onClick={handleApplyCoupon}
                                             className="px-6 h-11 bg-black text-white rounded-xl text-xs font-semibold uppercase tracking-widest hover:bg-primary transition-all active:scale-95 shadow-lg shadow-black/10"
                                         >
-                                            {discount > 0 ? 'REPLACE' : 'APPLY'}
+                                            {discount > 0 ? <span>REPLACE</span> : <span>APPLY</span>}
                                         </button>
                                     </div>
 
@@ -458,7 +511,7 @@ export const BookingSummary: React.FC = () => {
                                 onClick={handleConfirm}
                                 disabled={submitting}
                             >
-                                {submitting ? 'GENERATING ORDER...' : `CONFIRM & PAY ₹${totalAmount}`}
+                                {submitting ? <span>GENERATING ORDER...</span> : <span>CONFIRM &amp; PAY ₹{totalAmount}</span>}
                             </Button>
 
                         </div>

@@ -184,7 +184,7 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
     # Join with admin_courts to get total_zones
     from sqlalchemy import text
     sql = text("""
-        SELECT b.slice_mask, b.time_slots, c.total_zones, b.id
+        SELECT b.slice_mask, b.time_slots, c.total_zones, b.id, c.logic_type, c.capacity_limit, b.number_of_players
         FROM booking b
         LEFT JOIN admin_courts c ON b.court_id = c.id
         WHERE b.court_id = ANY(CAST(:c_ids AS uuid[]))
@@ -196,17 +196,22 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
 
     # 3. Build a map of 48 x 30-min slots
     aggregate_masks = {}
+    aggregate_players = {}
     for i in range(48):
         h = i * 0.5
         time_key = f"{int(h):02d}:{int((h % 1) * 60):02d}"
         aggregate_masks[time_key] = 0
+        aggregate_players[time_key] = 0
 
     # 4. Populate with booking masks
-    for b_slice_mask, b_time_slots, c_total_zones, b_id in group_bookings:
+    for b_slice_mask, b_time_slots, c_total_zones, b_id, c_logic_type, c_capacity_limit, b_number_of_players in group_bookings:
         # Determine the mask for this booking
         mask = b_slice_mask
         if mask is None or mask == 0:
             mask = (1 << (c_total_zones or 1)) - 1
+            
+        n_players = b_number_of_players or 1
+        is_capacity = (c_logic_type == 'capacity')
         
         t_slots = b_time_slots
         if isinstance(t_slots, str):
@@ -217,6 +222,16 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
                     t_slots = parsed
             except: pass
         
+        def apply_to_slot(tk):
+            if is_capacity:
+                aggregate_players[tk] += n_players
+                # Fallback to mask if limit reached
+                limit = c_capacity_limit or 1
+                if aggregate_players[tk] >= limit:
+                    aggregate_masks[tk] |= (mask or 0)
+            else:
+                aggregate_masks[tk] |= (mask or 0)
+
         if isinstance(t_slots, list):
             for slot in t_slots:
                 if isinstance(slot, dict):
@@ -226,7 +241,7 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
                             f = safe_parse_time_float(t_str)
                             tk = f"{int(f):02d}:{int((f % 1) * 60):02d}"
                             if tk in aggregate_masks:
-                                aggregate_masks[tk] |= (mask or 0)
+                                apply_to_slot(tk)
                         except: pass
         elif isinstance(t_slots, str) and "-" in t_slots:
             # Handle legacy range format like "11:00:00-12:00:00"
@@ -241,11 +256,11 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
                 while curr < end_f:
                     tk = f"{int(curr):02d}:{int((curr % 1) * 60):02d}"
                     if tk in aggregate_masks:
-                        aggregate_masks[tk] |= (mask or 0)
+                        apply_to_slot(tk)
                     curr += 0.5
             except: pass
     
-    return aggregate_masks
+    return aggregate_masks, aggregate_players
 
 def ensure_slots_for_date(db: Session, court_id: Any, booking_date: date):
     import models
@@ -314,7 +329,7 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
     # NEW: Fetch Consolidated Occupied Mask (Source of Truth)
     # This replaces the need for per-court caching in the 'slots' table
     # or separate group aggregation calls.
-    group_aggregate_masks = get_consolidated_occupied_mask(
+    group_aggregate_masks, group_aggregate_players = get_consolidated_occupied_mask(
         db, 
         booking_date, 
         shared_group_id=court.shared_group_id,
@@ -407,6 +422,7 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
                 
                 # Fetch Consolidated Bitmask State
                 occupied = group_aggregate_masks.get(time_key, 0)
+                booked_capacity = group_aggregate_players.get(time_key, 0)
                 slot_row = slots_db_map.get(time_key)
                 
                 total_zones = court.total_zones or 1
@@ -441,6 +457,9 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
                     "source": matched_rule.get('source', 'venue_hours') if matched_rule else 'venue_hours',
                     "slot_id": str(slot_row.id) if slot_row else None,
                     "occupied_mask": occupied,
+                    "booked_capacity": booked_capacity,
+                    "capacity_limit": court.capacity_limit or 1,
+                    "logic_type": court.logic_type or 'independent',
                     "total_zones": total_zones,
                     "slices": slices_status
                 }

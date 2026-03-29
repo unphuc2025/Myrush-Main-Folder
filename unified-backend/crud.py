@@ -228,64 +228,67 @@ def validate_booking_rules(db: Session, court_id: str, booking_date: date, start
         raise HTTPException(status_code=400, detail="Minimum booking duration is 1 hour.")
 
     # --- Rule 3: User Overlap Check ---
-    from utils.booking_utils import safe_parse_time_float
-    import json
-    
-    user_bookings = db.query(Booking).filter(
-        Booking.user_id == user_id,
-        Booking.booking_date == booking_date,
-        Booking.status != 'cancelled'
-    ).all()
-    
-    if user_bookings:
-        # Fetch shared_group_ids for all existing booking courts to check for actual conflicts
-        existing_court_ids = list(set([b.court_id for b in user_bookings]))
-        existing_courts = db.query(Court.id, Court.shared_group_id).filter(Court.id.in_(existing_court_ids)).all()
-        court_shared_map = {str(c.id): c.shared_group_id for c in existing_courts}
-        
-        for b in user_bookings:
-            # Robustly extract start/end time
-            if b.start_time:
-                b_start = b.start_time.hour + (b.start_time.minute / 60.0)
-                b_end = (b.end_time.hour + (b.end_time.minute / 60.0)) if b.end_time else (b_start + 0.5)
-            else:
-                # Fallback to time_slots JSON
-                t_slots = b.time_slots
-                if isinstance(t_slots, str):
-                    try: t_slots = json.loads(t_slots)
-                    except: t_slots = []
-                
-                if t_slots and isinstance(t_slots, list):
-                    s_str = t_slots[0].get('start_time') or t_slots[0].get('time')
-                    e_str = t_slots[-1].get('end_time')
-                    b_start = safe_parse_time_float(s_str)
-                    b_end = safe_parse_time_float(e_str) if e_str else (b_start + 0.5)
-                else:
-                    continue
+    # Skip user overlap check for capacity courts, as users can book multiple tickets
+    is_capacity = court.logic_type == 'capacity'
 
-            if b_end == 0 or b_end == 24.0: b_end = 24.0
-            if max(start_f, b_start) < min(end_f, b_end):
-                # We have a time overlap. Now check if it's a structural conflict.
-                # 1. Is it the same court?
-                is_same_court = (str(b.court_id) == str(court_id))
-                
-                # 2. Is it a linked shared court?
-                existing_sid = court_shared_map.get(str(b.court_id))
-                current_sid = court.shared_group_id
-                is_same_group = (existing_sid and current_sid and str(existing_sid) == str(current_sid))
-                
-                if is_same_court or is_same_group:
-                    raise HTTPException(status_code=400, detail="You already have another booking for this or a linked court during this time.")
+    if not is_capacity:
+        from utils.booking_utils import safe_parse_time_float
+        import json
+        
+        user_bookings = db.query(Booking).filter(
+            Booking.user_id == user_id,
+            Booking.booking_date == booking_date,
+            Booking.status != 'cancelled'
+        ).all()
+        
+        if user_bookings:
+            for b in user_bookings:
+                # Robustly extract start/end time
+                if b.start_time:
+                    b_start = b.start_time.hour + (b.start_time.minute / 60.0)
+                    b_end = (b.end_time.hour + (b.end_time.minute / 60.0)) if b.end_time else (b_start + 0.5)
+                else:
+                    # Fallback to time_slots JSON
+                    t_slots = b.time_slots
+                    if isinstance(t_slots, str):
+                        try: t_slots = json.loads(t_slots)
+                        except: t_slots = []
+                    
+                    if t_slots and isinstance(t_slots, list):
+                        s_str = t_slots[0].get('start_time') or t_slots[0].get('time')
+                        e_str = t_slots[-1].get('end_time')
+                        b_start = safe_parse_time_float(s_str)
+                        b_end = safe_parse_time_float(e_str) if e_str else (b_start + 0.5)
+                    else:
+                        continue
+
+                if b_end == 0 or b_end == 24.0: b_end = 24.0
+                if max(start_f, b_start) < min(end_f, b_end):
+                    # We have a time overlap. Now check if it's a structural conflict.
+                    # 1. Is it the exact same section of the court?
+                    is_same_court = False
+                    if str(b.court_id) == str(court_id):
+                        existing_mask = b.slice_mask or ((1 << (court.total_zones or 1)) - 1)
+                        new_mask = slice_mask or ((1 << (court.total_zones or 1)) - 1)
+                        if (existing_mask & new_mask) != 0:
+                            is_same_court = True
+                    
+                    if is_same_court:
+                        raise HTTPException(status_code=400, detail="You already have another booking for this or a contiguous part of this court during this time.")
 
     print("[RULES CHECK] Basic validation passed. Collisions checked atomically.")
 
 
-def validate_court_configuration(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]], number_of_players: int, expected_total_amount: float, slice_mask: Optional[int] = None):
+def validate_court_configuration(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict[str, Any]], number_of_players: int, expected_total_amount: float, slice_mask: Optional[int] = None, num_courts: int = 1):
     """
     Ensures the requested slots exist in the court's configuration and the price is correct.
     """
     from fastapi import HTTPException
     from utils.booking_utils import generate_allowed_slots_map, safe_parse_time_float
+    from models import Court
+
+    court = db.query(Court).filter(Court.id == court_id).first()
+    is_capacity = court.logic_type == 'capacity' if court else False
 
     # 1. Generate Authoritative Slots Map
     allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
@@ -318,9 +321,12 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: date,
 
         provided_price = float(req.get('price', 0))
         
+        # For capacity sports, the frontend multiplies the slot price by numPlayers
+        expected_slot_provided_price = (expected_price * number_of_players) if is_capacity else expected_price
+
         # Allow small rounding difference
-        if abs(expected_price - provided_price) > 5.0:
-             print(f"[CONFIG CHECK FAIL] Price mismatch at {r_start}: Expected {expected_price}, Got {provided_price}")
+        if abs(expected_slot_provided_price - provided_price) > 5.0:
+             print(f"[CONFIG CHECK FAIL] Price mismatch at {r_start}: Expected base {expected_price} (total {expected_slot_provided_price} for {number_of_players} players), Got {provided_price}")
              raise HTTPException(status_code=400, detail=f"Price mismatch for slot {r_start}")
              
         calculated_total_base += expected_price
@@ -328,20 +334,21 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: date,
     # 3. Validate Total Amount
     # For 'capacity' type (pools), total = sum(prices) * number_of_players
     # For others, total = sum(prices)
-    court = db.query(models.Court).filter(models.Court.id == court_id).first()
-    is_capacity = court.logic_type == 'capacity' if court else False
-
     if is_capacity:
         calculated_final_total = float(calculated_total_base * number_of_players)
     else:
         calculated_final_total = float(calculated_total_base)
 
-    print(f"[CONFIG CHECK] Final Calculation ({court.logic_type if court else 'unknown'}): {calculated_final_total}")
-    print(f"[CONFIG CHECK] Comparison: Server={calculated_final_total} vs Client={expected_total_amount}")
+    # For multi-court bookings, the client sends the COMBINED total in the first booking
+    # (to match the Razorpay order). Divide by num_courts to get this court's share.
+    effective_expected_amount = float(expected_total_amount) / max(1, num_courts)
 
-    if abs(calculated_final_total - float(expected_total_amount)) > 10.0:
-         print(f"[CONFIG CHECK FAIL] Total amount mismatch: {calculated_final_total} != {expected_total_amount}")
-         raise HTTPException(status_code=400, detail=f"Total booking amount mismatch. Server={calculated_final_total}, Client={expected_total_amount}")
+    print(f"[CONFIG CHECK] Final Calculation ({court.logic_type if court else 'unknown'}): {calculated_final_total}")
+    print(f"[CONFIG CHECK] Comparison: Server={calculated_final_total} vs Client={effective_expected_amount} (total={expected_total_amount}, num_courts={num_courts})")
+
+    if abs(calculated_final_total - effective_expected_amount) > 10.0:
+         print(f"[CONFIG CHECK FAIL] Total amount mismatch: {calculated_final_total} != {effective_expected_amount}")
+         raise HTTPException(status_code=400, detail=f"Total booking amount mismatch. Server={calculated_final_total}, Client={effective_expected_amount}")
 
     print("[CONFIG CHECK] Success.")
 
@@ -397,6 +404,7 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
                     "start_time": s_time.strftime("%H:%M"),
                     "end_time": e_time.strftime("%H:%M"),
                     "price": price,
+                    "court_name": booking.court_name,
                     "display_time": slot.get('display_time') or f"{s_time.strftime('%I:%M %p')} - {e_time.strftime('%I:%M %p')}"
                 })
             
@@ -452,21 +460,17 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         total_amount = float(original_amount) - float(discount_amount)
 
         # 3. Verify Court & User
-        from sqlalchemy import text
-        court_check = db.execute(
-            text("SELECT id FROM admin_courts WHERE id = :court_id"),
-            {"court_id": str(booking.court_id)}
-        ).fetchone()
+        court_check = db.query(models.Court).filter(models.Court.id == str(booking.court_id)).first()
         
         if not court_check:
             raise ValueError(f"Court {booking.court_id} not found in admin_courts table")
             
         from uuid import UUID
         c_uuid = UUID(str(booking.court_id))
+        is_capacity = court_check.logic_type == 'capacity'
 
-        # --- ATOMIC LOCKING & VALIDATION (BITMASKING) ---
-        # Acquire row-level lock on the court to serialize validation and creation.
-        # This prevents two concurrent requests from seeing the same slot as available.
+        # --- ATOMIC LOCKING & VALIDATION ---
+        # Acquire row-level lock on the court
         print(f"[CRUD BOOKING] Acquiring slots/lock for court {c_uuid}")
         db.query(models.Court).filter(models.Court.id == c_uuid).with_for_update().first()
 
@@ -497,34 +501,51 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             booking_date=booking.booking_date,
             requested_slots=time_slots,
             expected_total_amount=original_amount,
-            number_of_players=booking.number_of_players or 2,
-            slice_mask=booking.slice_mask
+            number_of_players=booking.number_of_players or 1,
+            slice_mask=booking.slice_mask,
+            num_courts=booking.num_courts or 1
         )
         
         user_exists = db.query(models.User).filter(models.User.id == user_id).first()
         if not user_exists:
             raise ValueError(f"User {user_id} not found")
 
-        # 3. Fast Atomic Bitwise Allocation
-        if booking.slot_ids and booking.slice_mask is not None:
+        # 3. Fast Atomic Allocation
+        if booking.slot_ids:
             from sqlalchemy import text
             for slot_id in booking.slot_ids:
-                result = db.execute(
-                    text("""
-                    UPDATE slots
-                    SET occupied_mask = occupied_mask | :mask
-                    WHERE id = :slot_id
-                    AND (occupied_mask & :mask) = 0
-                    RETURNING id
-                    """),
-                    {"slot_id": slot_id, "mask": booking.slice_mask}
-                )
-                if not result.fetchone():
-                    db.rollback()
-                    raise ValueError(f"Conflict: Slot is no longer available for the requested part of the field.")
-        else:
-            # Fallback legacy lock for independent courts not using bitmask UI yet
-            db.query(models.Court).filter(models.Court.id == c_uuid).with_for_update().first()
+                if is_capacity:
+                    # Capacity Based: Atomically increment booked_capacity
+                    num_players = booking.number_of_players or 1
+                    result = db.execute(
+                        text("""
+                        UPDATE slots
+                        SET booked_capacity = COALESCE(booked_capacity, 0) + :num_players
+                        WHERE id = :slot_id
+                        AND (COALESCE(booked_capacity, 0) + :num_players) <= COALESCE(capacity_limit, 1)
+                        RETURNING id
+                        """),
+                        {"slot_id": slot_id, "num_players": num_players}
+                    )
+                    if not result.fetchone():
+                        db.rollback()
+                        raise ValueError(f"Conflict: Slot capacity limit reached or slot unavailable.")
+                else:
+                    # Regular Court: Atomically update bitmask
+                    if booking.slice_mask is not None:
+                        result = db.execute(
+                            text("""
+                            UPDATE slots
+                            SET occupied_mask = occupied_mask | :mask
+                            WHERE id = :slot_id
+                            AND (occupied_mask & :mask) = 0
+                            RETURNING id
+                            """),
+                            {"slot_id": slot_id, "mask": booking.slice_mask}
+                        )
+                        if not result.fetchone():
+                            db.rollback()
+                            raise ValueError(f"Conflict: Slot is no longer available for the requested part of the field.")
 
         # 4. Create Booking
         booking_data = {
@@ -798,6 +819,7 @@ def get_bookings(db: Session, user_id: str):
                 "updated_at": row[22],
                 "venue_name": row[23] or "Unknown Court",
                 "venue_location": venue_location,
+                "court_name": time_slots_parsed[0].get('court_name') if time_slots_parsed else (row[23] or "Unknown Court")
             }
             bookings_list.append(booking_dict)
 
