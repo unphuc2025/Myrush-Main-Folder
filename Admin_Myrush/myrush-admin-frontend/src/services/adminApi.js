@@ -207,6 +207,9 @@ export const branchesApi = {
         method: 'PUT',
         body: formData
     }),
+    toggle: (id) => apiRequest(`/branches/${id}/toggle`, {
+        method: 'PATCH'
+    }),
     delete: (id) => apiRequest(`/branches/${id}`, {
         method: 'DELETE'
     })
@@ -232,6 +235,9 @@ export const courtsApi = {
     update: (id, formData) => apiRequest(`/courts/${id}`, {
         method: 'PUT',
         body: formData
+    }),
+    toggle: (id) => apiRequest(`/courts/${id}/toggle`, {
+        method: 'PATCH'
     }),
     delete: (id) => apiRequest(`/courts/${id}`, {
         method: 'DELETE'

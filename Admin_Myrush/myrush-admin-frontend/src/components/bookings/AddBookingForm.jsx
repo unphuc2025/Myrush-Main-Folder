@@ -156,7 +156,8 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
             ]);
 
             if (courtsResult.status === 'fulfilled') {
-                setCourts(Array.isArray(courtsResult.value) ? courtsResult.value : []);
+                const c = courtsResult.value;
+                setCourts(Array.isArray(c?.items) ? c.items : Array.isArray(c) ? c : []);
             }
             if (usersResult.status === 'fulfilled') {
                 const u = usersResult.value;
