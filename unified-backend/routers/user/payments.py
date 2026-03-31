@@ -16,7 +16,7 @@ import schemas
 import crud
 from utils.coupon_utils import validate_coupon_strictly
 
-from utils.booking_utils import get_booked_slots, safe_parse_time_float
+from utils.booking_utils import get_booked_slots, safe_parse_time_float, calculate_multi_slice_price, generate_allowed_slots_map
 
 router = APIRouter(
     prefix="/payments",
@@ -225,6 +225,35 @@ def create_payment_order(
         }
         order = client.order.create(data=order_data)
         
+        # --- ATOMIC SLOT RESERVATION (MUST SUCCEED before paying) ---
+        # This is the gatekeeper. If two users try to book the same slot at the same time,
+        # only the first one will succeed here. The second will get a 409 Conflict BEFORE
+        # a Razorpay order is ever created for them — preventing a confusing double payment.
+        print(f"[PAYMENTS] Atomically reserving slot for order {order['id']}")
+        booking_details.payment_status = "pending"
+        booking_details.razorpay_order_id = order['id']
+        
+        try:
+            db_booking = crud.create_booking(db=db, booking=booking_details, user_id=current_user.id)
+            print(f"[PAYMENTS] Slot reserved. Pending booking ID: {db_booking.id}")
+        except HTTPException as slot_err:
+            # Known conflict (slot taken, bitmask overlap, etc.) — cancel the Razorpay order and reject
+            print(f"[PAYMENTS] Slot reservation FAILED: {slot_err.detail}. Cancelling Razorpay order {order['id']}.")
+            try:
+                client.order.update(order['id'], {"notes": {"status": "cancelled_slot_conflict"}})
+            except Exception:
+                pass
+            raise HTTPException(status_code=409, detail=f"Slot no longer available: {slot_err.detail}")
+        except ValueError as slot_err:
+            # DB-level conflict (bitmask update returned 0 rows)
+            print(f"[PAYMENTS] Slot reservation FAILED (ValueError): {slot_err}. Cancelling Razorpay order {order['id']}.")
+            try:
+                client.order.update(order['id'], {"notes": {"status": "cancelled_slot_conflict"}})
+            except Exception:
+                pass
+            raise HTTPException(status_code=409, detail=f"Slot no longer available — another booking was confirmed first.")
+        # ------------------------------------------------------------------
+
         return {
             "id": order['id'],
             "amount": order['amount'],
@@ -259,6 +288,7 @@ def create_multi_court_payment_order(
     configs = payload.get("configs", [])
     booking_date_str = payload.get("bookingDate")
     time_slots = payload.get("timeSlots", [])
+    slot_ids = payload.get("slotIds", [])
     number_of_players = payload.get("numberOfPlayers", 1)
     coupon_code = payload.get("couponCode")
 
@@ -302,13 +332,81 @@ def create_multi_court_payment_order(
             }
         }
         order = client.order.create(data=order_data)
+
+        # --- ATOMIC SLOT RESERVATION for MULTI-COURT (MUST SUCCEED before paying) ---
+        # Same as single-court: if any court's slot cannot be atomically reserved,
+        # we fail the ENTIRE order before Razorpay charges anyone.
+        breakdown_list = []
+        start_time_val = "00:00"
+        if time_slots and isinstance(time_slots, list):
+            start_time_val = time_slots[0].get("time", time_slots[0].get("start_time", "00:00"))
+        duration_mins = len(time_slots) * 30 if isinstance(time_slots, list) else 60
+
+        booking_create = schemas.BookingCreate(
+            branch_id=str(configs[0].get("branchId", "")),
+            court_id=str(configs[0].get("courtId", "")),
+            booking_date=booking_date,
+            start_time=start_time_val,
+            duration_minutes=duration_mins,
+            time_slots=time_slots,
+            slot_ids=slot_ids,
+            number_of_players=number_of_players,
+            coupon_code=coupon_code,
+            payment_status="pending",
+            razorpay_order_id=order["id"],
+            original_amount=total_price,
+            discount_amount=discount_amount
+        )
+
+        for cfg in configs:
+            c_id = str(cfg.get("courtId", ""))
+            s_mask = cfg.get("sliceMask", 0)
+
+            court_total = 0.0
+            court_specific_slots = []
+            allowed_slots = generate_allowed_slots_map(db, c_id, booking_date)
+            for slot in time_slots:
+                t_str = slot.get("time", slot.get("start_time"))
+                slot_price = 0.0
+                if t_str in allowed_slots:
+                    s_info = allowed_slots[t_str]
+                    slot_price = calculate_multi_slice_price(s_info, s_mask, float(s_info['price']))
+                court_total += slot_price
+                court_specific_slots.append({**slot, "price": slot_price})
+
+            booking_create.court_id = c_id
+            booking_create.slice_mask = s_mask
+            booking_create.total_amount = court_total
+            booking_create.time_slots = court_specific_slots
+
+            try:
+                db_booking = crud.create_booking(db=db, booking=booking_create, user_id=current_user.id)
+                print(f"[PAYMENTS] Slot reserved. Pending Multi-booking: {db_booking.id} for court {c_id}")
+                breakdown_list.append({
+                    "courtId": c_id,
+                    "sliceMask": s_mask,
+                    "total_amount": court_total,
+                    "time_slots": court_specific_slots
+                })
+            except (HTTPException, ValueError) as slot_err:
+                detail = slot_err.detail if isinstance(slot_err, HTTPException) else str(slot_err)
+                print(f"[PAYMENTS] Multi-order slot reservation FAILED for court {c_id}: {detail}")
+                # Cancel already-reserved courts in this order by rolling back
+                db.rollback()
+                try:
+                    client.order.update(order['id'], {"notes": {"status": "cancelled_slot_conflict"}})
+                except Exception:
+                    pass
+                raise HTTPException(status_code=409, detail=f"Slot for court {c_id} is no longer available: {detail}")
+        # ---------------------------------------------------------------------------------
+
         return {
             "id": order["id"],
             "amount": order["amount"],
             "currency": order["currency"],
             "key_id": RAZORPAY_KEY_ID,
             "server_calculated_amount": final_amount,
-            "breakdown": {"base": total_price, "fee": PLATFORM_FEE, "discount": discount_amount}
+            "breakdown": breakdown_list
         }
     except Exception as e:
         print(f"Razorpay Error: {e}")

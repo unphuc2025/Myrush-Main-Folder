@@ -185,7 +185,17 @@ def set_default_payment_method(db: Session, payment_method_id: str, user_id: str
         return db_payment_method
     return None
 
-def validate_booking_rules(db: Session, court_id: str, booking_date: date, start_time: time, end_time: time, user_id: str, slice_mask: Optional[int] = None, number_of_players: int = 1):
+def validate_booking_rules(
+    db: Session, 
+    court_id: str, 
+    booking_date: date, 
+    start_time: time, 
+    end_time: time, 
+    user_id: str, 
+    slice_mask: int = 0, 
+    number_of_players: int = 1,
+    razorpay_order_id: str = None
+):
     """
     Validate basic constraints before allowing a booking.
     Overlapping/collision is now handled ATOMICALLY via bitmasking during create_booking.
@@ -235,11 +245,19 @@ def validate_booking_rules(db: Session, court_id: str, booking_date: date, start
         from utils.booking_utils import safe_parse_time_float
         import json
         
-        user_bookings = db.query(Booking).filter(
+        # 2. Check for simultaneous bookings by the same user (Double booking prevention)
+        user_bookings_query = db.query(Booking).filter(
             Booking.user_id == user_id,
             Booking.booking_date == booking_date,
             Booking.status != 'cancelled'
-        ).all()
+        )
+        
+        if razorpay_order_id:
+             # IMPORTANT: Skip collision check with bookings from the SAME transaction/order.
+             # This allows multi-court confirmation to succeed for all courts in the order.
+             user_bookings_query = user_bookings_query.filter(Booking.razorpay_order_id != razorpay_order_id)
+             
+        user_bookings = user_bookings_query.all()
         
         if user_bookings:
             for b in user_bookings:
@@ -267,14 +285,33 @@ def validate_booking_rules(db: Session, court_id: str, booking_date: date, start
                     # We have a time overlap. Now check if it's a structural conflict.
                     # 1. Is it the exact same section of the court?
                     is_same_court = False
+                    
+                    # NEW: Robust Shared Group check
+                    # If both courts are in the same shared group, we must check their masks against each other
                     if str(b.court_id) == str(court_id):
-                        existing_mask = b.slice_mask or ((1 << (court.total_zones or 1)) - 1)
-                        new_mask = slice_mask or ((1 << (court.total_zones or 1)) - 1)
-                        if (existing_mask & new_mask) != 0:
-                            is_same_court = True
+                        is_same_court = True
+                    else:
+                        # Check if they share a group
+                        other_court = db.query(Court).filter(Court.id == b.court_id).first()
+                        if other_court and other_court.shared_group_id and court.shared_group_id:
+                            if str(other_court.shared_group_id) == str(court.shared_group_id):
+                                is_same_court = True
                     
                     if is_same_court:
-                        raise HTTPException(status_code=400, detail="You already have another booking for this or a contiguous part of this court during this time.")
+                        # Current court total zones
+                        c_zones = court.total_zones or 1
+                        # Other court (from booking) total zones
+                        other_court_record = db.query(Court).filter(Court.id == b.court_id).first()
+                        o_zones = other_court_record.total_zones if other_court_record else 1
+                        
+                        existing_mask = b.slice_mask if b.slice_mask is not None else ((1 << o_zones) - 1)
+                        new_mask = slice_mask if slice_mask is not None else ((1 << c_zones) - 1)
+                        
+                        if (existing_mask & new_mask) != 0:
+                            raise HTTPException(
+                                status_code=400, 
+                                detail=f"Overlap Conflict: You already have another booking ({b.booking_display_id}) for a shared part of this arena during this time."
+                            )
 
     print("[RULES CHECK] Basic validation passed. Collisions checked atomically.")
 
@@ -339,12 +376,22 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: date,
     else:
         calculated_final_total = float(calculated_total_base)
 
-    # For multi-court bookings, the client sends the COMBINED total in the first booking
-    # (to match the Razorpay order). Divide by num_courts to get this court's share.
-    effective_expected_amount = float(expected_total_amount) / max(1, num_courts)
+    # If num_courts is provided > 1, the client is sending a combined total for a group of bookings.
+    # In such cases, we expect BOTH the server total and the client-provided total to be the SAME 
+    # (as long as the caller correctly split the totals).
+    effective_expected_amount = float(expected_total_amount)
+    
+    # NEW logic: If the client explicitly says num_courts > 1 AND it's sending the ENTIRE order total,
+    # then we divide. BUT if the client is already sending the per-court total, we don't divide.
+    # A safer check is: if the calculated total is much smaller than provided, and num_courts > 1, try dividing.
+    # But even better: ensure the caller passes the EXACT amount expected for THIS court.
+    
+    # For compatibility with existing multi-court logic that sends combined total in 'isFirst' request:
+    if num_courts and num_courts > 1 and abs(calculated_final_total - (effective_expected_amount / num_courts)) < 10.0:
+        effective_expected_amount = effective_expected_amount / num_courts
 
     print(f"[CONFIG CHECK] Final Calculation ({court.logic_type if court else 'unknown'}): {calculated_final_total}")
-    print(f"[CONFIG CHECK] Comparison: Server={calculated_final_total} vs Client={effective_expected_amount} (total={expected_total_amount}, num_courts={num_courts})")
+    print(f"[CONFIG CHECK] Comparison: Server={calculated_final_total} vs Client={effective_expected_amount} (original={expected_total_amount}, num_courts={num_courts})")
 
     if abs(calculated_final_total - effective_expected_amount) > 10.0:
          print(f"[CONFIG CHECK FAIL] Total amount mismatch: {calculated_final_total} != {effective_expected_amount}")
@@ -470,9 +517,13 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         is_capacity = court_check.logic_type == 'capacity'
 
         # --- ATOMIC LOCKING & VALIDATION ---
-        # Acquire row-level lock on the court
-        print(f"[CRUD BOOKING] Acquiring slots/lock for court {c_uuid}")
-        db.query(models.Court).filter(models.Court.id == c_uuid).with_for_update().first()
+        # Acquire row-level lock on the court OR the entire shared group
+        if court_check.shared_group_id:
+            print(f"[CRUD BOOKING] Shared Group detected! Locking all courts in group {court_check.shared_group_id}")
+            db.query(models.Court).filter(models.Court.shared_group_id == court_check.shared_group_id).with_for_update().all()
+        else:
+            print(f"[CRUD BOOKING] Independent court. Locking court {c_uuid}")
+            db.query(models.Court).filter(models.Court.id == c_uuid).with_for_update().first()
 
         # --- FRAUD CHECK: DOUBLE SPEND / REPLAY ATTACK ---
         if booking.razorpay_payment_id:
@@ -491,7 +542,8 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             end_time=end_time_val,
             user_id=user_id,
             slice_mask=booking.slice_mask,
-            number_of_players=booking.number_of_players or 1
+            number_of_players=booking.number_of_players or 1,
+            razorpay_order_id=booking.razorpay_order_id
         )
 
         # 2. Config & Price
@@ -510,7 +562,7 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         if not user_exists:
             raise ValueError(f"User {user_id} not found")
 
-        # 3. Fast Atomic Allocation
+        # 3. Fast Atomic Allocation (via slots table if slot_ids provided)
         if booking.slot_ids:
             from sqlalchemy import text
             for slot_id in booking.slot_ids:
@@ -533,19 +585,72 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
                 else:
                     # Regular Court: Atomically update bitmask
                     if booking.slice_mask is not None:
-                        result = db.execute(
-                            text("""
-                            UPDATE slots
-                            SET occupied_mask = occupied_mask | :mask
-                            WHERE id = :slot_id
-                            AND (occupied_mask & :mask) = 0
-                            RETURNING id
-                            """),
-                            {"slot_id": slot_id, "mask": booking.slice_mask}
+                        # Check if this slot was ALREADY claimed by the same order (to avoid self-collision)
+                        already_claimed = False
+                        if booking.razorpay_order_id:
+                            existing_order_booking = db.query(models.Booking).filter(
+                                models.Booking.razorpay_order_id == booking.razorpay_order_id,
+                                models.Booking.court_id == str(c_uuid),
+                                models.Booking.slice_mask == booking.slice_mask
+                            ).first()
+                            if existing_order_booking:
+                                already_claimed = True
+
+                        if not already_claimed:
+                            result = db.execute(
+                                text("""
+                                UPDATE slots
+                                SET occupied_mask = COALESCE(occupied_mask, 0) | :mask
+                                WHERE id = :slot_id
+                                AND (COALESCE(occupied_mask, 0) & :mask) = 0
+                                RETURNING id
+                                """),
+                                {"slot_id": slot_id, "mask": booking.slice_mask}
+                            )
+                            if not result.fetchone():
+                                db.rollback()
+                                raise ValueError(f"Conflict: Slot is no longer available for the requested part of the field.")
+
+        else:
+            # --- FALLBACK: No slot_ids provided. Use bookings table for collision detection. ---
+            # This prevents double booking for flows that don't pass slot_ids.
+            # We check if any ACTIVE booking (pending or confirmed) for the same court/date
+            # overlaps with the requested time range AND has a conflicting bitmask.
+            from fastapi import HTTPException as FHTTPException
+            s_f = start_time_val.hour + (start_time_val.minute / 60.0)
+            e_f = end_time_val.hour + (end_time_val.minute / 60.0)
+            if e_f == 0: e_f = 24.0
+
+            existing_bookings = db.query(models.Booking).filter(
+                models.Booking.court_id == str(c_uuid),
+                models.Booking.booking_date == booking.booking_date,
+                models.Booking.status != 'cancelled',
+                models.Booking.payment_status.in_(['pending', 'paid', 'confirmed'])
+            )
+            # Exclude same razorpay_order_id (allows multi-court same-order)
+            if booking.razorpay_order_id:
+                existing_bookings = existing_bookings.filter(
+                    models.Booking.razorpay_order_id != booking.razorpay_order_id
+                )
+
+            for eb in existing_bookings.all():
+                eb_start = eb.start_time.hour + (eb.start_time.minute / 60.0) if eb.start_time else 0
+                eb_end = eb.end_time.hour + (eb.end_time.minute / 60.0) if eb.end_time else 24.0
+                if eb_end == 0: eb_end = 24.0
+
+                # Check time overlap
+                if max(s_f, eb_start) < min(e_f, eb_end):
+                    # Check bitmask conflict
+                    new_mask = booking.slice_mask if booking.slice_mask is not None else ((1 << (court_check.total_zones or 1)) - 1)
+                    ex_mask = eb.slice_mask if eb.slice_mask is not None else ((1 << (court_check.total_zones or 1)) - 1)
+                    if (new_mask & ex_mask) != 0:
+                        print(f"[CRUD BOOKING] DOUBLE BOOKING BLOCKED: Conflict with booking {eb.id} (mask={ex_mask}, new_mask={new_mask})")
+                        db.rollback()
+                        raise FHTTPException(
+                            status_code=409,
+                            detail=f"This slot is already booked (Booking {eb.booking_display_id}). Please choose a different time."
                         )
-                        if not result.fetchone():
-                            db.rollback()
-                            raise ValueError(f"Conflict: Slot is no longer available for the requested part of the field.")
+
 
         # 4. Create Booking
         booking_data = {

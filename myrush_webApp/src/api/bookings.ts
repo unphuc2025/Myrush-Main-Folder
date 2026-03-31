@@ -60,22 +60,19 @@ export const bookingsApi = {
         }
     },
 
-    createMultiCourtOrder: async (data: {
-        configs: { courtId: string; sliceMask: number }[];
-        bookingDate: string;
-        timeSlots: any[];
-        numberOfPlayers: number;
-        couponCode?: string;
+    createMultiCourtOrder: async (payload: {
+        configs: { courtId: string, sliceMask: number, branchId?: string }[],
+        bookingDate: string,
+        timeSlots: any[],
+        slotIds?: string[],
+        numberOfPlayers: number,
+        couponCode?: string
     }) => {
         try {
-            const response = await apiClient.post('/payments/create-multi-order', {
-                configs: data.configs,
-                bookingDate: data.bookingDate,
-                timeSlots: data.timeSlots,
-                numberOfPlayers: data.numberOfPlayers,
-                couponCode: data.couponCode
-            });
-            return { success: true, data: response.data };
+            // Pass the entire payload which now includes slotIds and branchId
+            const response = await apiClient.post('/payments/create-multi-order', payload);
+            return {
+                success: true, data: response.data };
         } catch (error: any) {
             console.error('[BOOKINGS API] Exception creating multi-court payment order:', error);
             return { success: false, data: null, error: error.message || 'Failed to initiate payment' };

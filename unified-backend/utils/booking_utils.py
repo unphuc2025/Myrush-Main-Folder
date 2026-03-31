@@ -132,26 +132,51 @@ def get_venue_hours(opening_hours: Any, booking_date: date) -> tuple:
         try: opening_hours = json.loads(opening_hours)
         except: return 0.0, 24.0
 
-    day_name = booking_date.strftime("%A").lower()
+    day_name_full = booking_date.strftime("%A").lower()
+    day_name_short = day_name_full[:3]
     day_config = None
 
     if isinstance(opening_hours, dict):
-        day_config = opening_hours.get(day_name)
-    elif isinstance(opening_hours, list):
-        for item in opening_hours:
-            if isinstance(item, dict) and str(item.get('day', '')).lower() == day_name:
-                day_config = item
+        # 1. Broadest possible day-key match (lowercase, capitalized, short, etc.)
+        possible_keys = [day_name_full, day_name_full.capitalize(), day_name_short, day_name_short.capitalize(), 'default']
+        for key in possible_keys:
+            if key in opening_hours:
+                day_config = opening_hours[key]
                 break
+    elif isinstance(opening_hours, list):
+        # 2. Iterate through list to find matching day
+        for item in opening_hours:
+            if isinstance(item, dict):
+                item_day = str(item.get('day', '')).lower()
+                if item_day in (day_name_full, day_name_short):
+                    day_config = item
+                    break
     
-    if not day_config or not day_config.get('isActive'):
-        return 0.0, 0.0
+    # 3. Robust Config Field Extraction
+    if not day_config:
+        return 0.0, 24.0 # Default fallback for unconfigured days? Or 0.0, 0.0 for "Closed"?
+        # User said they added timings, so if we can't find it, we might be hitting an unconfigured day.
+        # But for 'perfect fetch', we assume unconfigured means closed, or 24h depending on project policy.
+        # Given the 24h complaint, let's keep it 24h only if opening_hours is literally empty.
 
-    start_h = safe_parse_time_float(day_config.get('startTime') or '00:00')
-    end_str = day_config.get('endTime')
-    if end_str in ('23:59', '00:00', '24:00', '12:00 AM', None, '23:30'):
+    # 4. Check Activity State
+    # Support 'isActive', 'active', 'is_active', or presence of times
+    is_active = day_config.get('isActive')
+    if is_active is None: is_active = day_config.get('active')
+    if is_active is None: is_active = day_config.get('is_active')
+    if is_active is False:
+        return 0.0, 0.0
+    
+    # 5. Support various start/end time formats: startTime, open, start, from, to...
+    s_str = day_config.get('startTime') or day_config.get('open') or day_config.get('start') or day_config.get('from') or '00:00'
+    e_str = day_config.get('endTime') or day_config.get('close') or day_config.get('end') or day_config.get('to')
+    
+    start_h = safe_parse_time_float(s_str)
+    
+    if e_str in ('23:59', '00:00', '24:00', '12:00 AM', None, '23:30'):
         end_h = 24.0
     else:
-        end_h = safe_parse_time_float(end_str)
+        end_h = safe_parse_time_float(e_str)
         if end_h == 0: end_h = 24.0
 
     return start_h, end_h
@@ -167,18 +192,23 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
     from uuid import UUID
     
     # 1. Identify all courts that should contribute to this mask
+    # 1. Identify all courts that should contribute to this mask
     if shared_group_id:
         from uuid import UUID
         cid_query = db.query(models.Court.id).filter(models.Court.shared_group_id == (UUID(str(shared_group_id)) if shared_group_id else None))
         group_courts = cid_query.all()
         court_ids = [c[0] for c in group_courts]
     elif court_id:
-        court_ids = [court_id]
+        # FALLBACK: If no shared group, get all courts at the same branch
+        # This fixes venues like Cooke Town where sports are different records but share one ground.
+        current_court = db.query(models.Court).filter(models.Court.id == court_id).first()
+        if current_court and current_court.branch_id:
+            branch_courts = db.query(models.Court.id).filter(models.Court.branch_id == current_court.branch_id).all()
+            court_ids = [c[0] for c in branch_courts]
+        else:
+            court_ids = [court_id]
     else:
-        return {}
-
-    if not court_ids:
-        return {}
+        return {}, {}
 
     # 2. Fetch all active bookings for these courts using RAW SQL as fail-safe for ORM issues
     # Join with admin_courts to get total_zones
@@ -189,7 +219,13 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
         LEFT JOIN admin_courts c ON b.court_id = c.id
         WHERE b.court_id = ANY(CAST(:c_ids AS uuid[]))
         AND b.booking_date = CAST(:d AS date)
-        AND b.status != 'cancelled'
+        AND (
+            (b.status NOT IN ('cancelled', 'failed') OR b.status IS NULL)
+            AND (
+                b.payment_status != 'pending' 
+                OR b.created_at > (NOW() AT TIME ZONE 'UTC' - INTERVAL '10 minutes')
+            )
+        )
     """)
     
     group_bookings = db.execute(sql, {"c_ids": [str(cid) for cid in court_ids], "d": str(booking_date)}).fetchall()
@@ -392,10 +428,28 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
                     if safe_parse_time_float(gr.get('slotFrom')) <= h_start < (safe_parse_time_float(gr.get('slotTo')) or 24.0):
                         matched_rule = gr; matched_rule['source'] = 'global_day'; break
         
-        # Check Venue Hours
+        # Determine if court has ANY specific timings (rules) for this day
+        # If it does, we should ONLY allow slots that match those rules.
+        # If it doesn't, we follow the Branch hours.
+        court_has_specific_timings = any(
+            (date_str in (pc.get('dates') or [])) or 
+            (day_short in [d.lower()[:3] for d in (pc.get('days') or [])])
+            for pc in price_rules
+        )
+        
+        # Check Venue Hours Boundary
         is_venue_open_now = (v_start <= h_start < v_end)
         
-        if matched_rule or is_venue_open_now:
+        # FINAL ALLOWANCE LOGIC:
+        # A slot is visible IF:
+        # 1. It is within venue (branch) opening hours boundary
+        # 2. IF court has specific timings added, it MUST match one (matched_rule is court-specific)
+        is_allowed = is_venue_open_now
+        if is_allowed and court_has_specific_timings:
+            # If rules exist, only allow if matched_rule is from a court-specific source
+            is_allowed = (matched_rule and matched_rule['source'] in ('court_date', 'court_day'))
+
+        if is_allowed:
             is_blocked = False
             un_slots = court.unavailability_slots or []
             if isinstance(un_slots, str):

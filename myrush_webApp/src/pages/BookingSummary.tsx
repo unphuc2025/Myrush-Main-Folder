@@ -145,15 +145,26 @@ export const BookingSummary: React.FC = () => {
                 : [{ courtId: state.courtId || state.selectedSlots[0]?.court_id || state.venueId, label: state.venueName || 'Standard Arena', sliceId: 'full', sliceMask: state.sliceMask || 0 }];
 
             const numCourts = configs.length;
-            const slotIds = state.selectedSlots.map(s => s.slot_id).filter(Boolean) as string[];
+            // Gather all slot IDs and deduplicate them. 
+            // Crucial step: If multiple configurations of the SAME parent court are selected
+            // for the same time, they share the exact same slot_id in the DB.
+            // Sending duplicates will cause the backend's atomic lock loop to fail on the 2nd iteration.
+            const rawSlotIds = state.selectedSlots.map(s => s.slot_id).filter(Boolean) as string[];
+            const slotIds = Array.from(new Set(rawSlotIds));
+
 
             // --- Create one Razorpay order for the TOTAL combined amount ---
             let orderRes;
             if (numCourts > 1) {
                 orderRes = await bookingsApi.createMultiCourtOrder({
-                    configs: configs.map(c => ({ courtId: c.courtId, sliceMask: c.sliceMask })),
+                    configs: configs.map(c => ({ 
+                        courtId: c.courtId, 
+                        sliceMask: c.sliceMask,
+                        branchId: state.venueId 
+                    })),
                     bookingDate: state.date,
                     timeSlots: sortedSlots,
+                    slotIds: slotIds,
                     numberOfPlayers: numPlayers,
                     couponCode: couponCode || undefined
                 });
@@ -177,7 +188,12 @@ export const BookingSummary: React.FC = () => {
                 return;
             }
 
-            const { id: order_id, amount, currency, key_id } = orderRes.data;
+            const { id: order_id, amount, currency, key_id, server_calculated_amount } = orderRes.data;
+            
+            // Server's authoritative price calculation should override frontend's naive slot sum
+            const authoritativeTotal = server_calculated_amount || (amount / 100);
+            const authoritativeDiscount = discount;
+            const authoritativeOriginal = authoritativeTotal + authoritativeDiscount - platformFee;
 
             const options = {
                 key: key_id,
@@ -191,51 +207,61 @@ export const BookingSummary: React.FC = () => {
                 order_id: order_id,
                 handler: async function (response: any) {
                     try {
-                        // Per-court splits
-                        const perCourtOriginalAmount = (slotsCost + platformFee) / numCourts;
-                        const perCourtDiscount = discount / numCourts;
-                        const perCourtTotal = totalAmount / numCourts;
-
                         const results = [];
-                        for (let i = 0; i < configs.length; i++) {
-                            const config = configs[i];
-                            const isFirst = i === 0;
-                            // Build per-court slots with proportional price
-                            const slotsForCourt = sortedSlots.map(s => ({
-                                ...s,
-                                price: s.price / numCourts
-                            }));
+                        const serverBreakdown = orderRes.data?.breakdown;
 
-                            // The first booking carries the FULL Razorpay payment info.
-                            // The backend fraud check validates order_amount == original_amount - discount.
-                            // For multi-court, the order was created for the combined total.
-                            // So first booking sends the full combined amounts; rest have no Razorpay fields.
-                            // First booking uses full combined amount to match Razorpay order.
-                            // Subsequent bookings use their individual amounts and numCourts=1
-                            // to avoid double-scaling in the backend price validator.
+                        if (numCourts > 1 && Array.isArray(serverBreakdown)) {
+                            // --- MULTI-COURT FLOW ---
+                            // Use the server-provided breakdown to accurately match 'Pending' records
+                            for (const item of serverBreakdown) {
+                                const payload = {
+                                    courtId: item.courtId,
+                                    bookingDate: state.date,
+                                    startTime: item.time_slots?.[0]?.time || startTime,
+                                    durationMinutes: (item.time_slots?.length || 0) * 30 || durationMinutes,
+                                    numberOfPlayers: numPlayers,
+                                    timeSlots: item.time_slots,
+                                    slotIds: slotIds,
+                                    sliceMask: item.sliceMask,
+                                    courtName: item.courtName || undefined,
+                                    
+                                    // Send exactly what the server calculated for this specific court
+                                    totalAmount: item.total_amount, 
+                                    originalAmount: item.total_amount,
+                                    discountAmount: 0,
+                                    
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                    numCourts: 1 // Treated as an individual update on the backend
+                                };
+                                const res = await bookingsApi.createBooking(payload as any);
+                                results.push(res);
+                            }
+                        } else {
+                            // --- SINGLE COURT FLOW ---
                             const payload = {
-                                courtId: config.courtId,
+                                courtId: configs[0].courtId,
                                 bookingDate: state.date,
-                                startTime: slotsForCourt[0]?.time || startTime,
-                                durationMinutes: slotsForCourt.length * 30 || durationMinutes,
+                                startTime: startTime,
+                                durationMinutes: durationMinutes,
                                 numberOfPlayers: numPlayers,
-                                pricePerHour: slotsForCourt[0]?.price || sortedSlots[0].price,
-                                teamName: teamName,
-                                timeSlots: slotsForCourt,
+                                timeSlots: sortedSlots,
                                 slotIds: slotIds,
-                                sliceMask: config.sliceMask,
-                                courtName: config.label,
-                                totalAmount: isFirst ? totalAmount : perCourtTotal,
-                                originalAmount: isFirst ? (slotsCost + platformFee) : perCourtOriginalAmount,
-                                discountAmount: isFirst ? discount : perCourtDiscount,
+                                sliceMask: configs[0].sliceMask,
+                                courtName: configs[0].label,
+                                
+                                totalAmount: authoritativeTotal,
+                                originalAmount: authoritativeOriginal,
+                                discountAmount: authoritativeDiscount,
                                 couponCode: appliedCouponCode || undefined,
-                                razorpay_payment_id: isFirst ? response.razorpay_payment_id : undefined,
-                                razorpay_order_id: isFirst ? response.razorpay_order_id : undefined,
-                                razorpay_signature: isFirst ? response.razorpay_signature : undefined,
-                                numCourts: isFirst ? numCourts : 1
+                                
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_signature: response.razorpay_signature,
+                                numCourts: 1
                             };
-
-                            const res = await bookingsApi.createBooking(payload);
+                            const res = await bookingsApi.createBooking(payload as any);
                             results.push(res);
                         }
 

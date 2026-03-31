@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any, Dict
 import models, schemas, database
-from utils.booking_utils import get_booked_slots, safe_parse_time_float
+from utils.booking_utils import get_booked_slots, safe_parse_time_float, get_venue_hours
 from schemas import resolve_path
 import uuid
 
@@ -447,35 +447,9 @@ def get_venue_slots(
         branch_id = str(branch['id'])
         opening_hours = branch.get('opening_hours') or {}
 
-        # 3. Determine Operating Hours (Robustly)
-        branch_is_active = True
-        venue_start_hour = 8
-        venue_end_hour = 22
-        
-        if isinstance(opening_hours, dict):
-            # Try multiple key variants
-            possible_keys = [
-                day_of_week_full.lower(), # friday
-                day_of_week_full,        # Friday
-                day_of_week_short,       # fri
-                day_of_week_short.title(),# Fri
-                'default'
-            ]
-            day_config = None
-            for k in possible_keys:
-                if k in opening_hours:
-                    day_config = opening_hours[k]
-                    break
-            
-            if day_config and isinstance(day_config, dict):
-                start_str = day_config.get('open') or day_config.get('start') or '08:00'
-                end_str = day_config.get('close') or day_config.get('end') or '22:00'
-                if day_config.get('isActive') is False:
-                    branch_is_active = False
-                try:
-                    venue_start_hour = int(start_str.split(':')[0])
-                    venue_end_hour = int(end_str.split(':')[0])
-                except: pass
+        # 3. Determine Operating Hours (Unified Logic)
+        venue_start_hour, venue_end_hour = get_venue_hours(opening_hours, booking_date)
+        branch_is_active = (venue_start_hour != venue_end_hour)
 
         # 4. Get Relevant Courts
         court_query = """
@@ -528,7 +502,7 @@ def get_venue_slots(
             
             # A. Base Range
             if branch_is_active:
-                for h in range(venue_start_hour, venue_end_hour):
+                for h in range(int(venue_start_hour), int(venue_end_hour)):
                     court_slots[h] = {'price': b_price, 'id': 'default'}
                     
             # B. Collect Overrides (with specific list separation for priority)

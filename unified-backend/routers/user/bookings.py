@@ -60,9 +60,33 @@ def create_booking(
              print("[BOOKINGS API] No payment ID provided - assuming legacy/pay-at-venue flow")
              # Use default pending status
              
-        result = crud.create_booking(db=db, booking=booking, user_id=current_user.id)
+        # --- NEW: CHECK FOR EXISTING PENDING BOOKING ---
+        existing_booking = None
+        if booking.razorpay_order_id:
+            existing_booking = db.query(models.Booking).filter(
+                models.Booking.razorpay_order_id == booking.razorpay_order_id,
+                models.Booking.user_id == current_user.id
+            ).first()
+            
+        if existing_booking:
+            print(f"[BOOKINGS API] Found existing PENDING booking {existing_booking.id}. Updating to PAID.")
+            # Update the existing record
+            existing_booking.payment_status = booking.payment_status or "paid"
+            existing_booking.payment_id = booking.razorpay_payment_id
+            existing_booking.razorpay_signature = booking.razorpay_signature
+            existing_booking.status = "confirmed"
+            existing_booking.updated_at = database.datetime.utcnow()
+            
+            db.commit()
+            db.refresh(existing_booking)
+            result = existing_booking
+        else:
+            # Fallback for flows where order wasn't pre-persisted
+            print("[BOOKINGS API] No existing pending booking found. Creating new record.")
+            result = crud.create_booking(db=db, booking=booking, user_id=current_user.id)
+        # -----------------------------------------------
         
-        print("[BOOKINGS API] BOOKING CREATED SUCCESSFULLY")
+        print("[BOOKINGS API] BOOKING PROCESSED SUCCESSFULLY")
         return result
 
     except HTTPException as he:
