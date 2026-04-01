@@ -5,11 +5,27 @@ import ToggleSwitch from './ToggleSwitch';
 import { citiesApi, areasApi } from '../../services/adminApi';
 
 function CitiesSettings() {
+  const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+  const isSuperAdmin = adminInfo.role === 'super_admin';
+
+  const cityPermissions = adminInfo.permissions?.['City Management'] || {};
+  const areaPermissions = adminInfo.permissions?.['Area Management'] || {};
+
+  const canViewCity = isSuperAdmin || cityPermissions.view || cityPermissions.access;
+  const canAddCity = isSuperAdmin || cityPermissions.add;
+  const canEditCity = isSuperAdmin || cityPermissions.edit;
+  const canDeleteCity = isSuperAdmin || cityPermissions.delete;
+
+  const canViewArea = isSuperAdmin || areaPermissions.view || areaPermissions.access;
+  const canAddArea = isSuperAdmin || areaPermissions.add;
+  const canEditArea = isSuperAdmin || areaPermissions.edit;
+  const canDeleteArea = isSuperAdmin || areaPermissions.delete;
+
   const [cities, setCities] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeSection, setActiveSection] = useState('cities');
+  const [activeSection, setActiveSection] = useState(canViewCity ? 'cities' : 'areas');
   const [searchTerm, setSearchTerm] = useState('');
 
   const [showCityModal, setShowCityModal] = useState(false);
@@ -36,22 +52,25 @@ function CitiesSettings() {
   }, []);
 
   const fetchData = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      const [citiesData, areasData] = await Promise.all([
-        citiesApi.getAll(),
-        areasApi.getAll()
-      ]);
-      setCities(citiesData);
-      setAreas(areasData);
+      let citiesData = [];
+      let areasData = [];
+
+      if (canViewCity) {
+        try { citiesData = await citiesApi.getAll(); } catch (e) { console.warn("Cities fetch failed", e); }
+      }
+      
+      if (canViewArea) {
+        try { areasData = await areasApi.getAll(); } catch (e) { console.warn("Areas fetch failed", e); }
+      }
+
+      setCities(citiesData || []);
+      setAreas(areasData || []);
     } catch (err) {
       console.error('Error fetching data:', err);
-      const status = err.response?.status;
-      const errorMsg = (status === 403 || status === 401 || err.message?.toLowerCase().includes('authorized') || err.message?.toLowerCase().includes('access'))
-        ? 'You do not have access to view cities or areas.'
-        : 'Failed to load data';
-      setError(errorMsg);
+      setError('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -232,20 +251,24 @@ function CitiesSettings() {
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <div className="flex bg-slate-100 p-1 rounded-lg">
-          <button
-            onClick={() => setActiveSection('cities')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeSection === 'cities' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            Cities
-            <span className={`px-2 py-0.5 rounded-full text-xs ${activeSection === 'cities' ? 'bg-slate-100' : 'bg-white'}`}>{cities.length}</span>
-          </button>
-          <button
-            onClick={() => setActiveSection('areas')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeSection === 'areas' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            Areas
-            <span className={`px-2 py-0.5 rounded-full text-xs ${activeSection === 'areas' ? 'bg-slate-100' : 'bg-white'}`}>{areas.length}</span>
-          </button>
+          {canViewCity && (
+            <button
+              onClick={() => setActiveSection('cities')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeSection === 'cities' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Cities
+              <span className={`px-2 py-0.5 rounded-full text-xs ${activeSection === 'cities' ? 'bg-slate-100' : 'bg-white'}`}>{cities.length}</span>
+            </button>
+          )}
+          {canViewArea && (
+            <button
+              onClick={() => setActiveSection('areas')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeSection === 'areas' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Areas
+              <span className={`px-2 py-0.5 rounded-full text-xs ${activeSection === 'areas' ? 'bg-slate-100' : 'bg-white'}`}>{areas.length}</span>
+            </button>
+          )}
         </div>
 
         <div className="flex w-full md:w-auto gap-3">
@@ -259,13 +282,15 @@ function CitiesSettings() {
               className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm text-slate-900"
             />
           </div>
-          <button
-            onClick={activeSection === 'cities' ? handleAddCityClick : handleAddAreaClick}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="text-sm font-semibold">Add New</span>
-          </button>
+          {((activeSection === 'cities' && canAddCity) || (activeSection === 'areas' && canAddArea)) && (
+            <button
+              onClick={activeSection === 'cities' ? handleAddCityClick : handleAddAreaClick}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-sm font-semibold">Add New</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -299,12 +324,16 @@ function CitiesSettings() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleEditCityClick(city)} className="p-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md transition-colors">
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => handleDeleteCity(city.id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {canEditCity && (
+                            <button onClick={() => handleEditCityClick(city)} className="p-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md transition-colors">
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                          )}
+                          {canDeleteCity && (
+                            <button onClick={() => handleDeleteCity(city.id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -328,19 +357,23 @@ function CitiesSettings() {
                     />
                   </div>
                   <div className="flex items-center gap-2 pt-3 border-t border-slate-100 mt-1">
-                    <button
-                      onClick={() => handleEditCityClick(city)}
-                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                      <span className="text-sm font-bold">Edit</span>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCity(city.id)}
-                      className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {canEditCity && (
+                      <button
+                        onClick={() => handleEditCityClick(city)}
+                        className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        <span className="text-sm font-bold">Edit</span>
+                      </button>
+                    )}
+                    {canDeleteCity && (
+                      <button
+                        onClick={() => handleDeleteCity(city.id)}
+                        className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -374,12 +407,16 @@ function CitiesSettings() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleEditAreaClick(area)} className="p-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md transition-colors">
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => handleDeleteArea(area.id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {canEditArea && (
+                            <button onClick={() => handleEditAreaClick(area)} className="p-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md transition-colors">
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                          )}
+                          {canDeleteArea && (
+                            <button onClick={() => handleDeleteArea(area.id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -406,19 +443,23 @@ function CitiesSettings() {
                     />
                   </div>
                   <div className="flex items-center gap-2 pt-3 border-t border-slate-100 mt-1">
-                    <button
-                      onClick={() => handleEditAreaClick(area)}
-                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                      <span className="text-sm font-bold">Edit</span>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteArea(area.id)}
-                      className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {canEditArea && (
+                      <button
+                        onClick={() => handleEditAreaClick(area)}
+                        className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        <span className="text-sm font-bold">Edit</span>
+                      </button>
+                    )}
+                    {canDeleteArea && (
+                      <button
+                        onClick={() => handleDeleteArea(area.id)}
+                        className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

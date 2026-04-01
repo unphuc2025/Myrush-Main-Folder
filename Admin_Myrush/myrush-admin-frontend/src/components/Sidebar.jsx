@@ -61,12 +61,24 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
     const [permissions, setPermissions] = useState({});
 
     useEffect(() => {
-        const adminInfo = localStorage.getItem('admin_info');
-        if (adminInfo) {
-            const parsed = JSON.parse(adminInfo);
-            setUserRole(parsed.role || 'super_admin');
-            setPermissions(parsed.permissions || {});
-        }
+        const updateFromStorage = () => {
+            const adminInfo = localStorage.getItem('admin_info');
+            if (adminInfo) {
+                const parsed = JSON.parse(adminInfo);
+                setUserRole(parsed.role || 'super_admin');
+                setPermissions(parsed.permissions || {});
+            }
+        };
+
+        updateFromStorage(); // Initial read
+
+        window.addEventListener('storage', updateFromStorage);
+        window.addEventListener('admin-info-updated', updateFromStorage);
+
+        return () => {
+            window.removeEventListener('storage', updateFromStorage);
+            window.removeEventListener('admin-info-updated', updateFromStorage);
+        };
     }, [location.pathname]);
 
     // Check if the admin has any access (view/add/edit/delete) to a given module
@@ -197,11 +209,14 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                         </div>
 
                         {/* USERS AND ROLES GROUP */}
-                        <div>
-                            <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
-                                USERS AND ROLES
-                            </h3>
-                            <ul className="mb-6 flex flex-col gap-1.5">
+                        {(hasModuleAccess('Role Management') ||
+                            hasModuleAccess('Sub Admin Management') ||
+                            hasModuleAccess('User Management')) && (
+                                <div>
+                                    <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
+                                        USERS AND ROLES
+                                    </h3>
+                                    <ul className="mb-6 flex flex-col gap-1.5">
                                 <li>
                                     <Link
                                         to="#"
@@ -264,6 +279,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                 </li>
                             </ul>
                         </div>
+                    )}
 
                         {/* OPERATIONS GROUP */}
                         {(hasModuleAccess('Manage Bookings') ||
@@ -304,16 +320,21 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                                 {/* Dropdown Menu */}
                                                 <div className={`translate transform overflow-hidden ${bookingsExpanded ? '!h-auto' : '!h-0'}`}>
                                                     <ul className="mt-4 mb-5.5 flex flex-col gap-2.5 pl-6">
-                                                        {bookingsItems.map(subItem => (
-                                                            <li key={subItem.id}>
-                                                                <button
-                                                                    onClick={() => handleBookingsItemClick(subItem.id)}
-                                                                    className={`group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white ${isBookingsActive(subItem.id) ? 'text-white' : ''}`}
-                                                                >
-                                                                    {subItem.label}
-                                                                </button>
-                                                            </li>
-                                                        ))}
+                                                        {bookingsItems.map(subItem => {
+                                                            // Granularly check permission for each sub-item
+                                                            const hasAccess = subItem.id === 'manage' ? hasModuleAccess('Manage Bookings') : hasModuleAccess('Transactions And Earnings');
+                                                            if (!hasAccess) return null;
+                                                            return (
+                                                                <li key={subItem.id}>
+                                                                    <button
+                                                                        onClick={() => handleBookingsItemClick(subItem.id)}
+                                                                        className={`group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white ${isBookingsActive(subItem.id) ? 'text-white' : ''}`}
+                                                                    >
+                                                                        {subItem.label}
+                                                                    </button>
+                                                                </li>
+                                                            );
+                                                        })}
                                                     </ul>
                                                 </div>
                                             </li>
@@ -387,7 +408,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                                 </Link>
                                             </li>
                                         )}
-                                        {hasModuleAccess('Reports and analytics') && (
+                                        {/* Analytics also accessible to Transactions & Earnings admins */}
+                                        {(hasModuleAccess('Reports and analytics') || hasModuleAccess('Transactions And Earnings')) && (
                                             <li>
                                                 <Link
                                                     to="/reports"

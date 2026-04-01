@@ -382,15 +382,15 @@ class User(Base):
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
 
     # Relationships
-    profile = relationship("Profile", back_populates="user", uselist=False)
-    bookings = relationship("Booking", back_populates="user")
-    reviews = relationship("Review", back_populates="user")
-    tournaments = relationship("Tournament", back_populates="user")
-    tournament_participations = relationship("TournamentParticipant", back_populates="user")
+    profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    bookings = relationship("Booking", back_populates="user", cascade="all, delete-orphan")
+    reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")
+    tournaments = relationship("Tournament", back_populates="user", cascade="all, delete-orphan")
+    tournament_participations = relationship("TournamentParticipant", back_populates="user", cascade="all, delete-orphan")
 
 class Profile(Base):
     __tablename__ = "profiles"
-    id = Column(UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True)
+    id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     phone_number = Column(String(20), unique=True, index=True)
     full_name = Column(String(100))
     age = Column(Integer)
@@ -517,7 +517,7 @@ class Review(Base):
 class Tournament(Base):
     __tablename__ = "tournaments"
     id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(255), nullable=False, index=True)
     sport = Column(String(100), nullable=False, index=True)
     visibility = Column(String(20), nullable=False, default='Public')
@@ -547,7 +547,7 @@ class TournamentParticipant(Base):
     __tablename__ = "tournament_participants"
     id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
     tournament_id = Column(UUID(as_uuid=True), ForeignKey("tournaments.id"), nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     registration_date = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
     status = Column(String(20), nullable=False, default='registered')
     team_name = Column(String(100), nullable=True)
@@ -565,7 +565,7 @@ class TournamentParticipant(Base):
 class PushToken(Base):
     __tablename__ = "push_tokens"
     id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     device_token = Column(Text, nullable=False, unique=True)
     device_type = Column(String(50), nullable=False, default='android')
     device_info = Column(JSON, nullable=True)

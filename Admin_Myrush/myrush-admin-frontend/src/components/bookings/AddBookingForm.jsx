@@ -278,10 +278,10 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
             newPrice = parseFloat(selectedCourt.price_per_hour) || 0;
         }
 
-        // Update slots with new price if they are 0 or untouched
+        // Update slots with new price
         const updatedSlots = formData.time_slots.map(slot => ({
             ...slot,
-            price: slot.price == 0 ? newPrice : slot.price
+            price: newPrice
         }));
 
         setFormData({

@@ -81,13 +81,16 @@ function AdminLogin() {
         // Store token immediately as we need it for the update call
         localStorage.setItem('admin_token', data.token);
 
+        // Always store admin info immediately to ensure the next flow (password change) has state
+        localStorage.setItem('admin_info', JSON.stringify(data.admin));
+        window.dispatchEvent(new Event('admin-info-updated'));
+
         if (data.admin.must_change_password) {
           setTempAdminId(data.admin.id);
           setShowPasswordChange(true);
           setSuccess('Login successful. Please set a new password.');
           setIsLoading(false); // Stop loading, show new form
         } else {
-          localStorage.setItem('admin_info', JSON.stringify(data.admin));
           setSuccess('Login Successful!');
           setTimeout(() => {
             navigate('/dashboard');
@@ -123,27 +126,16 @@ function AdminLogin() {
       // Call update API
       await adminsApi.update(tempAdminId, { password: newPassword });
 
-      // Update local storage info to clear flag
-      const adminResp = await adminsApi.getAll(); // Or generic get profile if available. 
-      // Since getAll returns list, this is inefficient but safe enough for now or assume success.
-      // Better: just construct proper object or fetch "me" endpoint if exists. 
-      // For now, let's just proceed. The backend cleared the flag.
-
-      // We don't have a "getMe" endpoint yet easily accessible here without filtering list.
-      // Let's just proceed to dashboard, usually dashboard re-fetches or we just trust it.
-      // BUT we stored the token. We need to store admin_info properly.
-      // The login response gave us admin info but with must_change_password=true.
-      // We can just update that object manually.
-
-      const storedToken = localStorage.getItem('admin_token'); // Ensure it's there
+      // Update local storage with fresh info including cleared must_change_password flag
+      const storedToken = localStorage.getItem('admin_token');
       if (!storedToken) throw new Error("Session lost, please login again");
 
-      // Fetch fresh list to find self is robust
-      const admins = await adminsApi.getAll();
-      const me = admins.find(a => a.id === tempAdminId);
+      // Fetch fresh "me" profile with full permissions extracted correctly
+      const me = await adminsApi.getMe();
 
       if (me) {
         localStorage.setItem('admin_info', JSON.stringify(me));
+        window.dispatchEvent(new Event('admin-info-updated'));
         setSuccess('Password updated successfully! Redirecting...');
         setTimeout(() => {
           navigate('/dashboard');
