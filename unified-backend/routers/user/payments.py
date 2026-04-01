@@ -87,11 +87,16 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
     # 1. Generate Slots Map to get correct prices
     allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
     
+    # NEW: Fetch court to check logic type
+    court = db.query(models.Court).filter(models.Court.id == court_id).first()
+    is_capacity = court.logic_type == "capacity" if court else False
+    
     total_slot_price = 0.0
-    print(f"[PRICE_DEBUG] Starting calculation for {len(requested_slots)} slots, players={number_of_players}")
+    print(f"[PRICE_DEBUG] Starting calculation for {len(requested_slots)} slots, players={number_of_players}, is_capacity={is_capacity}")
     
     for slot in requested_slots:
-        slot_time_str = slot.get('time') or slot.get('start_time')
+        # Use price from map if available, else default (though validation should have caught it)
+        slot_time_str = slot.get('time') or slot.get('start_time') or slot.get('display_time', '').split(' - ')[0]
         if not slot_time_str: continue
         
         h_f = safe_parse_time_float(slot_time_str)
@@ -115,15 +120,20 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
         else:
             print(f"[PRICE_DEBUG] Slot {norm_start} not found in map. Falling back.")
             # Fallback to court base price if absolutely necessary
-            court = db.query(models.Court).filter(models.Court.id == court_id).first()
             if court:
-                slot_price = (slice_price / 2.0) if slice_price is not None else (float(court.price_per_hour) / 2.0)
+                slot_price = (float(court.price_per_hour) / 2.0)
                 total_slot_price += slot_price
                 print(f"[PRICE_DEBUG] Fallback Slot {norm_start}: Price {slot_price}")
 
-    # 2. Final Base Price (No player multiplication)
-    print(f"[PRICE_DEBUG] FINAL TOTAL BASE: {total_slot_price} (Multiplied by players? NO)")
-    return float(total_slot_price)
+    # 2. Final Base Price (Multiply by players if capacity-based)
+    final_base_price = float(total_slot_price)
+    if is_capacity:
+        final_base_price = float(total_slot_price * number_of_players)
+        print(f"[PRICE_DEBUG] FINAL TOTAL BASE: {final_base_price} (Multiplied {total_slot_price} by {number_of_players} players)")
+    else:
+        print(f"[PRICE_DEBUG] FINAL TOTAL BASE: {final_base_price} (No player multiplier applied)")
+        
+    return final_base_price
 
 
 def validate_authoritative_coupon(db: Session, coupon_code: str, total_amount: float, user_id: str) -> float:
@@ -210,6 +220,8 @@ def create_payment_order(
     # final_amount += gst_amount
     
     # 5. Create Razorpay Order
+    # Round to 2 decimal places to avoid float issues before converting to paise
+    final_amount = round(float(final_amount), 2)
     amount_in_paise = int(final_amount * 100)
     
     try:
@@ -267,6 +279,8 @@ def create_payment_order(
             }
         }
         
+    except HTTPException as http_err:
+        raise http_err
     except Exception as e:
         print(f"Razorpay Error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create payment order")
@@ -316,19 +330,20 @@ def create_multi_court_payment_order(
     discount_amount = 0.0
     if coupon_code:
         discount_amount = validate_authoritative_coupon(db, coupon_code, total_price, str(current_user.id))
-
-    final_amount = max(0.0, total_price + PLATFORM_FEE - discount_amount)
-    amount_in_paise = int(final_amount * 100)
+        
+    # Calculate total with rounding to 2 decimal places to prevent float errors
+    final_total = round((total_price + PLATFORM_FEE) - discount_amount, 2)
+    final_total_paise = int(final_total * 100)
 
     try:
         order_data = {
-            "amount": amount_in_paise,
+            "amount": final_total_paise,
             "currency": "INR",
-            "receipt": f"rcptm_{int(datetime.now().timestamp())}",
+            "receipt": f"rcpt_multi_{int(datetime.now().timestamp())}",
             "notes": {
                 "user_id": str(current_user.id),
-                "num_courts": len(configs),
-                "date": str(booking_date)
+                "num_courts": str(len(configs)), # Stringify for safe Razorpay storage
+                "is_multi": "true"
             }
         }
         order = client.order.create(data=order_data)
@@ -374,9 +389,16 @@ def create_multi_court_payment_order(
                 court_total += slot_price
                 court_specific_slots.append({**slot, "price": slot_price})
 
+            # Determine if this court is capacity-based to apply player multiplier
+            court_obj = db.query(models.Court).filter(models.Court.id == c_id).first()
+            is_cap = court_obj.logic_type == 'capacity' if court_obj else False
+            
             booking_create.court_id = c_id
             booking_create.slice_mask = s_mask
-            booking_create.total_amount = court_total
+            
+            court_final_price = court_total * (number_of_players if is_cap else 1)
+            booking_create.total_amount = court_final_price
+            booking_create.original_amount = court_final_price
             booking_create.time_slots = court_specific_slots
 
             try:
@@ -385,7 +407,7 @@ def create_multi_court_payment_order(
                 breakdown_list.append({
                     "courtId": c_id,
                     "sliceMask": s_mask,
-                    "total_amount": court_total,
+                    "total_amount": court_final_price, # Send the final authoritative price
                     "time_slots": court_specific_slots
                 })
             except (HTTPException, ValueError) as slot_err:
@@ -405,9 +427,11 @@ def create_multi_court_payment_order(
             "amount": order["amount"],
             "currency": order["currency"],
             "key_id": RAZORPAY_KEY_ID,
-            "server_calculated_amount": final_amount,
+            "server_calculated_amount": final_total,
             "breakdown": breakdown_list
         }
+    except HTTPException as http_err:
+        raise http_err
     except Exception as e:
         print(f"Razorpay Error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create payment order")

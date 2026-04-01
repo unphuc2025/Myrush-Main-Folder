@@ -27,6 +27,7 @@ interface LocationState {
     selectedSport: string;
     totalPrice: number;
     numPlayers?: number;
+    isCapacityBased?: boolean;
     courtId?: string;
     sliceMask?: number;
     selectedConfigs?: {
@@ -82,9 +83,15 @@ export const BookingSummary: React.FC = () => {
 
     if (!state || (!venue && !state.venueName)) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div></div>;
 
-    // Calculations
-    const baseSlotsPrice = state.selectedSlots.reduce((acc, s) => acc + s.price, 0);
-    const slotsCost = baseSlotsPrice;
+    // Slot prices forwarded from VenueDetails are already the *total* per-slot cost:
+    //   • Capacity venues  : basePrice * numPlayers (e.g. ₹100 * 3 = ₹300 per slot)
+    //   • Court/zone venues: final court price (not player-multiplied)
+    // So we sum them directly — no additional numPlayers multiplication.
+    const slotsCost = state.selectedSlots.reduce((acc, s) => acc + s.price, 0);
+    // For the booking receipt sub-line, derive the per-person base (capacity only)
+    const baseSlotsPrice = state.isCapacityBased && numPlayers > 1
+        ? Math.round(slotsCost / numPlayers)
+        : slotsCost;
     const platformFee = 0;
     const tax = 0;
     const totalAmount = slotsCost + platformFee + tax - discount;
@@ -178,7 +185,9 @@ export const BookingSummary: React.FC = () => {
                     slotIds: slotIds,
                     sliceMask: configs[0].sliceMask,
                     numberOfPlayers: numPlayers,
-                    couponCode: couponCode || undefined
+                    couponCode: couponCode || undefined,
+                    originalAmount: slotsCost,   // ← full total (not per-person) for backend validation
+                    totalAmount: totalAmount
                 });
             }
 
@@ -427,7 +436,12 @@ export const BookingSummary: React.FC = () => {
                                 <div className="space-y-4 mb-8">
                                     <div className="flex justify-between text-xs font-medium uppercase tracking-wider text-gray-400">
                                         <span>Total Base Price</span>
-                                        <span className="text-gray-900">₹{baseSlotsPrice}</span>
+                                        <div className="text-right">
+                                            <span className="text-gray-900 block">₹{slotsCost}</span>
+                                            {numPlayers > 1 && (
+                                                <span className="text-[10px] text-primary lowercase font-bold">(₹{baseSlotsPrice} x {numPlayers} members)</span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="flex justify-between text-xs font-medium uppercase tracking-wider text-gray-400">
                                         <span>Convenience Fee</span>

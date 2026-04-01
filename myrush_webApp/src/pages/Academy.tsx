@@ -126,8 +126,9 @@ const AcademyEnrollmentView: React.FC<{ onEnroll: () => void }> = ({ onEnroll })
                                 </select>
                             </div>
                             <Button
-                                className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-glow transition-transform flex items-center justify-center"
+                                className="w-full h-14 font-black uppercase tracking-widest shadow-glow transition-transform flex items-center justify-center border-2 border-transparent"
                                 variant="primary"
+                                size="lg"
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? (
@@ -169,7 +170,7 @@ const AcademyPendingView: React.FC<{ onUpgrade: () => void }> = ({ onUpgrade }) 
                     {/* DEMO ONLY BUTTON */}
                     <button
                         onClick={onUpgrade}
-                        className="text-xs font-bold text-gray-400 hover:text-primary underline uppercase tracking-widest transition-colors"
+                        className="text-xs font-bold text-gray-400 hover:text-primary underline uppercase tracking-widest transition-colors cursor-pointer"
                     >
                         [Demo: Coach Approved Me]
                     </button>

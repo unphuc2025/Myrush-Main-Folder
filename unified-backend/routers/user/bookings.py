@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Annotated, List
 import schemas, crud, models, database
 from dependencies import get_current_user
+from datetime import datetime
 
 import os
 import razorpay
@@ -39,12 +40,19 @@ def create_booking(
                 
                 # --- FRAUD CHECK: AMOUNT MATCH ---
                 fetch_order = client.order.fetch(booking.razorpay_order_id)
-                # Calculate what the frontend is asking us to confirm
+                
+                # Robustly get notes, handling cases where it might be explicit null
+                notes = fetch_order.get('notes') or {}
+                num_courts = int(notes.get('num_courts', 1))
+
+                # Calculate what the frontend is asking us to confirm for THIS specific booking component
                 total_from_frontend = float(booking.original_amount or 0) - float(booking.discount_amount or 0)
                 expected_paise = int(total_from_frontend * 100)
                 
-                if fetch_order['amount'] != expected_paise:
-                     print(f"[FRAUD ALERT] Amount mismatch! Razorpay Order was for {fetch_order['amount']} but booking payload claims {expected_paise}")
+                # If it's a multi-court order, the total Razorpay amount will be the sum of all courts.
+                # Only strictly validate amount exactly if it's a single court order.
+                if num_courts == 1 and fetch_order['amount'] != expected_paise:
+                     print(f"[FRAUD ALERT] Amount mismatch! Razorpay Order was for {fetch_order['amount']} but single booking payload claims {expected_paise}")
                      raise HTTPException(status_code=400, detail="Amount mismatch. Payment verification failed due to security policies.")
                 # ---------------------------------
                 
@@ -53,9 +61,13 @@ def create_booking(
             except razorpay.errors.SignatureVerificationError:
                 print("[BOOKINGS API] Payment Signature Verification Failed")
                 raise HTTPException(status_code=400, detail="Payment verification failed")
+            except HTTPException as hexp:
+                raise hexp
             except Exception as e:
                 print(f"[BOOKINGS API] Payment Verification Error: {e}")
-                raise HTTPException(status_code=400, detail="Payment verification error")
+                import traceback
+                traceback.print_exc()
+                raise HTTPException(status_code=400, detail=f"Payment verification error: {str(e)}")
         else:
              print("[BOOKINGS API] No payment ID provided - assuming legacy/pay-at-venue flow")
              # Use default pending status
@@ -65,7 +77,8 @@ def create_booking(
         if booking.razorpay_order_id:
             existing_booking = db.query(models.Booking).filter(
                 models.Booking.razorpay_order_id == booking.razorpay_order_id,
-                models.Booking.user_id == current_user.id
+                models.Booking.user_id == current_user.id,
+                models.Booking.court_id == booking.court_id
             ).first()
             
         if existing_booking:
@@ -75,7 +88,7 @@ def create_booking(
             existing_booking.payment_id = booking.razorpay_payment_id
             existing_booking.razorpay_signature = booking.razorpay_signature
             existing_booking.status = "confirmed"
-            existing_booking.updated_at = database.datetime.utcnow()
+            existing_booking.updated_at = datetime.utcnow()
             
             db.commit()
             db.refresh(existing_booking)

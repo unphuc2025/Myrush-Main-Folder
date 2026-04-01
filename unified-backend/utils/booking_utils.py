@@ -199,14 +199,8 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
         group_courts = cid_query.all()
         court_ids = [c[0] for c in group_courts]
     elif court_id:
-        # FALLBACK: If no shared group, get all courts at the same branch
-        # This fixes venues like Cooke Town where sports are different records but share one ground.
-        current_court = db.query(models.Court).filter(models.Court.id == court_id).first()
-        if current_court and current_court.branch_id:
-            branch_courts = db.query(models.Court.id).filter(models.Court.branch_id == current_court.branch_id).all()
-            court_ids = [c[0] for c in branch_courts]
-        else:
-            court_ids = [court_id]
+        # Standard: Just this court's ID
+        court_ids = [court_id]
     else:
         return {}, {}
 

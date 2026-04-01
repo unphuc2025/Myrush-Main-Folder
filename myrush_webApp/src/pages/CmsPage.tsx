@@ -20,7 +20,7 @@ export const CmsPage = () => {
                 const data = await cmsApi.getBySlug(slug);
                 setPage(data);
                 // Update document title for SEO
-                document.title = `${data.title} - MyRush`;
+                document.title = `${data?.title || 'Page'} - MyRush`;
             } catch (err: any) {
                 console.error('Error fetching CMS page:', err);
                 if (err.response?.status === 404) {
@@ -42,7 +42,7 @@ export const CmsPage = () => {
     if (loading) {
         return (
             <div className="flex justify-center items-center min-h-[60vh]">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
         );
     }
@@ -53,7 +53,7 @@ export const CmsPage = () => {
                 <FaExclamationCircle className="h-16 w-16 text-slate-300 mb-4" />
                 <h1 className="text-2xl font-bold text-slate-800 mb-2">Page Not Found</h1>
                 <p className="text-slate-500 mb-6 max-w-md">{error || "The page you are looking for doesn't exist."}</p>
-                <Link to="/" className="px-6 py-2.5 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition-colors">
+                <Link to="/" className="px-6 py-2.5 bg-primary text-black font-bold rounded-lg hover:opacity-90 transition-opacity">
                     Return to Home
                 </Link>
             </div>
@@ -65,7 +65,7 @@ export const CmsPage = () => {
             <div className="max-w-4xl mx-auto px-4 md:px-6">
 
                 {/* Back button */}
-                <Link to="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-green-600 font-medium mb-8 transition-colors">
+                <Link to="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-primary font-medium mb-8 transition-colors">
                     <FaArrowLeft className="h-4 w-4" />
                     Back to Home
                 </Link>
@@ -81,13 +81,13 @@ export const CmsPage = () => {
                     className="prose prose-lg prose-slate max-w-none bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-slate-100
                     prose-headings:font-bold prose-h1:text-4xl prose-h2:text-2xl prose-h3:text-xl
                     prose-p:mb-6 prose-p:leading-relaxed prose-p:text-slate-600
-                    prose-a:text-green-600 hover:prose-a:text-green-700 prose-a:font-semibold prose-a:no-underline
+                    prose-a:text-primary hover:text-primary/80 prose-a:font-semibold prose-a:no-underline
                     prose-ul:list-disc prose-ol:list-decimal prose-li:my-2
                     prose-strong:text-slate-900 prose-strong:font-bold
-                    marker:text-green-500"
+                    marker:text-primary"
                     dangerouslySetInnerHTML={{
                         // Automatically parse markdown (like ## Headings, [Link](url)) or passthrough raw HTML correctly
-                        __html: marked.parse(page.content, { async: false, breaks: true, gfm: true }) as string
+                        __html: page.content ? marked.parse(page.content, { async: false, breaks: true, gfm: true }) : ''
                     }}
                 />
 

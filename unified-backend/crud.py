@@ -224,18 +224,13 @@ def validate_booking_rules(
     duration_h = end_f - start_f
     if duration_h < 0: duration_h += 24.0
     
-    # 1-hour enforcement for Pool and Min Duration
+    # Minimum duration enforcement (now 30 minutes / 0.5 hrs minimum)
     is_pool = False
     if court.facility_type:
         is_pool = court.facility_type.name.lower() == 'pool'
     
-    if is_pool:
-        if duration_h < 1.0:
-            raise HTTPException(status_code=400, detail="Pool bookings must be at least 1 hour.")
-        if duration_h != 1.0:
-            raise HTTPException(status_code=400, detail="Pool bookings must be exactly 1 hour.")
-    elif duration_h < 1.0:
-        raise HTTPException(status_code=400, detail="Minimum booking duration is 1 hour.")
+    if duration_h < 0.5:
+        raise HTTPException(status_code=400, detail="Minimum booking duration is 30 minutes.")
 
     # --- Rule 3: User Overlap Check ---
     # Skip user overlap check for capacity courts, as users can book multiple tickets

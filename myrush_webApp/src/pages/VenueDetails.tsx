@@ -127,20 +127,23 @@ export const VenueDetailsPage: React.FC = () => {
                     });
                 });
 
-                // Only add "Full Court" if no slice already covers all zones (mask check) AND the parent court matches the sport
+                // Only add "Full Court" if no slice already covers all zones (mask check) 
+                // AND there are NO other slices (if Net 1/Net 2 exist, don't force a 'Full' fallback)
+                // AND the parent court matches the sport
                 const fullMask = (1 << (court.total_zones || 1)) - 1;
                 const hasFullSlice = zones.some(z => z.mask === fullMask);
+                const hasAnySlice = zones.length > 0;
                 
                 const activeSport = (selectedSport || '').toLowerCase();
                 const parentSport = (court.court_game_type || '').toLowerCase();
                 const parentMatch = !activeSport || parentSport.includes(activeSport) || activeSport.includes(parentSport);
 
-                if (!hasFullSlice && parentMatch) {
+                if (!hasFullSlice && !hasAnySlice && parentMatch) {
                     finalConfigs.push({
                         courtId,
                         totalZones: court.total_zones || 1,
                         slice: 'full',
-                        label: `Full Court`,
+                        label: (court.total_zones || 1) > 1 ? `Full ${court.court_name}` : court.court_name,
                         minPrice: court.price_per_hour || 0
                     });
                 }
@@ -179,8 +182,16 @@ export const VenueDetailsPage: React.FC = () => {
                 const parentSport = (cInfo.gameType || '').toLowerCase();
                 const parentMatch = !activeSport || parentSport.includes(activeSport) || activeSport.includes(parentSport);
                 
-                if (!hasFullSlice && parentMatch) {
-                    finalConfigs.push({ courtId, totalZones: cInfo.totalZones, slice: 'full', label: `Full Court`, minPrice: cInfo.basePrice });
+                const hasAnySlice = cInfo.slices.size > 0;
+                
+                if (!hasFullSlice && !hasAnySlice && parentMatch) {
+                    finalConfigs.push({ 
+                        courtId, 
+                        totalZones: cInfo.totalZones, 
+                        slice: 'full', 
+                        label: cInfo.totalZones > 1 ? `Full ${cInfo.name}` : cInfo.name, 
+                        minPrice: cInfo.basePrice 
+                    });
                 }
             });
         }
@@ -243,17 +254,18 @@ export const VenueDetailsPage: React.FC = () => {
 
             return Array.from(grouped.values()).map(pSlot => {
                 let isBlocked = pSlot.isBlocked || pSlot.available === false || pSlot.is_admin_blocked === true;
-                let slicePrice = pSlot.price || 0;
+                let basePrice = pSlot.price || 0; // The non-multiplied price per slot
                 
                 const remaining = pSlot.capacity_limit - pSlot.booked_capacity;
                 if (remaining < numPlayers) {
                     isBlocked = true;
                 }
-                slicePrice = slicePrice * numPlayers;
+                const slicePrice = basePrice * numPlayers;
                 
                 return {
                     ...pSlot,
                     isBlocked,
+                    basePrice, // Store the base price for reference
                     price: slicePrice
                 };
             });
@@ -331,8 +343,10 @@ export const VenueDetailsPage: React.FC = () => {
     
     // Determine if the selected sport is capacity-based
     const isCapacityBased = useMemo(() => {
-        return availableSlots.some(s => s.logic_type === 'capacity');
-    }, [availableSlots]);
+        if (loadingSlots) return false;
+        // Check only the current filtered view for consistency
+        return filteredSlots.length > 0 && filteredSlots[0].logic_type === 'capacity';
+    }, [filteredSlots, loadingSlots]);
 
 
 
@@ -344,6 +358,7 @@ export const VenueDetailsPage: React.FC = () => {
     useEffect(() => {
         if (id) fetchSlots(id);
         setSelectedSlots([]); // Clear any previous selection when sport or date changes
+        setNumPlayers(1);     // Reset player count to 1 for non-capacity sports or new sports
     }, [id, selectedDate, currentDate, selectedSport]);
 
     // Re-fetch slots whenever the user returns to this page (e.g. back button from booking summary)
@@ -470,9 +485,23 @@ export const VenueDetailsPage: React.FC = () => {
             venueName: venue?.court_name,
             venueImage: venue?.photos?.[0],
             date: `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.toString().padStart(2, '0')}`,
-            selectedSlots: selectedSlots,
+            // Clean up slots for backend consumption
+            selectedSlots: selectedSlots.map(ss => {
+                // Use the filteredSlots price — it is already the correct computed price:
+                //   • Capacity venues: basePrice * numPlayers (total for all players per slot)
+                //   • Zone/court venues: summed slice prices (already final per-slot cost)
+                // Falling back to ss.price keeps behaviour identical if the slot isn't found.
+                const filtered = filteredSlots.find(fs => fs.display_time === ss.display_time);
+                const slotPrice = filtered ? filtered.price : ss.price;
+                return {
+                    ...ss,
+                    time: ss.time || ss.display_time?.split(' - ')[0],
+                    price: slotPrice
+                };
+            }),
+            isCapacityBased: isCapacityBased,
             selectedSport: selectedSport,
-            totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0),
+            totalPrice: Math.round(currentTotalPrice * 100) / 100, // Round to 2 decimal places
             numPlayers: numPlayers,
             selectedConfigs: selectedConfigs.map(c => ({
                 courtId: c.courtId,
@@ -481,6 +510,9 @@ export const VenueDetailsPage: React.FC = () => {
                 sliceMask: c.slice === 'full' ? ((1 << c.totalZones) - 1) : (c.slice as SportSlice).mask
             }))
         };
+        
+        // Also add branch_id for multi-court schema compatibility
+        (bookingState as any).branch_id = id;
 
         if (!isAuthenticated) {
             // Preservation of state for the modal flow
@@ -526,8 +558,11 @@ export const VenueDetailsPage: React.FC = () => {
         </div>
     );
 
-    const basePrice = selectedSlots.reduce((acc, s) => acc + s.price, 0);
-    const totalPrice = basePrice;
+    // --- Dynamic Pricing Summary (Calculated from filteredSlots for consistency) ---
+    const currentTotalPrice = selectedSlots.reduce((sum, ss) => {
+        const updated = filteredSlots.find(fs => fs.display_time === ss.display_time);
+        return sum + (updated ? updated.price : ss.price);
+    }, 0);
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
@@ -1192,7 +1227,7 @@ export const VenueDetailsPage: React.FC = () => {
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-sm text-gray-500">
                                             <span>Subtotal ({selectedSlots.length} slots)</span>
-                                            <span>₹{selectedSlots.reduce((sum, s) => sum + s.price, 0)}</span>
+                                            <span>₹{currentTotalPrice}</span>
                                         </div>
                                         <div className="flex justify-between text-sm text-gray-500">
                                             <span>Booking Fee</span>
@@ -1200,7 +1235,7 @@ export const VenueDetailsPage: React.FC = () => {
                                         </div>
                                         <div className="flex justify-between items-center pt-2">
                                             <span className="text-sm font-bold text-gray-900">Total</span>
-                                            <span className="text-lg font-bold text-primary">₹{totalPrice}</span>
+                                            <span className="text-lg font-bold text-primary">₹{currentTotalPrice}</span>
                                         </div>
                                     </div>
                                 </div>

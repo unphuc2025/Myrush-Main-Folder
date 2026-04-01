@@ -39,6 +39,8 @@ export const bookingsApi = {
         sliceMask: number;
         numberOfPlayers: number;
         couponCode?: string;
+        originalAmount?: number;
+        totalAmount?: number;
     }) => {
         try {
             const payload = {
@@ -50,7 +52,9 @@ export const bookingsApi = {
                 slot_ids: data.slotIds,
                 slice_mask: data.sliceMask,
                 number_of_players: data.numberOfPlayers,
-                coupon_code: data.couponCode
+                coupon_code: data.couponCode,
+                original_amount: data.originalAmount,
+                total_amount: data.totalAmount
             };
             const response = await apiClient.post('/payments/create-order', payload);
             return { success: true, data: response.data };
