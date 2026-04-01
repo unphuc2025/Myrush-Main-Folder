@@ -14,6 +14,7 @@ const Layout = ({ children, onLogout }) => {
         adminsApi.getMe()
             .then(freshAdminInfo => {
                 localStorage.setItem('admin_info', JSON.stringify(freshAdminInfo));
+                window.dispatchEvent(new Event('admin-info-updated'));
             })
             .catch(() => {
                 // Silently ignore — stale data is better than a crash

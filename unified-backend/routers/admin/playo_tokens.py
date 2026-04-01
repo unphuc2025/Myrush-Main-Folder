@@ -10,7 +10,7 @@ import secrets
 import hashlib
 from datetime import datetime
 import models, schemas, database
-from dependencies import require_super_admin
+from dependencies import PermissionChecker
 
 router = APIRouter(
     prefix="/playo-tokens",
@@ -21,9 +21,8 @@ def hash_token(token: str) -> str:
     """Hash token for secure storage"""
     return hashlib.sha256(token.encode()).hexdigest()
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(PermissionChecker("Settings", "view"))])
 async def get_playo_tokens(
-    admin: models.Admin = Depends(require_super_admin),
     db: Session = Depends(database.get_db)
 ):
     """
@@ -49,10 +48,9 @@ async def get_playo_tokens(
         ]
     }
 
-@router.post("/generate")
+@router.post("/generate", dependencies=[Depends(PermissionChecker("Settings", "add"))])
 async def generate_playo_token(
     description: str = "Playo Production Token",
-    admin: models.Admin = Depends(require_super_admin),
     db: Session = Depends(database.get_db)
 ):
     """
@@ -95,10 +93,9 @@ async def generate_playo_token(
         "warning": "⚠️ Save this token now! It won't be shown again."
     }
 
-@router.post("/{token_id}/deactivate")
+@router.post("/{token_id}/deactivate", dependencies=[Depends(PermissionChecker("Settings", "edit"))])
 async def deactivate_token(
     token_id: str,
-    admin: models.Admin = Depends(require_super_admin),
     db: Session = Depends(database.get_db)
 ):
     """
@@ -120,10 +117,9 @@ async def deactivate_token(
         "message": "Token deactivated successfully"
     }
 
-@router.post("/{token_id}/activate")
+@router.post("/{token_id}/activate", dependencies=[Depends(PermissionChecker("Settings", "edit"))])
 async def activate_token(
     token_id: str,
-    admin: models.Admin = Depends(require_super_admin),
     db: Session = Depends(database.get_db)
 ):
     """
@@ -145,10 +141,9 @@ async def activate_token(
         "message": "Token activated successfully"
     }
 
-@router.delete("/{token_id}")
+@router.delete("/{token_id}", dependencies=[Depends(PermissionChecker("Settings", "delete"))])
 async def delete_token(
     token_id: str,
-    admin: models.Admin = Depends(require_super_admin),
     db: Session = Depends(database.get_db)
 ):
     """

@@ -9,6 +9,7 @@ const SiteSettings = () => {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [canEdit, setCanEdit] = useState(true);
 
     const [logoPreview, setLogoPreview] = useState(null);
     const [formData, setFormData] = useState({
@@ -29,6 +30,19 @@ const SiteSettings = () => {
             navigate('/login');
             return;
         }
+
+        // Check permissions
+        const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+        const role = adminInfo.role || 'admin';
+        const perms = adminInfo.permissions || {};
+        
+        if (role === 'super_admin') {
+            setCanEdit(true);
+        } else {
+            const settingsPerms = perms['Settings'] || {};
+            setCanEdit(!!settingsPerms.edit || !!settingsPerms.add);
+        }
+
         loadSettings();
     }, [navigate]);
 
@@ -72,6 +86,14 @@ const SiteSettings = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Validate contact number - exactly 10 digits
+        if (!/^\d{10}$/.test(formData.contact_number)) {
+            setMessage({ type: 'error', text: 'Contact number must be exactly 10 digits and numeric only.' });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
         setSubmitting(true);
         setMessage({ type: '', text: '' });
 
@@ -140,10 +162,12 @@ const SiteSettings = () => {
                                             <Upload className="h-8 w-8 text-slate-400" />
                                         )}
                                     </div>
-                                    <label className="absolute -top-2 -right-2 p-1.5 bg-blue-600 text-white rounded-full cursor-pointer hover:bg-blue-700 shadow-lg transition-colors">
-                                        <Edit2Icon className="h-3 w-3" /> {/* Assuming Edit2Icon exists or using standard edit icon */}
-                                        <input type="file" className="hidden" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} />
-                                    </label>
+                                    {canEdit && (
+                                        <label className="absolute -top-2 -right-2 p-1.5 bg-blue-600 text-white rounded-full cursor-pointer hover:bg-blue-700 shadow-lg transition-colors">
+                                            <Edit2Icon className="h-3 w-3" />
+                                            <input type="file" className="hidden" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} />
+                                        </label>
+                                    )}
                                 </div>
                                 <span className="text-xs text-slate-500">Allowed file types: png, jpg, jpeg.</span>
                             </div>
@@ -159,9 +183,10 @@ const SiteSettings = () => {
                                     <input
                                         type="text"
                                         required
+                                        disabled={!canEdit}
                                         value={formData.company_name}
                                         onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="Addrush Sports Private Limited"
                                     />
                                 </div>
@@ -177,9 +202,10 @@ const SiteSettings = () => {
                                     <input
                                         type="email"
                                         required
+                                        disabled={!canEdit}
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="company@example.com"
                                     />
                                 </div>
@@ -195,9 +221,13 @@ const SiteSettings = () => {
                                     <input
                                         type="text"
                                         required
+                                        disabled={!canEdit}
                                         value={formData.contact_number}
-                                        onChange={(e) => setFormData({ ...formData, contact_number: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                            setFormData({ ...formData, contact_number: val });
+                                        }}
+                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="+1 234 567 8900"
                                     />
                                 </div>
@@ -214,9 +244,10 @@ const SiteSettings = () => {
                                 <textarea
                                     required
                                     rows="3"
+                                    disabled={!canEdit}
                                     value={formData.address}
                                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none text-slate-900"
+                                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                                     placeholder="Enter full business address"
                                 />
                             </div>
@@ -232,9 +263,10 @@ const SiteSettings = () => {
                                 <input
                                     type="text"
                                     required
+                                    disabled={!canEdit}
                                     value={formData.copyright_text}
                                     onChange={(e) => setFormData({ ...formData, copyright_text: e.target.value })}
-                                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                                     placeholder="&copy; {{YEAR}} RUSH Pitch Booking. All Rights Reserved"
                                 />
                             </div>
@@ -251,9 +283,10 @@ const SiteSettings = () => {
                                 <div className="relative">
                                     <input
                                         type="url"
+                                        disabled={!canEdit}
                                         value={formData.instagram_url}
                                         onChange={(e) => setFormData({ ...formData, instagram_url: e.target.value })}
-                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="https://instagram.com/..."
                                     />
                                 </div>
@@ -266,9 +299,10 @@ const SiteSettings = () => {
                                 <div className="relative">
                                     <input
                                         type="url"
+                                        disabled={!canEdit}
                                         value={formData.youtube_url}
                                         onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
-                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="https://youtube.com/..."
                                     />
                                 </div>
@@ -281,9 +315,10 @@ const SiteSettings = () => {
                                 <div className="relative">
                                     <input
                                         type="url"
+                                        disabled={!canEdit}
                                         value={formData.linkedin_url}
                                         onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
-                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="https://linkedin.com/in/..."
                                     />
                                 </div>
@@ -292,23 +327,25 @@ const SiteSettings = () => {
 
                         {/* Actions */}
                         <div className="flex items-center gap-4">
-                            <button
-                                type="submit"
-                                disabled={submitting}
-                                className="px-6 py-2.5 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 focus:ring-4 focus:ring-slate-500/20 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                            >
-                                {submitting ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                        Saving...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="h-4 w-4" />
-                                        Submit
-                                    </>
-                                )}
-                            </button>
+                            {canEdit && (
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="px-6 py-2.5 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 focus:ring-4 focus:ring-slate-500/20 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {submitting ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="h-4 w-4" />
+                                            Submit
+                                        </>
+                                    )}
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={() => navigate('/dashboard')}

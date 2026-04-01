@@ -9,19 +9,38 @@ function Bookings() {
     const location = useLocation();
     const [activeTab, setActiveTab] = useState('manage');
 
+    const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+    const hasManageAccess = adminInfo.role === 'super_admin' || (adminInfo.permissions && adminInfo.permissions['Manage Bookings']?.access);
+    const hasTransactionsAccess = adminInfo.role === 'super_admin' || (adminInfo.permissions && adminInfo.permissions['Transactions And Earnings']?.access);
+
     // Handle tab changes via hash
     useEffect(() => {
         const hash = location.hash.replace('#', '');
         if (hash === 'manage' || hash === 'transactions') {
-            setActiveTab(hash);
-        } else {
-            // Default to manage if no hash or invalid hash
-            setActiveTab('manage');
-            if (location.pathname === '/bookings' && !location.hash) {
+            if (hash === 'manage' && !hasManageAccess && hasTransactionsAccess) {
+                setActiveTab('transactions');
+                navigate('/bookings#transactions', { replace: true });
+            } else if (hash === 'transactions' && !hasTransactionsAccess && hasManageAccess) {
+                setActiveTab('manage');
                 navigate('/bookings#manage', { replace: true });
+            } else {
+                setActiveTab(hash);
+            }
+        } else {
+            // Default based on permissions
+            if (hasManageAccess) {
+                setActiveTab('manage');
+                if (location.pathname === '/bookings' && !location.hash) {
+                    navigate('/bookings#manage', { replace: true });
+                }
+            } else if (hasTransactionsAccess) {
+                setActiveTab('transactions');
+                if (location.pathname === '/bookings' && !location.hash) {
+                    navigate('/bookings#transactions', { replace: true });
+                }
             }
         }
-    }, [location.hash, navigate, location.pathname]);
+    }, [location.hash, navigate, location.pathname, hasManageAccess, hasTransactionsAccess]);
 
     const handleTabChange = (tab) => {
         setActiveTab(tab);
@@ -49,30 +68,35 @@ function Bookings() {
 
                 {/* Tab Switcher */}
                 <div className="bg-slate-100 p-1 rounded-xl inline-flex self-start md:self-auto">
-                    <button
-                        onClick={() => handleTabChange('manage')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'manage'
-                                ? 'bg-white text-slate-900 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                    >
-                        Bookings
-                    </button>
-                    <button
-                        onClick={() => handleTabChange('transactions')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'transactions'
-                                ? 'bg-white text-slate-900 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                    >
-                        Transactions
-                    </button>
+                    {hasManageAccess && (
+                        <button
+                            onClick={() => handleTabChange('manage')}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'manage'
+                                    ? 'bg-white text-slate-900 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Bookings
+                        </button>
+                    )}
+                    {hasTransactionsAccess && (
+                        <button
+                            onClick={() => handleTabChange('transactions')}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'transactions'
+                                    ? 'bg-white text-slate-900 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Transactions
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* Content */}
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                {activeTab === 'manage' ? <BookingsManager /> : <TransactionsDashboard />}
+                {activeTab === 'manage' && hasManageAccess ? <BookingsManager /> : null}
+                {activeTab === 'transactions' && hasTransactionsAccess ? <TransactionsDashboard /> : null}
             </div>
         </Layout>
     );

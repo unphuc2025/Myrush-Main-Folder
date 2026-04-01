@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import models, schemas
 from database import get_db
 from dependencies import get_admin_branch_filter, PermissionChecker
@@ -36,13 +36,18 @@ def get_all_courts(
     limit: int = Query(20, ge=1, le=100),
     search: Optional[str] = None,
     branch_id: str = None, 
+    city_id: Optional[str] = None,
     game_type_id: str = None, 
     db: Session = Depends(get_db),
     _ = Depends(PermissionChecker("Manage Courts", "view")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
-    """Get all courts with pagination and searching, filtered by branch access rights"""
+    """Get all courts with pagination and searching, filtered by branch access rights and city"""
     query = db.query(models.Court)
+    
+    # Apply city filter if provided
+    if city_id:
+        query = query.join(models.Branch).filter(models.Branch.city_id == city_id)
     
     # 1. Apply Role-Based Restrictions (Server-side)
     if branch_filter is not None:
@@ -199,12 +204,20 @@ async def create_court(
         except json.JSONDecodeError:
             amenities_data = []
 
+    # Validate price_per_hour
+    try:
+        if not price_per_hour or price_per_hour.strip() == "":
+             raise HTTPException(status_code=400, detail="Base price per hour is required")
+        price_val = Decimal(price_per_hour)
+    except (ValueError, InvalidOperation):
+        raise HTTPException(status_code=400, detail="Invalid price total. Please enter a valid number.")
+
     # Create court
     db_court = models.Court(
         name=name,
         branch_id=branch_id,
         game_type_id=game_type_id,
-        price_per_hour=Decimal(price_per_hour),
+        price_per_hour=price_val,
         price_conditions=price_conditions_data,
         unavailability_slots=unavailability_slots_data,
         terms_and_conditions=terms_and_conditions,
@@ -236,12 +249,17 @@ async def create_court(
         try:
             slices_data = json.loads(sport_slices)
             for sl in slices_data:
+                # Validate slice price
+                slice_price = sl.get("price_per_hour")
+                if not slice_price or str(slice_price).strip() == "":
+                    raise HTTPException(status_code=400, detail=f"Price is required for slice '{sl.get('name')}'")
+                
                 db.add(models.SportSlice(
                     court_id=db_court.id,
                     sport_id=sl.get("sport_id", game_type_id),
                     name=sl.get("name"),
                     mask=sl.get("mask"),
-                    price_per_hour=sl.get("price_per_hour")
+                    price_per_hour=Decimal(slice_price)
                 ))
         except Exception as e:
             print(f"Error parsing sport slices: {e}")
@@ -367,7 +385,15 @@ async def update_court(
     db_court.name = name
     db_court.branch_id = branch_id
     db_court.game_type_id = game_type_id
-    db_court.price_per_hour = Decimal(price_per_hour)
+    
+    # Validate and update price_per_hour
+    try:
+        if not price_per_hour or price_per_hour.strip() == "":
+             raise HTTPException(status_code=400, detail="Base price per hour is required")
+        db_court.price_per_hour = Decimal(price_per_hour)
+    except (ValueError, InvalidOperation):
+        raise HTTPException(status_code=400, detail="Invalid price per hour. Please enter a valid number.")
+
     db_court.price_conditions = price_conditions_data
     db_court.unavailability_slots = unavailability_slots_data
     db_court.terms_and_conditions = terms_and_conditions
@@ -394,12 +420,17 @@ async def update_court(
             
             slices_data = json.loads(sport_slices)
             for sl in slices_data:
+                # Validate slice price
+                slice_price = sl.get("price_per_hour")
+                if not slice_price or str(slice_price).strip() == "":
+                    raise HTTPException(status_code=400, detail=f"Price is required for slice '{sl.get('name')}'")
+
                 db.add(models.SportSlice(
                     court_id=db_court.id,
                     sport_id=sl.get("sport_id", game_type_id),
                     name=sl.get("name"),
                     mask=sl.get("mask"),
-                    price_per_hour=sl.get("price_per_hour")
+                    price_per_hour=Decimal(slice_price)
                 ))
         except Exception as e:
             print(f"Error parsing sport slices: {e}")

@@ -29,6 +29,13 @@ function BookingsManager() {
     const [editingBooking, setEditingBooking] = useState(null);
     const [viewingBooking, setViewingBooking] = useState(null);
 
+    const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+    const isSuperAdmin = adminInfo.role === 'super_admin';
+    const permissions = adminInfo.permissions?.['Manage Bookings'] || {};
+    const canAdd = isSuperAdmin || permissions.add;
+    const canEdit = isSuperAdmin || permissions.edit;
+    const canDelete = isSuperAdmin || permissions.delete;
+
     useEffect(() => {
         let isMounted = true;
 
@@ -47,11 +54,12 @@ function BookingsManager() {
                     }
                 }
 
-                const [citiesData, branchesData, bookingsData] = await Promise.all([
-                    citiesApi.getAll(),
-                    branchesApi.getAll(),
-                    bookingsApi.getAll(branchId) // API filters by branch if provided
-                ]);
+                // Fetch data individually to prevent 403 errors on metadata (e.g. cities/branches) 
+                // from blocking the main bookings result for restricted admins.
+                let citiesData = [], branchesData = [], bookingsData = [];
+                try { citiesData = await citiesApi.getAll(); } catch (e) { console.warn("Bookings: Cities fetch failed", e); }
+                try { branchesData = await branchesApi.getAll(); } catch (e) { console.warn("Bookings: Branches fetch failed", e); }
+                try { bookingsData = await bookingsApi.getAll(branchId); } catch (e) { console.warn("Bookings: Bookings fetch failed", e); }
 
                 if (isMounted) {
                     setCities(citiesData?.items || citiesData || []);
@@ -266,13 +274,15 @@ function BookingsManager() {
                 </div>
 
                 <div className="flex-shrink-0 w-full xl:w-auto">
-                    <button
-                        onClick={handleAddClick}
-                        className="w-full xl:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95 whitespace-nowrap min-h-[44px]"
-                    >
-                        <Plus className="h-4 w-4" />
-                        <span className="text-sm font-semibold">New Booking</span>
-                    </button>
+                    {canAdd && (
+                        <button
+                            onClick={handleAddClick}
+                            className="w-full xl:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95 whitespace-nowrap min-h-[44px]"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span className="text-sm font-semibold">New Booking</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -336,7 +346,7 @@ function BookingsManager() {
                                                     {booking.court?.branch?.name}
                                                 </td>
                                                 <td className="px-4 py-3 text-xs text-slate-700 capitalize">
-                                                    {booking.court?.sport?.name || booking.court?.sport_type || 'cricket'}
+                                                    {booking.game_type?.name || booking.court?.game_type?.name || 'cricket'}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-col">
@@ -419,20 +429,24 @@ function BookingsManager() {
                                                         >
                                                             <Eye className="h-3.5 w-3.5" />
                                                         </button>
-                                                        <button
-                                                            onClick={() => handleEditClick(booking)}
-                                                            className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded transition-colors"
-                                                            title="Edit Booking"
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteClick(booking.id)}
-                                                            className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors"
-                                                            title="Delete Booking"
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        </button>
+                                                        {canEdit && (
+                                                            <button
+                                                                onClick={() => handleEditClick(booking)}
+                                                                className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded transition-colors"
+                                                                title="Edit Booking"
+                                                            >
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        )}
+                                                        {canDelete && (
+                                                            <button
+                                                                onClick={() => handleDeleteClick(booking.id)}
+                                                                className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors"
+                                                                title="Delete Booking"
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -445,12 +459,14 @@ function BookingsManager() {
                                                         <Calendar className="h-8 w-8 text-slate-300" />
                                                     </div>
                                                     <p className="font-medium">No bookings found</p>
-                                                    <button
-                                                        onClick={handleAddClick}
-                                                        className="mt-2 text-sm text-green-600 hover:text-green-700 font-bold"
-                                                    >
-                                                        Create your first booking
-                                                    </button>
+                                                    {canAdd && (
+                                                        <button
+                                                            onClick={handleAddClick}
+                                                            className="mt-2 text-sm text-green-600 hover:text-green-700 font-bold"
+                                                        >
+                                                            Create your first booking
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -507,7 +523,7 @@ function BookingsManager() {
                                             <div className="bg-white p-2.5 rounded-lg border border-slate-100">
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Venue</p>
                                                 <p className="text-xs font-semibold text-slate-700 truncate">{booking.court?.branch?.name}</p>
-                                                <p className="text-[10px] text-slate-500 mt-0.5 capitalize">{booking.court?.sport?.name || booking.court?.sport_type || 'Sports'}</p>
+                                                <p className="text-[10px] text-slate-500 mt-0.5 capitalize">{booking.game_type?.name || booking.court?.game_type?.name || 'Sports'}</p>
                                             </div>
                                         </div>
 

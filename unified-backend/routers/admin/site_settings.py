@@ -31,7 +31,7 @@ def get_site_settings(db: Session = Depends(get_db)):
         db.refresh(settings)
     return settings
 
-@router.put("", response_model=schemas.SiteSettingResponse, dependencies=[Depends(PermissionChecker("Settings", "edit"))])
+@router.put("", response_model=schemas.SiteSettingResponse, dependencies=[Depends(PermissionChecker("Settings", ["add", "edit"]))])
 async def update_site_settings(
     company_name: Optional[str] = Form(None),
     email: str = Form(...),
@@ -44,6 +44,11 @@ async def update_site_settings(
     site_logo: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
+    # Validate contact number - 10 digits only
+    import re
+    if not re.match(r"^\d{10}$", contact_number):
+        raise HTTPException(status_code=400, detail="Invalid contact number. It must be exactly 10 digits.")
+
     settings = db.query(models.SiteSetting).first()
     
     if not settings:

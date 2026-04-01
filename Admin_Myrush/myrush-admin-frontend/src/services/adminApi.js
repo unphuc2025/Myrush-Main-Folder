@@ -223,6 +223,7 @@ export const courtsApi = {
         if (options.limit) params.append('limit', options.limit);
         if (options.search) params.append('search', options.search);
         if (options.branch_id) params.append('branch_id', options.branch_id);
+        if (options.city_id) params.append('city_id', options.city_id);
         if (options.game_type_id) params.append('game_type_id', options.game_type_id);
         const query = params.toString();
         return apiRequest(`/courts${query ? `?${query}` : ''}`);

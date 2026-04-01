@@ -16,7 +16,7 @@ router = APIRouter(
     tags=["branches"]
 )
 
-from dependencies import get_admin_branch_filter, require_super_admin, PermissionChecker
+from dependencies import get_admin_branch_filter, require_super_admin, PermissionChecker, get_current_admin
 
 @router.get("", response_model=schemas.BranchListResponse)
 @router.get("/", response_model=schemas.BranchListResponse)
@@ -110,7 +110,8 @@ async def create_branch(
     game_types: Optional[List[str]] = Form(None),
     amenities: Optional[List[str]] = Form(None),
     images: Optional[List[UploadFile]] = File(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin: models.Admin = Depends(get_current_admin)
 ):
     """Create a new branch with file uploads"""
     # Handle image uploads
@@ -175,6 +176,14 @@ async def create_branch(
                 amenity_id=amenity_id
             )
             db.add(db_branch_amenity)
+
+    # Link the new branch to the creator if they are a sub-admin (so it immediately shows up for them)
+    if current_admin.role != 'super_admin':
+        db_access = models.AdminBranchAccess(
+            admin_id=current_admin.id,
+            branch_id=db_branch.id
+        )
+        db.add(db_access)
 
     db.commit()
     db.refresh(db_branch)

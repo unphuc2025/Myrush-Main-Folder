@@ -5,6 +5,7 @@ from typing import List
 import models, schemas
 from database import get_db
 import uuid
+from datetime import datetime
 
 router = APIRouter(
     prefix="/coupons",
@@ -14,9 +15,12 @@ router = APIRouter(
 @router.get("/lookup", response_model=schemas.Coupon)
 def lookup_coupon_by_code(code: str, db: Session = Depends(get_db)):
     """Look up a single coupon by code — no special permission required beyond admin auth"""
+    now = datetime.utcnow()
     coupon = db.query(models.Coupon).filter(
         models.Coupon.code == code.upper(),
-        models.Coupon.is_active == True
+        models.Coupon.is_active == True,
+        models.Coupon.start_date <= now,
+        models.Coupon.end_date >= now
     ).first()
     if not coupon:
         raise HTTPException(status_code=404, detail="Coupon not found or inactive")
@@ -24,8 +28,13 @@ def lookup_coupon_by_code(code: str, db: Session = Depends(get_db)):
 
 @router.get("/active-coupons", response_model=List[schemas.Coupon])
 def get_active_coupons(db: Session = Depends(get_db)):
-    """Get all active coupons — accessible to any logged-in admin for booking form use"""
-    coupons = db.query(models.Coupon).filter(models.Coupon.is_active == True).all()
+    """Get all active and valid coupons — accessible to any logged-in admin for booking form use"""
+    now = datetime.utcnow()
+    coupons = db.query(models.Coupon).filter(
+        models.Coupon.is_active == True,
+        models.Coupon.start_date <= now,
+        models.Coupon.end_date >= now
+    ).all()
     return coupons
 
 @router.get("", response_model=List[schemas.Coupon], dependencies=[Depends(PermissionChecker("Manage Coupons", "view"))])

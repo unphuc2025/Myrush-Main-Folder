@@ -122,25 +122,40 @@ def create_booking(
     
     original_amount = booking.original_amount or total_amount
 
+    # Ensure time_slots are in a clean format for JSON storage
+    clean_time_slots = booking.time_slots or []
+    if isinstance(clean_time_slots, list):
+        clean_time_slots = [
+            {"start": str(s.get("start", "")), "end": str(s.get("end", "")), "price": float(s.get("price", 0))}
+            for s in clean_time_slots
+        ]
+
     try:
         db_booking = models.Booking(
-            **booking.dict(exclude={'coupon_code', 'start_time', 'end_time', 'total_amount', 'duration_minutes', 'original_amount', 'razorpay_payment_id', 'razorpay_order_id', 'razorpay_signature'}),
+            user_id=booking.user_id,
+            court_id=booking.court_id,
+            booking_date=booking.booking_date,
             start_time=start_time_obj,
             end_time=end_time_obj,
             duration_minutes=duration_minutes,
-            total_duration_minutes=duration_minutes, # Populate new field
-            total_amount=total_amount, # Set calculated total
+            total_duration_minutes=duration_minutes,
+            total_amount=total_amount,
             original_amount=original_amount,
-            # Populate old deprecated columns (NOT NULL constraints)
+            discount_amount=discount_amount,
+            coupon_code=booking.coupon_code or None,
+            coupon_id=db_coupon.id if db_coupon else None,
+            coupon_discount=discount_amount,
+            status=booking.status or 'pending',
+            payment_status=booking.payment_status or 'pending',
+            team_name=booking.team_name,
+            number_of_players=booking.number_of_players or 2,
+            time_slots=clean_time_slots,
+            payment_id=str(uuid.uuid4()),
+            # Deprecated columns
             _old_start_time=start_time_obj,
             _old_end_time=end_time_obj,
             _old_duration_minutes=duration_minutes,
-            _old_price_per_hour=booking.price_per_hour,
-            payment_id=str(uuid.uuid4()), # Placeholder
-            coupon_id=db_coupon.id if db_coupon else None,
-            coupon_code=booking.coupon_code or None,  # Save the direct coupon_code field
-            coupon_discount=discount_amount,
-            discount_amount=discount_amount  # Also save to discount_amount field
+            _old_price_per_hour=booking.price_per_hour
         )
         
         db.add(db_booking)
@@ -153,7 +168,8 @@ def create_booking(
         db.rollback()
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to create booking: {str(e)}")
+        print(f"[ERROR] Booking creation failed (Version V3): {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create booking (Ref V3): {str(e)}")
 
 from dependencies import get_admin_branch_filter
 
