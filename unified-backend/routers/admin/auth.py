@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from typing import List, Optional
 import models
@@ -96,7 +96,7 @@ from dependencies import require_super_admin, get_current_admin
 @router.get("/admins", response_model=List[schemas.Admin], dependencies=[Depends(PermissionChecker("Sub Admin Management", "view"))])
 def get_all_admins(db: Session = Depends(get_db)):
     """Get all admins"""
-    return db.query(models.Admin).all()
+    return db.query(models.Admin).options(joinedload(models.Admin.role_rel)).all()
 
 @router.get("/me")
 @router.get("/me/")

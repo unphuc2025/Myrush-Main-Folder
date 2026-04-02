@@ -535,13 +535,7 @@ function VenuesSettings() {
       // Optimistic update
       setVenues(venues.map(v => v.id === venue.id ? { ...v, is_active: !v.is_active } : v));
 
-      const updateData = new FormData();
-      updateData.append('name', venue.name);
-      updateData.append('city_id', venue.city_id);
-      updateData.append('area_id', venue.area_id);
-      updateData.append('is_active', !venue.is_active);
-
-      await branchesApi.update(venue.id, updateData);
+      await branchesApi.toggle(venue.id);
 
     } catch (err) {
       console.error('Error toggling venue:', err);
@@ -1174,7 +1168,7 @@ function VenuesSettings() {
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Location URL / Google Maps Link</label>
               <input
-                type="text"
+                type="url"
                 value={formData.locationUrl}
                 onChange={(e) => setFormData({ ...formData, locationUrl: e.target.value })}
                 disabled={!!viewingVenue}
@@ -1287,20 +1281,24 @@ function VenuesSettings() {
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ground Type</label>
               <div className="flex flex-col sm:flex-row gap-4">
-                <label className={`flex-1 flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all ${viewingVenue ? 'cursor-default' : 'cursor-pointer'} ${formData.groundType === 'single' ? 'border-green-500 bg-green-50/50 text-green-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                  <input type="radio" value="single" checked={formData.groundType === 'single'} onChange={e => !viewingVenue && setFormData({ ...formData, groundType: e.target.value })} className="hidden" disabled={!!viewingVenue} />
+                <div onClick={() => !viewingVenue && setFormData({ ...formData, groundType: 'single' })} className={`flex-1 flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all ${viewingVenue ? 'cursor-default' : 'cursor-pointer'} ${formData.groundType === 'single' ? 'border-green-500 bg-green-50/50 text-green-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
                   <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${formData.groundType === 'single' ? 'border-green-500' : 'border-slate-300'}`}>
                     {formData.groundType === 'single' && <div className="h-2.5 w-2.5 rounded-full bg-green-500" />}
                   </div>
-                  <span className="font-bold text-sm">Single Ground</span>
-                </label>
-                <label className={`flex-1 flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all ${viewingVenue ? 'cursor-default' : 'cursor-pointer'} ${formData.groundType === 'multiple' ? 'border-purple-500 bg-purple-50/50 text-purple-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                  <input type="radio" value="multiple" checked={formData.groundType === 'multiple'} onChange={e => !viewingVenue && setFormData({ ...formData, groundType: e.target.value })} className="hidden" disabled={!!viewingVenue} />
+                  <div className="flex flex-col">
+                    <span className="font-bold text-sm">Single Ground</span>
+                    <span className="text-[10px] text-slate-500 font-medium">Standard independent court</span>
+                  </div>
+                </div>
+                <div onClick={() => !viewingVenue && setFormData({ ...formData, groundType: 'multiple' })} className={`flex-1 flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all ${viewingVenue ? 'cursor-default' : 'cursor-pointer'} ${formData.groundType === 'multiple' ? 'border-purple-500 bg-purple-50/50 text-purple-700' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
                   <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${formData.groundType === 'multiple' ? 'border-purple-500' : 'border-slate-300'}`}>
                     {formData.groundType === 'multiple' && <div className="h-2.5 w-2.5 rounded-full bg-purple-500" />}
                   </div>
-                  <span className="font-bold text-sm">Multiple Grounds</span>
-                </label>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-sm">Multiple Grounds</span>
+                    <span className="text-[10px] text-slate-500 font-medium">Segmented/divisible facility</span>
+                  </div>
+                </div>
               </div>
             </div>
 

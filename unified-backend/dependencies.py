@@ -5,7 +5,7 @@ Handles both admin (simple token) and user (JWT) authentication
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from jose import JWTError, jwt
 from typing import Annotated, Optional, List, Union
 import os
@@ -118,7 +118,7 @@ def get_current_admin(
     
     try:
         admin_id = token.replace("admin-token-", "")
-        admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
+        admin = db.query(models.Admin).options(joinedload(models.Admin.role_rel)).filter(models.Admin.id == admin_id).first()
         
         if admin is None:
             raise credentials_exception
@@ -190,9 +190,9 @@ def get_admin_branch_filter(
     return list(branch_ids)
 
 class PermissionChecker:
-    def __init__(self, module: Union[str, List[str]], action: str):
+    def __init__(self, module: Union[str, List[str]], action: Union[str, List[str]]):
         self.modules = [module] if isinstance(module, str) else module
-        self.action = action
+        self.actions = [action] if isinstance(action, str) else action
 
     def __call__(self, admin: models.Admin = Depends(get_current_admin)):
         # Super admin bypass
@@ -213,23 +213,26 @@ class PermissionChecker:
                 detail="Role has no permissions defined"
             )
 
-        # Check ANY of the allowed modules
+        # Check ANY of the allowed modules and ANY of the allowed actions
         has_access = False
         for module in self.modules:
             module_perms = permissions.get(module)
             if module_perms:
-                if module_perms.get(self.action):
-                    has_access = True
-                    break
-                # 'access' permission also grants 'view' capability
-                if self.action == "view" and module_perms.get("access"):
-                    has_access = True
+                for action in self.actions:
+                    if module_perms.get(action):
+                        has_access = True
+                        break
+                    # 'access' permission also grants 'view' capability
+                    if action == "view" and module_perms.get("access"):
+                        has_access = True
+                        break
+                if has_access:
                     break
         
         if not has_access:
              raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have access"
+                detail="You do not have access"
             )
 
         return admin

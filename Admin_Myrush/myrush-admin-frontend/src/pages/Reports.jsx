@@ -22,7 +22,17 @@ const Reports = () => {
             if (adminInfo.role === 'super_admin') return {
                 add: true, edit: true, delete: true, view: true
             };
-            return adminInfo.permissions?.['Reports and analytics'] || {};
+            
+            // Allow access if user has either 'Reports and analytics' OR 'Transactions And Earnings'
+            const reportsPerms = adminInfo.permissions?.['Reports and analytics'] || {};
+            const transactionsPerms = adminInfo.permissions?.['Transactions And Earnings'] || {};
+            
+            return {
+                view: reportsPerms.view || transactionsPerms.view || false,
+                add: reportsPerms.add || transactionsPerms.add || false,
+                edit: reportsPerms.edit || transactionsPerms.edit || false,
+                delete: reportsPerms.delete || transactionsPerms.delete || false
+            };
         } catch { return {}; }
     })();
 

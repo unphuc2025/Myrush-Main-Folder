@@ -207,6 +207,9 @@ export const branchesApi = {
         method: 'PUT',
         body: formData
     }),
+    toggle: (id) => apiRequest(`/branches/${id}/toggle`, {
+        method: 'PATCH'
+    }),
     delete: (id) => apiRequest(`/branches/${id}`, {
         method: 'DELETE'
     })
@@ -220,6 +223,7 @@ export const courtsApi = {
         if (options.limit) params.append('limit', options.limit);
         if (options.search) params.append('search', options.search);
         if (options.branch_id) params.append('branch_id', options.branch_id);
+        if (options.city_id) params.append('city_id', options.city_id);
         if (options.game_type_id) params.append('game_type_id', options.game_type_id);
         const query = params.toString();
         return apiRequest(`/courts${query ? `?${query}` : ''}`);
@@ -232,6 +236,9 @@ export const courtsApi = {
     update: (id, formData) => apiRequest(`/courts/${id}`, {
         method: 'PUT',
         body: formData
+    }),
+    toggle: (id) => apiRequest(`/courts/${id}/toggle`, {
+        method: 'PATCH'
     }),
     delete: (id) => apiRequest(`/courts/${id}`, {
         method: 'DELETE'

@@ -202,14 +202,7 @@ function CourtsSettings() {
       // Optimistic
       setCourts(courts.map(c => c.id === court.id ? { ...c, is_active: !c.is_active } : c));
 
-      const updateData = new FormData();
-      updateData.append('name', court.name);
-      updateData.append('branch_id', court.branch_id);
-      updateData.append('game_type_id', court.game_type_id);
-      updateData.append('price_per_hour', court.price_per_hour || court.default_price);
-      updateData.append('is_active', !court.is_active);
-
-      await courtsApi.update(court.id, updateData);
+      await courtsApi.toggle(court.id);
     } catch (err) {
       console.error('Error toggling court:', err);
       const errorMsg = err.message && (err.message.toLowerCase().includes('authorized') || err.message.includes('403') || err.message.toLowerCase().includes('access'))

@@ -327,6 +327,7 @@ def get_available_slots(
                 "occupied_mask": details.get('occupied_mask', 0),
                 "total_zones": details.get('total_zones', 1),
                 "logic_type": court.logic_type if court else 'independent',
+                "capacity_limit": court.capacity_limit if court else 1,
                 "slices": details.get('slices', []),
                 "is_available": is_available,
                 "is_admin_blocked": details.get('is_blocked', False),

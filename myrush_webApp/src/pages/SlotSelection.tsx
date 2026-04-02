@@ -26,6 +26,7 @@ export const SlotSelection: React.FC = () => {
     const [selectedDate, setSelectedDate] = useState(currentDate.getDate());
     const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
     const [selectedSlots, setSelectedSlots] = useState<Slot[]>([]);
+    const [numPersons, setNumPersons] = useState(1);
     const [loading, setLoading] = useState(false);
 
     // Month Navigation
@@ -77,12 +78,19 @@ export const SlotSelection: React.FC = () => {
         // Pass data via state or query params. State is cleaner for complex objects.
         const dateStr = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.toString().padStart(2, '0')}`;
 
+
+        const logicType = (availableSlots[0] as any)?.logic_type || 'independent';
+        const isCapacity = logicType === 'capacity';
+        const basePrice = selectedSlots.reduce((sum, s) => sum + s.price, 0);
+        const finalPrice = isCapacity ? basePrice * numPersons : basePrice;
+
         navigate('/booking/summary', {
             state: {
                 venueId,
                 date: dateStr,
                 selectedSlots,
-                totalPrice: selectedSlots.reduce((sum, s) => sum + s.price, 0)
+                totalPrice: finalPrice,
+                numPlayers: isCapacity ? numPersons : 1
             }
         });
     };
@@ -222,6 +230,38 @@ export const SlotSelection: React.FC = () => {
                         </div>
                     )}
                 </motion.section>
+
+                {/* Capacity Selector (Show if logic_type is capacity and slots are available) */}
+                {availableSlots.length > 0 && (availableSlots[0] as any)?.logic_type === 'capacity' && (
+                    <motion.section
+                        className="bg-white p-6 rounded-xl mb-8 shadow-sm border border-gray-100"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">Number of Persons</h3>
+                                <p className="text-xs text-gray-400 font-medium">Pricing is ₹{(availableSlots[0]?.price || 0)} per person per slot</p>
+                            </div>
+                            <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-xl border border-gray-100">
+                                <button
+                                    onClick={() => setNumPersons(Math.max(1, numPersons - 1))}
+                                    className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center font-bold text-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    -
+                                </button>
+                                <span className="text-xl font-black w-8 text-center">{numPersons}</span>
+                                <button
+                                    onClick={() => setNumPersons(Math.min((availableSlots[0] as any)?.capacity_limit || 5, numPersons + 1))}
+                                    className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center font-bold text-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </div>
+                    </motion.section>
+                )}
             </main>
 
             <footer className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-xl border-t border-gray-200 z-40">
@@ -229,7 +269,12 @@ export const SlotSelection: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <div className="text-right md:text-left">
                             <span className="block text-gray-400 text-sm uppercase tracking-wider">Total Price</span>
-                            <span className="text-3xl font-black text-gray-900">₹{selectedSlots.reduce((sum, s) => sum + s.price, 0)}</span>
+                            <span className="text-3xl font-black text-gray-900">
+                                ₹{(() => {
+                                    const base = selectedSlots.reduce((sum, s) => sum + s.price, 0);
+                                    return (availableSlots[0] as any)?.logic_type === 'capacity' ? base * numPersons : base;
+                                })()}
+                            </span>
                         </div>
                     </div>
                     <Button

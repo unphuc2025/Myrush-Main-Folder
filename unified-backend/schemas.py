@@ -860,6 +860,7 @@ class BookingCreate(BaseModel):
     # Multi-court booking: number of courts in the combined payment
     # Used by backend to scale price validation when one Razorpay order covers multiple courts
     num_courts: Optional[int] = 1
+    branch_id: Optional[str] = None
     court_name: Optional[str] = None
 
 class BookingResponse(BaseModel):

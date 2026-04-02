@@ -688,7 +688,7 @@ function BranchesSettings() {
           < div >
             <label className="block text-sm font-medium text-slate-700 mb-2">Google Map URL</label>
             <input
-              type="text"
+              type="url"
               value={formData.googleMapUrl}
               onChange={(e) => setFormData({ ...formData, googleMapUrl: e.target.value })}
               placeholder="https://maps.google.com/..."
@@ -786,26 +786,18 @@ function BranchesSettings() {
             < div >
               <label className="block text-sm font-medium text-slate-700 mb-2">Ground Type *</label>
               <div className="space-y-2">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="single"
-                    checked={formData.groundType === 'single'}
-                    onChange={(e) => setFormData({ ...formData, groundType: e.target.value })}
-                    className="mr-2 text-green-600 focus:ring-green-500"
-                  />
+                <div onClick={() => setFormData({ ...formData, groundType: 'single' })} className="flex items-center cursor-pointer mb-2">
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center mr-2 ${formData.groundType === 'single' ? 'border-green-600' : 'border-slate-400'}`}>
+                    {formData.groundType === 'single' && <div className="w-2 h-2 rounded-full bg-green-600" />}
+                  </div>
                   Single Ground
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="multiple"
-                    checked={formData.groundType === 'multiple'}
-                    onChange={(e) => setFormData({ ...formData, groundType: e.target.value })}
-                    className="mr-2 text-green-600 focus:ring-green-500"
-                  />
+                </div>
+                <div onClick={() => setFormData({ ...formData, groundType: 'multiple' })} className="flex items-center cursor-pointer">
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center mr-2 ${formData.groundType === 'multiple' ? 'border-green-600' : 'border-slate-400'}`}>
+                    {formData.groundType === 'multiple' && <div className="w-2 h-2 rounded-full bg-green-600" />}
+                  </div>
                   Multiple Grounds
-                </label>
+                </div>
               </div>
             </div >
 

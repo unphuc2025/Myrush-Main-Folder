@@ -305,5 +305,5 @@ print("Admin API: http://localhost:8000/api/admin")
 print("User API: http://localhost:8000/api/user")
 print("API Docs: http://localhost:8000/docs")
 print("="*60 + "\n")
-# Trigger reload
+# Trigger reload (Force V3)
 

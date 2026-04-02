@@ -156,7 +156,8 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
             ]);
 
             if (courtsResult.status === 'fulfilled') {
-                setCourts(Array.isArray(courtsResult.value) ? courtsResult.value : []);
+                const c = courtsResult.value;
+                setCourts(Array.isArray(c?.items) ? c.items : Array.isArray(c) ? c : []);
             }
             if (usersResult.status === 'fulfilled') {
                 const u = usersResult.value;
@@ -277,10 +278,10 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
             newPrice = parseFloat(selectedCourt.price_per_hour) || 0;
         }
 
-        // Update slots with new price if they are 0 or untouched
+        // Update slots with new price
         const updatedSlots = formData.time_slots.map(slot => ({
             ...slot,
-            price: slot.price == 0 ? newPrice : slot.price
+            price: newPrice
         }));
 
         setFormData({

@@ -37,9 +37,9 @@ export const Footer: React.FC = () => {
                 <div className={`grid grid-cols-1 ${hasLegalPages ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-6 mb-4 text-zinc-900 text-sm`}>
                     <div className="col-span-1 md:col-span-2">
                         {settings?.site_logo ? (
-                            <img src={`${IMAGE_BASE_URL}${settings.site_logo}`} alt="Rush" className="h-14 mb-2 object-contain -ml-4" />
+                            <img src={`${IMAGE_BASE_URL}${settings.site_logo}`} alt="Rush" className="h-20 mb-2 object-contain" />
                         ) : (
-                            <img src="/Rush-logo.webp" alt="Rush" className="h-14 mb-2 object-contain -ml-4" />
+                            <img src="/Rush-logo.webp" alt="Rush" className="h-20 mb-2 object-contain" />
                         )}
                         <p className="max-w-xl mb-6 text-sm leading-relaxed text-zinc-600">
                             The premier destination for sports enthusiasts. Book world-class venues, join elite academies, and compete in high-stakes tournaments.
@@ -69,6 +69,7 @@ export const Footer: React.FC = () => {
                                 <li key={item.name}>
                                     <Link
                                         to={item.path}
+                                        onClick={() => window.scrollTo(0, 0)}
                                         className={`transition-all duration-300 block font-heading uppercase tracking-wider text-sm font-bold ${isActive(item.path)
                                             ? 'text-primary'
                                             : 'text-zinc-500 hover:text-zinc-900 hover:translate-x-1'
@@ -88,6 +89,7 @@ export const Footer: React.FC = () => {
                                     <li key={page.id}>
                                         <Link
                                             to={`/p/${page.slug}`}
+                                            onClick={() => window.scrollTo(0, 0)}
                                             className={`transition-all duration-300 block font-heading uppercase tracking-wider text-sm font-bold ${isActive(`/p/${page.slug}`)
                                                 ? 'text-primary'
                                                 : 'text-zinc-500 hover:text-zinc-900 hover:translate-x-1'
@@ -124,10 +126,10 @@ export const Footer: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div className="border-t border-zinc-200 pt-3 flex flex-col md:flex-row justify-between items-center text-[10px] md:text-xs text-zinc-400 uppercase tracking-[0.2em] font-bold">
+                <div className="border-t border-zinc-200 pt-3 flex flex-col md:flex-row justify-between items-center text-[10px] text-zinc-400 uppercase tracking-[0.2em] font-normal">
                     <p>{settings?.copyright_text || '© 2026 Addrush Sports Private Limited.'}</p>
                     <div className="flex gap-8 mt-4 md:mt-0">
-                        <Link to="/p/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+                        <Link to="/p/terms" onClick={() => window.scrollTo(0, 0)} className="hover:text-primary transition-colors">Terms of Service</Link>
                     </div>
                 </div>
             </div>

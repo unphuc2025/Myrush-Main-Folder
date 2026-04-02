@@ -59,26 +59,24 @@ function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [bookings, venues, users, courts] = await Promise.all([
-        bookingsApi.getAll(),
-        branchesApi.getAll(),
-        usersApi.getAll(),
-        courtsApi.getAll()
-      ]);
+      
+      // Fetch data individually to handle 100% partial failures (for restricted admins)
+      let bookings = [], venues = [], users = [], courts = [];
 
-      console.log('Dashboard Debug - Bookings:', bookings);
-      console.log('Dashboard Debug - Users:', users);
-      console.log('Dashboard Debug - Courts:', courts);
+      try { bookings = await bookingsApi.getAll(); } catch (e) { console.warn("Dashboard: Bookings fetch failed", e); }
+      try { venues = await branchesApi.getAll(); } catch (e) { console.warn("Dashboard: Venues fetch failed", e); }
+      try { users = await usersApi.getAll(); } catch (e) { console.warn("Dashboard: Users fetch failed", e); }
+      try { courts = await courtsApi.getAll(); } catch (e) { console.warn("Dashboard: Courts fetch failed", e); }
 
       processDashboardData(bookings, venues, users, courts);
     } catch (error) {
-      console.error("Failed to fetch dashboard data:", error);
+      console.error("Critical error in dashboard data processing:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const processDashboardData = (bookings, venues, users, courts) => {
+  const processDashboardData = (bookings = [], venues = [], users = [], courts = []) => {
     // 1. Key Metrics
     const totalRevenue = (Array.isArray(bookings) ? bookings : bookings.items || []).reduce((sum, booking) => {
       // Use total_amount from API, handling potential string/decimal formats
