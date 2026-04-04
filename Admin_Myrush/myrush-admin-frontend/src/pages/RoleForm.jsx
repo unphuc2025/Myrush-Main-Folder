@@ -206,7 +206,7 @@ const RoleForm = () => {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 pb-24 lg:pb-6 relative">
+            <form onSubmit={handleSubmit} className="max-w-5xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-10 pb-24 lg:pb-10 relative">
                 {error && (
                     <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
                         <XCircle className="h-5 w-5 shrink-0" />{error}
@@ -218,16 +218,17 @@ const RoleForm = () => {
                     </div>
                 )}
 
-                <div className="mb-8">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Role Name</label>
+                <div className="mb-10 bg-slate-50/50 p-6 rounded-xl border border-slate-100">
+                    <label className="block text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Role Name</label>
                     <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        className="w-full px-5 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-lg font-medium text-slate-900 shadow-sm transition-all"
                         placeholder="e.g. Booking Manager"
                         required
                     />
+                    <p className="mt-2 text-xs text-slate-400">Give this role a descriptive name to easily identify it later.</p>
                 </div>
 
                 <div className="overflow-x-auto">

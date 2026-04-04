@@ -227,9 +227,47 @@ function AddCourtForm({ onCancel, onSuccess, initialData = null }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setError(null);
 
+    // Validation
+    if (!formData.defaultPrice || formData.defaultPrice.toString().trim() === "" || parseFloat(formData.defaultPrice) <= 0) {
+      setError("Please enter a valid Base Price per Hour.");
+      setIsSubmitting(false);
+      // Scroll to top to see error
+      document.querySelector('.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (formData.logicType === 'divisible') {
+      if (!formData.sportSlices || formData.sportSlices.length === 0) {
+        setError("Please add at least one playing mode (Sport Slice) for divisible courts.");
+        setIsSubmitting(false);
+        document.querySelector('.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      for (const slice of formData.sportSlices) {
+        if (!slice.name.trim()) {
+          setError("All playing modes must have a name.");
+          setIsSubmitting(false);
+          document.querySelector('.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        if (!slice.price_per_hour || slice.price_per_hour.toString().trim() === "" || parseFloat(slice.price_per_hour) <= 0) {
+          setError(`Please enter a valid price for the playing mode: "${slice.name}".`);
+          setIsSubmitting(false);
+          document.querySelector('.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        if (!slice.mask || slice.mask === 0) {
+          setError(`Please select at least one zone for the playing mode: "${slice.name}".`);
+          setIsSubmitting(false);
+          document.querySelector('.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+      }
+    }
+
+    setIsSubmitting(true);
     try {
       // Use price conditions as is
       let priceConditions = [...formData.priceConditions];

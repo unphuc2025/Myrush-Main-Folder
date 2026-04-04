@@ -62,7 +62,7 @@ const SiteSettings = () => {
                 site_logo: null // Reset file input
             });
             if (data.site_logo) {
-                setLogoPreview(`${IMAGE_BASE_URL}${data.site_logo}`);
+                setLogoPreview(data.site_logo.startsWith('http') ? data.site_logo : `${IMAGE_BASE_URL}${data.site_logo}`);
             }
         } catch (err) {
             console.error('Error loading settings:', err);
@@ -116,7 +116,7 @@ const SiteSettings = () => {
 
             // Update preview if response has new logo path (though frontend preview is faster)
             if (response.site_logo) {
-                setLogoPreview(`${IMAGE_BASE_URL}${response.site_logo}`);
+                setLogoPreview(response.site_logo.startsWith('http') ? response.site_logo : `${IMAGE_BASE_URL}${response.site_logo}`);
             }
         } catch (err) {
             console.error('Error updating settings:', err);

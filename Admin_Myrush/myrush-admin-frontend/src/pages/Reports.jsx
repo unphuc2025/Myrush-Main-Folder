@@ -24,20 +24,21 @@ const Reports = () => {
             };
             
             // Allow access if user has either 'Reports and analytics' OR 'Transactions And Earnings'
-            const reportsPerms = adminInfo.permissions?.['Reports and analytics'] || {};
-            const transactionsPerms = adminInfo.permissions?.['Transactions And Earnings'] || {};
+            const reports = adminInfo.permissions?.['Reports and analytics'] || {};
+            const transactions = adminInfo.permissions?.['Transactions And Earnings'] || {};
             
+            // Strictly convert bit settings to booleans
             return {
-                view: reportsPerms.view || transactionsPerms.view || false,
-                add: reportsPerms.add || transactionsPerms.add || false,
-                edit: reportsPerms.edit || transactionsPerms.edit || false,
-                delete: reportsPerms.delete || transactionsPerms.delete || false
+                view: !!(reports.view || transactions.view || reports.access || transactions.access),
+                add: !!(reports.add || transactions.add),
+                edit: !!(reports.edit || transactions.edit),
+                delete: !!(reports.delete || transactions.delete)
             };
         } catch { return {}; }
     })();
 
-    const canExport = permissions.edit || permissions.delete || permissions.add;
-    const hasView = permissions.view;
+    const canExport = !!(permissions.add || permissions.edit || permissions.delete);
+    const hasView = !!permissions.view;
 
     // Data states
     const [bookings, setBookings] = useState([]);
@@ -318,6 +319,7 @@ const Reports = () => {
     return (
         <Layout onLogout={() => {
             localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_info');
             navigate('/login');
         }}>
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

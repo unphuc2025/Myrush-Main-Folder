@@ -177,6 +177,7 @@ function BookingsManager() {
     };
 
     const handleEditClick = (booking) => {
+        if (!canEdit) return;
         setEditingBooking(booking);
         setViewingBooking(null);
         setShowDrawer(true);
@@ -202,6 +203,7 @@ function BookingsManager() {
                 booking={viewingBooking}
                 onClose={() => setViewingBooking(null)}
                 onEdit={() => handleEditClick(viewingBooking)}
+                canEdit={canEdit}
                 getStatusColor={getStatusColor}
                 getPaymentColor={getPaymentColor}
             />
@@ -551,20 +553,24 @@ function BookingsManager() {
                                         </div>
 
                                         {/* Actions */}
-                                        <div className="flex items-center gap-2 pt-2">
-                                            <button
-                                                onClick={() => handleEditClick(booking)}
-                                                className="flex-1 min-h-[44px] flex items-center justify-center gap-2 text-amber-600 bg-amber-50 rounded-lg text-sm font-bold hover:bg-amber-100 transition-colors"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(booking.id)}
-                                                className="min-h-[44px] w-[44px] flex items-center justify-center text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
+                                         <div className="flex items-center gap-2 pt-2">
+                                            {canEdit && (
+                                                <button
+                                                    onClick={() => handleEditClick(booking)}
+                                                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 text-amber-600 bg-amber-50 rounded-lg text-sm font-bold hover:bg-amber-100 transition-colors"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                    Edit
+                                                </button>
+                                            )}
+                                            {canDelete && (
+                                                <button
+                                                    onClick={() => handleDeleteClick(booking.id)}
+                                                    className="min-h-[44px] w-[44px] flex items-center justify-center text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))
@@ -624,6 +630,8 @@ function BookingsManager() {
             >
                 <AddBookingForm
                     booking={editingBooking}
+                    initialCityId={selectedCityId}
+                    initialBranchId={selectedBranchId}
                     onClose={() => {
                         setShowDrawer(false);
                         setEditingBooking(null);
@@ -635,20 +643,22 @@ function BookingsManager() {
     );
 }
 
-function BookingViewModal({ booking, onClose, onEdit, getStatusColor, getPaymentColor }) {
+function BookingViewModal({ booking, onClose, onEdit, canEdit, getStatusColor, getPaymentColor }) {
     return (
         <div className="bg-white rounded-lg">
             {/* Header */}
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
                 <h2 className="text-xl font-semibold text-slate-800">View Booking Details</h2>
                 <div className="flex gap-2">
-                    <button
-                        onClick={onEdit}
-                        className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
-                        title="Edit Booking"
-                    >
-                        <Pencil className="h-5 w-5" />
-                    </button>
+                    {canEdit && (
+                        <button
+                            onClick={onEdit}
+                            className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                            title="Edit Booking"
+                        >
+                            <Pencil className="h-5 w-5" />
+                        </button>
+                    )}
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-slate-100 rounded-full transition-colors"

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Calendar, Clock, User, CreditCard, Check, Play, MapPin, IndianRupee, ChevronDown, Tag } from 'lucide-react';
-import { courtsApi, usersApi, bookingsApi, couponsApi } from '../../services/adminApi';
+import { courtsApi, usersApi, bookingsApi, couponsApi, citiesApi, branchesApi } from '../../services/adminApi';
 
 const TimePicker = ({ value, onChange, className }) => {
     const [hours, minutes] = (value || '09:00').split(':');
@@ -68,8 +68,12 @@ const TimePicker = ({ value, onChange, className }) => {
     );
 };
 
-export default function AddBookingForm({ onClose, onBookingAdded, booking = null, isFullPage = false, isViewing = false }) {
+export default function AddBookingForm({ onClose, onBookingAdded, booking = null, isFullPage = false, isViewing = false, initialCityId = '', initialBranchId = '' }) {
     const [courts, setCourts] = useState([]);
+    const [cities, setCities] = useState([]);
+    const [branches, setBranches] = useState([]);
+    const [selectedCityId, setSelectedCityId] = useState(initialCityId || '');
+    const [selectedBranchId, setSelectedBranchId] = useState(initialBranchId || '');
     const [users, setUsers] = useState([]);
     const [coupons, setCoupons] = useState([]);
     const [couponInput, setCouponInput] = useState('');
@@ -128,8 +132,22 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
                 coupon_code: booking.coupon_code || '',
                 // Keep the server total — it already has the discount baked in
                 total_amount: booking.total_amount || 0,
-                team_name: (!booking.user_id && booking.customer_name) ? booking.customer_name : (booking.team_name || '')
+                team_name: booking.team_name || ''
             });
+
+            // Set initial City/Branch if court info is available
+            const courtId = booking.court_id || booking.court?.id;
+            if (courtId && courts.length > 0) {
+                const court = courts.find(c => String(c.id) === String(courtId));
+                if (court && court.branch) {
+                    setSelectedBranchId(court.branch_id);
+                    setSelectedCityId(court.branch.city_id);
+                }
+            } else if (!isEditingExisting) {
+                // If new booking, use initial props if they weren't already set
+                if (initialCityId && !selectedCityId) setSelectedCityId(initialCityId);
+                if (initialBranchId && !selectedBranchId) setSelectedBranchId(initialBranchId);
+            }
             setIsEditingExisting(true);
         }
     }, [booking]);
@@ -149,15 +167,28 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
     const fetchData = async () => {
         try {
             // Fetch each independently so a 403 on one doesn't kill the rest
-            const [courtsResult, usersResult, couponsResult] = await Promise.allSettled([
+            const [courtsResult, usersResult, couponsResult, citiesResult, branchesResult] = await Promise.allSettled([
                 courtsApi.getAll(),
                 usersApi.getAll({ limit: 200 }),
-                couponsApi.getActiveCoupons()
+                couponsApi.getActiveCoupons(),
+                citiesApi.getAll(),
+                branchesApi.getAll()
             ]);
 
             if (courtsResult.status === 'fulfilled') {
                 const c = courtsResult.value;
-                setCourts(Array.isArray(c?.items) ? c.items : Array.isArray(c) ? c : []);
+                const fetchedCourts = Array.isArray(c?.items) ? c.items : Array.isArray(c) ? c : [];
+                setCourts(fetchedCourts);
+            }
+
+            if (citiesResult.status === 'fulfilled') {
+                const c = citiesResult.value;
+                setCities(Array.isArray(c?.items) ? c.items : Array.isArray(c) ? c : []);
+            }
+
+            if (branchesResult.status === 'fulfilled') {
+                const b = branchesResult.value;
+                setBranches(Array.isArray(b?.items) ? b.items : Array.isArray(b) ? b : []);
             }
             if (usersResult.status === 'fulfilled') {
                 const u = usersResult.value;
@@ -385,6 +416,52 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
                     </div>
 
                     <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">City</label>
+                        <div className="relative group">
+                            <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                            <select
+                                value={selectedCityId}
+                                onChange={(e) => {
+                                    setSelectedCityId(e.target.value);
+                                    setSelectedBranchId('');
+                                    setFormData({ ...formData, court_id: '' });
+                                }}
+                                disabled={isViewing}
+                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 outline-none transition-all font-medium text-lg appearance-none shadow-sm hover:border-slate-300 disabled:bg-slate-50"
+                            >
+                                <option value="">Select City (Optional)</option>
+                                {cities.map(city => (
+                                    <option key={city.id} value={city.id}>{city.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Branch</label>
+                        <div className="relative group">
+                            <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                            <select
+                                value={selectedBranchId}
+                                onChange={(e) => {
+                                    setSelectedBranchId(e.target.value);
+                                    setFormData({ ...formData, court_id: '' });
+                                }}
+                                disabled={isViewing || !selectedCityId}
+                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 outline-none transition-all font-medium text-lg appearance-none shadow-sm hover:border-slate-300 disabled:bg-slate-50"
+                            >
+                                <option value="">Select Branch (Optional)</option>
+                                {branches
+                                    .filter(b => !selectedCityId || String(b.city_id) === String(selectedCityId))
+                                    .map(branch => (
+                                        <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                    ))
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Court</label>
                         <div className="relative group">
                             <Play className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-green-600 transition-colors" />
@@ -396,9 +473,16 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
                                 required
                             >
                                 <option value="">Select Court</option>
-                                {courts.map(court => (
-                                    <option key={court.id} value={court.id}>{court.name} ({court.branch?.city?.short_code})</option>
-                                ))}
+                                {courts
+                                    .filter(court => {
+                                        if (selectedBranchId) return String(court.branch_id) === String(selectedBranchId);
+                                        if (selectedCityId) return court.branch?.city_id === selectedCityId || String(court.branch?.city_id) === String(selectedCityId);
+                                        return true;
+                                    })
+                                    .map(court => (
+                                        <option key={court.id} value={court.id}>{court.name} ({court.branch?.city?.short_code || court.branch?.name})</option>
+                                    ))
+                                }
                             </select>
                         </div>
                     </div>

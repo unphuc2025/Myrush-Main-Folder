@@ -454,7 +454,7 @@ export const policiesApi = {
 // Admins API
 export const adminsApi = {
     getAll: () => apiRequest('/auth/admins'),
-    getMe: () => apiRequest('/auth/me'),
+    getMe: () => apiRequest('/auth/me', { useCache: false }),
     create: (data) => apiRequest('/auth/admins', {
         method: 'POST',
         body: JSON.stringify(data)
