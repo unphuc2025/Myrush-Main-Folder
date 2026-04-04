@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Upload, X, Gamepad2, Type, AlignLeft, Hash, Check } from 'lucide-react';
-import { gameTypesApi } from '../../services/adminApi';
+import { gameTypesApi, getImageUrl } from '../../services/adminApi';
 
 function AddGameTypeForm({ onCancel, onSave, initialData = null }) {
     const [formData, setFormData] = useState({
@@ -21,7 +21,7 @@ function AddGameTypeForm({ onCancel, onSave, initialData = null }) {
                 shortCode: initialData.short_code,
                 description: initialData.description || '',
                 icon: null,
-                existingIcon: initialData.icon_url,
+                existingIcon: initialData.icon_url ? getImageUrl(initialData.icon_url) : null,
                 isActive: initialData.is_active
             });
         }

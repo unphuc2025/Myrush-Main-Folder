@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Upload, X, Star, AlignLeft, Check } from 'lucide-react';
-import { amenitiesApi } from '../../services/adminApi';
+import { amenitiesApi, getImageUrl } from '../../services/adminApi';
 
 function AddAmenityForm({ onCancel, onSave, initialData = null }) {
     const [formData, setFormData] = useState({
@@ -19,7 +19,7 @@ function AddAmenityForm({ onCancel, onSave, initialData = null }) {
                 name: initialData.name,
                 description: initialData.description || '',
                 icon: null,
-                existingIcon: initialData.icon_url,
+                existingIcon: initialData.icon_url ? getImageUrl(initialData.icon_url) : null,
                 isActive: initialData.is_active
             });
         }

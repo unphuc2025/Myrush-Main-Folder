@@ -11,6 +11,14 @@ function AmenitiesSettings() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Permission Logic
+  const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+  const isSuperAdmin = adminInfo.role === 'super_admin';
+  const permissions = adminInfo.permissions?.['Amenities Management'] || {};
+  const canAdd = isSuperAdmin || permissions.add;
+  const canEdit = isSuperAdmin || permissions.edit;
+  const canDelete = isSuperAdmin || permissions.delete;
+
   // Drawer State
   const [showDrawer, setShowDrawer] = useState(false);
   const [editingAmenity, setEditingAmenity] = useState(null);
@@ -120,13 +128,15 @@ function AmenitiesSettings() {
               className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm text-slate-900"
             />
           </div>
-          <button
-            onClick={handleAddClick}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="text-sm font-semibold">Add Amenity</span>
-          </button>
+          {canAdd && (
+            <button
+              onClick={handleAddClick}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-sm font-semibold">Add Amenity</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -151,7 +161,8 @@ function AmenitiesSettings() {
                 </div>
                 <ToggleSwitch
                   isChecked={amenity.is_active}
-                  onToggle={() => handleToggleAmenity(amenity)}
+                  onToggle={() => canEdit && handleToggleAmenity(amenity)}
+                  disabled={!canEdit}
                 />
               </div>
 
@@ -163,19 +174,23 @@ function AmenitiesSettings() {
               </div>
 
               <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => handleEditClick(amenity)}
-                  className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
-                >
-                  <Edit2 className="h-4 w-4" />
-                  <span className="text-sm font-bold">Edit</span>
-                </button>
-                <button
-                  onClick={() => handleDeleteClick(amenity.id)}
-                  className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => handleEditClick(amenity)}
+                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                    <span className="text-sm font-bold">Edit</span>
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => handleDeleteClick(amenity.id)}
+                    className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -187,9 +202,11 @@ function AmenitiesSettings() {
               </div>
               <h3 className="text-lg font-bold text-slate-900">No Amenities Found</h3>
               <p className="text-slate-500 max-w-xs mx-auto mt-2">Create amenities to help users filter venues by features.</p>
-              <button onClick={handleAddClick} className="mt-6 font-bold text-green-600 hover:text-green-700 hover:underline">
-                + Add New Amenity
-              </button>
+              {canAdd && (
+                <button onClick={handleAddClick} className="mt-6 font-bold text-green-600 hover:text-green-700 hover:underline">
+                  + Add New Amenity
+                </button>
+              )}
             </div>
           )}
         </div>

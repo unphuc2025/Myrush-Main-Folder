@@ -71,6 +71,15 @@ function CourtsSettings() {
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Permission Logic
+  const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+  const isSuperAdmin = adminInfo.role === 'super_admin';
+  const permissions = adminInfo.permissions?.['Court Management'] || {};
+  const canAdd = isSuperAdmin || permissions.add;
+  const canEdit = isSuperAdmin || permissions.edit;
+  const canDelete = isSuperAdmin || permissions.delete;
+
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
@@ -130,7 +139,8 @@ function CourtsSettings() {
         skip,
         limit: pageSize,
         search: debouncedSearch,
-        branch_id: selectedBranchId
+        branch_id: selectedBranchId,
+        city_id: selectedCityId
       });
       const items = Array.isArray(courtsResp?.items) ? courtsResp.items : (Array.isArray(courtsResp) ? courtsResp : []);
       setCourts(items);
@@ -163,7 +173,9 @@ function CourtsSettings() {
   };
 
   // Filter branches and courts - mostly handled server-side now
-  const filteredBranches = branches;
+  const filteredBranches = selectedCityId 
+    ? branches.filter(b => String(b.city_id) === String(selectedCityId))
+    : branches;
   const filteredCourts = courts;
 
   const handleCityChange = (cityId) => {
@@ -279,13 +291,15 @@ function CourtsSettings() {
               className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm text-slate-900"
             />
           </div>
-          <button
-            onClick={handleAddClick}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95 whitespace-nowrap"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="text-sm font-semibold">New Court</span>
-          </button>
+          {canAdd && (
+            <button
+              onClick={handleAddClick}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95 whitespace-nowrap"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-sm font-semibold">New Court</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -303,12 +317,14 @@ function CourtsSettings() {
               <p className="text-xs text-slate-500">Manage base rates and recurring price adjustments for all courts.</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowGlobalConditions(!showGlobalConditions)}
-            className="px-4 py-2 bg-white border border-green-200 text-green-700 text-sm font-semibold rounded-lg hover:bg-green-50 transition-colors shadow-sm"
-          >
-            {showGlobalConditions ? 'Close Rules' : 'Manage Rules'}
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => setShowGlobalConditions(!showGlobalConditions)}
+              className="px-4 py-2 bg-white border border-green-200 text-green-700 text-sm font-semibold rounded-lg hover:bg-green-50 transition-colors shadow-sm"
+            >
+              {showGlobalConditions ? 'Close Rules' : 'Manage Rules'}
+            </button>
+          )}
         </div>
 
         {showGlobalConditions && (
@@ -381,7 +397,8 @@ function CourtsSettings() {
                       <td className="px-6 py-4">
                         <ToggleSwitch
                           isChecked={court.is_active}
-                          onToggle={() => handleToggleCourt(court)}
+                          onToggle={() => canEdit && handleToggleCourt(court)}
+                          disabled={!canEdit}
                         />
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -389,12 +406,16 @@ function CourtsSettings() {
                           <button onClick={() => setViewingCourt(court)} className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors" title="View Details">
                             <Eye className="h-4 w-4" />
                           </button>
-                          <button onClick={() => handleEditClick(court)} className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-md transition-colors" title="Edit Court">
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => handleDeleteClick(court.id)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors" title="Delete Court">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {canEdit && (
+                            <button onClick={() => handleEditClick(court)} className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-md transition-colors" title="Edit Court">
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button onClick={() => handleDeleteClick(court.id)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors" title="Delete Court">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -440,7 +461,8 @@ function CourtsSettings() {
                     </div>
                     <ToggleSwitch
                       isChecked={court.is_active}
-                      onToggle={() => handleToggleCourt(court)}
+                      onToggle={() => canEdit && handleToggleCourt(court)}
+                      disabled={!canEdit}
                     />
                   </div>
 
@@ -463,19 +485,23 @@ function CourtsSettings() {
                       <Eye className="h-4 w-4" />
                       <span className="text-sm font-bold">View</span>
                     </button>
-                    <button
-                      onClick={() => handleEditClick(court)}
-                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                      <span className="text-sm font-bold">Edit</span>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(court.id)}
-                      className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => handleEditClick(court)}
+                        className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        <span className="text-sm font-bold">Edit</span>
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDeleteClick(court.id)}
+                        className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

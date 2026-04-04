@@ -11,6 +11,14 @@ const Roles = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Permission Logic
+    const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+    const isSuperAdmin = adminInfo.role === 'super_admin';
+    const permissions = adminInfo.permissions?.['Role Management'] || {};
+    const canAdd = isSuperAdmin || permissions.add;
+    const canEdit = isSuperAdmin || permissions.edit;
+    const canDelete = isSuperAdmin || permissions.delete;
+
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
         if (!token) {
@@ -95,13 +103,15 @@ const Roles = () => {
                                 className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm"
                             />
                         </div>
-                        <button
-                            onClick={() => navigate('/roles/new')}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
-                        >
-                            <Plus className="h-4 w-4" />
-                            <span className="text-sm font-semibold">New Admin Role</span>
-                        </button>
+                        {canAdd && (
+                            <button
+                                onClick={() => navigate('/roles/new')}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
+                            >
+                                <Plus className="h-4 w-4" />
+                                <span className="text-sm font-semibold">New Admin Role</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -125,7 +135,7 @@ const Roles = () => {
                                             <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Sr. No.</th>
                                             <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
                                             <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
+                                            {(canEdit || canDelete) && <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>}
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -139,28 +149,35 @@ const Roles = () => {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <button
-                                                        onClick={() => handleToggleStatus(role.id, role.is_active)}
-                                                        className={`w-11 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out ${role.is_active ? 'bg-green-500' : 'bg-slate-300'}`}
+                                                        onClick={() => canEdit && handleToggleStatus(role.id, role.is_active)}
+                                                        disabled={!canEdit}
+                                                        className={`w-11 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out ${role.is_active ? 'bg-green-500' : 'bg-slate-300'} ${!canEdit ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                     >
                                                         <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${role.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
                                                     </button>
                                                 </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <button
-                                                            onClick={() => navigate(`/roles/edit/${role.id}`)}
-                                                            className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
-                                                        >
-                                                            <Edit2 className="h-4 w-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDelete(role.id)}
-                                                            className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </button>
-                                                    </div>
-                                                </td>
+                                                 {(canEdit || canDelete) && (
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            {canEdit && (
+                                                                <button
+                                                                    onClick={() => navigate(`/roles/edit/${role.id}`)}
+                                                                    className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                                                                >
+                                                                    <Edit2 className="h-4 w-4" />
+                                                                </button>
+                                                            )}
+                                                            {canDelete && (
+                                                                <button
+                                                                    onClick={() => handleDelete(role.id)}
+                                                                    className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
                                     </tbody>
@@ -182,30 +199,37 @@ const Roles = () => {
                                                 <span className="text-xs font-bold text-slate-400">#{index + 1}</span>
                                                 <h4 className="font-bold text-slate-900">{role.name}</h4>
                                             </div>
-                                            <div className="flex items-center gap-2 mt-2">
+                                             <div className="flex items-center gap-2 mt-2">
                                                 <span className="text-xs text-slate-500 font-medium">Status:</span>
                                                 <button
-                                                    onClick={() => handleToggleStatus(role.id, role.is_active)}
-                                                    className={`w-9 h-5 flex items-center rounded-full transition-colors duration-200 ease-in-out ${role.is_active ? 'bg-green-500' : 'bg-slate-300'}`}
+                                                    onClick={() => canEdit && handleToggleStatus(role.id, role.is_active)}
+                                                    disabled={!canEdit}
+                                                    className={`w-9 h-5 flex items-center rounded-full transition-colors duration-200 ease-in-out ${role.is_active ? 'bg-green-500' : 'bg-slate-300'} ${!canEdit ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                 >
                                                     <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${role.is_active ? 'translate-x-4' : 'translate-x-0.5'}`} />
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => navigate(`/roles/edit/${role.id}`)}
-                                                className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(role.id)}
-                                                className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                                        {(canEdit || canDelete) && (
+                                            <div className="flex items-center gap-2">
+                                                {canEdit && (
+                                                    <button
+                                                        onClick={() => navigate(`/roles/edit/${role.id}`)}
+                                                        className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                {canDelete && (
+                                                    <button
+                                                        onClick={() => handleDelete(role.id)}
+                                                        className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                                 {filteredRoles.length === 0 && (

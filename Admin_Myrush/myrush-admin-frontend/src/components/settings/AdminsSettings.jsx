@@ -17,6 +17,14 @@ function AdminsSettings() {
     const [showDrawer, setShowDrawer] = useState(false);
     const [editingAdmin, setEditingAdmin] = useState(null);
 
+    // Permission Logic
+    const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+    const isSuperAdmin = adminInfo.role === 'super_admin';
+    const permissions = adminInfo.permissions?.['Sub Admin Management'] || {};
+    const canAdd = isSuperAdmin || permissions.add;
+    const canEdit = isSuperAdmin || permissions.edit;
+    const canDelete = isSuperAdmin || permissions.delete;
+
     useEffect(() => {
         loadData();
     }, []);
@@ -120,13 +128,15 @@ function AdminsSettings() {
                             className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm text-slate-900"
                         />
                     </div>
-                    <button
-                        onClick={handleAddClick}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
-                    >
-                        <Plus className="h-4 w-4" />
-                        <span className="text-sm font-semibold">Add Admin</span>
-                    </button>
+                    {canAdd && (
+                        <button
+                            onClick={handleAddClick}
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span className="text-sm font-semibold">Add Admin</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -150,7 +160,7 @@ function AdminsSettings() {
                                         <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Admin Name</th>
                                         <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
                                         <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact</th>
-                                        <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                                        {(canEdit || canDelete) && <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -192,22 +202,28 @@ function AdminsSettings() {
                                                 <div className="text-sm font-medium text-slate-700">{admin.email}</div>
                                                 <div className="text-sm text-slate-500">{admin.mobile}</div>
                                             </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        onClick={() => handleEditClick(admin)}
-                                                        className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
-                                                    >
-                                                        <Edit2 className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteClick(admin.id)}
-                                                        className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
+                                             {(canEdit || canDelete) && (
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        {canEdit && (
+                                                            <button
+                                                                onClick={() => handleEditClick(admin)}
+                                                                className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                                                            >
+                                                                <Edit2 className="h-4 w-4" />
+                                                            </button>
+                                                        )}
+                                                        {canDelete && (
+                                                            <button
+                                                                onClick={() => handleDeleteClick(admin.id)}
+                                                                className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -262,24 +278,30 @@ function AdminsSettings() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                                         <span className="text-xs text-slate-400">
                                             Created: {new Date(admin.created_at || Date.now()).toLocaleDateString()}
                                         </span>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => handleEditClick(admin)}
-                                                className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(admin.id)}
-                                                className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                                        {(canEdit || canDelete) && (
+                                            <div className="flex items-center gap-2">
+                                                {canEdit && (
+                                                    <button
+                                                        onClick={() => handleEditClick(admin)}
+                                                        className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                {canDelete && (
+                                                    <button
+                                                        onClick={() => handleDeleteClick(admin.id)}
+                                                        className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
