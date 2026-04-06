@@ -395,7 +395,9 @@ async def update_court(
         raise HTTPException(status_code=400, detail="Invalid price per hour. Please enter a valid number.")
 
     db_court.price_conditions = price_conditions_data
+    flag_modified(db_court, "price_conditions")
     db_court.unavailability_slots = unavailability_slots_data
+    flag_modified(db_court, "unavailability_slots")
     db_court.terms_and_conditions = terms_and_conditions
     if amenities_data is not None:
         db_court.amenities = amenities_data

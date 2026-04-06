@@ -46,7 +46,11 @@ const Users = () => {
             navigate('/login');
             return;
         }
-        if (hasView) loadUsers();
+        if (hasView) {
+            loadUsers();
+        } else {
+            setLoading(false);
+        }
     }, [navigate, page, searchTerm, hasView]);
 
     const loadUsers = async () => {
@@ -186,7 +190,18 @@ const Users = () => {
                 </div>
             )}
 
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            {!hasView && !loading && (
+                <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 text-center bg-white border border-slate-200 rounded-xl shadow-sm p-12">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <XCircle className="h-8 w-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-gray-500 max-w-sm">You do not have permission to view registered users. Please contact your administrator for access.</p>
+                </div>
+            )}
+
+            {hasView && (
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                 {loading ? (
                     <div className="p-12 text-center text-slate-500">Loading users...</div>
                 ) : (
@@ -352,6 +367,7 @@ const Users = () => {
                     </button>
                 </div>
             </div>
+            )}
 
             <Drawer
                 isOpen={isDrawerOpen}
