@@ -1,0 +1,51 @@
+Branch: Rush Arena Cooke Town (5a28925c-c412-4115-8e9d-657fb44fc04a)
+
+Found 4 courts:
+  - Court: BoxCricket
+    ID: 84df147f-18bd-409c-a5a5-d08f61acf51f
+    Logic: divisible
+    Shared Group ID: c2cc5e23-34f0-4b0b-a6dd-bebf969af27a
+    Total Zones: 4
+    Slices:
+      * Boxcricket (Full Ground): Mask=15, SportID=55b67f44-205a-4f9f-9490-a4ab1e717fed
+      * Boxcricket (Turf 2): Mask=2, SportID=55b67f44-205a-4f9f-9490-a4ab1e717fed
+      * 8 a side (Double - 3+4): Mask=12, SportID=55b67f44-205a-4f9f-9490-a4ab1e717fed
+      * Boxcricket (Turf 3): Mask=4, SportID=55b67f44-205a-4f9f-9490-a4ab1e717fed
+      * Boxcricket (Turf 4): Mask=8, SportID=55b67f44-205a-4f9f-9490-a4ab1e717fed
+      * 8 a side (Double - 1+2): Mask=3, SportID=55b67f44-205a-4f9f-9490-a4ab1e717fed
+      * Boxcricket (Turf 1): Mask=1, SportID=55b67f44-205a-4f9f-9490-a4ab1e717fed
+    Zones: Zone 1, Zone 2, Zone 3, Zone 4
+------------------------------
+  - Court: FootBall
+    ID: 8494fa95-f072-4ce4-97cb-4106b86d15fe
+    Logic: divisible
+    Shared Group ID: c2cc5e23-34f0-4b0b-a6dd-bebf969af27a
+    Total Zones: 4
+    Slices:
+      * 6 a side (Turf 1): Mask=1, SportID=91eca5ba-7d72-4db3-93bb-0b14f1c7b15e
+      * 6 a side (Turf 2): Mask=2, SportID=91eca5ba-7d72-4db3-93bb-0b14f1c7b15e
+      * 6 a side (Turf 3): Mask=4, SportID=91eca5ba-7d72-4db3-93bb-0b14f1c7b15e
+      * 6 a side (Turf 4): Mask=8, SportID=91eca5ba-7d72-4db3-93bb-0b14f1c7b15e
+      * 8 a side (Turf 1+2): Mask=3, SportID=91eca5ba-7d72-4db3-93bb-0b14f1c7b15e
+      * 8 a side (Turf 3+4): Mask=12, SportID=91eca5ba-7d72-4db3-93bb-0b14f1c7b15e
+      * 10 a side (Full Court): Mask=15, SportID=91eca5ba-7d72-4db3-93bb-0b14f1c7b15e
+    Zones: Zone 1, Zone 2, Zone 3, Zone 4
+------------------------------
+  - Court: 10 a side Boxcricket - Cooke Town
+    ID: 72c595c7-b8ac-4d2d-a3fb-c652f8ffb07c
+    Logic: independent
+    Shared Group ID: None
+    Total Zones: 1
+------------------------------
+  - Court: Pickleball - Cooke Town
+    ID: 2c2cccff-ba16-413f-998e-f15fa2246210
+    Logic: independent
+    Shared Group ID: None
+    Total Zones: 4
+    Slices:
+      * Court 1: Mask=1, SportID=f7ae86cc-fe9b-458b-84cf-fd0f62331253
+      * Court 2: Mask=2, SportID=f7ae86cc-fe9b-458b-84cf-fd0f62331253
+      * Court 3: Mask=4, SportID=f7ae86cc-fe9b-458b-84cf-fd0f62331253
+      * Court 4: Mask=8, SportID=f7ae86cc-fe9b-458b-84cf-fd0f62331253
+    Zones: Zone 1, Zone 2, Zone 3, Zone 4
+------------------------------

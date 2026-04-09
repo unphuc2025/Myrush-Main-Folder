@@ -1,7 +1,5 @@
-import axios from 'axios';
+import { apiClient } from '../api/client';
 
-const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const API_URL = RAW_API_URL.replace(/\/api\/user\/?$/, '');
 export const IMAGE_BASE_URL = 'https://rush-prod-static-bucket.s3.ap-south-1.amazonaws.com/';
 
 export interface SiteSettings {
@@ -21,7 +19,7 @@ export const settingsApi = {
     // Get global public site configuration
     get: async (): Promise<SiteSettings | null> => {
         try {
-            const response = await axios.get(`${API_URL}/api/user/settings`);
+            const response = await apiClient.get('/settings');
             return response.data;
         } catch (error) {
             console.error('Failed to fetch site settings:', error);

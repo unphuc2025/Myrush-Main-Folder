@@ -22,9 +22,9 @@ interface Booking {
     total_amount: number;
     status: string;
     created_at: string;
-    time_slots?: any[];
     court_id?: string;
     court_name?: string;
+    team_name?: string;
 }
 
 interface ReviewData {
@@ -239,6 +239,7 @@ export const MyBookings: React.FC = () => {
 
                                 <div className="card-body-modern">
                                     <h3 className="venue-name">{booking.venue_name}{booking.court_name && booking.court_name !== booking.venue_name && <span className="block text-xs font-normal text-gray-500">{booking.court_name}</span>}</h3>
+                                    {booking.team_name && <p className="text-xs font-bold text-primary uppercase tracking-wider mb-1">TEAM: {booking.team_name}</p>}
                                     <p className="location-text text-primary flex items-center gap-1"><FaMapMarkerAlt className="text-primary" /> {booking.venue_location}</p>
 
                                     <div className="booking-details">
@@ -364,6 +365,13 @@ export const MyBookings: React.FC = () => {
                                             <span className="detail-label">Location</span>
                                             <span className="detail-value flex items-center gap-1"><FaMapMarkerAlt className="text-primary" /> {selectedBooking.venue_location}</span>
                                         </div>
+
+                                        {selectedBooking.team_name && (
+                                            <div className="detail-group">
+                                                <span className="detail-label">Team Name</span>
+                                                <span className="detail-value font-bold text-primary uppercase">{selectedBooking.team_name}</span>
+                                            </div>
+                                        )}
 
                                         <div className="modal-divider" />
 
