@@ -36,6 +36,7 @@ interface LocationState {
         sliceId: string;
         sliceMask: number;
     }[];
+    teamName?: string;
 }
 
 export const BookingSummary: React.FC = () => {
@@ -46,7 +47,7 @@ export const BookingSummary: React.FC = () => {
 
     const [venue, setVenue] = useState<any>(null);
     const [numPlayers] = useState(state?.numPlayers || 1);
-    const [teamName, setTeamName] = useState('');
+    const [teamName, setTeamName] = useState(state?.teamName || '');
     const [couponCode, setCouponCode] = useState('');
     const [discount, setDiscount] = useState(0);
     const [appliedCouponCode, setAppliedCouponCode] = useState(''); // locked-in code after validation
@@ -173,7 +174,8 @@ export const BookingSummary: React.FC = () => {
                     timeSlots: sortedSlots,
                     slotIds: slotIds,
                     numberOfPlayers: numPlayers,
-                    couponCode: couponCode || undefined
+                    couponCode: couponCode || undefined,
+                    teamName: teamName || undefined
                 });
             } else {
                 orderRes = await bookingsApi.createPaymentOrder({
@@ -187,7 +189,8 @@ export const BookingSummary: React.FC = () => {
                     numberOfPlayers: numPlayers,
                     couponCode: couponCode || undefined,
                     originalAmount: slotsCost,   // ← full total (not per-person) for backend validation
-                    totalAmount: totalAmount
+                    totalAmount: totalAmount,
+                    teamName: teamName || undefined
                 });
             }
 
@@ -232,7 +235,7 @@ export const BookingSummary: React.FC = () => {
                                     timeSlots: item.time_slots,
                                     slotIds: slotIds,
                                     sliceMask: item.sliceMask,
-                                    courtName: item.courtName || undefined,
+                                    courtName: state.selectedConfigs?.find(c => c.courtId === item.courtId && c.sliceMask === item.sliceMask)?.label || item.courtName || undefined,
                                     
                                     // Send exactly what the server calculated for this specific court
                                     totalAmount: item.total_amount, 
@@ -242,7 +245,8 @@ export const BookingSummary: React.FC = () => {
                                     razorpay_payment_id: response.razorpay_payment_id,
                                     razorpay_order_id: response.razorpay_order_id,
                                     razorpay_signature: response.razorpay_signature,
-                                    numCourts: 1 // Treated as an individual update on the backend
+                                    numCourts: 1, // Treated as an individual update on the backend
+                                    teamName: teamName || undefined
                                 };
                                 const res = await bookingsApi.createBooking(payload as any);
                                 results.push(res);
@@ -268,7 +272,8 @@ export const BookingSummary: React.FC = () => {
                                 razorpay_payment_id: response.razorpay_payment_id,
                                 razorpay_order_id: response.razorpay_order_id,
                                 razorpay_signature: response.razorpay_signature,
-                                numCourts: 1
+                                numCourts: 1,
+                                teamName: teamName || undefined
                             };
                             const res = await bookingsApi.createBooking(payload as any);
                             results.push(res);
@@ -364,12 +369,8 @@ export const BookingSummary: React.FC = () => {
                                             <div className="text-sm font-semibold text-gray-900">
                                                 {state.selectedConfigs && state.selectedConfigs.length > 0
                                                     ? (() => {
-                                                        // Build a display name for each unique court from the slots
-                                                        const courtNames = state.selectedConfigs.map(c => {
-                                                            const slot = state.selectedSlots.find((s: any) => (s as any).court_id === c.courtId);
-                                                            return (slot as any)?.court_name || c.courtId.slice(-6);
-                                                        });
-                                                        return courtNames.join(', ');
+                                                        const courtNames = state.selectedConfigs.map(c => c.label);
+                                                        return Array.from(new Set(courtNames)).join(', ');
                                                     })()
                                                     : state.selectedSlots[0]?.court_name || 'Standard Arena'}
                                             </div>

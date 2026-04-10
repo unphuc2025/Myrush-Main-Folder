@@ -41,6 +41,7 @@ export const bookingsApi = {
         couponCode?: string;
         originalAmount?: number;
         totalAmount?: number;
+        teamName?: string;
     }) => {
         try {
             const payload = {
@@ -54,7 +55,8 @@ export const bookingsApi = {
                 number_of_players: data.numberOfPlayers,
                 coupon_code: data.couponCode,
                 original_amount: data.originalAmount,
-                total_amount: data.totalAmount
+                total_amount: data.totalAmount,
+                team_name: data.teamName
             };
             const response = await apiClient.post('/payments/create-order', payload);
             return { success: true, data: response.data };
@@ -70,11 +72,16 @@ export const bookingsApi = {
         timeSlots: any[],
         slotIds?: string[],
         numberOfPlayers: number,
-        couponCode?: string
+        couponCode?: string,
+        teamName?: string
     }) => {
         try {
-            // Pass the entire payload which now includes slotIds and branchId
-            const response = await apiClient.post('/payments/create-multi-order', payload);
+            // Include team_name in the payload
+            const finalPayload = {
+                ...payload,
+                team_name: payload.teamName
+            };
+            const response = await apiClient.post('/payments/create-multi-order', finalPayload);
             return {
                 success: true, data: response.data };
         } catch (error: any) {

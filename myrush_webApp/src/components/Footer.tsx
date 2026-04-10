@@ -37,9 +37,9 @@ export const Footer: React.FC = () => {
                 <div className={`grid grid-cols-1 ${hasLegalPages ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-6 mb-4 text-zinc-900 text-sm`}>
                     <div className="col-span-1 md:col-span-2">
                         {settings?.site_logo ? (
-                            <img src={`${IMAGE_BASE_URL}${settings.site_logo}`} alt="Rush" className="h-20 mb-2 object-contain" />
+                            <img src={`${IMAGE_BASE_URL}${settings.site_logo}`} alt="Rush" className="h-32 mb-2 object-contain" />
                         ) : (
-                            <img src="/Rush-logo.webp" alt="Rush" className="h-20 mb-2 object-contain" />
+                            <img src="/Rush-logo.webp" alt="Rush" className="h-32 mb-2 object-contain" />
                         )}
                         <p className="max-w-xl mb-6 text-sm leading-relaxed text-zinc-600">
                             The premier destination for sports enthusiasts. Book world-class venues, join elite academies, and compete in high-stakes tournaments.
@@ -63,7 +63,7 @@ export const Footer: React.FC = () => {
                         </div>
                     </div>
                     <div className="col-span-1 md:col-span-1">
-                        <h4 className="font-heading font-black uppercase tracking-widest text-primary mb-6">Quick Links</h4>
+                        <h4 className="font-heading font-bold uppercase tracking-wider text-primary mb-6 text-sm">Quick Links</h4>
                         <ul className="grid grid-cols-2 md:grid-cols-1 gap-y-4 gap-x-4 text-base">
                             {navItems.map(item => (
                                 <li key={item.name}>
@@ -83,7 +83,7 @@ export const Footer: React.FC = () => {
                     </div>
                     {cmsPages.filter(p => p.slug !== 'terms').length > 0 && (
                         <div className="col-span-1 md:col-span-1">
-                            <h4 className="font-heading font-black uppercase tracking-widest text-primary mb-6">Legal & Info</h4>
+                            <h4 className="font-heading font-bold uppercase tracking-wider text-primary mb-6 text-sm">Legal & Info</h4>
                             <ul className="grid grid-cols-1 gap-y-4 text-base">
                                 {cmsPages.filter(p => p.slug !== 'terms').map(page => (
                                     <li key={page.id}>
@@ -103,7 +103,7 @@ export const Footer: React.FC = () => {
                         </div>
                     )}
                     <div className="col-span-1 md:col-span-1">
-                        <h4 className="font-heading font-black uppercase tracking-widest text-primary mb-6">Contact Us</h4>
+                        <h4 className="font-heading font-bold uppercase tracking-wider text-primary mb-6 text-sm">Contact Us</h4>
                         <div className="text-sm text-zinc-600 space-y-4 font-sans">
                             <div className="space-y-1">
                                 {settings?.company_name && (
@@ -120,13 +120,13 @@ export const Footer: React.FC = () => {
                                 )}
                             </div>
                             <div className="pt-2 space-y-2">
-                                <a href={`mailto:${settings?.email || 'harsha@myrush.in'}`} className="block hover:text-primary transition-colors">{settings?.email || 'harsha@myrush.in'}</a>
-                                <p className="text-zinc-900 font-black text-xl tracking-tight">{settings?.contact_number || '+91 76248 98999'}</p>
+                                <a href={`mailto:${settings?.email || 'harsha@myrush.in'}`} className="block hover:text-primary transition-colors text-sm">{settings?.email || 'harsha@myrush.in'}</a>
+                                <p className="text-zinc-900 font-bold text-lg tracking-tight">{settings?.contact_number || '+91 76248 98999'}</p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div className="border-t border-zinc-200 pt-3 flex flex-col md:flex-row justify-between items-center text-[10px] text-zinc-400 uppercase tracking-[0.2em] font-normal">
+                <div className="border-t border-zinc-200 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center text-[11px] md:text-xs text-zinc-500 uppercase tracking-[0.1em] font-medium">
                     <p>{settings?.copyright_text || '© 2026 Addrush Sports Private Limited.'}</p>
                     <div className="flex gap-8 mt-4 md:mt-0">
                         <Link to="/p/terms" onClick={() => window.scrollTo(0, 0)} className="hover:text-primary transition-colors">Terms of Service</Link>

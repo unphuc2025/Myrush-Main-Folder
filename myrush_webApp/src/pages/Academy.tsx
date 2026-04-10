@@ -889,6 +889,7 @@ const AcademyLanding: React.FC = () => {
                                     <div className="md:col-span-2">
                                         <PhoneInput
                                             label="Parent/Guardian Mobile Number"
+                                            labelClassName="text-xs font-normal uppercase tracking-widest text-primary/70 mb-2 ml-1"
                                             countryCode={trialData.countryCode}
                                             phoneNumber={trialData.parentMobile}
                                             onCodeChange={(code) => setTrialData({ ...trialData, countryCode: code })}

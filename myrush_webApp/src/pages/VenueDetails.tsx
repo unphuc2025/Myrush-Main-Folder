@@ -95,7 +95,7 @@ export const VenueDetailsPage: React.FC = () => {
 
     // Derived configuration options: prefer dedicated venueZones if available, fall back to slot aggregation
     const availableConfigurations = useMemo(() => {
-        type CourtConfig = { courtId: string; totalZones: number; slice: SportSlice | 'full'; label: string; minPrice: number };
+        type CourtConfig = { courtId: string; totalZones: number; slice: SportSlice | 'full'; label: string; minPrice: number; logicType: string };
         const finalConfigs: CourtConfig[] = [];
 
         if (venueZones.length > 0) {
@@ -123,7 +123,8 @@ export const VenueDetailsPage: React.FC = () => {
                         totalZones: court.total_zones || 1,
                         slice: { id: z.slice_id, name: z.slice_name, mask: z.mask, sport_id: z.sport_id, sport_name: z.sport_name, price_per_hour: z.price_per_hour } as SportSlice,
                         label: z.slice_name,
-                        minPrice: z.price_per_hour || court.price_per_hour || 0
+                        minPrice: z.price_per_hour || court.price_per_hour || 0,
+                        logicType: z.logic_type || court.logic_type || 'independent'
                     });
                 });
 
@@ -144,7 +145,8 @@ export const VenueDetailsPage: React.FC = () => {
                         totalZones: court.total_zones || 1,
                         slice: 'full',
                         label: (court.total_zones || 1) > 1 ? `Full ${court.court_name}` : court.court_name,
-                        minPrice: court.price_per_hour || 0
+                        minPrice: court.price_per_hour || 0,
+                        logicType: court.logic_type || 'independent'
                     });
                 }
             });
@@ -174,7 +176,7 @@ export const VenueDetailsPage: React.FC = () => {
                 if (cInfo.slices.size > 0) {
                     cInfo.slices.forEach(sl => {
                         if (sl.mask === fullMask) hasFullSlice = true;
-                        finalConfigs.push({ courtId, totalZones: cInfo.totalZones, slice: sl, label: sl.name, minPrice: sl.price_per_hour || cInfo.basePrice });
+                        finalConfigs.push({ courtId, totalZones: cInfo.totalZones, slice: sl, label: sl.name.includes(cInfo.name) ? sl.name : `${cInfo.name} - ${sl.name}`, minPrice: sl.price_per_hour || cInfo.basePrice, logicType: cInfo.logicType });
                     });
                 }
                 
@@ -190,7 +192,8 @@ export const VenueDetailsPage: React.FC = () => {
                         totalZones: cInfo.totalZones, 
                         slice: 'full', 
                         label: cInfo.totalZones > 1 ? `Full ${cInfo.name}` : cInfo.name, 
-                        minPrice: cInfo.basePrice 
+                        minPrice: cInfo.basePrice,
+                        logicType: cInfo.logicType
                     });
                 }
             });
@@ -224,7 +227,8 @@ export const VenueDetailsPage: React.FC = () => {
 
     // Derived slots based on selected config
     const filteredSlots = useMemo(() => {
-        const isCapacity = availableSlots.some(s => s.logic_type === 'capacity');
+        const isCapacity = availableConfigurations.some(c => c.logicType === 'capacity') || 
+            availableSlots.some(s => s.logic_type === 'capacity' || (s as any).logicType === 'capacity');
         
         if (isCapacity) {
             // For capacity courts, we don't need a specific configuration selected.
@@ -341,12 +345,19 @@ export const VenueDetailsPage: React.FC = () => {
     // Booking Summary State
     const [teamName, setTeamName] = useState('');
     
-    // Determine if the selected sport is capacity-based
+    // Determine if the selected sport is capacity-based.
+    // Checks availableConfigurations first for immediate UI update based on sport selection,
+    // falls back to availableSlots to catch any configurations only present in slots.
     const isCapacityBased = useMemo(() => {
+        const configCapacity = availableConfigurations.some(c => c.logicType === 'capacity');
+        if (configCapacity) return true;
+        
         if (loadingSlots) return false;
-        // Check only the current filtered view for consistency
-        return filteredSlots.length > 0 && filteredSlots[0].logic_type === 'capacity';
-    }, [filteredSlots, loadingSlots]);
+        
+        return availableSlots.some(s =>
+            s.logic_type === 'capacity' || (s as any).logicType === 'capacity'
+        );
+    }, [availableConfigurations, availableSlots, loadingSlots]);
 
 
 
@@ -503,6 +514,7 @@ export const VenueDetailsPage: React.FC = () => {
             selectedSport: selectedSport,
             totalPrice: Math.round(currentTotalPrice * 100) / 100, // Round to 2 decimal places
             numPlayers: numPlayers,
+            teamName: teamName,
             selectedConfigs: selectedConfigs.map(c => ({
                 courtId: c.courtId,
                 label: c.label,

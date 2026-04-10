@@ -1,0 +1,19 @@
+Creating Turf 2 booking...
+Failed Turf 2:
+Traceback (most recent call last):
+  File "C:\Users\Z BOOK\Downloads\New folder\Myrush-Main-Folder\unified-backend\sim_booking_v2.py", line 28, in run_simulation
+    b1 = schemas.BookingCreate(
+        court_id=str(court.id),
+    ...<4 lines>...
+        razorpay_order_id="test_order_123"
+    )
+  File "C:\Users\Z BOOK\Downloads\New folder\Myrush-Main-Folder\unified-backend\venv\Lib\site-packages\pydantic\main.py", line 250, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for BookingCreate
+start_time
+  Field required [type=missing, input_value={'court_id': '84df147f-18...r_id': 'test_order_123'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+duration_minutes
+  Field required [type=missing, input_value={'court_id': '84df147f-18...r_id': 'test_order_123'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
