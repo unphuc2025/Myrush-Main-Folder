@@ -382,10 +382,17 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
     branch = db.query(models.Branch).filter(models.Branch.id == court.branch_id).first()
     v_start, v_end = get_venue_hours(branch.opening_hours if branch else None, booking_date)
     
+    now_ist = get_now_ist()
+    is_today = (booking_date == now_ist.date())
 
     # Generate 48 slots
     for i in range(0, 48):
         h_start = i * 0.5
+        
+        # Past slots filter - DO INSIDE GENERATION ENGINE BEFORE ANY OTHER LOGIC
+        if is_today:
+            if h_start < (now_ist.hour + now_ist.minute/60.0):
+                continue
         h_end = (i + 1) * 0.5
         
         hh = int(h_start)
