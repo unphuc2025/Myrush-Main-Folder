@@ -19,6 +19,39 @@ const BookingPolicies = () => {
         is_active: true
     });
 
+    // Permission Extraction
+    const [permissions, setPermissions] = useState(() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return { add: true, edit: true, delete: true, view: true };
+            return adminInfo.permissions?.['Settings'] || {};
+        } catch {
+            return {};
+        }
+    });
+
+    useEffect(() => {
+        const handleAuthUpdate = () => {
+            try {
+                const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+                if (adminInfo.role === 'super_admin') {
+                    setPermissions({ add: true, edit: true, delete: true, view: true });
+                } else {
+                    setPermissions(adminInfo.permissions?.['Settings'] || {});
+                }
+            } catch (err) {
+                console.error("Error updating permissions:", err);
+            }
+        };
+
+        window.addEventListener('admin-info-updated', handleAuthUpdate);
+        window.addEventListener('storage', handleAuthUpdate);
+        return () => {
+            window.removeEventListener('admin-info-updated', handleAuthUpdate);
+            window.removeEventListener('storage', handleAuthUpdate);
+        };
+    }, []);
+
     useEffect(() => {
         fetchPolicies();
     }, []);
@@ -139,13 +172,15 @@ const BookingPolicies = () => {
                         <h2 className="text-lg font-semibold text-slate-800">Policies & Terms</h2>
                         <p className="text-sm text-slate-500">Manage cancellation rules and terms of service</p>
                     </div>
-                    <button
-                        onClick={handleCreate}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors w-full md:w-auto"
-                    >
-                        <Plus className="h-4 w-4" />
-                        <span className="text-sm font-semibold">Add Policy</span>
-                    </button>
+                    {permissions.add && (
+                        <button
+                            onClick={handleCreate}
+                            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors w-full md:w-auto"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span className="text-sm font-semibold">Add Policy</span>
+                        </button>
+                    )}
                 </div>
 
                 {error && (
@@ -202,8 +237,9 @@ const BookingPolicies = () => {
                                     <td className="px-6 py-4">
                                         <button
                                             onClick={() => handleToggleActive(policy)}
+                                            disabled={!permissions.edit}
                                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${policy.is_active ? 'bg-green-600' : 'bg-slate-200'
-                                                }`}
+                                                } ${!permissions.edit ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         >
                                             <span
                                                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${policy.is_active ? 'translate-x-6' : 'translate-x-1'
@@ -216,20 +252,24 @@ const BookingPolicies = () => {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <button
-                                                onClick={() => handleEdit(policy)}
-                                                className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
-                                                title="Edit"
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(policy.id)}
-                                                className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
+                                            {permissions.edit && (
+                                                <button
+                                                    onClick={() => handleEdit(policy)}
+                                                    className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Edit2 className="h-4 w-4" />
+                                                </button>
+                                            )}
+                                            {permissions.delete && (
+                                                <button
+                                                    onClick={() => handleDelete(policy.id)}
+                                                    className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -293,19 +333,23 @@ const BookingPolicies = () => {
                             </div>
 
                             <div className="flex items-center justify-end gap-2">
-                                <button
-                                    onClick={() => handleEdit(policy)}
-                                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
-                                >
-                                    <Edit2 className="h-4 w-4" />
-                                    <span className="text-sm font-bold">Edit</span>
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(policy.id)}
-                                    className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </button>
+                                {permissions.edit && (
+                                    <button
+                                        onClick={() => handleEdit(policy)}
+                                        className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                                    >
+                                        <Edit2 className="h-4 w-4" />
+                                        <span className="text-sm font-bold">Edit</span>
+                                    </button>
+                                )}
+                                {permissions.delete && (
+                                    <button
+                                        onClick={() => handleDelete(policy.id)}
+                                        className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -329,15 +373,15 @@ const BookingPolicies = () => {
     return (
         <div className="max-w-2xl mx-auto p-1">
             <div className="flex items-center justify-between mb-6">
-                <button
+                {/*<button
                     onClick={() => setView('list')}
                     className="flex items-center text-slate-500 hover:text-slate-800 transition-colors"
                 >
                     <X className="h-5 w-5 mr-1" />
                     Cancel
-                </button>
+                </button>*/}
                 <h2 className="text-xl font-bold text-slate-900">
-                    {editingPolicy ? 'Edit Policy' : 'Create New Policy'}
+                    {editingPolicy ? (permissions.edit ? 'Edit Policy' : 'View Policy') : 'Create New Policy'}
                 </h2>
                 <div className="w-20"></div> {/* Spacer for centering */}
             </div>
@@ -357,22 +401,24 @@ const BookingPolicies = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <button
                                 type="button"
+                                disabled={editingPolicy ? !permissions.edit : !permissions.add}
                                 onClick={() => setFormData({ ...formData, type: 'cancellation' })}
                                 className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${formData.type === 'cancellation'
                                     ? 'border-slate-800 bg-slate-50 text-slate-900'
                                     : 'border-slate-200 hover:border-slate-300 text-slate-600'
-                                    }`}
+                                    } ${(editingPolicy ? !permissions.edit : !permissions.add) ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <Percent className="h-5 w-5" />
                                 <span className="font-medium">Cancellation Fee</span>
                             </button>
                             <button
                                 type="button"
+                                disabled={editingPolicy ? !permissions.edit : !permissions.add}
                                 onClick={() => setFormData({ ...formData, type: 'terms' })}
                                 className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${formData.type === 'terms'
                                     ? 'border-slate-800 bg-slate-50 text-slate-900'
                                     : 'border-slate-200 hover:border-slate-300 text-slate-600'
-                                    }`}
+                                    } ${(editingPolicy ? !permissions.edit : !permissions.add) ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <FileText className="h-5 w-5" />
                                 <span className="font-medium">Terms & Conditions</span>
@@ -385,10 +431,11 @@ const BookingPolicies = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-2">Policy Name</label>
                         <input
                             type="text"
+                            readOnly={editingPolicy ? !permissions.edit : !permissions.add}
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             placeholder={formData.type === 'cancellation' ? 'e.g., Standard Cancellation' : 'e.g., General Terms'}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 text-slate-900"
+                            className={`w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 text-slate-900 ${(editingPolicy ? !permissions.edit : !permissions.add) ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
                         />
                     </div>
 
@@ -401,9 +448,10 @@ const BookingPolicies = () => {
                                     type="number"
                                     min="0"
                                     max="100"
+                                    readOnly={editingPolicy ? !permissions.edit : !permissions.add}
                                     value={formData.value}
                                     onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                                    className="w-full pl-4 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                                    className={`w-full pl-4 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 ${(editingPolicy ? !permissions.edit : !permissions.add) ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
                                     placeholder="20"
                                 />
                                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -419,9 +467,10 @@ const BookingPolicies = () => {
                             <label className="block text-sm font-medium text-slate-700 mb-2">Content</label>
                             <textarea
                                 value={formData.content}
+                                readOnly={editingPolicy ? !permissions.edit : !permissions.add}
                                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                                 rows={10}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm leading-relaxed"
+                                className={`w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm leading-relaxed ${editingPolicy ? (!permissions.edit ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : '') : (!permissions.add ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : '')}`}
                                 placeholder="Enter terms and conditions text here..."
                             />
                         </div>
@@ -431,9 +480,10 @@ const BookingPolicies = () => {
                     <div className="flex items-center gap-3 pt-2">
                         <button
                             type="button"
+                            disabled={editingPolicy ? !permissions.edit : !permissions.add}
                             onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${formData.is_active ? 'bg-green-600' : 'bg-slate-200'
-                                }`}
+                                } ${(editingPolicy ? !permissions.edit : !permissions.add) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             <span
                                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_active ? 'translate-x-6' : 'translate-x-1'
@@ -454,13 +504,15 @@ const BookingPolicies = () => {
                     >
                         Cancel
                     </button>
-                    <button
-                        type="submit"
-                        className="flex items-center gap-2 px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
-                    >
-                        <Save className="h-4 w-4" />
-                        Save Policy
-                    </button>
+                    {(editingPolicy ? permissions.edit : permissions.add) && (
+                        <button
+                            type="submit"
+                            className="flex items-center gap-2 px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+                        >
+                            <Save className="h-4 w-4" />
+                            Save Policy
+                        </button>
+                    )}
                 </div>
             </form >
         </div >

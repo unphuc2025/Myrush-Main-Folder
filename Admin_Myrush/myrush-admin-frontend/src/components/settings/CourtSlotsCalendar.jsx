@@ -166,6 +166,10 @@ function CourtSlotsCalendar() {
                   isDateSpecific: true,
                   isOverride: true
                 };
+              } else {
+                aggregatedSlots[slotKey].price = condPrice;
+                aggregatedSlots[slotKey].isDateSpecific = true;
+                aggregatedSlots[slotKey].isOverride = true;
               }
               if (!aggregatedSlots[slotKey].courts.includes(court.id)) {
                 aggregatedSlots[slotKey].courts.push(court.id);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { settingsApi, IMAGE_BASE_URL } from '../services/adminApi';
+import { settingsApi, IMAGE_BASE_URL, getImageUrl } from '../services/adminApi';
 import { Settings, Upload, Save, Info, Mail, Phone, MapPin, Copyright } from 'lucide-react';
 
 const SiteSettings = () => {
@@ -62,7 +62,7 @@ const SiteSettings = () => {
                 site_logo: null // Reset file input
             });
             if (data.site_logo) {
-                setLogoPreview(`${IMAGE_BASE_URL}${data.site_logo}`);
+                setLogoPreview(getImageUrl(data.site_logo));
             }
         } catch (err) {
             console.error('Error loading settings:', err);
@@ -116,7 +116,7 @@ const SiteSettings = () => {
 
             // Update preview if response has new logo path (though frontend preview is faster)
             if (response.site_logo) {
-                setLogoPreview(`${IMAGE_BASE_URL}${response.site_logo}`);
+                setLogoPreview(getImageUrl(response.site_logo));
             }
         } catch (err) {
             console.error('Error updating settings:', err);

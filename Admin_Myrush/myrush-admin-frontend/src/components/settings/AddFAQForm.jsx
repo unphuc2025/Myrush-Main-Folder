@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { X, CheckCircle, AlertCircle } from 'lucide-react';
 import { faqsApi } from '../../services/adminApi';
 
-const AddFAQForm = ({ isOpen, onClose, onFaqAdded, editingFaq, viewOnly = false, viewingFaq = null }) => {
+const AddFAQForm = ({ isOpen, onClose, onFaqAdded, editingFaq, viewOnly = false, viewingFaq = null, permissions = {} }) => {
+    const isReadOnly = viewOnly || (editingFaq ? !permissions.edit : !permissions.add);
     const [formData, setFormData] = useState({
         question: '',
         answer: '',
@@ -106,8 +107,8 @@ const AddFAQForm = ({ isOpen, onClose, onFaqAdded, editingFaq, viewOnly = false,
                                     rows={4}
                                     value={formData.answer}
                                     onChange={(e) => setFormData(prev => ({ ...prev, answer: e.target.value }))}
-                                    disabled={viewOnly}
-                                    className={`w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm resize-none text-slate-900 ${viewOnly ? 'bg-slate-50 cursor-not-allowed' : ''}`}
+                                    disabled={isReadOnly}
+                                    className={`w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm resize-none text-slate-900 ${isReadOnly ? 'bg-slate-50 cursor-not-allowed' : ''}`}
                                     placeholder="Enter the answer here..."
                                 />
                             </div>
@@ -118,7 +119,7 @@ const AddFAQForm = ({ isOpen, onClose, onFaqAdded, editingFaq, viewOnly = false,
                                     id="is_active"
                                     checked={formData.is_active}
                                     onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-                                    disabled={viewOnly}
+                                    disabled={isReadOnly}
                                     className="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
                                 />
                                 <label htmlFor="is_active" className="text-sm font-medium text-slate-700">
@@ -135,9 +136,9 @@ const AddFAQForm = ({ isOpen, onClose, onFaqAdded, editingFaq, viewOnly = false,
                             onClick={onClose}
                             className="flex-1 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
                         >
-                            {viewOnly ? 'Close' : 'Cancel'}
+                            {isReadOnly ? 'Close' : 'Cancel'}
                         </button>
-                        {!viewOnly && (
+                        {!isReadOnly && (
                             <button
                                 onClick={handleSubmit}
                                 disabled={loading || !formData.question || !formData.answer}

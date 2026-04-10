@@ -24,20 +24,21 @@ const Reports = () => {
             };
             
             // Allow access if user has either 'Reports and analytics' OR 'Transactions And Earnings'
-            const reportsPerms = adminInfo.permissions?.['Reports and analytics'] || {};
-            const transactionsPerms = adminInfo.permissions?.['Transactions And Earnings'] || {};
+            const reports = adminInfo.permissions?.['Reports and analytics'] || {};
+            const transactions = adminInfo.permissions?.['Transactions And Earnings'] || {};
             
+            // Strictly convert bit settings to booleans
             return {
-                view: reportsPerms.view || transactionsPerms.view || false,
-                add: reportsPerms.add || transactionsPerms.add || false,
-                edit: reportsPerms.edit || transactionsPerms.edit || false,
-                delete: reportsPerms.delete || transactionsPerms.delete || false
+                view: !!(reports.view || transactions.view || reports.access || transactions.access),
+                add: !!(reports.add || transactions.add),
+                edit: !!(reports.edit || transactions.edit),
+                delete: !!(reports.delete || transactions.delete)
             };
         } catch { return {}; }
     })();
 
-    const canExport = permissions.edit || permissions.delete || permissions.add;
-    const hasView = permissions.view;
+    const canExport = !!(permissions.add || permissions.edit || permissions.delete);
+    const hasView = !!permissions.view;
 
     // Data states
     const [bookings, setBookings] = useState([]);
@@ -318,6 +319,7 @@ const Reports = () => {
     return (
         <Layout onLogout={() => {
             localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_info');
             navigate('/login');
         }}>
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -460,9 +462,9 @@ const Reports = () => {
                 </div>
 
                 {/* Game Type Distribution */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-w-0">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-w-0 flex flex-col">
                     <h3 className="text-lg font-bold text-slate-800 mb-6">Popular Sports</h3>
-                    <div className="h-[350px] w-full overflow-hidden flex items-center justify-center">
+                    <div className="h-[400px] w-full flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -481,16 +483,19 @@ const Reports = () => {
                                 <Tooltip contentStyle={{ borderRadius: '8px' }} />
                                 <Legend
                                     verticalAlign="bottom"
-                                    height={100}
                                     layout="horizontal"
                                     iconType="circle"
+                                    formatter={(value) => <span style={{ color: '#475569', wordBreak: 'break-word', whiteSpace: 'normal', display: 'inline-block', maxWidth: '150px', verticalAlign: 'middle' }}>{value}</span>}
                                     wrapperStyle={{
-                                        paddingTop: '20px',
+                                        paddingTop: '30px',
                                         fontSize: '12px',
                                         display: 'flex',
                                         flexWrap: 'wrap',
                                         justifyContent: 'center',
-                                        width: '100%'
+                                        gap: '8px',
+                                        width: '100%',
+                                        maxHeight: '120px',
+                                        overflowY: 'auto'
                                     }}
                                 />
                             </PieChart>

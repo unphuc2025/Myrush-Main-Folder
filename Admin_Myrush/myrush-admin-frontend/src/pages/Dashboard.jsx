@@ -10,7 +10,9 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  DollarSign
+  DollarSign,
+  ShieldAlert,
+  X
 } from 'lucide-react';
 import {
   AreaChart,
@@ -46,13 +48,24 @@ function Dashboard() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [statusData, setStatusData] = useState([]);
   const [recentBookings, setRecentBookings] = useState([]);
+  const [hasPermission, setHasPermission] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
     if (!token) {
       navigate('/login');
     } else {
-      fetchDashboardData();
+      const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+      const canView = adminInfo.role === 'super_admin' || (adminInfo.permissions && Object.values(adminInfo.permissions).some(modulePerms => 
+        Object.values(modulePerms).some(v => v === true)
+      ));
+      
+      if (!canView) {
+        setHasPermission(false);
+        setLoading(false);
+      } else {
+        fetchDashboardData();
+      }
     }
   }, [navigate]);
 
@@ -221,7 +234,17 @@ function Dashboard() {
         <p className="text-slate-500 mt-1">Real-time overview of your sports platform.</p>
       </div>
 
-      {loading ? (
+      {!hasPermission ? (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 text-center px-4 bg-white rounded-2xl border border-slate-100 shadow-sm transition-all duration-500 animate-in fade-in zoom-in">
+          <div className="h-20 w-20 rounded-full bg-red-50 flex items-center justify-center">
+            <ShieldAlert className="h-10 w-10 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800">Access Restricted</h2>
+          <p className="text-slate-500 max-w-md">
+            Your account currently has no assigned permissions. Please contact your system administrator to assign a role to your account.
+          </p>
+        </div>
+      ) : loading ? (
         <div className="flex h-96 items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
         </div>

@@ -11,15 +11,39 @@ const PlayoTokenManagement = () => {
     const [tokenDescription, setTokenDescription] = useState('Playo Production Token');
     const [copied, setCopied] = useState(false);
 
+    const [permissions, setPermissions] = useState(() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return { add: true, edit: true, delete: true, view: true };
+            return adminInfo.permissions?.['Settings'] || {};
+        } catch { return {}; }
+    });
+
     useEffect(() => {
+        const handleUpdate = () => {
+            try {
+                const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+                if (adminInfo.role === 'super_admin') {
+                    setPermissions({ add: true, edit: true, delete: true, view: true });
+                } else {
+                    setPermissions(adminInfo.permissions?.['Settings'] || {});
+                }
+            } catch (err) { console.error("Error updating permissions:", err); }
+        };
+        window.addEventListener('admin-info-updated', handleUpdate);
+        window.addEventListener('storage', handleUpdate);
         fetchTokens();
+        return () => {
+            window.removeEventListener('admin-info-updated', handleUpdate);
+            window.removeEventListener('storage', handleUpdate);
+        };
     }, []);
 
     const fetchTokens = async () => {
         try {
             setLoading(true);
             const response = await playoTokensApi.getAll();
-            setTokens(response.data.tokens || []);
+            setTokens(response.tokens || []);
         } catch (error) {
             console.error('Error fetching tokens:', error);
             setTokens([]);
@@ -111,11 +135,12 @@ const PlayoTokenManagement = () => {
                                 placeholder="Token Description"
                                 value={tokenDescription}
                                 onChange={(e) => setTokenDescription(e.target.value)}
-                                className="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary text-slate-900"
+                                disabled={!permissions.add}
+                                className={`w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary text-slate-900 ${!permissions.add ? 'opacity-50 grayscale' : ''}`}
                             />
                             <button
                                 onClick={generateToken}
-                                disabled={loading}
+                                disabled={loading || !permissions.add}
                                 className="inline-flex items-center justify-center rounded-md bg-primary py-3 px-6 text-center font-medium text-white hover:bg-opacity-90 disabled:opacity-50 whitespace-nowrap"
                             >
                                 {loading ? 'Generating...' : 'Generate Token'}
@@ -215,25 +240,29 @@ const PlayoTokenManagement = () => {
                                             {token.is_active ? (
                                                 <button
                                                     onClick={() => deactivateToken(token.id)}
-                                                    className="inline-flex items-center justify-center rounded-md border border-stroke py-2 px-4 text-center font-medium hover:shadow-1 dark:border-strokedark"
+                                                    disabled={!permissions.edit}
+                                                    className="inline-flex items-center justify-center rounded-md border border-stroke py-2 px-4 text-center font-medium hover:shadow-1 dark:border-strokedark disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     Deactivate
                                                 </button>
                                             ) : (
                                                 <button
                                                     onClick={() => activateToken(token.id)}
-                                                    className="inline-flex items-center justify-center rounded-md border border-stroke py-2 px-4 text-center font-medium hover:shadow-1 dark:border-strokedark"
+                                                    disabled={!permissions.edit}
+                                                    className="inline-flex items-center justify-center rounded-md border border-stroke py-2 px-4 text-center font-medium hover:shadow-1 dark:border-strokedark disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     Activate
                                                 </button>
                                             )}
-                                            <button
-                                                onClick={() => deleteToken(token.id)}
-                                                className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                                                title="Delete Token"
-                                            >
-                                                <Trash2 className="h-5 w-5" />
-                                            </button>
+                                            {permissions.delete && (
+                                                <button
+                                                    onClick={() => deleteToken(token.id)}
+                                                    className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                                    title="Delete Token"
+                                                >
+                                                    <Trash2 className="h-5 w-5" />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

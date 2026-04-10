@@ -89,6 +89,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
         return Object.values(modulePerms).some(v => v === true);
     };
 
+    const hasAnyAccess = () => {
+        if (userRole === 'super_admin') return true;
+        return Object.values(permissions).some(modulePerms => 
+            Object.values(modulePerms).some(v => v === true)
+        );
+    };
+
     // Close sidebar on click outside
     useEffect(() => {
         const clickHandler = ({ target }) => {
@@ -190,23 +197,25 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                     <nav className="mt-5 py-4 px-4 lg:mt-9 lg:px-6">
 
                         {/* MENU GROUP */}
-                        <div>
-                            <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
-                                MENU
-                            </h3>
-                            <ul className="mb-6 flex flex-col gap-1.5">
-                                <li>
-                                    <Link
-                                        to="/dashboard"
-                                        onClick={handleLinkClick}
-                                        className={`group relative flex items-center gap-2.5 rounded-sm py-2.5 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 min-h-[44px] ${isActive('/dashboard') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                    >
-                                        <Home className="h-5 w-5" />
-                                        <span>Dashboard</span>
-                                    </Link>
-                                </li>
-                            </ul>
-                        </div>
+                        {hasAnyAccess() && (
+                            <div>
+                                <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
+                                    MENU
+                                </h3>
+                                <ul className="mb-6 flex flex-col gap-1.5">
+                                    <li>
+                                        <Link
+                                            to="/dashboard"
+                                            onClick={handleLinkClick}
+                                            className={`group relative flex items-center gap-2.5 rounded-sm py-2.5 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 min-h-[44px] ${isActive('/dashboard') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                        >
+                                            <Home className="h-5 w-5" />
+                                            <span>Dashboard</span>
+                                        </Link>
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
 
                         {/* USERS AND ROLES GROUP */}
                         {(hasModuleAccess('Role Management') ||

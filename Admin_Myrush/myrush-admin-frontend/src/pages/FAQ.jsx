@@ -20,7 +20,7 @@ const FAQ = () => {
     const [selectedFaqs, setSelectedFaqs] = useState([]);
 
     // Permission check
-    const permissions = (() => {
+    const [permissions, setPermissions] = useState(() => {
         try {
             const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
             if (adminInfo.role === 'super_admin') return {
@@ -28,7 +28,29 @@ const FAQ = () => {
             };
             return adminInfo.permissions?.['FAQ'] || {};
         } catch { return {}; }
-    })();
+    });
+
+    useEffect(() => {
+        const handleAuthUpdate = () => {
+            try {
+                const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+                if (adminInfo.role === 'super_admin') {
+                    setPermissions({ add: true, edit: true, delete: true, view: true });
+                } else {
+                    setPermissions(adminInfo.permissions?.['FAQ'] || {});
+                }
+            } catch (err) {
+                console.error("Error updating permissions:", err);
+            }
+        };
+
+        window.addEventListener('admin-info-updated', handleAuthUpdate);
+        window.addEventListener('storage', handleAuthUpdate);
+        return () => {
+            window.removeEventListener('admin-info-updated', handleAuthUpdate);
+            window.removeEventListener('storage', handleAuthUpdate);
+        };
+    }, []);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -277,7 +299,7 @@ const FAQ = () => {
                                                         </button>
                                                     )}
                                                     {permissions.delete && (
-                                                        <button onClick={() => handleDelete(faq.id)} className="p-1.5 text-red-600 bg-red-50 rounded hover:bg-red-100"><Trash2 className="h-4 w-4" /></button>
+                                                        <button onClick={() => handleDelete(faq.id)} className="p-1.5 text-red-600 bg-red-50 rounded hover:bg-red-100 cursor-pointer"><Trash2 className="h-4 w-4" /></button>
                                                     )}
                                                 </div>
                                             </td>
@@ -307,7 +329,7 @@ const FAQ = () => {
                                         <button
                                             onClick={() => handleToggleStatus(faq)}
                                             disabled={!permissions.edit}
-                                            className={`w-12 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out flex-shrink-0 ${faq.is_active ? 'bg-green-500' : 'bg-red-400'} ${!permissions.edit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            className={`w-12 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out flex-shrink-0 ${faq.is_active ? 'bg-green-500' : 'bg-red-400'} ${!permissions.edit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                         >
                                             <div className={`w-4.5 h-4.5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${faq.is_active ? 'translate-x-6.5' : 'translate-x-1'}`} />
                                         </button>
@@ -330,7 +352,7 @@ const FAQ = () => {
                                             </button>
                                         )}
                                         {permissions.delete && (
-                                            <button onClick={() => handleDelete(faq.id)} className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+                                            <button onClick={() => handleDelete(faq.id)} className="min-h-[44px] flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer">
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
                                         )}
@@ -353,6 +375,7 @@ const FAQ = () => {
                 editingFaq={editingFaq}
                 viewOnly={!!viewingFaq}
                 viewingFaq={viewingFaq}
+                permissions={permissions}
             />
         </Layout>
     );

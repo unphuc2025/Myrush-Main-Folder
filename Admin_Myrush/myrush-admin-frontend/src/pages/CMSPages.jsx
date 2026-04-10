@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { cmsApi } from '../services/adminApi';
-import { Search, Plus, Trash2, Edit2, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Search, Plus, Trash2, Edit2, CheckCircle, ArrowLeft, Eye } from 'lucide-react';
 
 const CMSPages = () => {
     const navigate = useNavigate();
@@ -13,6 +13,7 @@ const CMSPages = () => {
 
     // Editor State
     const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [isViewMode, setIsViewMode] = useState(false);
     const [editingPage, setEditingPage] = useState(null);
     const [formData, setFormData] = useState({
         title: '',
@@ -43,8 +44,12 @@ const CMSPages = () => {
             navigate('/login');
             return;
         }
-        if (permissions.view) loadPages();
-    }, [navigate, page, searchTerm]);
+        if (permissions.view) {
+            loadPages();
+        } else {
+            setLoading(false);
+        }
+    }, [navigate, page, searchTerm, permissions.view]);
 
     const loadPages = async () => {
         try {
@@ -82,6 +87,23 @@ const CMSPages = () => {
             content: page.content,
             is_active: page.is_active
         });
+        setIsViewMode(false);
+        setIsEditorOpen(true);
+    };
+
+    const handleView = (page) => {
+        if (!permissions.view) {
+            setError('You do not have permission to view CMS pages.');
+            return;
+        }
+        setEditingPage(page);
+        setFormData({
+            title: page.title,
+            slug: page.slug,
+            content: page.content,
+            is_active: page.is_active
+        });
+        setIsViewMode(true);
         setIsEditorOpen(true);
     };
 
@@ -97,12 +119,20 @@ const CMSPages = () => {
             content: '',
             is_active: true
         });
+        setIsViewMode(false);
         setIsEditorOpen(true);
     };
 
     const handleSave = async () => {
         try {
             setError(null);
+
+            // Validation
+            if (!formData.title?.trim() || !formData.slug?.trim() || !formData.content?.trim()) {
+                setError('Please fill in all required fields (Title, Slug, and Content).');
+                return;
+            }
+
             if (editingPage) {
                 await cmsApi.update(editingPage.id, formData);
             } else {
@@ -185,7 +215,7 @@ const CMSPages = () => {
                                 <ArrowLeft className="h-5 w-5 text-slate-500" />
                             </button>
                             <h1 className="text-2xl font-bold text-slate-900">
-                                {editingPage ? 'Edit Page' : 'Create New Page'}
+                                {isViewMode ? 'View Page' : (editingPage ? 'Edit Page' : 'Create New Page')}
                             </h1>
                         </div>
                         {error && (
@@ -198,15 +228,17 @@ const CMSPages = () => {
                                 onClick={() => setIsEditorOpen(false)}
                                 className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
                             >
-                                Cancel
+                                {isViewMode ? 'Close' : 'Cancel'}
                             </button>
-                            <button
-                                onClick={handleSave}
-                                className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 flex items-center gap-2"
-                            >
-                                <CheckCircle className="h-4 w-4" />
-                                Save Page
-                            </button>
+                            {!isViewMode && (
+                                <button
+                                    onClick={handleSave}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 flex items-center gap-2"
+                                >
+                                    <CheckCircle className="h-4 w-4" />
+                                    Save Page
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -220,7 +252,8 @@ const CMSPages = () => {
                                     type="text"
                                     value={formData.title}
                                     onChange={handleTitleChange}
-                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
+                                    disabled={isViewMode}
+                                    className={`w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 ${isViewMode ? 'bg-slate-50 opacity-80 cursor-not-allowed' : ''}`}
                                     placeholder="e.g. Privacy Policy"
                                 />
                             </div>
@@ -232,16 +265,18 @@ const CMSPages = () => {
                                     type="text"
                                     value={formData.slug}
                                     onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50 font-mono text-sm text-slate-900"
+                                    disabled={isViewMode}
+                                    className={`w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono text-sm text-slate-900 ${isViewMode ? 'bg-slate-100 opacity-80 cursor-not-allowed' : 'bg-slate-50'}`}
                                     placeholder="e.g. privacy-policy"
                                 />
                             </div>
                         </div>
                         <div className="flex-1 overflow-hidden flex flex-col p-6">
                             <textarea
-                                className="w-full h-full p-4 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none font-mono text-sm text-slate-900"
+                                className={`w-full h-full p-4 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none font-mono text-sm text-slate-900 ${isViewMode ? 'bg-slate-50 opacity-80 cursor-not-allowed' : ''}`}
                                 value={formData.content}
                                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                                disabled={isViewMode}
                                 placeholder="Enter page content here (HTML supported)..."
                             />
                         </div>
@@ -350,6 +385,15 @@ const CMSPages = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
+                                                    {permissions.view && (
+                                                        <button
+                                                            onClick={() => handleView(page)}
+                                                            className="p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+                                                            title="View Content"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </button>
+                                                    )}
                                                     {permissions.edit && (
                                                         <button
                                                             onClick={() => handleEdit(page)}
@@ -401,6 +445,15 @@ const CMSPages = () => {
                                             Updated: {new Date(page.updated_at).toLocaleDateString()}
                                         </span>
                                         <div className="flex items-center gap-2">
+                                            {permissions.view && (
+                                                <button
+                                                    onClick={() => handleView(page)}
+                                                    className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                                                    title="View Content"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                            )}
                                             {permissions.edit && (
                                                 <button
                                                     onClick={() => handleEdit(page)}
