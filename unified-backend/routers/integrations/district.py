@@ -280,3 +280,90 @@ async def discovery_api(
     except Exception as e:
         logging.error(f"District Discovery Error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+# ============================================================================
+# INBOUND CALLBACK (Sync from District to MyRush)
+# ============================================================================
+
+@router.post("/district/callback")
+async def district_inventory_callback(
+    request: Request,
+    db: Session = Depends(database.get_db)
+):
+    """
+    Inbound webhook from District Sports to update inventory availability.
+    Expects X-API-Key header.
+    Payload Example:
+    {
+      "court_id": "uuid",
+      "date": "YYYY-MM-DD",
+      "slot_start": 10.5,
+      "available": false
+    }
+    """
+    x_api_key = request.headers.get("X-API-Key")
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing API Key")
+    
+    partner = db.query(models.Partner).filter(
+        models.Partner.api_key_hash == x_api_key,
+        models.Partner.is_active == True
+    ).first()
+    
+    if not partner:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+
+    try:
+        data = await request.json()
+        logging.info(f"[DISTRICT CALLBACK] Received: {data}")
+        
+        court_id = data.get("court_id")
+        block_date = data.get("date")
+        slot_start = data.get("slot_start")
+        is_available = data.get("available", True)
+
+        if not all([court_id, block_date, slot_start is not None]):
+            raise HTTPException(status_code=422, detail="Missing required fields")
+
+        hh = int(slot_start)
+        mm = int((slot_start % 1) * 60)
+        start_t = time(hh, mm)
+        
+        end_dt = datetime.combine(date.today(), start_t) + timedelta(minutes=30)
+        end_t = end_dt.time()
+
+        if is_available:
+            # Release Block: Delete local manual block that matches this exact slot
+            db.query(models.CourtBlock).filter(
+                models.CourtBlock.court_id == court_id,
+                models.CourtBlock.block_date == block_date,
+                models.CourtBlock.start_time == start_t,
+                models.CourtBlock.reason == "District Partner Sync"
+            ).delete()
+            logging.info(f"Released District-side block for court {court_id} at {start_t}")
+        else:
+            # Add Block: Create new local manual block
+            existing = db.query(models.CourtBlock).filter(
+                models.CourtBlock.court_id == court_id,
+                models.CourtBlock.block_date == block_date,
+                models.CourtBlock.start_time == start_t
+            ).first()
+            
+            if not existing:
+                new_block = models.CourtBlock(
+                    court_id=court_id,
+                    block_date=block_date,
+                    start_time=start_t,
+                    end_time=end_t,
+                    reason="District Partner Sync",
+                    synced_partners=["district"]
+                )
+                db.add(new_block)
+                logging.info(f"Added District-side block for court {court_id} at {start_t}")
+
+        db.commit()
+        return {"status": "success", "message": "Inventory synchronized"}
+
+    except Exception as e:
+        logging.error(f"Error processing District callback: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")

@@ -229,8 +229,8 @@ def validate_booking_rules(
     if court.facility_type:
         is_pool = court.facility_type.name.lower() == 'pool'
     
-    if duration_h < 0.5:
-        raise HTTPException(status_code=400, detail="Minimum booking duration is 30 minutes.")
+    if duration_h < 0.95: # Allow slight floating point variance
+        raise HTTPException(status_code=400, detail="Minimum booking duration is 60 minutes (2 slots).")
 
     # --- Rule 3: User Overlap Check ---
     # Skip user overlap check for capacity courts, as users can book multiple tickets
@@ -351,14 +351,17 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: date,
         from utils.booking_utils import calculate_multi_slice_price
         expected_price = calculate_multi_slice_price(server_slot, slice_mask or 0, float(server_slot['price']))
 
-        provided_price = float(req.get('price', 0))
+        provided_price = float(req.get('price') if req.get('price') is not None else 0)
         
         # For capacity sports, the frontend multiplies the slot price by numPlayers
         expected_slot_provided_price = (expected_price * number_of_players) if is_capacity else expected_price
 
         # Allow small rounding difference
         if abs(expected_slot_provided_price - provided_price) > 5.0:
-             print(f"[CONFIG CHECK FAIL] Price mismatch at {r_start}: Expected base {expected_price} (total {expected_slot_provided_price} for {number_of_players} players), Got {provided_price}")
+             print(f"[CONFIG CHECK FAIL] Price mismatch for slot '{r_start}':")
+             print(f"  - Expected Price: {expected_price} (Base) * {number_of_players} (Players) = {expected_slot_provided_price}")
+             print(f"  - Provided Price: {provided_price}")
+             print(f"  - Court logic: {court.logic_type if court else 'unknown'}")
              raise HTTPException(status_code=400, detail=f"Price mismatch for slot {r_start}")
              
         calculated_total_base += expected_price
@@ -389,8 +392,12 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: date,
     print(f"[CONFIG CHECK] Comparison: Server={calculated_final_total} vs Client={effective_expected_amount} (original={expected_total_amount}, num_courts={num_courts})")
 
     if abs(calculated_final_total - effective_expected_amount) > 10.0:
-         print(f"[CONFIG CHECK FAIL] Total amount mismatch: {calculated_final_total} != {effective_expected_amount}")
+         print(f"[CONFIG CHECK FAIL] Total amount mismatch:")
+         print(f"  - Calculated Server Total: {calculated_final_total}")
+         print(f"  - Effective Client Amount: {effective_expected_amount}")
+         print(f"  - Num Courts: {num_courts}")
          raise HTTPException(status_code=400, detail=f"Total booking amount mismatch. Server={calculated_final_total}, Client={effective_expected_amount}")
+
 
     print("[CONFIG CHECK] Success.")
 
@@ -446,7 +453,6 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
                     "start_time": s_time.strftime("%H:%M"),
                     "end_time": e_time.strftime("%H:%M"),
                     "price": price,
-                    "court_name": booking.court_name,
                     "display_time": slot.get('display_time') or f"{s_time.strftime('%I:%M %p')} - {e_time.strftime('%I:%M %p')}"
                 })
             
@@ -499,7 +505,25 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         # Determine final total amount to store
         # In legacy, there wasn't a separate 'total_amount' field in BookingCreate, it was calculated.
         # So we use the calculated one.
-        total_amount = float(original_amount) - float(discount_amount)
+        subtotal_amount = float(original_amount) - float(discount_amount)
+        
+        # --- GST Calculation ---
+        gst_amount = 0
+        total_amount = subtotal_amount
+        
+        try:
+            active_gst_policy = db.query(models.AdminPolicy).filter(
+                models.AdminPolicy.type == 'gst',
+                models.AdminPolicy.is_active == True
+            ).first()
+            
+            if active_gst_policy and active_gst_policy.value:
+                gst_percent = float(active_gst_policy.value)
+                gst_amount = (subtotal_amount * gst_percent) / 100
+                total_amount = subtotal_amount + gst_amount
+                print(f"[CRUD BOOKING] GST Applied: {gst_percent}% -> {gst_amount}. New Total: {total_amount}")
+        except Exception as ge:
+            print(f"[CRUD BOOKING] Warning: Failed to fetch/apply GST policy: {ge}")
 
         # 3. Verify Court & User
         court_check = db.query(models.Court).filter(models.Court.id == str(booking.court_id)).first()
@@ -647,7 +671,12 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
                         )
 
 
-        # 4. Create Booking
+        # 4. Finalize Time Slots with Court Name
+        final_slots = []
+        for slot in time_slots:
+            final_slots.append({**slot, "court_name": court_check.name})
+
+        # 5. Create Booking
         booking_data = {
             "user_id": user_id,
             "court_id": str(c_uuid),
@@ -655,9 +684,11 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             "booking_display_id": new_display_id,
             
             # New Columns
-            "time_slots": time_slots,
+            "time_slots": final_slots,
             "total_duration_minutes": total_duration,
             "original_amount": original_amount,
+            "subtotal_amount": subtotal_amount,
+            "gst_amount": gst_amount,
             "discount_amount": discount_amount,
             "total_amount": total_amount,
             "coupon_code": booking.coupon_code,
@@ -824,7 +855,7 @@ def cancel_booking(db: Session, booking_id: str, user_id: str):
                 court_id=str(db_booking.court_id),
                 date=str(db_booking.booking_date),
                 slot_start=s_f,
-                action='release'
+                action='available'
             )
     except Exception as e:
         print(f"[CRUD] Warning: Failed to release inventory after cancellation: {e}")
@@ -864,7 +895,9 @@ def get_bookings(db: Session, user_id: str):
                 b.updated_at,
                 c.name AS venue_name,
                 br.address_line1 AS venue_location,
-                br.name AS branch_name
+                br.name AS branch_name,
+                COALESCE(b.subtotal_amount, 0.0) AS subtotal_amount,
+                COALESCE(b.gst_amount, 0.0) AS gst_amount
             FROM booking b
             LEFT JOIN admin_courts c ON b.court_id::text = c.id::text
             LEFT JOIN admin_branches br ON c.branch_id::text = br.id::text
@@ -919,7 +952,9 @@ def get_bookings(db: Session, user_id: str):
                 "updated_at": row[22],
                 "venue_name": row[23] or "Unknown Court",
                 "venue_location": venue_location,
-                "court_name": time_slots_parsed[0].get('court_name') if time_slots_parsed else (row[23] or "Unknown Court")
+                "court_name": time_slots_parsed[0].get('court_name') if time_slots_parsed else (row[23] or "Unknown Court"),
+                "subtotal_amount": row[26] or 0.0,
+                "gst_amount": row[27] or 0.0
             }
             bookings_list.append(booking_dict)
 

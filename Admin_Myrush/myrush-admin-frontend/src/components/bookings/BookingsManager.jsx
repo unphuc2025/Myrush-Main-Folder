@@ -35,6 +35,7 @@ function BookingsManager() {
     const canAdd = isSuperAdmin || permissions.add;
     const canEdit = isSuperAdmin || permissions.edit;
     const canDelete = isSuperAdmin || permissions.delete;
+    const canView = isSuperAdmin || permissions.view;
 
     useEffect(() => {
         let isMounted = true;
@@ -424,13 +425,15 @@ function BookingsManager() {
                                                 </td>
                                                 <td className="px-4 py-3 text-right pr-6">
                                                     <div className="flex items-center justify-end gap-1">
-                                                        <button
-                                                            onClick={() => handleViewClick(booking)}
-                                                            className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded transition-colors"
-                                                            title="View Details"
-                                                        >
-                                                            <Eye className="h-3.5 w-3.5" />
-                                                        </button>
+                                                        {canView && (
+                                                            <button
+                                                                onClick={() => handleViewClick(booking)}
+                                                                className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded transition-colors"
+                                                                title="View Details"
+                                                            >
+                                                                <Eye className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        )}
                                                         {canEdit && (
                                                             <button
                                                                 onClick={() => handleEditClick(booking)}

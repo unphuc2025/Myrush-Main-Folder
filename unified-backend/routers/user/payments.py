@@ -28,6 +28,7 @@ router = APIRouter(
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET")
+VRIKSHA_WEBHOOK_URL = os.getenv("VRIKSHA_WEBHOOK_URL", "https://tester-webhook.vriksha.ai/api/webhooks/razorpay")
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
@@ -81,6 +82,10 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
     """
     Calculate the total price based on unified slot generation engine.
     Logic: Sum(Slot Prices) * Number of Players
+    
+    IMPORTANT: This function now ENRICHES the requested_slots dicts with 'price' 
+    if they are missing or mismatched, ensuring downstream logic (like crud.create_booking) 
+    has the correct authoritative data.
     """
     from utils.booking_utils import generate_allowed_slots_map, safe_parse_time_float
 
@@ -106,6 +111,7 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
             m = int((h_f % 1) * 60)
             norm_start = f"{h:02d}:{m:02d}" 
         
+        slot_price = 0.0
         # Use price from map if available, else default (though validation should have caught it)
         if norm_start in allowed_slots_map:
             server_slot = allowed_slots_map[norm_start]
@@ -124,6 +130,10 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
                 slot_price = (float(court.price_per_hour) / 2.0)
                 total_slot_price += slot_price
                 print(f"[PRICE_DEBUG] Fallback Slot {norm_start}: Price {slot_price}")
+        
+        # ENRICH SLOT with authoritative price (for capacity, frontend expects per-slot price already multiplied? 
+        # Actually, crud.validate_court_configuration handles the player multiplication check, so we store the BASE slot price here.)
+        slot['price'] = slot_price
 
     # 2. Final Base Price (Multiply by players if capacity-based)
     final_base_price = float(total_slot_price)
@@ -134,6 +144,7 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
         print(f"[PRICE_DEBUG] FINAL TOTAL BASE: {final_base_price} (No player multiplier applied)")
         
     return final_base_price
+
 
 
 def validate_authoritative_coupon(db: Session, coupon_code: str, total_amount: float, user_id: str) -> float:
@@ -211,13 +222,26 @@ def create_payment_order(
             raise HTTPException(status_code=400, detail=f"Coupon error: {str(e)}")
         
     # 4. Final Total
-    final_amount = (server_base_price + PLATFORM_FEE) - discount_amount
-    final_amount = max(0, final_amount) # Never negative
-    print(f"[PRICE_DEBUG] FINAL AMOUNT TO RAZORPAY: {final_amount} (Calculated as ({server_base_price} + {PLATFORM_FEE}) - {discount_amount})")
+    subtotal_amount = (server_base_price + PLATFORM_FEE) - discount_amount
+    subtotal_amount = max(0, subtotal_amount)
     
-    # GST Logic (Optional - assuming inclusive for now, but if we wanted to add it:)
-    # gst_amount = final_amount * 0.18
-    # final_amount += gst_amount
+    # --- GST Calculation ---
+    gst_amount = 0.0
+    final_amount = subtotal_amount
+    gst_percent = 0.0
+    
+    try:
+        active_gst_policy = db.query(models.AdminPolicy).filter(
+            models.AdminPolicy.type == 'gst',
+            models.AdminPolicy.is_active == True
+        ).first()
+        if active_gst_policy and active_gst_policy.value:
+            gst_percent = float(active_gst_policy.value)
+            gst_amount = (subtotal_amount * gst_percent) / 100
+            final_amount = subtotal_amount + gst_amount
+            print(f"[PAYMENTS] GST Applied: {gst_percent}% ({gst_amount}). Subtotal: {subtotal_amount}, Final: {final_amount}")
+    except Exception as ge:
+        print(f"[PAYMENTS] Warning: Failed to apply GST policy: {ge}")
     
     # 5. Create Razorpay Order
     # Round to 2 decimal places to avoid float issues before converting to paise
@@ -242,12 +266,17 @@ def create_payment_order(
         # only the first one will succeed here. The second will get a 409 Conflict BEFORE
         # a Razorpay order is ever created for them — preventing a confusing double payment.
         print(f"[PAYMENTS] Atomically reserving slot for order {order['id']}")
+        
+        # ENRICH BOOKING with authoritative price data before sending to CRUD
         booking_details.payment_status = "pending"
         booking_details.razorpay_order_id = order['id']
+        booking_details.original_amount = server_base_price
+        booking_details.total_amount = final_amount
         
         try:
             db_booking = crud.create_booking(db=db, booking=booking_details, user_id=current_user.id)
             print(f"[PAYMENTS] Slot reserved. Pending booking ID: {db_booking.id}")
+
         except HTTPException as slot_err:
             # Known conflict (slot taken, bitmask overlap, etc.) — cancel the Razorpay order and reject
             print(f"[PAYMENTS] Slot reservation FAILED: {slot_err.detail}. Cancelling Razorpay order {order['id']}.")
@@ -275,7 +304,10 @@ def create_payment_order(
             "breakdown": {
                 "base": server_base_price,
                 "fee": PLATFORM_FEE,
-                "discount": discount_amount
+                "discount": discount_amount,
+                "subtotal": subtotal_amount,
+                "gst": gst_amount,
+                "gst_percent": gst_percent
             }
         }
         
@@ -332,7 +364,28 @@ def create_multi_court_payment_order(
         discount_amount = validate_authoritative_coupon(db, coupon_code, total_price, str(current_user.id))
         
     # Calculate total with rounding to 2 decimal places to prevent float errors
-    final_total = round((total_price + PLATFORM_FEE) - discount_amount, 2)
+    subtotal_amount = (total_price + PLATFORM_FEE) - discount_amount
+    subtotal_amount = max(0, subtotal_amount)
+
+    # --- GST Calculation (Multi-order) ---
+    gst_amount = 0.0
+    final_total = subtotal_amount
+    gst_percent = 0.0
+    
+    try:
+        active_gst_policy = db.query(models.AdminPolicy).filter(
+            models.AdminPolicy.type == 'gst',
+            models.AdminPolicy.is_active == True
+        ).first()
+        if active_gst_policy and active_gst_policy.value:
+            gst_percent = float(active_gst_policy.value)
+            gst_amount = (subtotal_amount * gst_percent) / 100
+            final_total = subtotal_amount + gst_amount
+            print(f"[MULTI-ORDER] GST Applied: {gst_percent}% ({gst_amount})")
+    except Exception as ge:
+        print(f"[MULTI-ORDER] Warning: Failed GST fetch: {ge}")
+
+    final_total = round(final_total, 2)
     final_total_paise = int(final_total * 100)
 
     try:
@@ -545,7 +598,7 @@ async def razorpay_webhook(
             vriksha_success = False
             try:
                 import requests
-                vriksha_url = "https://tester-webhook.vriksha.ai/api/webhooks/razorpay"
+                vriksha_url = VRIKSHA_WEBHOOK_URL
                 
                 vriksha_payload = json.loads(json.dumps(data)) # Deep copy
                 if "payload" in vriksha_payload and "payment" in vriksha_payload["payload"] and "entity" in vriksha_payload["payload"]["payment"]:

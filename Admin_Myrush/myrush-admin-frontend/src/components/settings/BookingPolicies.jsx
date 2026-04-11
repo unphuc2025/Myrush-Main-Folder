@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Edit2, CheckCircle, XCircle, FileText, Percent, AlertCircle, X } from 'lucide-react';
+import { Save, Plus, Trash2, Edit2, CheckCircle, XCircle, FileText, Percent, AlertCircle, X, Scale } from 'lucide-react';
 import { policiesApi } from '../../services/adminApi';
 
 const BookingPolicies = () => {
@@ -12,7 +12,7 @@ const BookingPolicies = () => {
 
     // Form State
     const [formData, setFormData] = useState({
-        type: 'cancellation', // 'cancellation' or 'terms'
+        type: 'cancellation', // 'cancellation', 'terms', or 'gst'
         name: '',
         value: '',
         content: '',
@@ -130,8 +130,8 @@ const BookingPolicies = () => {
             setError("Name is required");
             return;
         }
-        if (formData.type === 'cancellation' && !formData.value) {
-            setError("Cancellation value is required");
+        if ((formData.type === 'cancellation' || formData.type === 'gst') && !formData.value) {
+            setError(`${formData.type === 'gst' ? 'GST' : 'Cancellation'} value is required`);
             return;
         }
         if (formData.type === 'terms' && !formData.content) {
@@ -169,8 +169,8 @@ const BookingPolicies = () => {
                 {/* Header Actions */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                     <div>
-                        <h2 className="text-lg font-semibold text-slate-800">Policies & Terms</h2>
-                        <p className="text-sm text-slate-500">Manage cancellation rules and terms of service</p>
+                        <h2 className="text-lg font-semibold text-slate-800">Policies & Tax Settings</h2>
+                        <p className="text-sm text-slate-500">Manage cancellation rules, GST/Tax rates, and terms of service</p>
                     </div>
                     {permissions.add && (
                         <button
@@ -218,16 +218,18 @@ const BookingPolicies = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${policy.type === 'cancellation'
-                                            ? 'bg-red-50 text-red-700 border-red-100'
-                                            : 'bg-blue-50 text-blue-700 border-blue-100'
+                                                ? 'bg-red-50 text-red-700 border-red-100'
+                                                : policy.type === 'gst'
+                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                                    : 'bg-blue-50 text-blue-700 border-blue-100'
                                             }`}>
-                                            {policy.type === 'cancellation' ? <Percent className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
-                                            {policy.type === 'cancellation' ? 'Cancellation' : 'Terms'}
+                                            {policy.type === 'cancellation' ? <Percent className="h-3 w-3" /> : policy.type === 'gst' ? <Scale className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                                            {policy.type === 'cancellation' ? 'Cancellation' : policy.type === 'gst' ? 'GST Rule' : 'Terms'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        {policy.type === 'cancellation' ? (
-                                            <span className="font-mono text-slate-600">{policy.value}% Fee</span>
+                                        {policy.type === 'cancellation' || policy.type === 'gst' ? (
+                                            <span className="font-mono text-slate-600">{policy.value}% {policy.type === 'gst' ? 'Tax' : 'Fee'}</span>
                                         ) : (
                                             <span className="text-slate-500 text-sm truncate max-w-xs block" title={policy.content}>
                                                 {policy.content?.substring(0, 50)}...
@@ -300,10 +302,12 @@ const BookingPolicies = () => {
                                     <div className="font-semibold text-slate-900 mb-1">{policy.name}</div>
                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${policy.type === 'cancellation'
                                         ? 'bg-red-50 text-red-700 border-red-100'
-                                        : 'bg-blue-50 text-blue-700 border-blue-100'
+                                        : policy.type === 'gst'
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                            : 'bg-blue-50 text-blue-700 border-blue-100'
                                         }`}>
-                                        {policy.type === 'cancellation' ? <Percent className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
-                                        {policy.type === 'cancellation' ? 'Cancellation' : 'Terms'}
+                                        {policy.type === 'cancellation' ? <Percent className="h-3 w-3" /> : policy.type === 'gst' ? <Scale className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                                        {policy.type === 'cancellation' ? 'Cancellation' : policy.type === 'gst' ? 'GST Rule' : 'Terms'}
                                     </span>
                                 </div>
                                 <button
@@ -319,8 +323,8 @@ const BookingPolicies = () => {
                             </div>
 
                             <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
-                                {policy.type === 'cancellation' ? (
-                                    <span className="font-mono">{policy.value}% Fee</span>
+                                {policy.type === 'cancellation' || policy.type === 'gst' ? (
+                                    <span className="font-mono">{policy.value}% {policy.type === 'gst' ? 'Tax' : 'Fee'}</span>
                                 ) : (
                                     <span className="line-clamp-3 italic">
                                         "{policy.content}"
@@ -398,30 +402,42 @@ const BookingPolicies = () => {
                     {/* Policy Type */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">Policy Type</label>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-3 gap-2 md:gap-4">
                             <button
                                 type="button"
                                 disabled={editingPolicy ? !permissions.edit : !permissions.add}
                                 onClick={() => setFormData({ ...formData, type: 'cancellation' })}
-                                className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${formData.type === 'cancellation'
+                                className={`flex flex-col md:flex-row items-center justify-center gap-2 p-2 md:p-3 rounded-lg border-2 transition-all ${formData.type === 'cancellation'
                                     ? 'border-slate-800 bg-slate-50 text-slate-900'
                                     : 'border-slate-200 hover:border-slate-300 text-slate-600'
                                     } ${(editingPolicy ? !permissions.edit : !permissions.add) ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                <Percent className="h-5 w-5" />
-                                <span className="font-medium">Cancellation Fee</span>
+                                <Percent className="h-4 w-4 md:h-5 md:w-5" />
+                                <span className="font-medium text-xs md:text-sm">Cancellation</span>
+                            </button>
+                            <button
+                                type="button"
+                                disabled={editingPolicy ? !permissions.edit : !permissions.add}
+                                onClick={() => setFormData({ ...formData, type: 'gst' })}
+                                className={`flex flex-col md:flex-row items-center justify-center gap-2 p-2 md:p-3 rounded-lg border-2 transition-all ${formData.type === 'gst'
+                                    ? 'border-emerald-800 bg-emerald-50 text-emerald-900'
+                                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                                    } ${(editingPolicy ? !permissions.edit : !permissions.add) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                <Scale className="h-4 w-4 md:h-5 md:w-5" />
+                                <span className="font-medium text-xs md:text-sm">GST Rule</span>
                             </button>
                             <button
                                 type="button"
                                 disabled={editingPolicy ? !permissions.edit : !permissions.add}
                                 onClick={() => setFormData({ ...formData, type: 'terms' })}
-                                className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${formData.type === 'terms'
+                                className={`flex flex-col md:flex-row items-center justify-center gap-2 p-2 md:p-3 rounded-lg border-2 transition-all ${formData.type === 'terms'
                                     ? 'border-slate-800 bg-slate-50 text-slate-900'
                                     : 'border-slate-200 hover:border-slate-300 text-slate-600'
                                     } ${(editingPolicy ? !permissions.edit : !permissions.add) ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                <FileText className="h-5 w-5" />
-                                <span className="font-medium">Terms & Conditions</span>
+                                <FileText className="h-4 w-4 md:h-5 md:w-5" />
+                                <span className="font-medium text-xs md:text-sm">Terms</span>
                             </button>
                         </div>
                     </div>
@@ -434,15 +450,15 @@ const BookingPolicies = () => {
                             readOnly={editingPolicy ? !permissions.edit : !permissions.add}
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder={formData.type === 'cancellation' ? 'e.g., Standard Cancellation' : 'e.g., General Terms'}
+                            placeholder={formData.type === 'cancellation' ? 'e.g., Standard Cancellation' : formData.type === 'gst' ? 'e.g., Standard 18% GST' : 'e.g., General Terms'}
                             className={`w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 text-slate-900 ${(editingPolicy ? !permissions.edit : !permissions.add) ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
                         />
                     </div>
 
                     {/* Dynamic Fields based on Type */}
-                    {formData.type === 'cancellation' ? (
+                    {(formData.type === 'cancellation' || formData.type === 'gst') && (
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Cancellation Fee Percentage (%)</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">{formData.type === 'gst' ? 'GST Percentage (%)' : 'Cancellation Fee Percentage (%)'}</label>
                             <div className="relative">
                                 <input
                                     type="number"
@@ -452,29 +468,31 @@ const BookingPolicies = () => {
                                     value={formData.value}
                                     onChange={(e) => setFormData({ ...formData, value: e.target.value })}
                                     className={`w-full pl-4 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 ${(editingPolicy ? !permissions.edit : !permissions.add) ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
-                                    placeholder="20"
+                                    placeholder={formData.type === 'gst' ? "18" : "20"}
                                 />
                                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                     <span className="text-slate-500">%</span>
                                 </div>
                             </div>
                             <p className="mt-2 text-xs text-slate-500">
-                                This percentage will be withheld from the refund amount.
+                                {formData.type === 'gst' ? 'This percentage will be added as GST to the booking total.' : 'This percentage will be withheld from the refund amount.'}
                             </p>
                         </div>
-                    ) : (
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Content</label>
-                            <textarea
-                                value={formData.content}
-                                readOnly={editingPolicy ? !permissions.edit : !permissions.add}
-                                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                                rows={10}
-                                className={`w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm leading-relaxed ${editingPolicy ? (!permissions.edit ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : '') : (!permissions.add ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : '')}`}
-                                placeholder="Enter terms and conditions text here..."
-                            />
-                        </div>
                     )}
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            {formData.type === 'terms' ? 'Terms & Conditions Content' : 'Description / Additional Notes'}
+                        </label>
+                        <textarea
+                            value={formData.content}
+                            readOnly={editingPolicy ? !permissions.edit : !permissions.add}
+                            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                            rows={formData.type === 'terms' ? 10 : 4}
+                            className={`w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm leading-relaxed ${editingPolicy ? (!permissions.edit ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : '') : (!permissions.add ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : '')}`}
+                            placeholder={formData.type === 'terms' ? "Enter terms and conditions text here..." : "Add details about this policy (e.g. Refund processing time, specific rules)..."}
+                        />
+                    </div>
 
                     {/* Active Status */}
                     <div className="flex items-center gap-3 pt-2">

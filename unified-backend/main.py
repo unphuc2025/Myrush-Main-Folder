@@ -184,7 +184,8 @@ from routers.admin import (
     roles,
     cms as admin_cms,
     site_settings as admin_site_settings,
-    playo_tokens,
+    integrations as admin_integrations,
+    blocks as admin_blocks,
     facilities
 )
 
@@ -214,7 +215,8 @@ app.include_router(roles.router, prefix="/api/admin", tags=["Admin Roles"])
 app.include_router(admin_faq.router, prefix="/api/admin", tags=["Admin FAQ"])
 app.include_router(admin_cms.router, prefix="/api/admin", tags=["Admin CMS"])
 app.include_router(admin_site_settings.router, prefix="/api/admin", tags=["Admin Site Settings"])
-app.include_router(playo_tokens.router, prefix="/api/admin", tags=["Admin Playo Tokens"])
+app.include_router(admin_integrations.router, prefix="/api/admin", tags=["Admin Integrations"])
+app.include_router(admin_blocks.router, prefix="/api/admin", tags=["Admin Court Blocks"])
 app.include_router(facilities.router, prefix="/api/admin", tags=["Admin Facilities"])
 
 # ============================================================================

@@ -259,6 +259,27 @@ export const venuesApi = {
                 error: error.message,
             };
         }
+    },
+
+    /**
+     * Fetch active policies (GST, Cancellation, etc.)
+     */
+    getPublicPolicies: async (type?: string) => {
+        try {
+            const endpoint = type ? `/policies/?type=${type}` : '/policies/';
+            const response = await apiClient.get<any[]>(endpoint);
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('[POLICIES API] Exception fetching policies:', error);
+            return {
+                success: false,
+                data: [],
+                error: error.message,
+            };
+        }
     }
 };
 

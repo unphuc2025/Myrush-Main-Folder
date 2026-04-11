@@ -440,6 +440,8 @@ class Booking(Base):
     # Amount Breakdown
     original_amount = Column(DECIMAL(10, 2), nullable=False)
     discount_amount = Column(DECIMAL(10, 2), default=0)
+    subtotal_amount = Column(DECIMAL(10, 2), default=0)
+    gst_amount = Column(DECIMAL(10, 2), default=0)
     coupon_code = Column(String(50))
     
     # Human-readable Booking ID (e.g., BK-12345)
@@ -708,3 +710,19 @@ class OutboxEvent(Base):
 
     partner = relationship("Partner")
 
+class CourtBlock(Base):
+    """Manual blocks created by admins that apply to all platforms"""
+    __tablename__ = "admin_court_blocks"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
+    court_id = Column(UUID(as_uuid=True), ForeignKey("admin_courts.id", ondelete="CASCADE"), nullable=False)
+    block_date = Column(Date, nullable=False, index=True)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+    reason = Column(String(255), nullable=True) # e.g., "Maintenance", "Tournament"
+    blocked_by_id = Column(UUID(as_uuid=True), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)
+    slice_mask = Column(Integer, nullable=True, default=0) # 0 means block entire court, >0 blocks specific bits
+    synced_partners = Column(ARRAY(String), default=[]) # e.g. ["District", "Playo"]
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
+    
+    court = relationship("Court")
+    blocked_by = relationship("Admin")

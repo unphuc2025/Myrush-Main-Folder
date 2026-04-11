@@ -8,6 +8,7 @@ interface PhoneInputProps {
     error?: string;
     label?: string;
     className?: string;
+    labelClassName?: string;
 }
 
 const countryCodes = [

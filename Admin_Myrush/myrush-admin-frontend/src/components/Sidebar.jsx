@@ -534,18 +534,36 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                                 </Link>
                                             </li>
                                         )}
-                                        {hasModuleAccess('Settings') && (
-                                            <li>
-                                                <Link
-                                                    to="/playo-tokens"
-                                                    onClick={handleLinkClick}
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/playo-tokens') ? 'bg-graydark dark:bg-meta-4' : ''}`}
-                                                >
-                                                    <Lock className="h-5 w-5" />
-                                                    <span>Playo Tokens</span>
-                                                </Link>
-                                            </li>
-                                        )}
+                        {/* PARTNER SYNC GROUP */}
+                        {(hasModuleAccess('Settings') || hasModuleAccess('Manage Courts')) && (
+                            <div>
+                                <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
+                                    PARTNER SYNC
+                                </h3>
+                                <ul className="mb-6 flex flex-col gap-1.5">
+                                    <li>
+                                        <Link
+                                            to="/integrations"
+                                            onClick={handleLinkClick}
+                                            className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/integrations') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                        >
+                                            <Puzzle className="h-5 w-5" />
+                                            <span>Integrations</span>
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            to="/blocks"
+                                            onClick={handleLinkClick}
+                                            className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/blocks') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                        >
+                                            <Lock className="h-5 w-5" />
+                                            <span>Court Blocks</span>
+                                        </Link>
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
                                     </ul>
                                 </div>
                             )}

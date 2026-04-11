@@ -60,6 +60,21 @@ def get_court_availability_slots(
         while curr < e_f:
             booked_slots.add(curr % 24)
             curr += 0.5
+
+    # New: Fetch manual admin blocks
+    manual_blocks = db.query(models.CourtBlock).filter(
+        models.CourtBlock.court_id == court_id,
+        models.CourtBlock.block_date == booking_date
+    ).all()
+    
+    for mb in manual_blocks:
+        s_f = mb.start_time.hour + (mb.start_time.minute / 60.0)
+        e_f = mb.end_time.hour + (mb.end_time.minute / 60.0)
+        if e_f == 0: e_f = 24.0
+        curr = s_f
+        while curr < e_f:
+            booked_slots.add(curr)
+            curr += 0.5
             
     # Get allowed slots from configuration
     allowed_map = generate_allowed_slots_map(db, court.id, booking_date)
