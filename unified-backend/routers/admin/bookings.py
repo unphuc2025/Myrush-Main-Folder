@@ -312,17 +312,18 @@ def get_all_bookings(
                 
                 total_amount=booking.total_amount,
                 original_amount=booking.original_amount or booking.total_amount, # Fallback
-                discount_amount=booking.discount_amount or 0,
                 
                 special_requests=booking.special_requests or "",
                 status=booking.status,
                 payment_status=booking.payment_status,
                 created_at=booking.created_at,
                 updated_at=booking.updated_at,
-                court=court_data,  # Include court data with branch and city
-                game_type=court_data.game_type if court_data else None,  # Include game type data
+                court=court_data,
+                game_type=court_data.game_type if court_data else None,
                 coupon_code=booking.coupon_code or (booking.coupon.code if booking.coupon else None),
-                coupon_discount=booking.coupon_discount or 0
+                subtotal_amount=booking.subtotal_amount or (booking.total_amount - (booking.gst_amount or 0)),
+                gst_amount=booking.gst_amount or 0,
+                discount_amount=booking.discount_amount or (booking.coupon_discount or 0)
             )
             result.append(admin_booking)
 
@@ -409,7 +410,6 @@ def get_booking(booking_id: str, db: Session = Depends(get_db)):
         total_duration_minutes=booking.total_duration_minutes or int(booking.duration_minutes or 0),
         total_amount=booking.total_amount,
         original_amount=booking.original_amount or booking.total_amount,
-        discount_amount=booking.discount_amount or 0,
         special_requests=booking.special_requests or "",
         status=booking.status,
         payment_status=booking.payment_status,
@@ -419,7 +419,9 @@ def get_booking(booking_id: str, db: Session = Depends(get_db)):
         game_type=court_data.game_type if court_data else None,
         # Use direct coupon_code field first; fallback to relation
         coupon_code=booking.coupon_code or (booking.coupon.code if booking.coupon else None),
-        coupon_discount=booking.coupon_discount or 0
+        subtotal_amount=booking.subtotal_amount or (booking.total_amount - (booking.gst_amount or 0)),
+        gst_amount=booking.gst_amount or 0,
+        discount_amount=booking.discount_amount or (booking.coupon_discount or 0)
     )
 
 @router.put("/{booking_id}", response_model=schemas.AdminBooking)
