@@ -168,17 +168,20 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
         try {
             // Fetch each independently so a 403 on one doesn't kill the rest
             const [courtsResult, usersResult, couponsResult, citiesResult, branchesResult] = await Promise.allSettled([
-                courtsApi.getAll(),
+                courtsApi.getAll({ limit: 1000 }),
                 usersApi.getAll({ limit: 200 }),
                 couponsApi.getActiveCoupons(),
                 citiesApi.getAll(),
-                branchesApi.getAll()
+                branchesApi.getAll({ limit: 500 })
             ]);
 
             if (courtsResult.status === 'fulfilled') {
                 const c = courtsResult.value;
                 const fetchedCourts = Array.isArray(c?.items) ? c.items : Array.isArray(c) ? c : [];
+                console.log(`[DEBUG] AddBookingForm: Fetched ${fetchedCourts.length} courts (Total: ${c?.total || fetchedCourts.length})`);
                 setCourts(fetchedCourts);
+            } else {
+                console.warn('[DEBUG] AddBookingForm: Courts fetch failed:', courtsResult.reason);
             }
 
             if (citiesResult.status === 'fulfilled') {
@@ -188,7 +191,9 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
 
             if (branchesResult.status === 'fulfilled') {
                 const b = branchesResult.value;
-                setBranches(Array.isArray(b?.items) ? b.items : Array.isArray(b) ? b : []);
+                const fetchedBranches = Array.isArray(b?.items) ? b.items : Array.isArray(b) ? b : [];
+                console.log(`[DEBUG] AddBookingForm: Fetched ${fetchedBranches.length} branches (Total: ${b?.total || fetchedBranches.length})`);
+                setBranches(fetchedBranches);
             }
             if (usersResult.status === 'fulfilled') {
                 const u = usersResult.value;

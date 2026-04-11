@@ -20,6 +20,8 @@ const MODULES = [
     'Manage Coupons',
     'Manage Bookings',
     'Transactions And Earnings',
+    'Court Blocks',
+    'Integrations',
     'FAQ',
     'CMS Pages',
     'Settings'

@@ -14,7 +14,7 @@ function AmenitiesSettings() {
   // Permission Logic
   const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
   const isSuperAdmin = adminInfo.role === 'super_admin';
-  const permissions = adminInfo.permissions?.['Amenities Management'] || {};
+  const permissions = adminInfo.permissions?.['Manage Amenities'] || {};
   const canAdd = isSuperAdmin || permissions.add;
   const canEdit = isSuperAdmin || permissions.edit;
   const canDelete = isSuperAdmin || permissions.delete;

@@ -437,7 +437,7 @@ class CouponResponse(BaseModel):
     final_amount: Optional[float] = None
 
 class AdminPolicyBase(BaseModel):
-    type: str # 'cancellation', 'terms'
+    type: str # 'cancellation', 'terms', 'gst'
     name: str
     value: Optional[str] = None
     content: Optional[str] = None
@@ -846,6 +846,8 @@ class BookingCreate(BaseModel):
     time_slots: Optional[List[dict]] = None
     slot_ids: Optional[List[str]] = None # IDs mapping to slots table
     original_amount: Optional[float] = None
+    subtotal_amount: Optional[float] = 0
+    gst_amount: Optional[float] = 0
     discount_amount: Optional[float] = 0
     coupon_code: Optional[str] = None
     status: Optional[str] = None
@@ -879,6 +881,8 @@ class BookingResponse(BaseModel):
     time_slots: List[dict]
     total_duration_minutes: int
     original_amount: Decimal
+    subtotal_amount: Optional[Decimal] = 0.0
+    gst_amount: Optional[Decimal] = 0.0
     discount_amount: Decimal
     coupon_code: Optional[str] = None
     
@@ -931,6 +935,8 @@ class Booking(BaseModel):
     number_of_players: int
     total_amount: Decimal
     original_amount: Decimal
+    subtotal_amount: Optional[Decimal] = 0.0
+    gst_amount: Optional[Decimal] = 0.0
     discount_amount: Decimal
     coupon_code: Optional[str] = None
     status: str
@@ -966,6 +972,8 @@ class AdminBooking(BaseModel):
     total_duration_minutes: Optional[int] = 0  # replacing duration_hours
     total_amount: Decimal
     original_amount: Decimal
+    subtotal_amount: Optional[Decimal] = 0.0
+    gst_amount: Optional[Decimal] = 0.0
     discount_amount: Decimal
     
     special_requests: Optional[str] = None
@@ -1419,6 +1427,68 @@ class ContactFormSubmission(BaseModel):
     sport: Optional[str] = None
     location: Optional[str] = None
     preferred_date: Optional[str] = None
+
+# ============================================================================
+# INTEGRATION & PARTNER SCHEMAS
+# ============================================================================
+
+class PartnerBase(BaseModel):
+    name: str
+    unique_id: str
+    webhook_url: Optional[str] = None
+    is_active: Optional[bool] = True
+
+class PartnerUpdate(BaseModel):
+    name: Optional[str] = None
+    webhook_url: Optional[str] = None
+    is_active: Optional[bool] = None
+    api_key: Optional[str] = None # Plain text to be hashed on backend
+
+class Partner(PartnerBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class CourtBlockBase(BaseModel):
+    court_id: str
+    block_date: date
+    start_time: time
+    end_time: time
+    reason: Optional[str] = None
+    slice_mask: Optional[int] = 0
+    synced_partners: Optional[List[str]] = []
+
+class CourtBlockCreate(CourtBlockBase):
+    pass
+
+class CourtBlock(CourtBlockBase):
+    id: str
+    blocked_by_id: Optional[str] = None
+    created_at: datetime
+    
+    # Optional relationships
+    court_name: Optional[str] = None
+    blocked_by_name: Optional[str] = None
+
+    @field_validator('id', 'court_id', 'blocked_by_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
 
 # Resolve forward references
 User.update_forward_refs()

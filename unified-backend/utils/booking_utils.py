@@ -207,7 +207,7 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
     # 2. Fetch all active bookings for these courts using RAW SQL as fail-safe for ORM issues
     # Join with admin_courts to get total_zones
     from sqlalchemy import text
-    sql = text("""
+    sql_bookings = text("""
         SELECT b.slice_mask, b.time_slots, c.total_zones, b.id, c.logic_type, c.capacity_limit, b.number_of_players
         FROM booking b
         LEFT JOIN admin_courts c ON b.court_id = c.id
@@ -222,7 +222,16 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
         )
     """)
     
-    group_bookings = db.execute(sql, {"c_ids": [str(cid) for cid in court_ids], "d": str(booking_date)}).fetchall()
+    group_bookings = db.execute(sql_bookings, {"c_ids": [str(cid) for cid in court_ids], "d": str(booking_date)}).fetchall()
+
+    # 2.5 Fetch manual blocks from Admin Panel
+    sql_blocks = text("""
+        SELECT start_time, end_time, court_id, slice_mask
+        FROM admin_court_blocks
+        WHERE court_id = ANY(CAST(:c_ids AS uuid[]))
+        AND block_date = CAST(:d AS date)
+    """)
+    manual_blocks = db.execute(sql_blocks, {"c_ids": [str(cid) for cid in court_ids], "d": str(booking_date)}).fetchall()
 
     # 3. Build a map of 48 x 30-min slots
     aggregate_masks = {}
@@ -289,6 +298,33 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
                         apply_to_slot(tk)
                     curr += 0.5
             except: pass
+
+    # 5. Populate with manual Admin blocks
+    # Fetch court zone counts for blocking
+    court_zone_counts = {str(cid): 1 for cid in court_ids}
+    if court_ids:
+        z_sql = text("SELECT id, total_zones FROM admin_courts WHERE id = ANY(CAST(:c_ids AS uuid[]))")
+        z_res = db.execute(z_sql, {"c_ids": [str(cid) for cid in court_ids]}).fetchall()
+        for cid_val, tz in z_res:
+            court_zone_counts[str(cid_val)] = tz or 1
+
+    for start_t, end_t, b_court_id, b_slice_mask in manual_blocks:
+        st_f = safe_parse_time_float(str(start_t))
+        et_f = safe_parse_time_float(str(end_t))
+        
+        # Determine the mask for this block
+        # If slice_mask is > 0, use it. Otherwise, block the entire court.
+        mask = b_slice_mask
+        if not mask or mask == 0:
+            tz = court_zone_counts.get(str(b_court_id), 1)
+            mask = (1 << tz) - 1
+        
+        curr = st_f
+        while curr < et_f:
+            tk = f"{int(curr):02d}:{int((curr % 1) * 60):02d}"
+            if tk in aggregate_masks:
+                aggregate_masks[tk] |= mask
+            curr += 0.5
     
     return aggregate_masks, aggregate_players
 
@@ -385,6 +421,20 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
     now_ist = get_now_ist()
     is_today = (booking_date == now_ist.date())
 
+    # NEW: Fetch Manual Admin Blocks (District, Playo, User App all affected)
+    # Check if this court belongs to a shared group to block all related sports
+    if court.shared_group_id:
+        group_court_ids = [str(c.id) for c in db.query(models.Court.id).filter(models.Court.shared_group_id == court.shared_group_id).all()]
+        manual_blocks = db.query(models.CourtBlock).filter(
+            models.CourtBlock.court_id.in_(group_court_ids),
+            models.CourtBlock.block_date == booking_date
+        ).all()
+    else:
+        manual_blocks = db.query(models.CourtBlock).filter(
+            models.CourtBlock.court_id == court_id,
+            models.CourtBlock.block_date == booking_date
+        ).all()
+
     # Generate 48 slots
     for i in range(0, 48):
         h_start = i * 0.5
@@ -452,21 +502,30 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
 
         if is_allowed:
             is_blocked = False
-            un_slots = court.unavailability_slots or []
-            if isinstance(un_slots, str):
-                try: un_slots = json.loads(un_slots)
-                except: un_slots = []
             
-            if isinstance(un_slots, list):
-                for un in un_slots:
-                    # Date specific block
-                    if un.get('date') == date_str:
-                        if safe_parse_time_float(un.get('from')) <= h_start < (safe_parse_time_float(un.get('to')) or 24.0):
+            # 1. Check Manual Admin Blocks
+            slot_start_time = time(hh, mm)
+            for mb in manual_blocks:
+                if mb.start_time <= slot_start_time < mb.end_time:
+                    is_blocked = True; break
+            
+            # 2. Check Recurring Unavailability
+            if not is_blocked:
+                un_slots = court.unavailability_slots or []
+                if isinstance(un_slots, str):
+                    try: un_slots = json.loads(un_slots)
+                    except: un_slots = []
+                
+                if isinstance(un_slots, list):
+                    for un in un_slots:
+                        # Date specific block
+                        if un.get('date') == date_str:
+                            if safe_parse_time_float(un.get('from')) <= h_start < (safe_parse_time_float(un.get('to')) or 24.0):
+                                is_blocked = True; break
+                        # Recurring block
+                        match = (date_str in (un.get('dates') or [])) or (day_short in [d.lower()[:3] for d in (un.get('days') or [])])
+                        if match and any(safe_parse_time_float(t) == h_start for t in (un.get('times') or [])):
                             is_blocked = True; break
-                    # Recurring block
-                    match = (date_str in (un.get('dates') or [])) or (day_short in [d.lower()[:3] for d in (un.get('days') or [])])
-                    if match and any(safe_parse_time_float(t) == h_start for t in (un.get('times') or [])):
-                        is_blocked = True; break
             
             if not is_blocked:
                 base_price = float(court.price_per_hour)

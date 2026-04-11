@@ -25,7 +25,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { wp, hp, moderateScale, fontScale } from '../utils/responsive';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
-import { couponsApi, bookingsApi, paymentsApi } from '../api/venues';
+import { couponsApi, bookingsApi, paymentsApi, venuesApi } from '../api/venues';
 import { useAuthStore } from '../store/authStore';
 
 // Conditional import for Razorpay - Only works in development builds, not Expo Go
@@ -159,6 +159,8 @@ const BookingDetailsScreen: React.FC = () => {
         final_amount?: number;
         message: string;
     } | null>(null);
+    const [gstPercent, setGstPercent] = useState(0);
+    const [cancellationPolicy, setCancellationPolicy] = useState<any>(null);
 
     // Financials
     const platformFee = 0; // Updated to 0 as per backend/web consistency
@@ -171,12 +173,34 @@ const BookingDetailsScreen: React.FC = () => {
 
     const basePrice = calculateBasePrice();
     const discountAmount = couponResult?.valid && couponResult.discount_amount ? couponResult.discount_amount : 0;
-    const finalTotal = basePrice + platformFee - discountAmount;
+    const subtotal = basePrice + platformFee - discountAmount;
+    const gstAmount = (subtotal * gstPercent) / 100;
+    const finalTotal = subtotal + gstAmount;
 
     // Load Coupons
     useEffect(() => {
         loadAvailableCoupons();
+        loadActivePolicies();
     }, []);
+
+    const loadActivePolicies = async () => {
+        try {
+            const res = await venuesApi.getPublicPolicies(); // Fetch all
+            if (res.success && res.data && res.data.length > 0) {
+                const activeGst = res.data.find((p: any) => p.type === 'gst' && p.is_active);
+                if (activeGst) {
+                    setGstPercent(parseFloat(activeGst.value));
+                }
+
+                const activeCancellation = res.data.find((p: any) => p.type === 'cancellation' && p.is_active);
+                if (activeCancellation) {
+                    setCancellationPolicy(activeCancellation);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load policies', error);
+        }
+    };
 
     // Recalculate coupon if players change (since base total changes)
     useEffect(() => {
@@ -516,6 +540,12 @@ const BookingDetailsScreen: React.FC = () => {
                             <Text style={styles.costLabel}>Platform Fee</Text>
                             <Text style={styles.costValue}>₹{platformFee}</Text>
                         </View>
+                        {gstPercent > 0 && (
+                            <View style={styles.costRow}>
+                                <Text style={styles.costLabel}>GST ({gstPercent}%)</Text>
+                                <Text style={styles.costValue}>₹{gstAmount.toFixed(2)}</Text>
+                            </View>
+                        )}
                         {discountAmount > 0 && (
                             <View style={styles.costRow}>
                                 <Text style={[styles.costLabel, { color: colors.primary }]}>Discount</Text>
@@ -530,6 +560,38 @@ const BookingDetailsScreen: React.FC = () => {
                             <Text style={styles.totalValue}>₹{finalTotal}</Text>
                         </View>
                     </View>
+                    
+                    {/* Cancellation Policy */}
+                    {cancellationPolicy && (
+                        <View style={{
+                            marginVertical: moderateScale(12),
+                            padding: moderateScale(15),
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: moderateScale(12),
+                            borderLeftWidth: 3,
+                            borderLeftColor: colors.primary,
+                        }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                                <MaterialCommunityIcons name="alert-circle-outline" size={moderateScale(14)} color={colors.primary} />
+                                <Text style={{
+                                    fontSize: moderateScale(11),
+                                    color: colors.primary,
+                                    fontWeight: '800',
+                                    marginLeft: 6,
+                                    letterSpacing: 0.5
+                                }}>
+                                    {cancellationPolicy.name.toUpperCase()} {cancellationPolicy.value ? `(${cancellationPolicy.value}% FEE)` : ''}
+                                </Text>
+                            </View>
+                            {cancellationPolicy.content ? (
+                                <Text style={{
+                                    fontSize: moderateScale(11),
+                                    color: '#aaa',
+                                    lineHeight: moderateScale(16),
+                                }}>{cancellationPolicy.content}</Text>
+                            ) : null}
+                        </View>
+                    )}
 
                     {/* 4. PAYMENT METHOD */}
                     <Text style={styles.sectionHeader}>PAYMENT METHOD</Text>

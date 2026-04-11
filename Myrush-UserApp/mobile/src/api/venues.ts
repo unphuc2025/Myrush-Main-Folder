@@ -487,17 +487,6 @@ export const bookingsApi = {
     /**
      * Get user's bookings
      */
-    getUserBookings: async (userId: string, statusFilter?: string) => {
-        try {
-            // userId is ignored as backend uses token
-            const data = await apiClient.get<any[]>('/bookings/');
-
-            // Filter client-side if needed (or add backend filter)
-            let filteredData = data;
-            if (statusFilter) {
-                filteredData = data.filter(b => b.status === statusFilter);
-            }
-
             console.log('[BOOKINGS API] Fetched user bookings:', filteredData?.length || 0);
             return {
                 success: true,
@@ -512,6 +501,27 @@ export const bookingsApi = {
             };
         }
     },
+
+    /**
+     * Fetch active policies (GST, Cancellation, etc.)
+     */
+    getPublicPolicies: async (type?: string) => {
+        try {
+            const endpoint = type ? `/policies/?type=${type}` : '/policies/';
+            const response = await apiClient.get<any[]>(endpoint);
+            return {
+                success: true,
+                data: response,
+            };
+        } catch (error: any) {
+            console.error('[POLICIES API] Exception fetching policies:', error);
+            return {
+                success: false,
+                data: [],
+                error: error.message,
+            };
+        }
+    }
 };
 
 // Payments API

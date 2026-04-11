@@ -91,6 +91,13 @@ def ensure_default_policies(db: Session):
                 "value": None,
                 "content": "1. Bookings are subject to availability.\n2. Management reserves the right to cancel.",
                 "is_active": True
+            },
+            {
+                "type": "gst",
+                "name": "Standard GST",
+                "value": "18",
+                "content": "Standard 18% Goods and Services Tax",
+                "is_active": False
             }
         ]
         
