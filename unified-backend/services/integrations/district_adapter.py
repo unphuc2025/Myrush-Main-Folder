@@ -90,6 +90,17 @@ class DistrictAdapter(BaseIntegrationAdapter):
             models.Booking.booking_date == target_date,
             models.Booking.status.in_(['confirmed', 'pending', 'locked'])
         ).all()
+
+        # New: Fetch manual admin blocks
+        manual_blocks = self.db.query(models.CourtBlock).filter(
+            models.CourtBlock.court_id.in_(court_ids),
+            models.CourtBlock.block_date == target_date
+        ).all()
+        
+        # Build block lookup: {court_id: [(start, end)]}
+        blocks_by_court = {cid: [] for cid in court_ids}
+        for mb in manual_blocks:
+            blocks_by_court[mb.court_id].append((mb.start_time, mb.end_time))
         
         # Build a fast lookup for booked hours: {court_id: set(hours)}
         bookings_by_court = {cid: set() for cid in court_ids}
@@ -104,6 +115,7 @@ class DistrictAdapter(BaseIntegrationAdapter):
             m = (slot_num % 2) * 30
             time_key = f"{h:02d}:{m:02d}"
             slot_start_f = h + (m/60.0)
+            slot_start_time = dt_time(h, m)
             
             try:
                 court_entries = []
@@ -112,8 +124,15 @@ class DistrictAdapter(BaseIntegrationAdapter):
                     if time_key not in allowed_map:
                         continue
                     
+                    # Check manual admin blocks
+                    is_manual_blocked = False
+                    for b_start, b_end in blocks_by_court.get(court.id, []):
+                        if b_start <= slot_start_time < b_end:
+                            is_manual_blocked = True
+                            break
+
                     booked_slots = bookings_by_court.get(court.id, set())
-                    is_booked = slot_start_f in booked_slots
+                    is_booked = slot_start_f in booked_slots or is_manual_blocked
                     
                     capacity = branch.max_players if branch.max_players and sport.name.lower() in ['basketball', 'cricket', 'football'] else 1
                     

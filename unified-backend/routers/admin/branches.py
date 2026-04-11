@@ -22,7 +22,7 @@ from dependencies import get_admin_branch_filter, require_super_admin, Permissio
 @router.get("/", response_model=schemas.BranchListResponse)
 def get_all_branches(
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=1000),
     search: Optional[str] = None,
     city_id: str = None, 
     area_id: str = None, 
@@ -33,7 +33,8 @@ def get_all_branches(
     """Get all branches with pagination, searching, and filtering"""
     query = db.query(models.Branch).options(
         joinedload(models.Branch.game_types),
-        joinedload(models.Branch.amenities)
+        joinedload(models.Branch.amenities),
+        joinedload(models.Branch.city)
     )
     
     # 1. Apply Security Filter

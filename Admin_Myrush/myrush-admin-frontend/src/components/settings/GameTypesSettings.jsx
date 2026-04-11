@@ -14,7 +14,7 @@ function GameTypesSettings() {
   // Permission Logic
   const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
   const isSuperAdmin = adminInfo.role === 'super_admin';
-  const permissions = adminInfo.permissions?.['Game Management'] || {};
+  const permissions = adminInfo.permissions?.['Manage Sports'] || {};
   const canAdd = isSuperAdmin || permissions.add;
   const canEdit = isSuperAdmin || permissions.edit;
   const canDelete = isSuperAdmin || permissions.delete;
