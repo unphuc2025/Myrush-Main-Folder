@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional
@@ -33,7 +33,7 @@ from dependencies import get_admin_branch_filter
 @router.get("/", response_model=schemas.CourtListResponse)
 def get_all_courts(
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=1000),
     search: Optional[str] = None,
     branch_id: str = None, 
     city_id: Optional[str] = None,
@@ -43,7 +43,10 @@ def get_all_courts(
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
 ):
     """Get all courts with pagination and searching, filtered by branch access rights and city"""
-    query = db.query(models.Court)
+    query = db.query(models.Court).options(
+        joinedload(models.Court.branch).joinedload(models.Branch.city),
+        joinedload(models.Court.sport_slices)
+    )
     
     # Apply city filter if provided
     if city_id:

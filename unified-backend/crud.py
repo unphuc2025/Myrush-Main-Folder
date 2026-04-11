@@ -505,7 +505,25 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         # Determine final total amount to store
         # In legacy, there wasn't a separate 'total_amount' field in BookingCreate, it was calculated.
         # So we use the calculated one.
-        total_amount = float(original_amount) - float(discount_amount)
+        subtotal_amount = float(original_amount) - float(discount_amount)
+        
+        # --- GST Calculation ---
+        gst_amount = 0
+        total_amount = subtotal_amount
+        
+        try:
+            active_gst_policy = db.query(models.AdminPolicy).filter(
+                models.AdminPolicy.type == 'gst',
+                models.AdminPolicy.is_active == True
+            ).first()
+            
+            if active_gst_policy and active_gst_policy.value:
+                gst_percent = float(active_gst_policy.value)
+                gst_amount = (subtotal_amount * gst_percent) / 100
+                total_amount = subtotal_amount + gst_amount
+                print(f"[CRUD BOOKING] GST Applied: {gst_percent}% -> {gst_amount}. New Total: {total_amount}")
+        except Exception as ge:
+            print(f"[CRUD BOOKING] Warning: Failed to fetch/apply GST policy: {ge}")
 
         # 3. Verify Court & User
         court_check = db.query(models.Court).filter(models.Court.id == str(booking.court_id)).first()
@@ -669,6 +687,8 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             "time_slots": final_slots,
             "total_duration_minutes": total_duration,
             "original_amount": original_amount,
+            "subtotal_amount": subtotal_amount,
+            "gst_amount": gst_amount,
             "discount_amount": discount_amount,
             "total_amount": total_amount,
             "coupon_code": booking.coupon_code,
@@ -835,7 +855,7 @@ def cancel_booking(db: Session, booking_id: str, user_id: str):
                 court_id=str(db_booking.court_id),
                 date=str(db_booking.booking_date),
                 slot_start=s_f,
-                action='release'
+                action='available'
             )
     except Exception as e:
         print(f"[CRUD] Warning: Failed to release inventory after cancellation: {e}")
@@ -875,7 +895,9 @@ def get_bookings(db: Session, user_id: str):
                 b.updated_at,
                 c.name AS venue_name,
                 br.address_line1 AS venue_location,
-                br.name AS branch_name
+                br.name AS branch_name,
+                COALESCE(b.subtotal_amount, 0.0) AS subtotal_amount,
+                COALESCE(b.gst_amount, 0.0) AS gst_amount
             FROM booking b
             LEFT JOIN admin_courts c ON b.court_id::text = c.id::text
             LEFT JOIN admin_branches br ON c.branch_id::text = br.id::text
@@ -930,7 +952,9 @@ def get_bookings(db: Session, user_id: str):
                 "updated_at": row[22],
                 "venue_name": row[23] or "Unknown Court",
                 "venue_location": venue_location,
-                "court_name": time_slots_parsed[0].get('court_name') if time_slots_parsed else (row[23] or "Unknown Court")
+                "court_name": time_slots_parsed[0].get('court_name') if time_slots_parsed else (row[23] or "Unknown Court"),
+                "subtotal_amount": row[26] or 0.0,
+                "gst_amount": row[27] or 0.0
             }
             bookings_list.append(booking_dict)
 

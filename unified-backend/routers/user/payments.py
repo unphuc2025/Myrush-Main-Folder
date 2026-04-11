@@ -222,13 +222,26 @@ def create_payment_order(
             raise HTTPException(status_code=400, detail=f"Coupon error: {str(e)}")
         
     # 4. Final Total
-    final_amount = (server_base_price + PLATFORM_FEE) - discount_amount
-    final_amount = max(0, final_amount) # Never negative
-    print(f"[PRICE_DEBUG] FINAL AMOUNT TO RAZORPAY: {final_amount} (Calculated as ({server_base_price} + {PLATFORM_FEE}) - {discount_amount})")
+    subtotal_amount = (server_base_price + PLATFORM_FEE) - discount_amount
+    subtotal_amount = max(0, subtotal_amount)
     
-    # GST Logic (Optional - assuming inclusive for now, but if we wanted to add it:)
-    # gst_amount = final_amount * 0.18
-    # final_amount += gst_amount
+    # --- GST Calculation ---
+    gst_amount = 0.0
+    final_amount = subtotal_amount
+    gst_percent = 0.0
+    
+    try:
+        active_gst_policy = db.query(models.AdminPolicy).filter(
+            models.AdminPolicy.type == 'gst',
+            models.AdminPolicy.is_active == True
+        ).first()
+        if active_gst_policy and active_gst_policy.value:
+            gst_percent = float(active_gst_policy.value)
+            gst_amount = (subtotal_amount * gst_percent) / 100
+            final_amount = subtotal_amount + gst_amount
+            print(f"[PAYMENTS] GST Applied: {gst_percent}% ({gst_amount}). Subtotal: {subtotal_amount}, Final: {final_amount}")
+    except Exception as ge:
+        print(f"[PAYMENTS] Warning: Failed to apply GST policy: {ge}")
     
     # 5. Create Razorpay Order
     # Round to 2 decimal places to avoid float issues before converting to paise
@@ -291,7 +304,10 @@ def create_payment_order(
             "breakdown": {
                 "base": server_base_price,
                 "fee": PLATFORM_FEE,
-                "discount": discount_amount
+                "discount": discount_amount,
+                "subtotal": subtotal_amount,
+                "gst": gst_amount,
+                "gst_percent": gst_percent
             }
         }
         
@@ -348,7 +364,28 @@ def create_multi_court_payment_order(
         discount_amount = validate_authoritative_coupon(db, coupon_code, total_price, str(current_user.id))
         
     # Calculate total with rounding to 2 decimal places to prevent float errors
-    final_total = round((total_price + PLATFORM_FEE) - discount_amount, 2)
+    subtotal_amount = (total_price + PLATFORM_FEE) - discount_amount
+    subtotal_amount = max(0, subtotal_amount)
+
+    # --- GST Calculation (Multi-order) ---
+    gst_amount = 0.0
+    final_total = subtotal_amount
+    gst_percent = 0.0
+    
+    try:
+        active_gst_policy = db.query(models.AdminPolicy).filter(
+            models.AdminPolicy.type == 'gst',
+            models.AdminPolicy.is_active == True
+        ).first()
+        if active_gst_policy and active_gst_policy.value:
+            gst_percent = float(active_gst_policy.value)
+            gst_amount = (subtotal_amount * gst_percent) / 100
+            final_total = subtotal_amount + gst_amount
+            print(f"[MULTI-ORDER] GST Applied: {gst_percent}% ({gst_amount})")
+    except Exception as ge:
+        print(f"[MULTI-ORDER] Warning: Failed GST fetch: {ge}")
+
+    final_total = round(final_total, 2)
     final_total_paise = int(final_total * 100)
 
     try:

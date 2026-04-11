@@ -75,6 +75,39 @@ class IntegrationOrchestrator:
                 logger.error(f"Failed to queue bulk recurring update: {e}")
 
     @staticmethod
+    def notify_manual_block_change(db: Session, block: models.CourtBlock, action: str):
+        """
+        Triggered when a Manual Court Block is created or deleted.
+        Action: 'block' or 'available'
+        Maps the block's time range to 30-min slots for partner notification.
+        """
+        try:
+            # Convert time objects to floats for our slot engine
+            from utils.booking_utils import safe_parse_time_float
+            s_f = safe_parse_time_float(str(block.start_time))
+            e_f = safe_parse_time_float(str(block.end_time))
+            
+            if e_f <= s_f: # Handle midnight crossover or errors
+                e_f = 24.0
+            
+            # Iterate through 30-min slots
+            curr = s_f
+            while curr < e_f:
+                IntegrationOrchestrator.notify_inventory_change(
+                    db=db,
+                    court_id=str(block.court_id),
+                    date=str(block.block_date),
+                    slot_start=curr,
+                    action=action
+                )
+                curr += 0.5
+                
+            logger.info(f"Synchronized manual {action} for Court {block.court_id} on {block.block_date} ({block.start_time}-{block.end_time})")
+            
+        except Exception as e:
+            logger.error(f"Failed to synchronize manual block change: {e}", exc_info=True)
+
+    @staticmethod
     def notify_recurring_change(db: Session, court_id: str, day: int, slot_start: float, action: str, price: float = None):
         """
         Triggered when recurring schedules or prices change (District Type A).

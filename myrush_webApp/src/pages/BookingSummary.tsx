@@ -55,6 +55,8 @@ export const BookingSummary: React.FC = () => {
     const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
     const [loadingCoupons, setLoadingCoupons] = useState(true);
     const [appliedCouponInfo, setAppliedCouponInfo] = useState<any>(null);
+    const [gstPercent, setGstPercent] = useState(0);
+    const [cancellationPolicy, setCancellationPolicy] = useState<any>(null);
 
     useEffect(() => {
         if (!state) {
@@ -78,8 +80,24 @@ export const BookingSummary: React.FC = () => {
             setLoadingCoupons(false);
         };
 
+        const loadPolicies = async () => {
+            const res = await venuesApi.getPublicPolicies(); // Fetch all
+            if (res.success && res.data && res.data.length > 0) {
+                const activeGst = res.data.find((p: any) => p.type === 'gst' && p.is_active);
+                if (activeGst) {
+                    setGstPercent(parseFloat(activeGst.value));
+                }
+
+                const activeCancellation = res.data.find((p: any) => p.type === 'cancellation' && p.is_active);
+                if (activeCancellation) {
+                    setCancellationPolicy(activeCancellation);
+                }
+            }
+        };
+
         loadVenue();
         loadCoupons();
+        loadPolicies();
     }, [state, state?.venueId, navigate]);
 
     if (!state || (!venue && !state.venueName)) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div></div>;
@@ -94,8 +112,9 @@ export const BookingSummary: React.FC = () => {
         ? Math.round(slotsCost / numPlayers)
         : slotsCost;
     const platformFee = 0;
-    const tax = 0;
-    const totalAmount = slotsCost + platformFee + tax - discount;
+    const subtotal = slotsCost - discount;
+    const tax = (subtotal * gstPercent) / 100;
+    const totalAmount = subtotal + platformFee + tax;
 
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) return;
@@ -448,6 +467,12 @@ export const BookingSummary: React.FC = () => {
                                         <span>Convenience Fee</span>
                                         <span className="text-gray-900">₹{platformFee}</span>
                                     </div>
+                                    {gstPercent > 0 && (
+                                        <div className="flex justify-between text-xs font-medium uppercase tracking-wider text-gray-400">
+                                            <span>GST ({gstPercent}%)</span>
+                                            <span className="text-gray-900">₹{tax.toFixed(2)}</span>
+                                        </div>
+                                    )}
                                     {discount > 0 && (
                                         <div className="flex justify-between text-xs font-semibold uppercase tracking-wider text-green-500">
                                             <span>Promotion Applied</span>
@@ -544,6 +569,23 @@ export const BookingSummary: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
+                                {/* Cancellation Policy Display */}
+                                {cancellationPolicy && (
+                                    <div className="mt-8 p-4 bg-gray-900 border border-gray-800 rounded-xl">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="w-1 h-3 bg-primary rounded-full"></div>
+                                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">Cancellation Policy</span>
+                                        </div>
+                                        <p className="text-[10px] text-white font-bold leading-relaxed">
+                                            {cancellationPolicy.name} {cancellationPolicy.value ? `(${cancellationPolicy.value}% fee)` : ''}
+                                        </p>
+                                        {cancellationPolicy.content && (
+                                            <p className="text-[10px] text-gray-400 font-medium leading-relaxed mt-1 italic">
+                                                {cancellationPolicy.content}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <Button

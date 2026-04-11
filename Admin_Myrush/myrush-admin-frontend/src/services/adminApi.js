@@ -587,19 +587,30 @@ export const settingsApi = {
     })
 };
 
-// Playo Token Management API
-export const playoTokensApi = {
-    getAll: () => apiRequest('/playo-tokens/'),
-    generate: (description) => apiRequest(`/playo-tokens/generate?description=${encodeURIComponent(description)}`, {
-        method: 'POST'
+// Integrations API
+export const integrationsApi = {
+    getPartners: () => apiRequest('/integrations/partners'),
+    getPartner: (partnerId) => apiRequest(`/integrations/partners/${partnerId}`),
+    updatePartner: (partnerId, data) => apiRequest(`/integrations/partners/${partnerId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
     }),
-    deactivate: (id) => apiRequest(`/playo-tokens/${id}/deactivate`, {
+    togglePartner: (partnerId, isActive) => apiRequest(`/integrations/partners/${partnerId}/toggle?is_active=${isActive}`, {
         method: 'POST'
+    })
+};
+
+// Court Blocks API
+export const blocksApi = {
+    getBlocks: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return apiRequest(`/blocks${query ? '?' + query : ''}`);
+    },
+    createBlock: (data) => apiRequest('/blocks', {
+        method: 'POST',
+        body: JSON.stringify(data)
     }),
-    activate: (id) => apiRequest(`/playo-tokens/${id}/activate`, {
-        method: 'POST'
-    }),
-    delete: (id) => apiRequest(`/playo-tokens/${id}`, {
+    deleteBlock: (id) => apiRequest(`/blocks/${id}`, {
         method: 'DELETE'
     })
 };

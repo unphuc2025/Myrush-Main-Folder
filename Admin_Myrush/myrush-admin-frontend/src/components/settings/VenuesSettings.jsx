@@ -249,10 +249,11 @@ function VenuesSettings() {
   // Permission Logic
   const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
   const isSuperAdmin = adminInfo.role === 'super_admin';
-  const permissions = adminInfo.permissions?.['Venue Management'] || {};
+  const permissions = adminInfo.permissions?.['Manage Branch'] || {};
   const canAdd = isSuperAdmin || permissions.add;
   const canEdit = isSuperAdmin || permissions.edit;
   const canDelete = isSuperAdmin || permissions.delete;
+  const canView = isSuperAdmin || permissions.view;
 
   // Filter state
   const [selectedCityId, setSelectedCityId] = useState('');
@@ -842,9 +843,11 @@ function VenuesSettings() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 transition-opacity">
-                          <button onClick={() => handleViewClick(venue)} title="View Venue" className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors">
-                            <Eye className="h-4 w-4" />
-                          </button>
+                          {canView && (
+                            <button onClick={() => handleViewClick(venue)} title="View Venue" className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors">
+                              <Eye className="h-4 w-4" />
+                            </button>
+                          )}
                           {canEdit && (
                             <button onClick={() => handleEditClick(venue)} title="Edit Venue" className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-md transition-colors">
                               <Edit2 className="h-4 w-4" />
@@ -923,13 +926,15 @@ function VenuesSettings() {
                   </div>
 
                    <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-                    <button
-                      onClick={() => handleViewClick(venue)}
-                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
-                    >
-                      <Eye className="h-4 w-4 shrink-0" />
-                      <span className="text-sm font-bold">View</span>
-                    </button>
+                    {canView && (
+                      <button
+                        onClick={() => handleViewClick(venue)}
+                        className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                      >
+                        <Eye className="h-4 w-4 shrink-0" />
+                        <span className="text-sm font-bold">View</span>
+                      </button>
+                    )}
                     {canEdit && (
                       <button
                         onClick={() => handleEditClick(venue)}

@@ -1,13 +1,16 @@
 import time
 import requests
+import json
 import logging
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from database import SessionLocal
 import models
+from services.integrations.gateway_client import DistrictGatewayClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("OutboxWorker")
+
 
 def process_outbox():
     """
@@ -47,27 +50,36 @@ def process_outbox():
                 # 3. Send Webhook
                 logger.info(f"Sending {event.event_type} to {partner.name} at {partner.webhook_url}")
                 
-                # District/Partner Specific Headers
-                headers = {
-                    "Content-Type": "application/json",
-                    "User-Agent": "RUSH-Webhook/1.0",
-                    "true-client-ip": "localhost" # Requirement from District PDF
-                }
-                
-                # Load partner-specific secrets from ENV (Gold Standard: store in Partner.auth_settings)
-                import os
                 if partner.name.upper() == "DISTRICT":
-                    dist_api_key = os.getenv("DISTRICT_WEBHOOK_API_KEY", "abcde")
-                    dist_auth = os.getenv("DISTRICT_WEBHOOK_AUTH", "Basic akanan")
-                    headers["API-KEY"] = dist_api_key
-                    headers["Authorization"] = dist_auth
-                
-                response = requests.post(
-                    partner.webhook_url,
-                    json=event.payload,
-                    headers=headers,
-                    timeout=10
-                )
+                    # ── District: Use HMAC-SHA256 Gateway Authentication ──
+                    # vendor_id and vendor_secret both from DB (Partner table)
+                    client = DistrictGatewayClient(
+                        vendor_id=partner.unique_id,
+                        vendor_secret=partner.api_key_hash,
+                    )
+                    
+                    extra_headers = {
+                        "User-Agent": "RUSH-Webhook/1.0"
+                    }
+                    
+                    response = client.post(
+                        partner.webhook_url,
+                        json_data=event.payload,
+                        extra_headers=extra_headers,
+                    )
+                else:
+                    # ── Other Partners: Standard webhook POST ──
+                    headers = {
+                        "Content-Type": "application/json",
+                        "User-Agent": "RUSH-Webhook/1.0",
+                    }
+                    
+                    response = requests.post(
+                        partner.webhook_url,
+                        json=event.payload,
+                        headers=headers,
+                        timeout=10,
+                    )
 
                 # 4. Handle Response
                 if 200 <= response.status_code < 300:
