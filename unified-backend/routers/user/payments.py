@@ -28,6 +28,7 @@ router = APIRouter(
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET")
+VRIKSHA_WEBHOOK_URL = os.getenv("VRIKSHA_WEBHOOK_URL", "https://tester-webhook.vriksha.ai/api/webhooks/razorpay")
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
@@ -81,6 +82,10 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
     """
     Calculate the total price based on unified slot generation engine.
     Logic: Sum(Slot Prices) * Number of Players
+    
+    IMPORTANT: This function now ENRICHES the requested_slots dicts with 'price' 
+    if they are missing or mismatched, ensuring downstream logic (like crud.create_booking) 
+    has the correct authoritative data.
     """
     from utils.booking_utils import generate_allowed_slots_map, safe_parse_time_float
 
@@ -106,6 +111,7 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
             m = int((h_f % 1) * 60)
             norm_start = f"{h:02d}:{m:02d}" 
         
+        slot_price = 0.0
         # Use price from map if available, else default (though validation should have caught it)
         if norm_start in allowed_slots_map:
             server_slot = allowed_slots_map[norm_start]
@@ -124,6 +130,10 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
                 slot_price = (float(court.price_per_hour) / 2.0)
                 total_slot_price += slot_price
                 print(f"[PRICE_DEBUG] Fallback Slot {norm_start}: Price {slot_price}")
+        
+        # ENRICH SLOT with authoritative price (for capacity, frontend expects per-slot price already multiplied? 
+        # Actually, crud.validate_court_configuration handles the player multiplication check, so we store the BASE slot price here.)
+        slot['price'] = slot_price
 
     # 2. Final Base Price (Multiply by players if capacity-based)
     final_base_price = float(total_slot_price)
@@ -134,6 +144,7 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
         print(f"[PRICE_DEBUG] FINAL TOTAL BASE: {final_base_price} (No player multiplier applied)")
         
     return final_base_price
+
 
 
 def validate_authoritative_coupon(db: Session, coupon_code: str, total_amount: float, user_id: str) -> float:
@@ -242,12 +253,17 @@ def create_payment_order(
         # only the first one will succeed here. The second will get a 409 Conflict BEFORE
         # a Razorpay order is ever created for them — preventing a confusing double payment.
         print(f"[PAYMENTS] Atomically reserving slot for order {order['id']}")
+        
+        # ENRICH BOOKING with authoritative price data before sending to CRUD
         booking_details.payment_status = "pending"
         booking_details.razorpay_order_id = order['id']
+        booking_details.original_amount = server_base_price
+        booking_details.total_amount = final_amount
         
         try:
             db_booking = crud.create_booking(db=db, booking=booking_details, user_id=current_user.id)
             print(f"[PAYMENTS] Slot reserved. Pending booking ID: {db_booking.id}")
+
         except HTTPException as slot_err:
             # Known conflict (slot taken, bitmask overlap, etc.) — cancel the Razorpay order and reject
             print(f"[PAYMENTS] Slot reservation FAILED: {slot_err.detail}. Cancelling Razorpay order {order['id']}.")
@@ -545,7 +561,7 @@ async def razorpay_webhook(
             vriksha_success = False
             try:
                 import requests
-                vriksha_url = "https://tester-webhook.vriksha.ai/api/webhooks/razorpay"
+                vriksha_url = VRIKSHA_WEBHOOK_URL
                 
                 vriksha_payload = json.loads(json.dumps(data)) # Deep copy
                 if "payload" in vriksha_payload and "payment" in vriksha_payload["payload"] and "entity" in vriksha_payload["payload"]["payment"]:
