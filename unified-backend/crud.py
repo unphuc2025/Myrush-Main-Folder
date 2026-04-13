@@ -682,6 +682,7 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             "court_id": str(c_uuid),
             "booking_date": booking.booking_date,
             "booking_display_id": new_display_id,
+            "invoice_number": f"INV-{new_display_id}",
             
             # New Columns
             "time_slots": final_slots,
@@ -711,7 +712,7 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             "number_of_players": booking.number_of_players,
             "team_name": booking.team_name,
             "special_requests": booking.special_requests,
-            "status": "confirmed",
+            "status": booking.status or "confirmed",
             "payment_status": booking.payment_status or "pending",
             "payment_id": booking.razorpay_payment_id,
             "razorpay_order_id": booking.razorpay_order_id,

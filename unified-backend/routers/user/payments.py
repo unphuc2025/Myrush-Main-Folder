@@ -268,6 +268,7 @@ def create_payment_order(
         print(f"[PAYMENTS] Atomically reserving slot for order {order['id']}")
         
         # ENRICH BOOKING with authoritative price data before sending to CRUD
+        booking_details.status = "payment_pending"
         booking_details.payment_status = "pending"
         booking_details.razorpay_order_id = order['id']
         booking_details.original_amount = server_base_price
@@ -420,6 +421,7 @@ def create_multi_court_payment_order(
             slot_ids=slot_ids,
             number_of_players=number_of_players,
             coupon_code=coupon_code,
+            status="payment_pending",
             payment_status="pending",
             razorpay_order_id=order["id"],
             original_amount=total_price,
@@ -507,11 +509,14 @@ def verify_payment(
              raise HTTPException(status_code=400, detail="Missing payment details")
              
         # Verify Signature
-        client.utility.verify_payment_signature({
-            'razorpay_order_id': order_id,
-            'razorpay_payment_id': payment_id,
-            'razorpay_signature': signature
-        })
+        # Finalize booking status
+        booking = db.query(models.Booking).filter(models.Booking.razorpay_order_id == order_id).all()
+        for b in booking:
+            b.payment_status = "paid"
+            b.payment_id = payment_id
+            b.status = "confirmed"
+            b.updated_at = datetime.utcnow()
+        db.commit()
         
         return {"status": "success", "message": "Payment verified successfully"}
         
@@ -656,9 +661,11 @@ async def razorpay_webhook(
                         booking.payment_status = "flagged_mismatch"
                     else:
                         booking.payment_status = "paid"
-                        print(f"[WEBHOOK] Marking booking {booking.id} as Paid (Vriksha confirmed).")
+                        booking.status = "confirmed" # Finalize status
+                        print(f"[WEBHOOK] Marking booking {booking.id} as Paid and Confirmed (Vriksha confirmed).")
                     
                     booking.payment_id = payment_id
+                    booking.payment_mode = payment_entity.get("method")  # upi, card, netbanking, etc.
                     booking.razorpay_signature = signature
                     booking.updated_at = datetime.utcnow()
                     db.commit()

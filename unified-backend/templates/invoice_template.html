@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt - {{ booking.booking_display_id }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Outfit:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+            margin: 0;
+        }
+
+        .receipt-container {
+            width: 800px;
+            background: white;
+            border: 2px solid #000;
+            padding: 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            border-bottom: 2px solid #000;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-circle {
+            width: 35px;
+            height: 35px;
+            background-color: #2ecc71;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .brand-name {
+            font-size: 28px;
+            font-weight: 800;
+            color: #000;
+            letter-spacing: -1px;
+        }
+
+        .venue-info {
+            margin-left: 40px;
+            text-align: left;
+        }
+
+        .venue-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        .venue-url {
+            color: #0000EE;
+            text-decoration: underline;
+            font-size: 14px;
+        }
+
+        .title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 20px;
+            border-bottom: 1px solid #ccc;
+            background-color: #fff;
+        }
+
+        .voucher-title {
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 16px;
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .metadata {
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            gap: 40px;
+        }
+
+        .info-row {
+            display: flex;
+            padding: 8px 20px;
+            border-bottom: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        .label {
+            font-weight: bold;
+            width: 100px;
+        }
+
+        .value {
+            border-bottom: 1px solid #999;
+            flex-grow: 1;
+            padding-left: 10px;
+        }
+
+        .table-header {
+            display: flex;
+            border-bottom: 1px solid #000;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .col-desc { flex: 4; border-right: 1px solid #000; padding: 5px 10px; text-align: center; }
+        .col-amt { flex: 1; padding: 5px 10px; text-align: center; }
+
+        .table-body {
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .table-row {
+            display: flex;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .cell-desc { flex: 4; border-right: 1px solid #000; padding: 8px 10px; font-weight: bold; }
+        .cell-amt { flex: 1; padding: 8px 10px; text-align: right; font-weight: bold; }
+
+        .total-row {
+            display: flex;
+            border-top: 2px solid #000;
+            font-weight: bold;
+        }
+
+        .total-label { flex: 4; border-right: 1px solid #000; padding: 8px 10px; text-align: right; }
+        .total-value { flex: 1; padding: 8px 10px; text-align: right; }
+
+        .footer-mode {
+            padding: 5px 10px;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .signature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            font-size: 12px;
+            border-bottom: 1px solid #000;
+        }
+
+        .sig-box {
+            border-right: 1px solid #000;
+            padding: 5px;
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .sig-box:last-child { border-right: none; }
+
+        .sig-label {
+            text-align: center;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        .sig-value {
+            text-align: center;
+            margin-bottom: 5px;
+            font-style: italic;
+            color: #666;
+        }
+
+        .mobile-row {
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .gst-number {
+            font-size: 10px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .receipt-container { box-shadow: none; border: 2px solid #000; }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-section">
+                {% if site.site_logo %}
+                <img src="/uploads/{{ site.site_logo }}?t={{ booking.updated_at.timestamp() if booking.updated_at else '1' }}" 
+                     alt="Rush Logo" 
+                     style="height: 50px; width: auto; max-width: 200px; object-fit: contain; display: block;"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="brand-name" style="display: none;">{{ site.company_name | default('RUSH') }}</div>
+                {% else %}
+                <div class="logo-circle">⚡</div>
+                <div class="brand-name">{{ site.company_name | default('RUSH') }}</div>
+                {% endif %}
+            </div>
+            <div class="venue-info">
+                <div class="venue-name">{{ branch.name }}</div>
+                <div class="venue-url">{{ site.site_url | default('www.myrush.in') }}</div>
+                {% if site.gst_number %}
+                <div class="gst-number">GSTIN: {{ site.gst_number }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Title & Metadata -->
+        <div class="title-row">
+            <div class="voucher-title">RECEIPT VOUCHER</div>
+            <div class="metadata" style="display: block; text-align: right; font-size: 11px; line-height: 1.4;">
+                <div style="color: #333;">Receipt No: <span style="color: #000; font-size: 13px;">{{ booking.invoice_number or 'N/A' }}</span></div>
+                <div style="color: #333;">Booking ID: <span style="color: #000; font-size: 13px;">{{ booking.booking_display_id }}</span></div>
+                <div style="margin-top: 4px;">DATE : <strong>{{ booking.booking_date }}</strong></div>
+            </div>
+        </div>
+
+        <!-- Payer Info -->
+        <div class="info-row">
+            <div class="label">Paid By,</div>
+            <div class="value">{{ user.full_name or user.phone_number }}</div>
+        </div>
+        <div class="info-row">
+            <div class="label">Towards A/c,</div>
+            <div class="value">{{ court.name }} Booking Charges</div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-header">
+            <div class="col-desc">DESCRIPTIONS / REFERENCE</div>
+            <div class="col-amt">AMOUNT</div>
+        </div>
+        <div class="table-body">
+            {% for slot in booking.time_slots %}
+            <div class="table-row">
+                <div class="cell-desc">{{ court.name }} - {{ slot.display_time }}</div>
+                <div class="cell-amt">{{ "{:,.2f}".format(slot.price | float) }}</div>
+            </div>
+            {% endfor %}
+            
+            {% if booking.discount_amount > 0 %}
+            <div class="table-row">
+                <div class="cell-desc">Discount ({{ booking.coupon_code or 'Promo' }})</div>
+                <div class="cell-amt">- {{ "{:,.2f}".format(booking.discount_amount | float) }}</div>
+            </div>
+            {% endif %}
+
+            {% if booking.gst_amount > 0 %}
+            <div class="table-row">
+                <div class="cell-desc">GST Amount</div>
+                <div class="cell-amt">{{ "{:,.2f}".format(booking.gst_amount | float) }}</div>
+            </div>
+            {% endif %}
+
+            <!-- Empty rows for spacing -->
+            <div class="table-row"><div class="cell-desc" style="height: 40px;"></div><div class="cell-amt"></div></div>
+        </div>
+
+        <!-- Total -->
+        <div class="total-row">
+            <div class="total-label">TOTAL ({{ currency | default('INR') }})</div>
+            <div class="total-value">{{ "{:,.2f}".format(booking.total_amount | float) }}</div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-mode">
+            <div>MODE : {{ booking.payment_mode | default('ONLINE') | upper }}</div>
+            <div>STATUS: {{ booking.payment_status | upper }}</div>
+        </div>
+
+        <div class="signature-grid">
+            <div class="sig-box">
+                <div class="sig-value">{{ user.full_name or 'Customer' }}</div>
+                <div class="sig-label">PAID By</div>
+            </div>
+            <div class="sig-box"></div>
+            <div class="sig-box">
+                <div class="sig-value">MyRush System</div>
+                <div class="sig-label">ACCOUNTANT</div>
+            </div>
+            <div class="sig-box">
+                <div class="sig-value">Secured Payment</div>
+                <div class="sig-label">RECEIVED By</div>
+            </div>
+        </div>
+
+        <div class="mobile-row">
+            <div>Contact : {{ branch.phone_number or site.contact_number }}</div>
+            <div>Support : {{ site.email }}</div>
+        </div>
+    </div>
+
+    {% if auto_print %}
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+    {% endif %}
+</body>
+</html>

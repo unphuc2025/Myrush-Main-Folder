@@ -345,6 +345,7 @@ class SiteSetting(Base):
     instagram_url = Column(String(500), nullable=True)
     youtube_url = Column(String(500), nullable=True)
     linkedin_url = Column(String(500), nullable=True)
+    gst_number = Column(String(50), nullable=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -477,6 +478,8 @@ class Booking(Base):
     payment_id = Column(String(255))
     razorpay_order_id = Column(String(255))
     razorpay_signature = Column(String(500))
+    payment_mode = Column(String(50), nullable=True) # captured from payment gateway (upi, card, etc)
+    invoice_number = Column(String(50), unique=True, nullable=True)
     coupon_id = Column(UUID(as_uuid=True), ForeignKey("admin_coupons.id"), nullable=True)
     
     # Playo Integration Fields

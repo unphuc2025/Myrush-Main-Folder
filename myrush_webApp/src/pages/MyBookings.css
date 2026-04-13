@@ -340,6 +340,24 @@
     color: white;
 }
 
+.cancel-booking-btn-card {
+    font-size: 0.8rem;
+    padding: 6px 16px;
+    border-radius: 6px;
+    background-color: white;
+    border: 1px solid #D32F2F;
+    color: #D32F2F;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-booking-btn-card:hover {
+    background-color: #D32F2F;
+    color: white;
+    box-shadow: 0 4px 8px rgba(211, 47, 47, 0.2);
+}
+
 /* Coupon Info */
 .coupon-info-badge {
     font-size: 0.7rem;

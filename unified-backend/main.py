@@ -243,7 +243,8 @@ from routers.user import (
     policies as user_policies,
     contact,
     cms as user_cms,
-    site_settings as user_site_settings
+    site_settings as user_site_settings,
+    invoices as user_invoices
 )
 
 # Import chatbot router
@@ -267,6 +268,7 @@ app.include_router(user_policies.router, prefix="/api/user", tags=["User Policie
 app.include_router(contact.router, prefix="/api/user/contact", tags=["User Contact Support"])
 app.include_router(user_cms.router, prefix="/api/user", tags=["User CMS"])
 app.include_router(user_site_settings.router, prefix="/api/user", tags=["User Site Settings"])
+app.include_router(user_invoices.router, prefix="/api/user", tags=["Invoices"])
 
 # Include chatbot knowledge API
 app.include_router(chatbot.router, tags=["Chatbot Knowledge"])
