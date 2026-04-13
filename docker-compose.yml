@@ -1,0 +1,121 @@
+# ============================================================================
+# MyRush — Production Docker Compose (Host Nginx)
+# ============================================================================
+#
+# Architecture:
+#   Host Nginx (manages SSL + reverse proxy on the EC2)
+#     ├─ admin-staging.myrush.in      → localhost:3001 (admin-frontend)
+#     ├─ staging.myrush.in / www-staging.myrush.in → localhost:3002 (user-webapp)
+#     └─ api-staging.myrush.in       → localhost:8000 (backend → postgres)
+#
+# Only the app containers run in Docker.
+# Nginx and Certbot are managed on the host.
+# ============================================================================
+
+services:
+  # --------------------------------------------------------------------------
+  # PostgreSQL (temporary — will be migrated to external server later)
+  # --------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: myrush-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-myrush}
+      POSTGRES_USER: ${POSTGRES_USER:-myrush}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-myrush} -d ${POSTGRES_DB:-myrush}" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    networks:
+      - internal
+
+  # --------------------------------------------------------------------------
+  # Unified Backend (FastAPI)
+  # --------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./unified-backend
+      dockerfile: Dockerfile
+    container_name: myrush-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-myrush}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-myrush}
+      - ENVIRONMENT=production
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_logs:/app/logs
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    networks:
+      - internal
+
+  # --------------------------------------------------------------------------
+  # Admin Frontend (React + Vite → Nginx)
+  # --------------------------------------------------------------------------
+  admin-frontend:
+    build:
+      context: ./Admin_Myrush/myrush-admin-frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_ADMIN_API_URL:-https://api-staging.myrush.in/api/admin}
+        - VITE_GOOGLE_MAPS_API_KEY=${VITE_GOOGLE_MAPS_API_KEY:-}
+    container_name: myrush-admin-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:80"
+    networks:
+      - internal
+
+  # --------------------------------------------------------------------------
+  # User WebApp (React TS + Vite → Nginx)
+  # --------------------------------------------------------------------------
+  user-webapp:
+    build:
+      context: ./myrush_webApp
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_USER_API_URL:-https://api-staging.myrush.in/api/user}
+        - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY:-}
+    container_name: myrush-user-webapp
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3002:80"
+    networks:
+      - internal
+
+# ===========================================================================
+# Volumes
+# ===========================================================================
+volumes:
+  postgres_data:
+    driver: local
+  backend_uploads:
+    driver: local
+  backend_logs:
+    driver: local
+
+# ===========================================================================
+# Networks
+# ===========================================================================
+networks:
+  internal:
+    driver: bridge
