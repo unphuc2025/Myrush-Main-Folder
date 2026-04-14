@@ -726,6 +726,7 @@ class ProfileBase(BaseModel):
     age: Optional[int] = None
     city: Optional[str] = None
     gender: Optional[str] = None
+    email: Optional[EmailStr] = None
     handedness: Optional[str] = None
     skill_level: Optional[str] = None
     sports: Optional[List[str]] = None

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import text, and_, or_
 from typing import Annotated, List, Dict, Any, Optional
@@ -15,6 +15,8 @@ import models
 import schemas
 import crud
 from utils.coupon_utils import validate_coupon_strictly
+from utils.email_sender import send_booking_invoice_email
+from utils.logger import logger
 
 from utils.booking_utils import get_booked_slots, safe_parse_time_float, calculate_multi_slice_price, generate_allowed_slots_map
 
@@ -495,6 +497,7 @@ def create_multi_court_payment_order(
 @router.post("/verify")
 def verify_payment(
     payment_data: dict,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -518,6 +521,17 @@ def verify_payment(
             b.updated_at = datetime.utcnow()
         db.commit()
         
+        # --- ASYNC EMAIL INVOICE DELIVERY ---
+        try:
+            for b in booking:
+                # Refresh from DB to ensure relationships are loaded
+                db.refresh(b)
+                if b.user and b.user.email:
+                    logger.info(f"[PAYMENTS] Queuing invoice email to {b.user.email} for booking {b.id}")
+                    background_tasks.add_task(send_booking_invoice_email, db, str(b.id), b.user.email)
+        except Exception as e:
+            logger.error(f"[PAYMENTS] Failed to queue secondary email delivery: {e}")
+        
         return {"status": "success", "message": "Payment verified successfully"}
         
     except razorpay.errors.SignatureVerificationError:
@@ -537,6 +551,7 @@ def webhook_diagnostic():
 @router.post("/webhook")
 async def razorpay_webhook(
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -669,6 +684,17 @@ async def razorpay_webhook(
                     booking.razorpay_signature = signature
                     booking.updated_at = datetime.utcnow()
                     db.commit()
+
+                    # --- ASYNC EMAIL INVOICE DELIVERY (WEBHOOK) ---
+                    try:
+                        # Ensure user relationship is loaded
+                        db.refresh(booking)
+                        if not is_fraud_mismatch and booking.status == "confirmed" and booking.user and booking.user.email:
+                            logger.info(f"[WEBHOOK] Queuing invoice email for {booking.user.email}")
+                            background_tasks.add_task(send_booking_invoice_email, db, str(booking.id), booking.user.email)
+                    except Exception as email_err:
+                        logger.error(f"[WEBHOOK ERROR] Email queuing failed: {email_err}")
+
                 except Exception as db_err:
                     print(f"[WEBHOOK ERROR] Final DB commit failed: {db_err}")
                     db.rollback()
