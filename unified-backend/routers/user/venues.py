@@ -561,17 +561,10 @@ def get_venue_slots(
             allowed_slots_map = generate_allowed_slots_map(db, c_id, booking_date)
             
             # D. Merge to Consolidated
-            now = datetime.now()
-            is_today = (booking_date == now.date())
-
             for slot_time, details in allowed_slots_map.items():
                 if details['is_blocked']: continue
                 
                 h_float = safe_parse_time_float(slot_time)
-                
-                # Past check
-                if is_today and h_float < (now.hour + now.minute/60.0):
-                    continue
                 
                 # Granular Availability Check
                 # A slot is considered available if it's NOT blocked by the consolidated mask.

@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { bookingsApi } from '../api/bookings';
 import { TopNav } from '../components/TopNav';
-import { FaCalendarAlt, FaMapMarkerAlt, FaClock, FaStar } from 'react-icons/fa';
+import { FaCalendarAlt, FaMapMarkerAlt, FaClock, FaStar, FaDownload } from 'react-icons/fa';
 import { useNotification } from '../context/NotificationContext';
+import { config } from '../config';
 import './MyBookings.css';
 
 interface Booking {
@@ -22,9 +23,11 @@ interface Booking {
     total_amount: number;
     status: string;
     created_at: string;
-    time_slots?: any[];
+    subtotal_amount?: number;
+    gst_amount?: number;
     court_id?: string;
     court_name?: string;
+    team_name?: string;
 }
 
 interface ReviewData {
@@ -135,6 +138,11 @@ export const MyBookings: React.FC = () => {
         );
     };
 
+    const handleDownloadInvoice = (bookingId: string) => {
+        const url = `${config.apiBaseUrl}/bookings/${bookingId}/invoice?print=true`;
+        window.open(url, '_blank');
+    };
+
     const isCancellable = (booking: Booking): boolean => {
         if (booking.status !== 'upcoming' && booking.status !== 'confirmed') return false;
         
@@ -226,20 +234,12 @@ export const MyBookings: React.FC = () => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {getStatusBadge(booking.status)}
-                                        {isCancellable(booking) && (
-                                            <button 
-                                                className="cancel-booking-btn-minimal"
-                                                onClick={() => handleCancelBooking(booking.id)}
-                                                title="Cancel Booking (Allowed up to 1h before)"
-                                            >
-                                                Cancel
-                                            </button>
-                                        )}
                                     </div>
                                 </div>
 
                                 <div className="card-body-modern">
                                     <h3 className="venue-name">{booking.venue_name}{booking.court_name && booking.court_name !== booking.venue_name && <span className="block text-xs font-normal text-gray-500">{booking.court_name}</span>}</h3>
+                                    {booking.team_name && <p className="text-xs font-bold text-primary uppercase tracking-wider mb-1">TEAM: {booking.team_name}</p>}
                                     <p className="location-text text-primary flex items-center gap-1"><FaMapMarkerAlt className="text-primary" /> {booking.venue_location}</p>
 
                                     <div className="booking-details">
@@ -262,12 +262,36 @@ export const MyBookings: React.FC = () => {
 
                                     <div className="booking-id-row">
                                         <span>Booking ID: {booking.booking_display_id || booking.id.slice(0, 8)}</span>
-                                        <button
-                                            className="view-details-btn"
-                                            onClick={() => setSelectedBooking(booking)}
-                                        >
-                                            View Details
-                                        </button>
+                                        <div className="flex gap-2 flex-wrap justify-end">
+                                            {isCancellable(booking) ? (
+                                                <button 
+                                                    className="cancel-booking-btn-card"
+                                                    onClick={() => handleCancelBooking(booking.id)}
+                                                    title="Cancel Booking (Allowed up to 1h before)"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            ) : (booking.status === 'upcoming' || booking.status === 'confirmed') && (
+                                                <span className="text-[10px] text-gray-400 italic self-center mr-1" title="Cancellations are only allowed up to 1 hour before the booked time">
+                                                    Non-cancellable
+                                                </span>
+                                            )}
+                                            {(booking.status === 'confirmed' || booking.status === 'completed' || booking.status === 'upcoming') && (
+                                                <button
+                                                    className="view-details-btn secondary"
+                                                    onClick={() => handleDownloadInvoice(booking.id)}
+                                                    title="Download Receipt"
+                                                >
+                                                    <FaDownload className="inline-block mr-1" /> Receipt
+                                                </button>
+                                            )}
+                                            <button
+                                                className="view-details-btn"
+                                                onClick={() => setSelectedBooking(booking)}
+                                            >
+                                                View Details
+                                            </button>
+                                        </div>
                                     </div>
 
 
@@ -366,6 +390,13 @@ export const MyBookings: React.FC = () => {
                                             <span className="detail-value flex items-center gap-1"><FaMapMarkerAlt className="text-primary" /> {selectedBooking.venue_location}</span>
                                         </div>
 
+                                        {selectedBooking.team_name && (
+                                            <div className="detail-group">
+                                                <span className="detail-label">Team Name</span>
+                                                <span className="detail-value font-bold text-primary uppercase">{selectedBooking.team_name}</span>
+                                            </div>
+                                        )}
+
                                         <div className="modal-divider" />
 
                                         <div className="detail-row-modern">
@@ -422,6 +453,12 @@ export const MyBookings: React.FC = () => {
                                                         <span>-₹{selectedBooking.discount_amount}</span>
                                                     </div>
                                                 )}
+                                                {selectedBooking.gst_amount !== undefined && selectedBooking.gst_amount > 0 && (
+                                                    <div className="breakdown-row">
+                                                        <span>GST (18%)</span>
+                                                        <span>₹{selectedBooking.gst_amount}</span>
+                                                    </div>
+                                                )}
                                                 <div className="modal-divider mini" />
                                                 <div className="breakdown-row total">
                                                     <span>Total Paid</span>
@@ -440,7 +477,17 @@ export const MyBookings: React.FC = () => {
                                 </div>
 
                                 <div className="modal-footer">
-                                    <button className="done-btn" onClick={() => setSelectedBooking(null)}>Close</button>
+                                    <div className="flex gap-3 w-full">
+                                        {(selectedBooking.status === 'confirmed' || selectedBooking.status === 'completed' || selectedBooking.status === 'upcoming') && (
+                                            <button 
+                                                className="view-details-btn secondary flex-1"
+                                                onClick={() => handleDownloadInvoice(selectedBooking.id)}
+                                            >
+                                                <FaDownload className="inline-block mr-2" /> Download Invoice
+                                            </button>
+                                        )}
+                                        <button className="done-btn flex-1" onClick={() => setSelectedBooking(null)}>Close</button>
+                                    </div>
                                 </div>
                             </motion.div>
                         </div>

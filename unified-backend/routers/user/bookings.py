@@ -89,6 +89,16 @@ def create_booking(
             existing_booking.razorpay_signature = booking.razorpay_signature
             existing_booking.status = "confirmed"
             existing_booking.updated_at = datetime.utcnow()
+
+            # --- SYNC AMOUNTS ON CONFIRMATION ---
+            if booking.coupon_code:
+                existing_booking.coupon_code = booking.coupon_code
+            if booking.discount_amount is not None:
+                existing_booking.discount_amount = booking.discount_amount
+            if booking.total_amount:
+                 existing_booking.total_amount = booking.total_amount
+            if booking.original_amount:
+                 existing_booking.original_amount = booking.original_amount
             
             db.commit()
             db.refresh(existing_booking)

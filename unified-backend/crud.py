@@ -132,6 +132,24 @@ def create_or_update_profile(db: Session, profile: schemas.ProfileCreate, user_i
         if "skill_level" in profile_data: user.skill_level = profile_data["skill_level"]
         if "playing_style" in profile_data: user.playing_style = profile_data["playing_style"]
         if "sports" in profile_data: user.favorite_sports = profile_data["sports"]
+        
+        # Sync Email (Handle unique constraint)
+        if "email" in profile_data and profile_data["email"]:
+            new_email = profile_data["email"].lower()
+            # Check if this email is already used by ANOTHER user
+            existing_user = db.query(models.User).filter(
+                models.User.email == new_email,
+                models.User.id != user_id
+            ).first()
+            if existing_user:
+                print(f"[CRUD] WARNING: Cannot update email to {new_email} - already in use by user {existing_user.id}")
+                # We can either raise an error or just skip. Raising error is safer for user feedback.
+                from fastapi import HTTPException
+                raise HTTPException(status_code=400, detail="This email is already registered with another account.")
+            
+            user.email = new_email
+            print(f"[CRUD] Synced user email to: {new_email}")
+
         user.profile_completed = True
     
     db.commit()
@@ -229,8 +247,8 @@ def validate_booking_rules(
     if court.facility_type:
         is_pool = court.facility_type.name.lower() == 'pool'
     
-    if duration_h < 0.5:
-        raise HTTPException(status_code=400, detail="Minimum booking duration is 30 minutes.")
+    if duration_h < 0.95: # Allow slight floating point variance
+        raise HTTPException(status_code=400, detail="Minimum booking duration is 60 minutes (2 slots).")
 
     # --- Rule 3: User Overlap Check ---
     # Skip user overlap check for capacity courts, as users can book multiple tickets
@@ -351,14 +369,17 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: date,
         from utils.booking_utils import calculate_multi_slice_price
         expected_price = calculate_multi_slice_price(server_slot, slice_mask or 0, float(server_slot['price']))
 
-        provided_price = float(req.get('price', 0))
+        provided_price = float(req.get('price') if req.get('price') is not None else 0)
         
         # For capacity sports, the frontend multiplies the slot price by numPlayers
         expected_slot_provided_price = (expected_price * number_of_players) if is_capacity else expected_price
 
         # Allow small rounding difference
         if abs(expected_slot_provided_price - provided_price) > 5.0:
-             print(f"[CONFIG CHECK FAIL] Price mismatch at {r_start}: Expected base {expected_price} (total {expected_slot_provided_price} for {number_of_players} players), Got {provided_price}")
+             print(f"[CONFIG CHECK FAIL] Price mismatch for slot '{r_start}':")
+             print(f"  - Expected Price: {expected_price} (Base) * {number_of_players} (Players) = {expected_slot_provided_price}")
+             print(f"  - Provided Price: {provided_price}")
+             print(f"  - Court logic: {court.logic_type if court else 'unknown'}")
              raise HTTPException(status_code=400, detail=f"Price mismatch for slot {r_start}")
              
         calculated_total_base += expected_price
@@ -389,8 +410,12 @@ def validate_court_configuration(db: Session, court_id: str, booking_date: date,
     print(f"[CONFIG CHECK] Comparison: Server={calculated_final_total} vs Client={effective_expected_amount} (original={expected_total_amount}, num_courts={num_courts})")
 
     if abs(calculated_final_total - effective_expected_amount) > 10.0:
-         print(f"[CONFIG CHECK FAIL] Total amount mismatch: {calculated_final_total} != {effective_expected_amount}")
+         print(f"[CONFIG CHECK FAIL] Total amount mismatch:")
+         print(f"  - Calculated Server Total: {calculated_final_total}")
+         print(f"  - Effective Client Amount: {effective_expected_amount}")
+         print(f"  - Num Courts: {num_courts}")
          raise HTTPException(status_code=400, detail=f"Total booking amount mismatch. Server={calculated_final_total}, Client={effective_expected_amount}")
+
 
     print("[CONFIG CHECK] Success.")
 
@@ -446,7 +471,6 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
                     "start_time": s_time.strftime("%H:%M"),
                     "end_time": e_time.strftime("%H:%M"),
                     "price": price,
-                    "court_name": booking.court_name,
                     "display_time": slot.get('display_time') or f"{s_time.strftime('%I:%M %p')} - {e_time.strftime('%I:%M %p')}"
                 })
             
@@ -665,15 +689,21 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
                         )
 
 
-        # 4. Create Booking
+        # 4. Finalize Time Slots with Court Name
+        final_slots = []
+        for slot in time_slots:
+            final_slots.append({**slot, "court_name": court_check.name})
+
+        # 5. Create Booking
         booking_data = {
             "user_id": user_id,
             "court_id": str(c_uuid),
             "booking_date": booking.booking_date,
             "booking_display_id": new_display_id,
+            "invoice_number": f"INV-{new_display_id}",
             
             # New Columns
-            "time_slots": time_slots,
+            "time_slots": final_slots,
             "total_duration_minutes": total_duration,
             "original_amount": original_amount,
             "subtotal_amount": subtotal_amount,
@@ -700,7 +730,7 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             "number_of_players": booking.number_of_players,
             "team_name": booking.team_name,
             "special_requests": booking.special_requests,
-            "status": "confirmed",
+            "status": booking.status or "confirmed",
             "payment_status": booking.payment_status or "pending",
             "payment_id": booking.razorpay_payment_id,
             "razorpay_order_id": booking.razorpay_order_id,

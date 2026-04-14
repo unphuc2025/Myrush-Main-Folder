@@ -1,0 +1,45 @@
+Simulating pending booking persistence block...
+Calculated price for mask 1: 2000.0
+Attempting crud.create_booking for mask 1 with total 2000.0...
+FAILED inside loop:
+Traceback (most recent call last):
+  File "C:\Users\Z BOOK\Downloads\New folder\Myrush-Main-Folder\unified-backend\sim_multi_order.py", line 85, in run_simulation
+    db_booking = crud.create_booking(db=db, booking=booking_create, user_id=str(user.id))
+  File "C:\Users\Z BOOK\Downloads\New folder\Myrush-Main-Folder\unified-backend\crud.py", line 694, in create_booking
+    raise e
+  File "C:\Users\Z BOOK\Downloads\New folder\Myrush-Main-Folder\unified-backend\crud.py", line 550, in create_booking
+    validate_court_configuration(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        db=db,
+        ^^^^^^
+    ...<6 lines>...
+        num_courts=booking.num_courts or 1
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Z BOOK\Downloads\New folder\Myrush-Main-Folder\unified-backend\crud.py", line 398, in validate_court_configuration
+    raise HTTPException(status_code=400, detail=f"Total booking amount mismatch. Server={calculated_final_total}, Client={effective_expected_amount}")
+fastapi.exceptions.HTTPException: 400: Total booking amount mismatch. Server=2000.0, Client=200.0
+
+Calculated price for mask 12: 3500.0
+Attempting crud.create_booking for mask 12 with total 3500.0...
+FAILED inside loop:
+Traceback (most recent call last):
+  File "C:\Users\Z BOOK\Downloads\New folder\Myrush-Main-Folder\unified-backend\sim_multi_order.py", line 85, in run_simulation
+    db_booking = crud.create_booking(db=db, booking=booking_create, user_id=str(user.id))
+  File "C:\Users\Z BOOK\Downloads\New folder\Myrush-Main-Folder\unified-backend\crud.py", line 694, in create_booking
+    raise e
+  File "C:\Users\Z BOOK\Downloads\New folder\Myrush-Main-Folder\unified-backend\crud.py", line 550, in create_booking
+    validate_court_configuration(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        db=db,
+        ^^^^^^
+    ...<6 lines>...
+        num_courts=booking.num_courts or 1
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Z BOOK\Downloads\New folder\Myrush-Main-Folder\unified-backend\crud.py", line 398, in validate_court_configuration
+    raise HTTPException(status_code=400, detail=f"Total booking amount mismatch. Server={calculated_final_total}, Client={effective_expected_amount}")
+fastapi.exceptions.HTTPException: 400: Total booking amount mismatch. Server=3500.0, Client=200.0
+

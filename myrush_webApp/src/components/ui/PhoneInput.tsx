@@ -8,6 +8,7 @@ interface PhoneInputProps {
     error?: string;
     label?: string;
     className?: string;
+    labelClassName?: string;
 }
 
 const countryCodes = [
@@ -31,11 +32,12 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     error,
     label,
     className = '',
+    labelClassName = '',
 }) => {
     return (
         <div className={`w-full ${className}`}>
             {label && (
-                <label className="block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2 ml-1">
+                <label className={labelClassName || "block text-sm font-bold font-heading uppercase tracking-widest text-primary mb-2 ml-1"}>
                     {label}
                 </label>
             )}

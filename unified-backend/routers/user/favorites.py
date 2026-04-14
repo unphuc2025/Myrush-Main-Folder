@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
 import models, database, dependencies
+from schemas import resolve_path
 from pydantic import BaseModel
 from uuid import UUID
 
@@ -102,10 +103,13 @@ def get_favorites(
             row = dict(fav._mapping)
             # Prefer branch-level images (these are the venue images shown in the app)
             # Fall back to court-level images if branch images are empty
-            photos = row.get('branch_images') or row.get('court_images') or []
+            raw_photos = row.get('branch_images') or row.get('court_images') or []
+            photos = [resolve_path(img) for img in raw_photos if img]
+            
             result.append({
-                "id": str(row['id']),
+                "id": str(row['branch_id']), # Use branch_id as primary id for redirection compatibility
                 "branch_id": str(row['branch_id']),
+                "court_id": str(row['id']), # Keep court_id for specific reference if needed
                 "court_name": row['branch_name'], # Use Branch Name for Venue-First consistency
                 "location": f"{row['location']}, {row['city_name']}",
                 "game_type": row['game_type'],

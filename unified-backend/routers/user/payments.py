@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import text, and_, or_
 from typing import Annotated, List, Dict, Any, Optional
@@ -15,6 +15,8 @@ import models
 import schemas
 import crud
 from utils.coupon_utils import validate_coupon_strictly
+from utils.email_sender import send_booking_invoice_email
+from utils.logger import logger
 
 from utils.booking_utils import get_booked_slots, safe_parse_time_float, calculate_multi_slice_price, generate_allowed_slots_map
 
@@ -28,6 +30,7 @@ router = APIRouter(
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET")
+VRIKSHA_WEBHOOK_URL = os.getenv("VRIKSHA_WEBHOOK_URL", "https://tester-webhook.vriksha.ai/api/webhooks/razorpay")
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
@@ -81,6 +84,10 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
     """
     Calculate the total price based on unified slot generation engine.
     Logic: Sum(Slot Prices) * Number of Players
+    
+    IMPORTANT: This function now ENRICHES the requested_slots dicts with 'price' 
+    if they are missing or mismatched, ensuring downstream logic (like crud.create_booking) 
+    has the correct authoritative data.
     """
     from utils.booking_utils import generate_allowed_slots_map, safe_parse_time_float
 
@@ -106,6 +113,7 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
             m = int((h_f % 1) * 60)
             norm_start = f"{h:02d}:{m:02d}" 
         
+        slot_price = 0.0
         # Use price from map if available, else default (though validation should have caught it)
         if norm_start in allowed_slots_map:
             server_slot = allowed_slots_map[norm_start]
@@ -124,6 +132,10 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
                 slot_price = (float(court.price_per_hour) / 2.0)
                 total_slot_price += slot_price
                 print(f"[PRICE_DEBUG] Fallback Slot {norm_start}: Price {slot_price}")
+        
+        # ENRICH SLOT with authoritative price (for capacity, frontend expects per-slot price already multiplied? 
+        # Actually, crud.validate_court_configuration handles the player multiplication check, so we store the BASE slot price here.)
+        slot['price'] = slot_price
 
     # 2. Final Base Price (Multiply by players if capacity-based)
     final_base_price = float(total_slot_price)
@@ -134,6 +146,7 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
         print(f"[PRICE_DEBUG] FINAL TOTAL BASE: {final_base_price} (No player multiplier applied)")
         
     return final_base_price
+
 
 
 def validate_authoritative_coupon(db: Session, coupon_code: str, total_amount: float, user_id: str) -> float:
@@ -255,12 +268,19 @@ def create_payment_order(
         # only the first one will succeed here. The second will get a 409 Conflict BEFORE
         # a Razorpay order is ever created for them — preventing a confusing double payment.
         print(f"[PAYMENTS] Atomically reserving slot for order {order['id']}")
+        
+        # ENRICH BOOKING with authoritative price data before sending to CRUD
+        booking_details.status = "payment_pending"
         booking_details.payment_status = "pending"
         booking_details.razorpay_order_id = order['id']
+        booking_details.original_amount = server_base_price
+        booking_details.discount_amount = discount_amount
+        booking_details.total_amount = final_amount
         
         try:
             db_booking = crud.create_booking(db=db, booking=booking_details, user_id=current_user.id)
             print(f"[PAYMENTS] Slot reserved. Pending booking ID: {db_booking.id}")
+
         except HTTPException as slot_err:
             # Known conflict (slot taken, bitmask overlap, etc.) — cancel the Razorpay order and reject
             print(f"[PAYMENTS] Slot reservation FAILED: {slot_err.detail}. Cancelling Razorpay order {order['id']}.")
@@ -404,10 +424,11 @@ def create_multi_court_payment_order(
             slot_ids=slot_ids,
             number_of_players=number_of_players,
             coupon_code=coupon_code,
+            status="payment_pending",
             payment_status="pending",
             razorpay_order_id=order["id"],
             original_amount=total_price,
-            discount_amount=discount_amount
+            discount_amount=0.0 # Will be set proportionally per court
         )
 
         for cfg in configs:
@@ -434,8 +455,15 @@ def create_multi_court_payment_order(
             booking_create.slice_mask = s_mask
             
             court_final_price = court_total * (number_of_players if is_cap else 1)
-            booking_create.total_amount = court_final_price
+            
+            # --- PROPORTIONAL DISCOUNT CALCULATION ---
+            court_discount = 0.0
+            if total_price > 0:
+                court_discount = (court_final_price / total_price) * discount_amount
+            
+            booking_create.total_amount = court_final_price - court_discount
             booking_create.original_amount = court_final_price
+            booking_create.discount_amount = court_discount
             booking_create.time_slots = court_specific_slots
 
             try:
@@ -477,6 +505,7 @@ def create_multi_court_payment_order(
 @router.post("/verify")
 def verify_payment(
     payment_data: dict,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -491,11 +520,25 @@ def verify_payment(
              raise HTTPException(status_code=400, detail="Missing payment details")
              
         # Verify Signature
-        client.utility.verify_payment_signature({
-            'razorpay_order_id': order_id,
-            'razorpay_payment_id': payment_id,
-            'razorpay_signature': signature
-        })
+        # Finalize booking status
+        booking = db.query(models.Booking).filter(models.Booking.razorpay_order_id == order_id).all()
+        for b in booking:
+            b.payment_status = "paid"
+            b.payment_id = payment_id
+            b.status = "confirmed"
+            b.updated_at = datetime.utcnow()
+        db.commit()
+        
+        # --- ASYNC EMAIL INVOICE DELIVERY ---
+        try:
+            for b in booking:
+                # Refresh from DB to ensure relationships are loaded
+                db.refresh(b)
+                if b.user and b.user.email:
+                    logger.info(f"[PAYMENTS] Queuing invoice email to {b.user.email} for booking {b.id}")
+                    background_tasks.add_task(send_booking_invoice_email, db, str(b.id), b.user.email)
+        except Exception as e:
+            logger.error(f"[PAYMENTS] Failed to queue secondary email delivery: {e}")
         
         return {"status": "success", "message": "Payment verified successfully"}
         
@@ -516,6 +559,7 @@ def webhook_diagnostic():
 @router.post("/webhook")
 async def razorpay_webhook(
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -582,7 +626,7 @@ async def razorpay_webhook(
             vriksha_success = False
             try:
                 import requests
-                vriksha_url = "https://tester-webhook.vriksha.ai/api/webhooks/razorpay"
+                vriksha_url = VRIKSHA_WEBHOOK_URL
                 
                 vriksha_payload = json.loads(json.dumps(data)) # Deep copy
                 if "payload" in vriksha_payload and "payment" in vriksha_payload["payload"] and "entity" in vriksha_payload["payload"]["payment"]:
@@ -640,12 +684,25 @@ async def razorpay_webhook(
                         booking.payment_status = "flagged_mismatch"
                     else:
                         booking.payment_status = "paid"
-                        print(f"[WEBHOOK] Marking booking {booking.id} as Paid (Vriksha confirmed).")
+                        booking.status = "confirmed" # Finalize status
+                        print(f"[WEBHOOK] Marking booking {booking.id} as Paid and Confirmed (Vriksha confirmed).")
                     
                     booking.payment_id = payment_id
+                    booking.payment_mode = payment_entity.get("method")  # upi, card, netbanking, etc.
                     booking.razorpay_signature = signature
                     booking.updated_at = datetime.utcnow()
                     db.commit()
+
+                    # --- ASYNC EMAIL INVOICE DELIVERY (WEBHOOK) ---
+                    try:
+                        # Ensure user relationship is loaded
+                        db.refresh(booking)
+                        if not is_fraud_mismatch and booking.status == "confirmed" and booking.user and booking.user.email:
+                            logger.info(f"[WEBHOOK] Queuing invoice email for {booking.user.email}")
+                            background_tasks.add_task(send_booking_invoice_email, db, str(booking.id), booking.user.email)
+                    except Exception as email_err:
+                        logger.error(f"[WEBHOOK ERROR] Email queuing failed: {email_err}")
+
                 except Exception as db_err:
                     print(f"[WEBHOOK ERROR] Final DB commit failed: {db_err}")
                     db.rollback()

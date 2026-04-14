@@ -1,9 +1,11 @@
-﻿import smtplib
+import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 import logging
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+from utils.invoice_utils import render_invoice_html
 
 load_dotenv(override=True)
 
@@ -260,4 +262,52 @@ def send_contact_email(data: dict):
     except Exception as e:
         logger.error(f"Failed to send contact email: {str(e)}")
         # Don't fail the request if email fails, just log it
+        return False
+
+
+def send_booking_invoice_email(db: Session, booking_id: str, to_email: str):
+    """
+    Renders the invoice HTML and sends it to the user.
+    """
+    load_dotenv(override=True)
+
+    smtp_server = os.getenv("INVOICE_SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.getenv("INVOICE_SMTP_PORT", "587"))
+    smtp_username = os.getenv("INVOICE_SMTP_USERNAME")
+    smtp_password = os.getenv("INVOICE_SMTP_PASSWORD")
+
+    if not smtp_username or not smtp_password:
+        logger.warning("Invoice SMTP credentials not found. Email will NOT be sent.")
+        return False
+
+    logger.info(f"Initiating invoice email delivery for booking {booking_id} to {to_email}")
+    try:
+        html_content = render_invoice_html(db, booking_id)
+        if not html_content:
+            logger.error(f"Failed to render invoice HTML: Booking {booking_id} not found or data missing.")
+            return False
+
+        sender_email = smtp_username
+        subject = f"Your MyRush Booking Invoice - {booking_id}"
+
+        msg = MIMEMultipart()
+        msg['From'] = f"MyRush <{sender_email}>"
+        msg['To'] = to_email
+        msg['Subject'] = subject
+
+        msg.attach(MIMEText(html_content, 'html'))
+
+        logger.debug(f"Connecting to SMTP server {smtp_server}:{smtp_port}...")
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_username, smtp_password)
+        
+        logger.debug(f"Sending email to {to_email}...")
+        server.sendmail(sender_email, to_email, msg.as_string())
+        server.quit()
+        
+        logger.info(f"SUCCESS: Invoice email sent to {to_email} for booking {booking_id}")
+        return True
+    except Exception as e:
+        logger.exception(f"FATAL ERROR: Failed to deliver invoice email to {to_email}: {str(e)}")
         return False

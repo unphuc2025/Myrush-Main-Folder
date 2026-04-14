@@ -11,6 +11,21 @@ export const CmsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const formatDate = (dateString: string) => {
+        try {
+            // Handle cases where timezone might be missing (e.g. from backend)
+            let normalizedDate = dateString;
+            if (dateString && !dateString.includes('Z') && !dateString.includes('+')) {
+                normalizedDate = `${dateString}Z`;
+            }
+            const date = new Date(normalizedDate);
+            if (isNaN(date.getTime())) return 'Recently';
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (e) {
+            return 'Recently';
+        }
+    };
+
     useEffect(() => {
         const fetchPage = async () => {
             if (!slug) return;
@@ -73,7 +88,7 @@ export const CmsPage = () => {
                 {/* Header */}
                 <div className="mb-8 border-b border-slate-200 pb-8">
                     <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">{page.title}</h1>
-                    <p className="text-sm text-slate-500">Last updated: {new Date(page.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                    <p className="text-sm text-slate-500">Last updated: {formatDate(page.updated_at)}</p>
                 </div>
 
                 {/* Rich Text / Markdown Content */}
