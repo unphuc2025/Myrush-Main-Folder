@@ -8,6 +8,7 @@ const CourtBlocks = () => {
     const [blocks, setBlocks] = useState([]);
     const [branches, setBranches] = useState([]);
     const [courts, setCourts] = useState([]);
+    const [branchCourts, setBranchCourts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [viewMode, setViewMode] = useState('timeline'); // Default to visual timeline for better UX
@@ -16,6 +17,8 @@ const CourtBlocks = () => {
     // Filters
     const [filterBranchId, setFilterBranchId] = useState('');
     const [filterCourtId, setFilterCourtId] = useState('');
+    const [filterSliceId, setFilterSliceId] = useState('');
+    const [filterSliceMask, setFilterSliceMask] = useState(0);
     const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
 
     // Form State
@@ -38,7 +41,7 @@ const CourtBlocks = () => {
 
     useEffect(() => {
         fetchBlocks();
-    }, [filterBranchId, filterCourtId, filterDate]);
+    }, [filterBranchId, filterCourtId, filterDate, courts]);
 
     const fetchInitialData = async () => {
         try {
@@ -50,6 +53,23 @@ const CourtBlocks = () => {
             setCourts(courtsData?.items || courtsData || []);
         } catch (error) {
             console.error('Error fetching meta data:', error);
+        }
+    };
+
+    const handleFilterBranchChange = async (id) => {
+        setFilterBranchId(id);
+        setFilterCourtId('');
+        setFilterSliceId('');
+        setFilterSliceMask(0);
+        setBranchCourts([]);
+
+        if (id) {
+            try {
+                const courtsData = await courtsApi.getAll({ branch_id: id, limit: 1000 });
+                setBranchCourts(courtsData?.items || courtsData || []);
+            } catch (error) {
+                console.error('Error fetching branch courts:', error);
+            }
         }
     };
 
@@ -75,9 +95,21 @@ const CourtBlocks = () => {
             // Filter bookings for the selected date if they were fetched for the whole branch
             const filteredBookings = (bookingsData?.items || bookingsData || []).filter(b => {
                 const bDate = b.booking_date?.toString().split('T')[0];
+                const blockCourtIdStr = String(b.court_id).toLowerCase().trim();
+                const filterCourtIdStr = filterCourtId ? String(filterCourtId).toLowerCase().trim() : null;
+
+                const siblingToGroup = {}; // Map of courtId -> groupId for rapid check
+                if (courts && courts.length > 0) {
+                    courts.forEach(c => { 
+                        if(c.shared_group_id) siblingToGroup[String(c.id).toLowerCase()] = String(c.shared_group_id).toLowerCase(); 
+                    });
+                }
+
+                const targetGroupId = filterCourtIdStr ? siblingToGroup[filterCourtIdStr] : null;
+
                 return bDate === filterDate && 
                     b.status !== 'cancelled' &&
-                    (!filterCourtId || b.court_id === filterCourtId);
+                    (!filterCourtIdStr || blockCourtIdStr === filterCourtIdStr || (targetGroupId && siblingToGroup[blockCourtIdStr] === targetGroupId));
             });
             setBookings(filteredBookings);
 
@@ -118,7 +150,6 @@ const CourtBlocks = () => {
     };
 
     const filteredFormCourts = courts.filter(c => c.branch_id === formBranchId);
-    const filteredFilterCourts = courts.filter(c => c.branch_id === filterBranchId);
     const selectedFormCourt = courts.find(c => c.id === formData.court_id);
 
     return (
@@ -164,25 +195,45 @@ const CourtBlocks = () => {
                     <select 
                         className="w-full bg-gray border border-stroke rounded-lg px-4 py-2.5 outline-none focus:border-primary font-bold text-sm"
                         value={filterBranchId}
-                        onChange={(e) => {
-                            setFilterBranchId(e.target.value);
-                            setFilterCourtId('');
-                        }}
+                        onChange={(e) => handleFilterBranchChange(e.target.value)}
                     >
                         <option value="">All Venues</option>
                         {branches.map(b => <option key={b.id} value={b.id}>{b.name.toUpperCase()}</option>)}
                     </select>
                 </div>
                 <div className="flex-1 min-w-[200px]">
-                    <label className="block text-[10px] font-bold text-bodydark2 uppercase mb-2 tracking-widest">Select Court</label>
+                    <label className="block text-[10px] font-bold text-bodydark2 uppercase mb-2 tracking-widest">Select Court / Unit</label>
                     <select 
                         className={`w-full bg-gray border border-stroke rounded-lg px-4 py-2.5 outline-none focus:border-primary font-bold text-sm ${!filterBranchId ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        value={filterCourtId}
+                        value={filterSliceId ? `${filterCourtId}:${filterSliceId}` : filterCourtId}
                         disabled={!filterBranchId}
-                        onChange={(e) => setFilterCourtId(e.target.value)}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (val.includes(':')) {
+                                const [cid, sid] = val.split(':');
+                                setFilterCourtId(cid);
+                                setFilterSliceId(sid);
+                                const court = branchCourts.find(c => c.id === cid);
+                                const slice = court?.sport_slices?.find(s => s.id === sid);
+                                setFilterSliceMask(slice?.mask || 0);
+                            } else {
+                                setFilterCourtId(val);
+                                setFilterSliceId('');
+                                setFilterSliceMask(0);
+                            }
+                        }}
                     >
                         <option value="">All Courts</option>
-                        {filteredFilterCourts.map(c => <option key={c.id} value={c.id}>{c.name.toUpperCase()}</option>)}
+                        {branchCourts.map(c => (
+                            <React.Fragment key={c.id}>
+                                <option value={c.id} className="font-black text-black">{c.name.toUpperCase()} (FULL)</option>
+                                {c.sport_slices?.map(slice => (
+                                    <option key={slice.id} value={`${c.id}:${slice.id}`}>
+                                        &nbsp;&nbsp;&nbsp;→ {slice.name.toUpperCase()}
+                                    </option>
+                                ))}
+                            </React.Fragment>
+                        ))}
                     </select>
                 </div>
                 <div className="w-[180px]">
@@ -202,7 +253,14 @@ const CourtBlocks = () => {
                         <RefreshCw className={`w-5 h-5 text-bodydark2 ${loading ? 'animate-spin' : ''}`} />
                     </button>
                     <button 
-                        onClick={() => {setFilterBranchId(''); setFilterCourtId(''); setFilterDate(new Date().toISOString().split('T')[0])}}
+                        onClick={() => {
+                            setFilterBranchId(''); 
+                            setFilterCourtId(''); 
+                            setFilterSliceId(''); 
+                            setFilterSliceMask(0);
+                            setBranchCourts([]);
+                            setFilterDate(new Date().toISOString().split('T')[0]);
+                        }}
                         className="px-3 py-2.5 text-xs text-primary font-black uppercase hover:underline"
                     >
                         Reset
@@ -220,87 +278,98 @@ const CourtBlocks = () => {
             )}
 
             {viewMode === 'list' ? (
-                /* List View (Existing Table) */
+                /* List View */
                 <div className="bg-white border border-stroke rounded-xl shadow-sm overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="bg-gray border-b border-stroke">
-                            <th className="px-6 py-4 text-[10px] font-bold text-bodydark2 uppercase tracking-widest">Court Details</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-bodydark2 uppercase tracking-widest">Schedule</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-bodydark2 uppercase tracking-widest">Reason</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-bodydark2 uppercase tracking-widest">Sync</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-bodydark2 uppercase tracking-widest text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-stroke">
-                        {loading && !blocks.length ? (
-                            <tr><td colSpan="5" className="py-20 text-center text-body italic text-sm">Loading block schedule...</td></tr>
-                        ) : blocks.length === 0 ? (
-                            <tr>
-                                <td colSpan="5" className="py-24 text-center">
-                                    <Info className="w-10 h-10 text-bodydark2 mx-auto mb-4 opacity-20" />
-                                    <p className="text-body font-bold text-sm uppercase tracking-widest">No active blocks found</p>
-                                </td>
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-gray border-b border-stroke">
+                                <th className="px-6 py-4 text-[10px] font-bold text-bodydark2 uppercase tracking-widest">Court Details</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-bodydark2 uppercase tracking-widest">Schedule</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-bodydark2 uppercase tracking-widest">Reason</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-bodydark2 uppercase tracking-widest">Sync</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-bodydark2 uppercase tracking-widest text-right">Actions</th>
                             </tr>
-                        ) : (
-                            blocks.map(block => (
-                                <tr key={block.id} className="hover:bg-gray/30 transition-colors group">
-                                    <td className="px-6 py-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 bg-danger/10 rounded-lg flex items-center justify-center">
-                                                <Lock className="w-5 h-5 text-danger" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-black uppercase text-sm leading-none mb-1">{block.court_name}</h4>
-                                                <span className="text-[10px] font-bold text-bodydark2 uppercase">{block.branch_name}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-2 text-xs font-bold text-black">
-                                                <Calendar className="w-3.5 h-3.5 text-bodydark2" />
-                                                {block.block_date}
-                                            </div>
-                                            <div className="flex items-center gap-2 text-xs font-black text-primary italic">
-                                                <Clock className="w-3.5 h-3.5" />
-                                                {block.start_time.substring(0,5)} - {block.end_time.substring(0,5)}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5 underline decoration-gray-300 decoration-dotted underline-offset-4 text-xs font-medium text-body">
-                                        "{block.reason}"
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <div className="flex gap-1.5 overflow-hidden">
-                                            {block.sync_partners?.map(p => (
-                                                <span key={p} className="text-[9px] font-black text-bodydark2 px-2 py-0.5 bg-gray rounded uppercase border border-stroke">
-                                                    {p}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5 text-right">
-                                        <button 
-                                            onClick={() => handleDeleteBlock(block.id)}
-                                            className="p-2 text-bodydark2 hover:text-danger hover:bg-danger/5 rounded-lg transition-all"
-                                        >
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
+                        </thead>
+                        <tbody className="divide-y divide-stroke">
+                            {loading && !blocks.length ? (
+                                <tr><td colSpan="5" className="py-20 text-center text-body italic text-sm">Loading block schedule...</td></tr>
+                            ) : blocks.length === 0 ? (
+                                <tr>
+                                    <td colSpan="5" className="py-24 text-center">
+                                        <Info className="w-10 h-10 text-bodydark2 mx-auto mb-4 opacity-20" />
+                                        <p className="text-body font-bold text-sm uppercase tracking-widest">No active blocks found</p>
                                     </td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                            ) : (
+                                blocks.filter(b => {
+                                    if (filterSliceMask) {
+                                        return !b.slice_mask || (b.slice_mask & filterSliceMask);
+                                    }
+                                    return true;
+                                }).map(block => (
+                                    <tr key={block.id} className="hover:bg-gray/30 transition-colors group">
+                                        <td className="px-6 py-5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 bg-danger/10 rounded-lg flex items-center justify-center">
+                                                    <Lock className="w-5 h-5 text-danger" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-black uppercase text-sm leading-none mb-1">{block.court_name}</h4>
+                                                    <span className="text-[10px] font-bold text-bodydark2 uppercase">{block.branch_name}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2 text-xs font-bold text-black">
+                                                    <Calendar className="w-3.5 h-3.5 text-bodydark2" />
+                                                    {block.block_date}
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs font-black text-primary italic">
+                                                    <Clock className="w-3.5 h-3.5" />
+                                                    {block.start_time.substring(0,5)} - {block.end_time.substring(0,5)}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5 underline decoration-gray-300 decoration-dotted underline-offset-4 text-xs font-medium text-body">
+                                            "{block.reason}"
+                                            {filterCourtId && String(block.court_id).toLowerCase().trim() !== String(filterCourtId).toLowerCase().trim() && (
+                                                <div className="text-[9px] font-black text-danger mt-1">VIA {block.court_name}</div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="flex gap-1.5 overflow-hidden">
+                                                {block.sync_partners?.map(p => (
+                                                    <span key={p} className="text-[9px] font-black text-bodydark2 px-2 py-0.5 bg-gray rounded uppercase border border-stroke">
+                                                        {p}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5 text-right">
+                                            <button 
+                                                onClick={() => handleDeleteBlock(block.id)}
+                                                className="p-2 text-bodydark2 hover:text-danger hover:bg-danger/5 rounded-lg transition-all"
+                                            >
+                                                <Trash2 className="w-5 h-5" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             ) : (
                 /* Visual Timeline View */
                 <TimelineGrid 
                     selectedBranchId={filterBranchId}
+                    selectedCourtId={filterCourtId}
+                    selectedSliceId={filterSliceId}
+                    selectedSliceMask={filterSliceMask}
                     selectedDate={filterDate}
                     branches={branches}
-                    courts={courts}
+                    courts={branchCourts}
                     blocks={blocks}
                     bookings={bookings}
                     loading={loading}
@@ -312,7 +381,7 @@ const CourtBlocks = () => {
                             block_date: filterDate,
                             start_time: startTime,
                             end_time: `${parseInt(startTime.split(':')[0]) + 1}:00`,
-                            slice_mask: 0
+                            slice_mask: filterSliceId ? filterSliceMask : 0
                         });
                         setIsDrawerOpen(true);
                     }}
@@ -400,7 +469,6 @@ const CourtBlocks = () => {
                                 </div>
                             )}
 
-
                             {/* Rest of Form */}
                             <div className="pt-6 border-t border-stroke space-y-6">
                                 <div className="grid grid-cols-2 gap-4">
@@ -476,7 +544,7 @@ const CourtBlocks = () => {
 
 // --- TIMELINE COMPONENTS ---
 
-const TimelineGrid = ({ selectedBranchId, selectedDate, courts, blocks, bookings, loading, onCreateBlock }) => {
+const TimelineGrid = ({ selectedBranchId, selectedCourtId, selectedSliceId, selectedSliceMask, selectedDate, courts, blocks, bookings, loading, onCreateBlock }) => {
     const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 06:00 to 23:00
     
     if (!selectedBranchId) {
@@ -489,7 +557,10 @@ const TimelineGrid = ({ selectedBranchId, selectedDate, courts, blocks, bookings
         );
     }
 
-    const filteredCourts = courts.filter(c => c.branch_id === selectedBranchId);
+    const filteredCourts = courts.filter(c => 
+        c.branch_id === selectedBranchId && 
+        (!selectedCourtId || c.id === selectedCourtId)
+    );
 
     return (
         <div className="bg-white border border-stroke rounded-xl shadow-lg overflow-hidden flex flex-col">
@@ -515,10 +586,56 @@ const TimelineGrid = ({ selectedBranchId, selectedDate, courts, blocks, bookings
                     <div className="divide-y divide-stroke">
                         {filteredCourts.length === 0 ? (
                             <div className="p-10 text-center text-body italic text-sm">No courts found for this venue.</div>
-                        ) : (
-                            filteredCourts.map(court => {
-                                const courtBlocks = blocks.filter(b => b.court_id === court.id);
-                                const courtBookings = bookings.filter(b => b.court_id === court.id);
+                        ) : (() => {
+                            // Definitive Client-Side Group Mapping for Robust Synchronization
+                            const courtToGroup = {};
+                            courts.forEach(c => {
+                                if (c.shared_group_id) {
+                                    courtToGroup[String(c.id).toLowerCase()] = String(c.shared_group_id).toLowerCase();
+                                }
+                            });
+
+                            return filteredCourts.map(court => {
+                                const cId = String(court.id || '').toLowerCase().trim();
+                                const cGroupId = courtToGroup[cId];
+
+                                const courtBlocks = blocks.filter(b => {
+                                    const bCourtId = String(b.court_id || '').toLowerCase().trim();
+                                    
+                                    // 1. Direct match
+                                    if (bCourtId === cId) return true;
+
+                                    // 2. Shared Group match (Definitive client-side check)
+                                    const bGroupId = courtToGroup[bCourtId];
+                                    const isSibling = (bGroupId && cGroupId) && (bGroupId === cGroupId);
+                                    
+                                    if (!isSibling) return false;
+
+                                    // 3. Slice overlap (If filtering for a specific Turf)
+                                    if (selectedSliceMask) {
+                                        return !b.slice_mask || (b.slice_mask & selectedSliceMask);
+                                    }
+                                    return true;
+                                });
+
+                                const courtBookings = bookings.filter(bk => {
+                                    const bkCourtId = String(bk.court_id || '').toLowerCase().trim();
+                                    
+                                    // 1. Direct match
+                                    if (bkCourtId === cId) return true;
+
+                                    // 2. Shared Group match
+                                    const bkGroupId = courtToGroup[bkCourtId];
+                                    const isSibling = (bkGroupId && cGroupId) && (bkGroupId === cGroupId);
+                                    
+                                    if (!isSibling) return false;
+
+                                    // 3. Slice overlap
+                                    if (selectedSliceMask) {
+                                        return !bk.slice_mask || (bk.slice_mask & selectedSliceMask);
+                                    }
+                                    return true;
+                                });
                                 
                                 return (
                                     <TimelineRow 
@@ -530,8 +647,8 @@ const TimelineGrid = ({ selectedBranchId, selectedDate, courts, blocks, bookings
                                         onCreateBlock={onCreateBlock}
                                     />
                                 );
-                            })
-                        )}
+                            });
+                        })()}
                     </div>
                 </div>
             </div>
@@ -597,18 +714,46 @@ const TimelineRow = ({ court, blocks, bookings, hours, onCreateBlock }) => {
                 {hours.map((hour, idx) => (
                     <div key={hour} className="flex-1 min-w-[100px] border-r border-stroke/30 last:border-r-0 relative group/slot">
                         <div className="absolute inset-0 flex">
-                            <button 
-                                onClick={() => onCreateBlock(court.id, `${hour.toString().padStart(2, '0')}:00`)}
-                                className="flex-1 opacity-0 hover:opacity-100 hover:bg-primary/5 transition-all text-[8px] font-black text-primary/40 flex items-center justify-center"
-                            >
-                                <Plus className="w-4 h-4" />
-                            </button>
-                            <button 
-                                onClick={() => onCreateBlock(court.id, `${hour.toString().padStart(2, '0')}:30`)}
-                                className="flex-1 opacity-0 hover:opacity-100 hover:bg-primary/5 transition-all text-[8px] font-black text-primary/40 flex items-center justify-center border-l border-stroke/10"
-                            >
-                                <Plus className="w-4 h-4" />
-                            </button>
+                            {(() => {
+                                const time00 = `${hour.toString().padStart(2, '0')}:00`;
+                                const time30 = `${hour.toString().padStart(2, '0')}:30`;
+                                
+                                const isOccupied = (t) => {
+                                    // Check blocks
+                                    const hasBlock = blocks.some(b => b.start_time <= t && b.end_time > t);
+                                    // Check bookings
+                                    const hasBooking = bookings.some(bk => {
+                                        const bStart = bk.time_slots?.[0]?.start_time || bk.start_time;
+                                        const bEnd = bk.time_slots?.[bk.time_slots.length - 1]?.end_time || bk.end_time;
+                                        return bStart <= t && bEnd > t;
+                                    });
+                                    return hasBlock || hasBooking;
+                                };
+
+                                return (
+                                    <>
+                                        {!isOccupied(time00) && (
+                                            <button 
+                                                onClick={() => onCreateBlock(court.id, time00)}
+                                                className="flex-1 opacity-0 hover:opacity-100 hover:bg-primary/5 transition-all text-[8px] font-black text-primary/40 flex items-center justify-center"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        {isOccupied(time00) && <div className="flex-1" />}
+                                        
+                                        {!isOccupied(time30) && (
+                                            <button 
+                                                onClick={() => onCreateBlock(court.id, time30)}
+                                                className="flex-1 opacity-0 hover:opacity-100 hover:bg-primary/5 transition-all text-[8px] font-black text-primary/40 flex items-center justify-center border-l border-stroke/10"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        {isOccupied(time30) && <div className="flex-1 border-l border-stroke/10" />}
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
                 ))}
@@ -616,19 +761,20 @@ const TimelineRow = ({ court, blocks, bookings, hours, onCreateBlock }) => {
                 {/* Occupancy Blocks */}
                 <div className="absolute inset-0 z-10 pointer-events-none">
                     {bookings.map(booking => {
-                        const startTime = booking.time_slots?.[0]?.start_time || booking.time_slots?.[0]?.start || booking.start_time;
-                        const endTime = booking.time_slots?.[booking.time_slots.length - 1]?.end_time || booking.time_slots?.[booking.time_slots.length - 1]?.end || booking.end_time;
+                        const startTime = booking.time_slots?.[0]?.start_time || booking.start_time;
+                        const endTime = booking.time_slots?.[booking.time_slots.length - 1]?.end_time || booking.end_time;
                         
                         if (!startTime || !endTime) return null;
                         
                         const left = timeToX(startTime);
                         const width = durationToWidth(startTime, endTime);
                         const isPartner = booking.booking_source && booking.booking_source !== 'direct';
-
+                        const isSibling = String(booking.court_id).toLowerCase().trim() !== String(court.id).toLowerCase().trim();
+                        
                         return (
                             <div 
                                 key={booking.id}
-                                className={`absolute top-2 bottom-2 rounded-xl border-2 shadow-md p-2 flex flex-col justify-center overflow-hidden pointer-events-auto transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer ${isPartner ? 'bg-indigo-500 border-indigo-600 text-white' : 'bg-primary border-primary/20 text-white'}`}
+                                className={`absolute top-2 bottom-2 rounded-xl border-2 shadow-md p-2 flex flex-col justify-center overflow-hidden pointer-events-auto transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer ${isSibling ? (isPartner ? 'bg-indigo-300 border-indigo-400' : 'bg-primary/40 border-primary/20') : (isPartner ? 'bg-indigo-500 border-indigo-600' : 'bg-primary border-primary/20')} text-white`}
                                 style={{ left: `${left}%`, width: `${width}%` }}
                                 title={`${booking.customer_name} | ${formatTimeLabel(startTime)} - ${formatTimeLabel(endTime)}`}
                             >
@@ -639,25 +785,34 @@ const TimelineRow = ({ court, blocks, bookings, hours, onCreateBlock }) => {
                                     </span>
                                 </div>
                                 <span className="text-[10px] font-black uppercase leading-none truncate">
-                                    {booking.customer_name}
+                                    {isSibling ? `VIA ${booking.court_name || 'Sibling'}` : booking.customer_name}
                                 </span>
                                 <span className="text-[7px] font-bold opacity-70 uppercase tracking-widest mt-0.5">
-                                    {isPartner ? booking.booking_source : 'Confirmed App'}
+                                    {isSibling ? 'GROUP OCCUPIED' : (isPartner ? `VIA ${booking.booking_source}` : 'APP RESERVED')}
                                 </span>
                             </div>
                         );
                     })}
 
-                    {blocks.map(block => {
+                    {blocks.map((block, idx) => {
                         const left = timeToX(block.start_time);
                         const width = durationToWidth(block.start_time, block.end_time);
+                        const isSibling = String(block.court_id).toLowerCase().trim() !== String(court.id).toLowerCase().trim();
 
                         return (
                             <div 
-                                key={block.id}
-                                className="absolute top-2 bottom-2 bg-danger/90 border-2 border-danger/20 text-white rounded-xl shadow-md p-2 flex flex-col justify-center pointer-events-auto transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer"
+                                key={block.id || idx}
+                                className={`absolute top-2 bottom-2 ${isSibling ? 'bg-danger/50 border-2 border-dashed border-danger/50' : 'bg-danger/90 border-2 border-danger/20'} text-white rounded-xl shadow-md p-2 flex flex-col justify-center pointer-events-auto transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer`}
                                 style={{ left: `${left}%`, width: `${width}%` }}
-                                title={`Manual Block: ${block.reason} | ${formatTimeLabel(block.start_time)} - ${formatTimeLabel(block.end_time)}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Sibling blocks cannot be deleted from this view to prevent accidents
+                                    if (isSibling) {
+                                        alert(`This block originated from ${block.court_name}. Please switch to that court to manage it.`);
+                                    } else {
+                                        // Parent can handle deletion
+                                    }
+                                }}
                             >
                                 <div className="flex items-center gap-1 mb-1">
                                     <Lock className="w-2.5 h-2.5 opacity-80" />
@@ -665,8 +820,12 @@ const TimelineRow = ({ court, blocks, bookings, hours, onCreateBlock }) => {
                                         {formatTimeLabel(block.start_time)} - {formatTimeLabel(block.end_time)}
                                     </span>
                                 </div>
-                                <span className="text-[10px] font-black uppercase leading-none truncate">{block.reason || 'Manual Block'}</span>
-                                <span className="text-[7px] font-bold opacity-70 uppercase tracking-widest mt-0.5">ADMIN BLOCKED</span>
+                                <span className="text-[10px] font-black uppercase leading-none truncate">
+                                    {isSibling ? `VIA ${block.court_name}` : block.reason}
+                                </span>
+                                <span className="text-[7px] font-bold opacity-70 uppercase tracking-widest mt-0.5">
+                                    {isSibling ? 'SHARED BLOCK' : 'MANUAL BLOCK'}
+                                </span>
                             </div>
                         );
                     })}

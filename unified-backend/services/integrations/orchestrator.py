@@ -27,6 +27,16 @@ class IntegrationOrchestrator:
             logger.error(f"Court {court_id} not found for inventory notification")
             return
 
+        # Find all target courts (this one + siblings in same shared group)
+        if court.shared_group_id:
+            from uuid import UUID
+            group_id = UUID(str(court.shared_group_id))
+            siblings = db.query(models.Court).filter(
+                models.Court.shared_group_id == group_id,
+                models.Court.id != court.id
+            ).all()
+            target_court_ids = [str(court.id)] + [str(s.id) for s in siblings]
+
         partners = db.query(models.Partner).filter(models.Partner.is_active == True).all()
         
         for partner in partners:
@@ -38,18 +48,18 @@ class IntegrationOrchestrator:
                 if not adapter:
                     continue
 
-                event_data = {
-                    "branch_id": str(court.branch_id),
-                    "court_id": str(court.id),
-                    "date": date,
-                    "slot_start": slot_start,
-                    "action": action
-                }
-                
-                payload = adapter.format_inventory_webhook(event_data)
-                
-                OutboxService.queue_inventory_update(db, str(partner.id), payload)
-                logger.info(f"Queued {action} event for {partner.name} - Court: {court.name}, Slot: {slot_start}")
+                for t_court_id in target_court_ids:
+                    event_data = {
+                        "branch_id": str(court.branch_id),
+                        "court_id": t_court_id,
+                        "date": date,
+                        "slot_start": slot_start,
+                        "action": action
+                    }
+                    
+                    payload = adapter.format_inventory_webhook(event_data)
+                    OutboxService.queue_inventory_update(db, str(partner.id), payload)
+                    logger.info(f"Queued {action} event for {partner.name} - Group: {court.shared_group_id or 'None'}, Court: {t_court_id}, Slot: {slot_start}")
                 
             except Exception as e:
                 logger.error(f"Failed to queue inventory update for partner {partner.name}: {e}", exc_info=True)

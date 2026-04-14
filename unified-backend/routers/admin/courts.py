@@ -7,6 +7,7 @@ from decimal import Decimal, InvalidOperation
 import models, schemas
 from database import get_db
 from dependencies import get_admin_branch_filter, PermissionChecker
+from uuid import UUID
 import uuid
 import os
 import shutil
@@ -57,12 +58,12 @@ def get_all_courts(
         if branch_id:
             if branch_id not in branch_filter:
                 return {"items": [], "total": 0, "page": 1, "pages": 0}
-            query = query.filter(models.Court.branch_id == branch_id)
+            query = query.filter(models.Court.branch_id == UUID(branch_id))
         else:
-            query = query.filter(models.Court.branch_id.in_(branch_filter))
+            query = query.filter(models.Court.branch_id.in_([UUID(bid) for bid in branch_filter]))
     else:
         if branch_id:
-            query = query.filter(models.Court.branch_id == branch_id)
+            query = query.filter(models.Court.branch_id == UUID(branch_id))
 
     # 2. Search
     if search:
