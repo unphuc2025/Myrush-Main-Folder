@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { bookingsApi } from '../api/bookings';
 import { TopNav } from '../components/TopNav';
-import { FaCalendarAlt, FaMapMarkerAlt, FaClock, FaStar } from 'react-icons/fa';
+import { FaCalendarAlt, FaMapMarkerAlt, FaClock, FaStar, FaDownload } from 'react-icons/fa';
 import { useNotification } from '../context/NotificationContext';
+import { config } from '../config';
 import './MyBookings.css';
 
 interface Booking {
@@ -22,6 +23,8 @@ interface Booking {
     total_amount: number;
     status: string;
     created_at: string;
+    subtotal_amount?: number;
+    gst_amount?: number;
     court_id?: string;
     court_name?: string;
     team_name?: string;
@@ -57,6 +60,7 @@ export const MyBookings: React.FC = () => {
         if (res.success && res.data) {
             let processedBookings = res.data.map((b: Booking) => {
                 let status = b.status.toLowerCase();
+                if (status === 'payment_pending') return null;
                 if (status !== 'cancelled') {
                     if (b.end_time) {
                         const bookingTime = new Date(`${b.booking_date}T${b.end_time}`);
@@ -71,7 +75,7 @@ export const MyBookings: React.FC = () => {
                     }
                 }
                 return { ...b, status };
-            });
+            }).filter((b: any) => b !== null);
 
             if (activeTab !== 'all') {
                 processedBookings = processedBookings.filter((b: Booking) => b.status === activeTab);
@@ -132,6 +136,11 @@ export const MyBookings: React.FC = () => {
                 }
             }
         );
+    };
+
+    const handleDownloadInvoice = (bookingId: string) => {
+        const url = `${config.apiBaseUrl}/bookings/${bookingId}/invoice?print=true`;
+        window.open(url, '_blank');
     };
 
     const isCancellable = (booking: Booking): boolean => {
@@ -225,15 +234,6 @@ export const MyBookings: React.FC = () => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {getStatusBadge(booking.status)}
-                                        {isCancellable(booking) && (
-                                            <button 
-                                                className="cancel-booking-btn-minimal"
-                                                onClick={() => handleCancelBooking(booking.id)}
-                                                title="Cancel Booking (Allowed up to 1h before)"
-                                            >
-                                                Cancel
-                                            </button>
-                                        )}
                                     </div>
                                 </div>
 
@@ -262,12 +262,36 @@ export const MyBookings: React.FC = () => {
 
                                     <div className="booking-id-row">
                                         <span>Booking ID: {booking.booking_display_id || booking.id.slice(0, 8)}</span>
-                                        <button
-                                            className="view-details-btn"
-                                            onClick={() => setSelectedBooking(booking)}
-                                        >
-                                            View Details
-                                        </button>
+                                        <div className="flex gap-2 flex-wrap justify-end">
+                                            {isCancellable(booking) ? (
+                                                <button 
+                                                    className="cancel-booking-btn-card"
+                                                    onClick={() => handleCancelBooking(booking.id)}
+                                                    title="Cancel Booking (Allowed up to 1h before)"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            ) : (booking.status === 'upcoming' || booking.status === 'confirmed') && (
+                                                <span className="text-[10px] text-gray-400 italic self-center mr-1" title="Cancellations are only allowed up to 1 hour before the booked time">
+                                                    Non-cancellable
+                                                </span>
+                                            )}
+                                            {(booking.status === 'confirmed' || booking.status === 'completed' || booking.status === 'upcoming') && (
+                                                <button
+                                                    className="view-details-btn secondary"
+                                                    onClick={() => handleDownloadInvoice(booking.id)}
+                                                    title="Download Receipt"
+                                                >
+                                                    <FaDownload className="inline-block mr-1" /> Receipt
+                                                </button>
+                                            )}
+                                            <button
+                                                className="view-details-btn"
+                                                onClick={() => setSelectedBooking(booking)}
+                                            >
+                                                View Details
+                                            </button>
+                                        </div>
                                     </div>
 
 
@@ -429,6 +453,12 @@ export const MyBookings: React.FC = () => {
                                                         <span>-₹{selectedBooking.discount_amount}</span>
                                                     </div>
                                                 )}
+                                                {selectedBooking.gst_amount !== undefined && selectedBooking.gst_amount > 0 && (
+                                                    <div className="breakdown-row">
+                                                        <span>GST (18%)</span>
+                                                        <span>₹{selectedBooking.gst_amount}</span>
+                                                    </div>
+                                                )}
                                                 <div className="modal-divider mini" />
                                                 <div className="breakdown-row total">
                                                     <span>Total Paid</span>
@@ -447,7 +477,17 @@ export const MyBookings: React.FC = () => {
                                 </div>
 
                                 <div className="modal-footer">
-                                    <button className="done-btn" onClick={() => setSelectedBooking(null)}>Close</button>
+                                    <div className="flex gap-3 w-full">
+                                        {(selectedBooking.status === 'confirmed' || selectedBooking.status === 'completed' || selectedBooking.status === 'upcoming') && (
+                                            <button 
+                                                className="view-details-btn secondary flex-1"
+                                                onClick={() => handleDownloadInvoice(selectedBooking.id)}
+                                            >
+                                                <FaDownload className="inline-block mr-2" /> Download Invoice
+                                            </button>
+                                        )}
+                                        <button className="done-btn flex-1" onClick={() => setSelectedBooking(null)}>Close</button>
+                                    </div>
                                 </div>
                             </motion.div>
                         </div>

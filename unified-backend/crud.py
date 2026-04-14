@@ -132,6 +132,24 @@ def create_or_update_profile(db: Session, profile: schemas.ProfileCreate, user_i
         if "skill_level" in profile_data: user.skill_level = profile_data["skill_level"]
         if "playing_style" in profile_data: user.playing_style = profile_data["playing_style"]
         if "sports" in profile_data: user.favorite_sports = profile_data["sports"]
+        
+        # Sync Email (Handle unique constraint)
+        if "email" in profile_data and profile_data["email"]:
+            new_email = profile_data["email"].lower()
+            # Check if this email is already used by ANOTHER user
+            existing_user = db.query(models.User).filter(
+                models.User.email == new_email,
+                models.User.id != user_id
+            ).first()
+            if existing_user:
+                print(f"[CRUD] WARNING: Cannot update email to {new_email} - already in use by user {existing_user.id}")
+                # We can either raise an error or just skip. Raising error is safer for user feedback.
+                from fastapi import HTTPException
+                raise HTTPException(status_code=400, detail="This email is already registered with another account.")
+            
+            user.email = new_email
+            print(f"[CRUD] Synced user email to: {new_email}")
+
         user.profile_completed = True
     
     db.commit()
@@ -682,6 +700,7 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             "court_id": str(c_uuid),
             "booking_date": booking.booking_date,
             "booking_display_id": new_display_id,
+            "invoice_number": f"INV-{new_display_id}",
             
             # New Columns
             "time_slots": final_slots,
@@ -711,7 +730,7 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             "number_of_players": booking.number_of_players,
             "team_name": booking.team_name,
             "special_requests": booking.special_requests,
-            "status": "confirmed",
+            "status": booking.status or "confirmed",
             "payment_status": booking.payment_status or "pending",
             "payment_id": booking.razorpay_payment_id,
             "razorpay_order_id": booking.razorpay_order_id,

@@ -217,7 +217,7 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
         AND (
             (b.status NOT IN ('cancelled', 'failed') OR b.status IS NULL)
             AND (
-                b.payment_status != 'pending' 
+                (b.payment_status != 'pending' AND b.status != 'payment_pending')
                 OR b.created_at > (NOW() AT TIME ZONE 'UTC' - INTERVAL '10 minutes')
             )
         )
