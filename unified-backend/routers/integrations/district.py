@@ -6,7 +6,7 @@ from uuid import UUID
 import json
 import logging
 import uuid
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time
 
 import models
 import database
@@ -46,8 +46,11 @@ def verify_district_auth(id: str, apiKey: str, db: Session) -> models.Partner:
         logging.warning("District Integration Auth Failed: Invalid ID.")
         raise HTTPException(status_code=401, detail="Unauthorized: Invalid Partner ID")
         
-    # In a real scenario we use password hashes. Assuming api_key_hash stores plain text for this simple integration
-    if partner.api_key_hash != apiKey:
+    import hashlib
+    incoming_hash = hashlib.sha256(apiKey.encode()).hexdigest()
+    
+    # Check both the raw value (for legacy dev keys) and securely hashed versions
+    if partner.api_key_hash != apiKey and partner.api_key_hash != incoming_hash:
         logging.warning("District Integration Auth Failed: Invalid API Key.")
         raise HTTPException(status_code=401, detail="Unauthorized: Invalid API Key")
         
@@ -128,12 +131,12 @@ async def make_batch_booking(
         
         existing_key = db.query(models.IdempotencyKey).filter(
             models.IdempotencyKey.partner_id == partner.id,
-            models.IdempotencyKey.key == payload_hash
+            models.IdempotencyKey.idempotency_key == payload_hash
         ).first()
         
         if existing_key:
             logging.info(f"Idempotency hit for partner {partner.id}, key {payload_hash}")
-            return existing_key.response_payload
+            return existing_key.response_body
 
         # 2. GENERATE BATCH ID
         batch_id = f"DIST-{uuid.uuid4().hex[:8].upper()}"
@@ -156,8 +159,10 @@ async def make_batch_booking(
         # 4. STORE IDEMPOTENCY KEY
         idemp_record = models.IdempotencyKey(
             partner_id=partner.id,
-            key=payload_hash,
-            response_payload=response_data,
+            idempotency_key=payload_hash,
+            endpoint="/api/makeBatchBooking",
+            response_status=200,
+            response_body=response_data,
             expires_at=datetime.utcnow() + timedelta(days=1)
         )
         db.add(idemp_record)
@@ -171,6 +176,9 @@ async def make_batch_booking(
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
+        print(f"\n[CRITICAL ERROR] District Batch Booking Failure: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         logging.error(f"District Batch Booking Error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -305,8 +313,11 @@ async def district_inventory_callback(
     if not x_api_key:
         raise HTTPException(status_code=401, detail="Missing API Key")
     
+    import hashlib
+    incoming_hash = hashlib.sha256(x_api_key.encode()).hexdigest()
+    
     partner = db.query(models.Partner).filter(
-        models.Partner.api_key_hash == x_api_key,
+        models.Partner.api_key_hash.in_([x_api_key, incoming_hash]),
         models.Partner.is_active == True
     ).first()
     
@@ -365,5 +376,8 @@ async def district_inventory_callback(
         return {"status": "success", "message": "Inventory synchronized"}
 
     except Exception as e:
+        print(f"\n[CRITICAL ERROR] District Callback Failure: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         logging.error(f"Error processing District callback: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail=str(e))
