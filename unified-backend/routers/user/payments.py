@@ -274,6 +274,7 @@ def create_payment_order(
         booking_details.payment_status = "pending"
         booking_details.razorpay_order_id = order['id']
         booking_details.original_amount = server_base_price
+        booking_details.discount_amount = discount_amount
         booking_details.total_amount = final_amount
         
         try:
@@ -427,7 +428,7 @@ def create_multi_court_payment_order(
             payment_status="pending",
             razorpay_order_id=order["id"],
             original_amount=total_price,
-            discount_amount=discount_amount
+            discount_amount=0.0 # Will be set proportionally per court
         )
 
         for cfg in configs:
@@ -454,8 +455,15 @@ def create_multi_court_payment_order(
             booking_create.slice_mask = s_mask
             
             court_final_price = court_total * (number_of_players if is_cap else 1)
-            booking_create.total_amount = court_final_price
+            
+            # --- PROPORTIONAL DISCOUNT CALCULATION ---
+            court_discount = 0.0
+            if total_price > 0:
+                court_discount = (court_final_price / total_price) * discount_amount
+            
+            booking_create.total_amount = court_final_price - court_discount
             booking_create.original_amount = court_final_price
+            booking_create.discount_amount = court_discount
             booking_create.time_slots = court_specific_slots
 
             try:

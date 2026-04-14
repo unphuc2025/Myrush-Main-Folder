@@ -11,44 +11,18 @@ export const CustomCursor: React.FC = () => {
     const mouseY = useMotionValue(-100);
 
     // Spring configuration for the smooth lag effect
-    const springConfig = { damping: 25, stiffness: 250 };
+    // Spring configuration - Much tighter and faster for more "natural" feel
+    const springConfig = { damping: 30, stiffness: 450, mass: 0.5 };
     const cursorX = useSpring(mouseX, springConfig);
     const cursorY = useSpring(mouseY, springConfig);
 
     useEffect(() => {
-        const isDarkOrGreen = (color: string) => {
-            if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') return false;
-
-            const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-            if (match) {
-                const r = parseInt(match[1]);
-                const g = parseInt(match[2]);
-                const b = parseInt(match[3]);
-
-                // Luma calculation for brightness
-                const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-
-                // Green detection: High green component relative to others
-                const isGreenish = g > 130 && g > r * 1.1 && g > b * 1.2;
-
-                // Return true if dark (luma < 140) or if it's a green shade
-                return luma < 140 || isGreenish;
-            }
-            return false;
-        };
-
         const moveMouse = (e: MouseEvent) => {
             mouseX.set(e.clientX);
             mouseY.set(e.clientY);
             if (!isVisible) setIsVisible(true);
-
-            // Check element at cursor position for contrast
-            const element = document.elementFromPoint(e.clientX, e.clientY);
-            if (element) {
-                const style = window.getComputedStyle(element);
-                const bgColor = style.backgroundColor;
-                setIsContrast(isDarkOrGreen(bgColor));
-            }
+            
+            // Contrast detection moved to handleMouseOver for performance
         };
 
         const handleMouseDown = () => setIsClicked(true);
@@ -56,6 +30,8 @@ export const CustomCursor: React.FC = () => {
 
         const handleMouseOver = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
+            if (!target) return;
+
             const isInteractive =
                 target.tagName === 'A' ||
                 target.tagName === 'BUTTON' ||
@@ -64,12 +40,17 @@ export const CustomCursor: React.FC = () => {
                 window.getComputedStyle(target).cursor === 'pointer';
 
             setIsHovering(!!isInteractive);
+
+            // Update contrast state only when mouse moves to a new element
+            const style = window.getComputedStyle(target);
+            const bgColor = style.backgroundColor;
+            setIsContrast(isDarkOrGreen(bgColor));
         };
 
         const handleMouseLeave = () => setIsVisible(false);
         const handleMouseEnter = () => setIsVisible(true);
 
-        window.addEventListener('mousemove', moveMouse);
+        window.addEventListener('mousemove', moveMouse, { passive: true });
         window.addEventListener('mousedown', handleMouseDown);
         window.addEventListener('mouseup', handleMouseUp);
         window.addEventListener('mouseover', handleMouseOver);
@@ -99,7 +80,7 @@ export const CustomCursor: React.FC = () => {
         <div className="fixed inset-0 pointer-events-none z-[99999]">
             {/* Outer Circle Outline */}
             <motion.div
-                className="fixed top-0 left-0 w-8 h-8 border-2 rounded-full"
+                className="fixed top-0 left-0 w-8 h-8 border-2 rounded-full will-change-transform"
                 style={{
                     x: cursorX,
                     y: cursorY,
@@ -119,8 +100,8 @@ export const CustomCursor: React.FC = () => {
                 }}
                 transition={{
                     type: 'spring',
-                    damping: 20,
-                    stiffness: 300,
+                    damping: 25,
+                    stiffness: 400,
                     borderColor: { duration: 0.2 },
                     backgroundColor: { duration: 0.2 }
                 }}
@@ -128,9 +109,9 @@ export const CustomCursor: React.FC = () => {
 
             {/* Inner Dot */}
             <motion.div
-                className="fixed top-0 left-0 w-1.5 h-1.5 rounded-full"
+                className="fixed top-0 left-0 w-1.5 h-1.5 rounded-full will-change-transform"
                 style={{
-                    x: mouseX, // Inner dot follows immediately for precision
+                    x: mouseX, 
                     y: mouseY,
                     translateX: '-50%',
                     translateY: '-50%',
@@ -142,6 +123,9 @@ export const CustomCursor: React.FC = () => {
                     backgroundColor: isContrast ? contrastColor : primaryColor,
                 }}
                 transition={{
+                    type: 'spring',
+                    damping: 30,
+                    stiffness: 800,
                     backgroundColor: { duration: 0.2 }
                 }}
             />

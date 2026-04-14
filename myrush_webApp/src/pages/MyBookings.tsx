@@ -23,6 +23,8 @@ interface Booking {
     total_amount: number;
     status: string;
     created_at: string;
+    subtotal_amount?: number;
+    gst_amount?: number;
     court_id?: string;
     court_name?: string;
     team_name?: string;
@@ -449,6 +451,12 @@ export const MyBookings: React.FC = () => {
                                                     <div className="breakdown-row discount">
                                                         <span>Coupon Applied ({selectedBooking.coupon_code})</span>
                                                         <span>-₹{selectedBooking.discount_amount}</span>
+                                                    </div>
+                                                )}
+                                                {selectedBooking.gst_amount !== undefined && selectedBooking.gst_amount > 0 && (
+                                                    <div className="breakdown-row">
+                                                        <span>GST (18%)</span>
+                                                        <span>₹{selectedBooking.gst_amount}</span>
                                                     </div>
                                                 )}
                                                 <div className="modal-divider mini" />

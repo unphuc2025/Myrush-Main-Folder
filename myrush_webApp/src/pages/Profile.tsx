@@ -7,7 +7,7 @@ import { bookingsApi } from '../api/bookings';
 import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaGift, FaEye, FaChevronRight, FaFutbol, FaCalendarAlt, FaMapMarkerAlt, FaHeart } from 'react-icons/fa';
+import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaChevronRight, FaFutbol, FaCalendarAlt, FaMapMarkerAlt, FaHeart } from 'react-icons/fa';
 import { useFavorites } from '../context/FavoritesContext';
 import { useNotification } from '../context/NotificationContext';
 
@@ -17,19 +17,11 @@ export const Profile: React.FC = () => {
     const [user, setUser] = useState<ProfileData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState({ bookings: 0, gamesPlayed: 0 });
-    const [currentView, setCurrentView] = useState<'profile' | 'bookings' | 'reviews' | 'favorites'>('profile');
+    const [currentView, setCurrentView] = useState<'profile' | 'reviews' | 'favorites'>('profile');
     const { favorites, isLoading: favoritesLoading, toggleFavorite } = useFavorites();
     const [reviews, setReviews] = useState<any[]>([]);
     const [reviewsLoading, setReviewsLoading] = useState(false);
-    const [bookings, setBookings] = useState<any[]>([]);
-    const [bookingsLoading, setBookingsLoading] = useState(false);
-    const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
-    const [reviewStates, setReviewStates] = useState<Record<string, { has_reviewed: boolean; review?: { rating: number; review_text: string } }>>({});
-    const [showRatingModal, setShowRatingModal] = useState<string | null>(null);
-    const [activeMobileSection, setActiveMobileSection] = useState<'profile' | 'bookings' | 'reviews' | 'favorites' | null>(null);
-    const [selectedRating, setSelectedRating] = useState(0);
-    const [reviewText, setReviewText] = useState('');
-    const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
+    const [activeMobileSection, setActiveMobileSection] = useState<'profile' | 'reviews' | 'favorites' | null>(null);
     const [searchParams] = useSearchParams();
     const { showAlert } = useNotification();
 
@@ -39,9 +31,6 @@ export const Profile: React.FC = () => {
         if (view === 'reviews') {
             setCurrentView('reviews');
             setActiveMobileSection('reviews');
-        } else if (view === 'bookings') {
-            setCurrentView('bookings');
-            setActiveMobileSection('bookings');
         } else if (view === 'profile') {
             setCurrentView('profile');
             setActiveMobileSection('profile');
@@ -51,7 +40,7 @@ export const Profile: React.FC = () => {
         }
     }, [searchParams]);
 
-    const toggleMobileSection = (section: 'profile' | 'bookings' | 'reviews' | 'favorites') => {
+    const toggleMobileSection = (section: 'profile' | 'reviews' | 'favorites') => {
         setActiveMobileSection(prev => prev === section ? null : section);
         setCurrentView(section);
     };
@@ -108,53 +97,6 @@ export const Profile: React.FC = () => {
         fetchProfileAndStats();
     }, []);
 
-    const fetchBookings = async () => {
-        try {
-            setBookingsLoading(true);
-            const bookingsResponse = await bookingsApi.getUserBookings();
-            if (bookingsResponse.success) {
-                // Process bookings to determine their actual status
-                const processedBookings = bookingsResponse.data.map((b: any) => {
-                    let status = b.status.toLowerCase();
-                    if (status !== 'cancelled') {
-                        if (b.end_time) {
-                            const bookingTime = new Date(`${b.booking_date}T${b.end_time}`);
-                            if (bookingTime < new Date()) {
-                                status = 'completed';
-                            } else {
-                                status = 'upcoming';
-                            }
-                        } else if (status === 'confirmed') {
-                            status = 'upcoming';
-                        }
-                    }
-                    return { ...b, status };
-                });
-
-                setBookings(processedBookings);
-
-                // Check review status for completed bookings
-                const completedBookings = processedBookings.filter(
-                    (b: any) => b.status === 'completed'
-                );
-
-                for (const booking of completedBookings) {
-                    const reviewRes = await bookingsApi.checkBookingReviewed(booking.id);
-                    if (reviewRes.success) {
-                        setReviewStates(prev => ({
-                            ...prev,
-                            [booking.id]: reviewRes.data
-                        }));
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Failed to fetch bookings:', error);
-            setBookings([]);
-        } finally {
-            setBookingsLoading(false);
-        }
-    };
 
     const fetchReviews = async () => {
         try {
@@ -189,9 +131,7 @@ export const Profile: React.FC = () => {
     };
 
     useEffect(() => {
-        if (currentView === 'bookings') {
-            fetchBookings();
-        } else if (currentView === 'reviews') {
+        if (currentView === 'reviews') {
             fetchReviews();
         }
     }, [currentView]);
@@ -232,40 +172,9 @@ export const Profile: React.FC = () => {
         );
     };
 
-    const handleSubmitReview = async (bookingId: string, courtId: string) => {
-        if (selectedRating === 0) {
-            showAlert('Please select a rating', 'warning');
-            return;
-        }
-
-        const res = await bookingsApi.submitReview(bookingId, courtId, selectedRating, reviewText);
-        if (res.success) {
-            setReviewStates(prev => ({
-                ...prev,
-                [bookingId]: {
-                    has_reviewed: true,
-                    review: { rating: selectedRating, review_text: reviewText }
-                }
-            }));
-            setShowRatingModal(null);
-            setSelectedRating(0);
-            setReviewText('');
-            showAlert('Review submitted successfully!', 'success');
-
-            // Refresh reviews if we're in reviews view
-            if (currentView === 'reviews') {
-                fetchReviews();
-            }
-        } else {
-            showAlert('Failed to submit review. Please try again.', 'error');
-        }
-    };
 
 
 
-    const toggleBookingExpansion = (bookingId: string) => {
-        setExpandedBookingId(prev => prev === bookingId ? null : bookingId);
-    };
 
 
 
@@ -407,100 +316,6 @@ export const Profile: React.FC = () => {
                             </AnimatePresence>
                         </div>
 
-                        {/* My Bookings Accordion (Mobile) */}
-                        <div className="space-y-2">
-                            <motion.button
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => toggleMobileSection('bookings')}
-                                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${activeMobileSection === 'bookings' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMobileSection === 'bookings' ? 'bg-primary text-white' : 'bg-gray-50 text-gray-400'}`}>
-                                        <FaCalendarCheck size={16} />
-                                    </div>
-                                    <div className="text-left">
-                                        <p className="text-sm font-bold text-gray-900">My Bookings</p>
-                                        <p className="text-[10px] text-gray-500 font-medium">View your court history</p>
-                                    </div>
-                                </div>
-                                <FaChevronRight size={12} className={`transition-transform duration-300 ${activeMobileSection === 'bookings' ? 'text-primary rotate-90' : 'text-gray-300'}`} />
-                            </motion.button>
-
-                            <AnimatePresence>
-                                {activeMobileSection === 'bookings' && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        className="overflow-hidden px-1"
-                                    >
-                                        <div className="bg-white rounded-2xl border border-gray-100 p-2 mt-1 shadow-sm">
-                                            {/* Booking Tabs (Mobile) */}
-                                            <div className="flex gap-1 mb-4 p-1 bg-gray-50 rounded-xl overflow-x-auto no-scrollbar">
-                                                {['all', 'upcoming', 'completed', 'cancelled'].map(tab => (
-                                                    <button
-                                                        key={tab}
-                                                        className={`px-3 py-1.5 font-bold text-[10px] rounded-lg transition-all whitespace-nowrap ${activeTab === tab
-                                                            ? 'bg-white text-primary shadow-sm'
-                                                            : 'text-gray-400'
-                                                            }`}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setActiveTab(tab as any);
-                                                        }}
-                                                    >
-                                                        {tab.toUpperCase()}
-                                                    </button>
-                                                ))}
-                                            </div>
-
-                                            {/* Minimal Bookings List */}
-                                            {bookingsLoading ? (
-                                                <div className="py-8 text-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div></div>
-                                            ) : bookings.filter(b => activeTab === 'all' || b.status === activeTab).length === 0 ? (
-                                                <div className="py-10 text-center">
-                                                    <p className="text-xs font-bold text-gray-400 uppercase">No bookings found</p>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-2">
-                                                    {bookings
-                                                        .filter(b => activeTab === 'all' || b.status === activeTab)
-                                                        .map((booking, idx) => (
-                                                            <div key={idx} className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
-                                                                <div className="flex justify-between items-start mb-2">
-                                                                    <div>
-                                                                        <h4 className="text-xs font-black text-gray-900 line-clamp-1">{booking.venue_name || 'Court Booking'}</h4>
-                                                                        <p className="text-[10px] font-bold text-gray-500">{new Date(booking.booking_date).toLocaleDateString()}</p>
-                                                                    </div>
-                                                                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                                        {booking.status}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex justify-between items-center">
-                                                                    <div className="text-[10px] text-gray-600 font-medium">₹{booking.total_amount} • {booking.time_slots?.[0]?.start_time || booking.start_time}</div>
-                                                                    <button
-                                                                        onClick={() => toggleBookingExpansion(booking.id)}
-                                                                        className="text-primary text-[10px] font-black uppercase tracking-wider"
-                                                                    >
-                                                                        {expandedBookingId === booking.id ? 'Hide' : 'Details'}
-                                                                    </button>
-                                                                </div>
-                                                                {expandedBookingId === booking.id && (
-                                                                    <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-[10px]">
-                                                                        <div><span className="text-gray-400 font-bold block">TIME</span><p>{booking.start_time} - {booking.end_time}</p></div>
-                                                                        <div><span className="text-gray-400 font-bold block">BOOKING ID</span><p>{booking.booking_display_id || booking.id}</p></div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        ))
-                                                    }
-                                                </div>
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
 
                         {/* Ratings Accordion (Mobile) */}
                         <div className="space-y-2">
@@ -677,17 +492,6 @@ export const Profile: React.FC = () => {
                                 <span className="text-sm lg:text-base">Profile Information</span>
                             </motion.button>
 
-                            <motion.button
-                                whileHover={{ backgroundColor: '#f3f4f6' }}
-                                onClick={() => setCurrentView('bookings')}
-                                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-medium flex items-center gap-3 transition-colors ${currentView === 'bookings'
-                                    ? 'border-primary bg-primary/5 text-primary'
-                                    : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                                    }`}
-                            >
-                                <span className="text-base lg:text-lg"><FaCalendarAlt /></span>
-                                <span className="text-sm lg:text-base">My Bookings</span>
-                            </motion.button>
 
                             <motion.button
                                 whileHover={{ backgroundColor: '#f3f4f6' }}
@@ -880,378 +684,117 @@ export const Profile: React.FC = () => {
                                                 <div className="text-blue-500 bg-blue-50 p-2 rounded-lg"><FaCalendarCheck /></div>
                                             </div>
                                         </div>
-
-                                        <div className="glass-card rounded-xl p-6 hover:shadow-glow transition-all cursor-default">
-                                            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Games Played</p>
-                                            <div className="flex justify-between items-end">
-                                                <p className="text-4xl font-black text-gray-900">{stats.gamesPlayed}</p>
-                                                <div className="text-emerald-500 bg-emerald-50 p-2 rounded-lg"><FaTrophy /></div>
-                                            </div>
-                                        </div>
                                     </div>
                                 </motion.div>
                             </>
-                        ) : (
-                            <>
-                                {currentView === 'bookings' && (
-                                    <>
-                                        {/* Bookings Header */}
-                                        <div className="flex justify-between items-center mb-8">
-                                            <div>
-                                                <h1 className="text-3xl font-black text-gray-900 mb-2">My Bookings</h1>
-                                                <p className="text-gray-600">View and manage your court bookings</p>
-                                            </div>
-                                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                                <Button
-                                                    onClick={() => navigate('/venues')}
-                                                    className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 border-2 border-primary"
-                                                >
-                                                    <span><FaFutbol className="inline-block mr-1" /></span>
-                                                    Book New Court
-                                                </Button>
-                                            </motion.div>
-                                        </div>
+                        ) : currentView === 'reviews' ? (
+                            <div className="space-y-6">
+                                {/* Reviews Header */}
+                                <div className="flex justify-between items-center mb-8">
+                                    <div>
+                                        <h1 className="text-3xl font-black text-gray-900 mb-2">Rating & Reviews</h1>
+                                        <p className="text-gray-600">View your feedback and ratings</p>
+                                    </div>
+                                </div>
 
-                                        {/* Booking Tabs */}
-                                        <div className="flex gap-2 mb-6 border-b border-gray-200">
-                                            {['all', 'upcoming', 'completed', 'cancelled'].map(tab => (
-                                                <button
-                                                    key={tab}
-                                                    className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${activeTab === tab
-                                                        ? 'border-primary text-primary bg-primary/5'
-                                                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                                                        }`}
-                                                    onClick={() => setActiveTab(tab as any)}
-                                                >
-                                                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* Bookings Content */}
-                                {bookingsLoading ? (
+                                {/* Reviews Content */}
+                                {reviewsLoading ? (
                                     <div className="flex items-center justify-center py-12">
                                         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                        <span className="ml-3 text-gray-600">Loading bookings...</span>
+                                        <span className="ml-3 text-gray-600">Loading your reviews...</span>
                                     </div>
-                                ) : currentView === 'reviews' ? (
-                                    <div className="space-y-6">
-                                        {/* Reviews Header */}
-                                        <div className="flex justify-between items-center mb-8">
-                                            <div>
-                                                <h1 className="text-3xl font-black text-gray-900 mb-2">Rating & Reviews</h1>
-                                                <p className="text-gray-600">View your feedback and ratings</p>
-                                            </div>
+                                ) : reviews.length === 0 ? (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="bg-white rounded-xl border-2 border-gray-200 p-12 text-center"
+                                    >
+                                        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                            <FaStar className="text-4xl text-gray-400" />
                                         </div>
-
-                                        {/* Reviews Content */}
-                                        {reviewsLoading ? (
-                                            <div className="flex items-center justify-center py-12">
-                                                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                                <span className="ml-3 text-gray-600">Loading your reviews...</span>
-                                            </div>
-                                        ) : reviews.length === 0 ? (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className="bg-white rounded-xl border-2 border-gray-200 p-12 text-center"
-                                            >
-                                                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                                    <FaStar className="text-4xl text-gray-400" />
-                                                </div>
-                                                <h3 className="text-xl font-bold text-gray-900 mb-2">No Reviews Yet</h3>
-                                                <p className="text-gray-600 mb-6">Complete a booking to leave your first review!</p>
-                                                <Button
-                                                    onClick={() => setCurrentView('bookings')}
-                                                    className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-semibold border-2 border-primary"
-                                                >
-                                                    View My Bookings
-                                                </Button>
-                                            </motion.div>
-                                        ) : (
-                                            <div className="space-y-6">
-                                                {reviews.map((review, index) => (
-                                                    <motion.div
-                                                        key={review.id || index}
-                                                        initial={{ opacity: 0, y: 20 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        transition={{ delay: index * 0.1, duration: 0.6 }}
-                                                        className="bg-white rounded-xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow"
-                                                    >
-                                                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-3 mb-4">
-                                                                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                                                                        <FaStar className="text-yellow-500" />
-                                                                    </div>
-                                                                    <div>
-                                                                        <h3 className="text-lg font-bold text-gray-900">Review for Booking #{review.booking_display_id || review.id}</h3>
-                                                                        <p className="text-gray-600"><FaFutbol className="inline-block mr-1" /> {review.venue_name || 'Venue'}</p>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Rating Display */}
-                                                                <div className="mb-4">
-                                                                    <div className="flex items-center gap-2 mb-2">
-                                                                        <span className="text-sm font-medium text-gray-700">Your Rating:</span>
-                                                                        {renderStars(review.review.rating)}
-                                                                        <span className="text-sm text-gray-600 ml-2">
-                                                                            {review.review.rating}/5 stars
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Review Text */}
-                                                                {review.review.review_text && (
-                                                                    <div className="mb-4">
-                                                                        <p className="text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                                                            "{review.review.review_text}"
-                                                                        </p>
-                                                                    </div>
-                                                                )}
-
-                                                                {/* Booking Details */}
-                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <FaCalendarCheck className="text-primary" />
-                                                                        <span className="text-gray-600">Date:</span>
-                                                                        <span className="font-semibold text-gray-900">{new Date(review.booking_date).toLocaleDateString()}</span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <FaClock className="text-primary" />
-                                                                        <span className="text-gray-600">Time:</span>
-                                                                        <span className="font-semibold text-gray-900">
-                                                                            {review.time_slots && review.time_slots.length > 0
-                                                                                ? `${review.time_slots[0].start_time} - ${review.time_slots[0].end_time}`
-                                                                                : 'TBD'
-                                                                            }
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600">Amount:</span>
-                                                                        <span className="font-bold text-primary">₹{review.total_amount || review.price_per_hour || 'N/A'}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </motion.div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
+                                        <h3 className="text-xl font-bold text-gray-900 mb-2">No Reviews Yet</h3>
+                                        <p className="text-gray-600 mb-6">Complete a booking to leave your first review!</p>
+                                        <Button
+                                            onClick={() => navigate('/bookings')}
+                                            className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-semibold border-2 border-primary"
+                                        >
+                                            View My Bookings
+                                        </Button>
+                                    </motion.div>
                                 ) : (
                                     <div className="space-y-6">
-                                        {/* Filter bookings based on active tab */}
-                                        {bookings
-                                            .filter(booking => {
-                                                if (activeTab === 'all') return true;
-                                                return booking.status === activeTab;
-                                            })
-                                            .map((booking, index) => {
-                                                // Check if booking is completed
-                                                const isCompleted = booking.status === 'completed' ||
-                                                    (booking.end_time && new Date(`${booking.booking_date}T${booking.end_time}`) < new Date());
-
-                                                return (
-                                                    <motion.div
-                                                        key={booking.id || index}
-                                                        initial={{ opacity: 0, y: 20 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        transition={{ delay: index * 0.1, duration: 0.6 }}
-                                                        className="bg-white rounded-xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow"
-                                                    >
-                                                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-3 mb-4">
-                                                                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                                                                        <span className="text-xl text-primary"><FaFutbol /></span>
-                                                                    </div>
-                                                                    <div>
-                                                                        <h3 className="text-lg font-bold text-gray-900">Booking #{booking.booking_display_id || booking.id}</h3>
-                                                                        <p className="text-gray-600">Court booking</p>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <FaCalendarCheck className="text-primary" />
-                                                                        <span className="text-gray-600">Date:</span>
-                                                                        <span className="font-semibold text-gray-900">{new Date(booking.booking_date).toLocaleDateString()}</span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <FaClock className="text-primary" />
-                                                                        <span className="text-gray-600">Time:</span>
-                                                                        <span className="font-semibold text-gray-900">
-                                                                            {booking.time_slots && booking.time_slots.length > 0
-                                                                                ? `${booking.time_slots[0].start_time} - ${booking.time_slots[0].end_time}`
-                                                                                : 'TBD'
-                                                                            }
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600">Amount:</span>
-                                                                        <span className="font-bold text-primary">₹{booking.total_amount || booking.price_per_hour || 'N/A'}</span>
-                                                                    </div>
-                                                                </div>
+                                        {reviews.map((review, index) => (
+                                            <motion.div
+                                                key={review.id || index}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: index * 0.1, duration: 0.6 }}
+                                                className="bg-white rounded-xl border-2 border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                                            >
+                                                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-3 mb-4">
+                                                            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+                                                                <FaStar className="text-yellow-500" />
                                                             </div>
-
-                                                            <div className="flex flex-col gap-3">
-                                                                <div className={`px-3 py-1 rounded-full text-xs font-semibold text-center ${booking.status === 'confirmed'
-                                                                    ? 'bg-green-100 text-green-800 border border-green-200'
-                                                                    : booking.status === 'pending'
-                                                                        ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                                                                        : 'bg-gray-100 text-gray-800 border border-gray-200'
-                                                                    }`}>
-                                                                    {booking.status || 'Unknown'}
-                                                                </div>
-
-                                                                <div className="flex flex-col gap-2">
-                                                                    <Button
-                                                                        onClick={() => toggleBookingExpansion(booking.id)}
-                                                                        className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-4 py-2 rounded-xl font-medium text-sm border-2 border-gray-200 flex items-center justify-center gap-2"
-                                                                    >
-                                                                        <FaEye className="text-sm" />
-                                                                        {expandedBookingId === booking.id ? 'Hide Details' : 'View Details'}
-                                                                    </Button>
-
-                                                                    {isCompleted && (
-                                                                        <Button
-                                                                            onClick={() => setShowRatingModal(booking.id)}
-                                                                            className="bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-xl font-medium text-sm border-2 border-primary/20 flex items-center justify-center gap-2"
-                                                                        >
-                                                                            <FaStar className="text-sm" />
-                                                                            {reviewStates[booking.id]?.has_reviewed ? 'View Review' : 'Add Review'}
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
+                                                            <div>
+                                                                <h3 className="text-lg font-bold text-gray-900">Review for Booking #{review.booking_display_id || review.id}</h3>
+                                                                <p className="text-gray-600"><FaFutbol className="inline-block mr-1" /> {review.venue_name || 'Venue'}</p>
                                                             </div>
                                                         </div>
 
-                                                        {/* Expanded Details Section */}
-                                                        {expandedBookingId === booking.id && (
-                                                            <motion.div
-                                                                initial={{ opacity: 0, height: 0 }}
-                                                                animate={{ opacity: 1, height: 'auto' }}
-                                                                transition={{ duration: 0.3 }}
-                                                                className="mt-6 pt-6 border-t border-gray-200"
-                                                            >
-                                                                <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                                                    <FaEye className="text-primary" />
-                                                                    Complete Booking Information
-                                                                </h4>
+                                                        {/* Rating Display */}
+                                                        <div className="mb-4">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <span className="text-sm font-medium text-gray-700">Your Rating:</span>
+                                                                {renderStars(review.review.rating)}
+                                                                <span className="text-sm text-gray-600 ml-2">
+                                                                    {review.review.rating}/5 stars
+                                                                </span>
+                                                            </div>
+                                                        </div>
 
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium"><FaFutbol className="inline-block mr-1" /> Court Name:</span>
-                                                                        <span className="font-semibold text-gray-900">{booking.venue_name || 'N/A'}</span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium"><FaMapMarkerAlt className="inline-block mr-1" /> Location:</span>
-                                                                        <span className="font-semibold text-gray-900">{booking.venue_location || 'N/A'}</span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium"><FaCalendarAlt className="inline-block mr-1" /> Booking Date:</span>
-                                                                        <span className="font-semibold text-gray-900">
-                                                                            {new Date(booking.booking_date).toLocaleDateString('en-US', {
-                                                                                weekday: 'long',
-                                                                                year: 'numeric',
-                                                                                month: 'long',
-                                                                                day: 'numeric'
-                                                                            })}
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium"><FaClock className="inline-block mr-1" /> Start Time:</span>
-                                                                        <span className="font-semibold text-gray-900">
-                                                                            {booking.time_slots && booking.time_slots.length > 0
-                                                                                ? booking.time_slots[0].start_time
-                                                                                : booking.start_time || 'N/A'
-                                                                            }
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium"><FaClock className="inline-block mr-1" /> End Time:</span>
-                                                                        <span className="font-semibold text-gray-900">
-                                                                            {booking.time_slots && booking.time_slots.length > 0
-                                                                                ? booking.time_slots[0].end_time
-                                                                                : booking.end_time || 'N/A'
-                                                                            }
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium"><FaClock className="inline-block mr-1" /> Duration:</span>
-                                                                        <span className="font-semibold text-gray-900">
-                                                                            {(() => {
-                                                                                if (!booking.start_time || !booking.end_time) return 'N/A';
-                                                                                const start = new Date(`2000-01-01T${booking.start_time}`);
-                                                                                const end = new Date(`2000-01-01T${booking.end_time}`);
-                                                                                const diff = (end.getTime() - start.getTime()) / (1000 * 60);
-                                                                                return `${Math.floor(diff / 60)}h ${diff % 60}m`;
-                                                                            })()}
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium">💰 Price per Hour:</span>
-                                                                        <span className="font-semibold text-gray-900">₹{booking.price_per_hour || 'N/A'}</span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium">💵 Total Amount:</span>
-                                                                        <span className="font-bold text-primary">₹{booking.total_amount || 'N/A'}</span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium">🆔 Booking ID:</span>
-                                                                        <span className="font-semibold text-gray-900">{booking.booking_display_id || booking.id}</span>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-gray-600 font-medium">📝 Created On:</span>
-                                                                        <span className="font-semibold text-gray-900">
-                                                                            {new Date(booking.created_at).toLocaleString('en-US', {
-                                                                                year: 'numeric',
-                                                                                month: 'short',
-                                                                                day: 'numeric',
-                                                                                hour: '2-digit',
-                                                                                minute: '2-digit'
-                                                                            })}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Rewards Section */}
-                                                                {isCompleted && (
-                                                                    <div className="mt-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
-                                                                        <div className="flex items-center gap-3">
-                                                                            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center border border-yellow-300">
-                                                                                <FaGift className="text-yellow-600" />
-                                                                            </div>
-                                                                            <div>
-                                                                                <h5 className="font-bold text-yellow-800">🎁 Booking Rewards</h5>
-                                                                                <p className="text-sm text-yellow-700">You've earned points for completing this booking!</p>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </motion.div>
+                                                        {/* Review Text */}
+                                                        {review.review.review_text && (
+                                                            <div className="mb-4">
+                                                                <p className="text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                                                    "{review.review.review_text}"
+                                                                </p>
+                                                            </div>
                                                         )}
-                                                    </motion.div>
-                                                );
-                                            })}
+
+                                                        {/* Booking Details */}
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                                            <div className="flex items-center gap-2">
+                                                                <FaCalendarCheck className="text-primary" />
+                                                                <span className="text-gray-600">Date:</span>
+                                                                <span className="font-semibold text-gray-900">{new Date(review.booking_date).toLocaleDateString()}</span>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-2">
+                                                                <FaClock className="text-primary" />
+                                                                <span className="text-gray-600">Time:</span>
+                                                                <span className="font-semibold text-gray-900">
+                                                                    {review.time_slots && review.time_slots.length > 0
+                                                                        ? `${review.time_slots[0].start_time} - ${review.time_slots[0].end_time}`
+                                                                        : 'TBD'
+                                                                    }
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-gray-600">Amount:</span>
+                                                                <span className="font-bold text-primary">₹{review.total_amount || review.price_per_hour || 'N/A'}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        ))}
                                     </div>
                                 )}
+                            </div>
+                        ) : null}
 
                                 {currentView === 'favorites' && (
                                     <div className="space-y-6">
@@ -1304,7 +847,9 @@ export const Profile: React.FC = () => {
                                                         initial={{ opacity: 0, y: 20 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ delay: index * 0.1, duration: 0.6 }}
-                                                        className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:shadow-xl transition-all group"
+                                                        whileHover={{ y: -5 }}
+                                                        onClick={() => navigate(`/venues/${venue.id}`)}
+                                                        className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:shadow-xl transition-all group cursor-pointer"
                                                     >
                                                         <div className="relative h-48">
                                                             <img
@@ -1313,8 +858,11 @@ export const Profile: React.FC = () => {
                                                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                                             />
                                                             <button
-                                                                onClick={() => toggleFavorite(venue.id)}
-                                                                className="absolute top-4 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center text-red-500 shadow-lg hover:scale-110 transition-transform"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    toggleFavorite(venue.id);
+                                                                }}
+                                                                className="absolute top-4 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center text-red-500 shadow-lg hover:scale-110 transition-transform z-10"
                                                             >
                                                                 <FaHeart size={18} />
                                                             </button>
@@ -1350,86 +898,11 @@ export const Profile: React.FC = () => {
                                         )}
                                     </div>
                                 )}
-                            </>
-                        )}
                     </div>
                 </motion.div>
             </div>
 
 
-            {/* Rating Modal */}
-            {showRatingModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3 }}
-                        className="bg-white rounded-xl border-2 border-gray-200 p-6 max-w-md w-full"
-                    >
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                <FaStar className="text-yellow-500" />
-                                Rate Your Experience
-                            </h3>
-                            <button
-                                onClick={() => {
-                                    setShowRatingModal(null);
-                                    setSelectedRating(0);
-                                    setReviewText('');
-                                }}
-                                className="text-gray-400 hover:text-gray-600 text-xl"
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <p className="text-gray-600 mb-4">How was your experience with this booking?</p>
-
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Your Rating</label>
-                            <div className="flex justify-center mb-2">
-                                {renderStars(selectedRating, true, setSelectedRating)}
-                            </div>
-                        </div>
-
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Your Review (Optional)</label>
-                            <textarea
-                                className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-colors"
-                                placeholder="Share your experience about the venue, facilities, etc..."
-                                value={reviewText}
-                                onChange={(e) => setReviewText(e.target.value)}
-                                rows={4}
-                            />
-                        </div>
-
-                        <div className="flex gap-3">
-                            <Button
-                                onClick={() => {
-                                    setShowRatingModal(null);
-                                    setSelectedRating(0);
-                                    setReviewText('');
-                                }}
-                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900 px-4 py-3 rounded-xl font-medium border-2 border-gray-200"
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    const booking = bookings.find(b => b.id === showRatingModal);
-                                    if (booking) {
-                                        handleSubmitReview(showRatingModal, booking.court_id || '');
-                                    }
-                                }}
-                                disabled={selectedRating === 0}
-                                className={`flex-1 ${selectedRating === 0 ? 'bg-primary/20 text-primary/50 cursor-not-allowed' : 'bg-primary hover:bg-primary/90 text-white'} px-4 py-3 rounded-xl font-medium border-2 border-primary`}
-                            >
-                                Submit Review
-                            </Button>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
         </div>
     );
 };
