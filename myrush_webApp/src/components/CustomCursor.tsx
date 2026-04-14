@@ -1,6 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { motion, useSpring, useMotionValue } from 'framer-motion';
 
+const isDarkOrGreen = (color: string) => {
+    if (!color || color === 'transparent') return false;
+    if (color.includes('rgba(0, 0, 0, 0)')) return false;
+    
+    // Check for our primary green
+    if (color.includes('0, 210, 106') || color.includes('00D26A')) return true;
+    
+    // Simple dark check for rgb/rgba
+    const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        // Simple luma check
+        const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        return luma < 120;
+    }
+    return false;
+};
+
 export const CustomCursor: React.FC = () => {
     const [isHovering, setIsHovering] = useState(false);
     const [isClicked, setIsClicked] = useState(false);
