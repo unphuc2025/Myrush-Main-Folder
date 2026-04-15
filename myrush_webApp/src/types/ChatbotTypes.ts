@@ -20,8 +20,13 @@ export interface BookingState {
     city?: string;
     sport?: string;
     venue?: any;
+    venueId?: string;
     date?: string; // YYYY-MM-DD
     slot?: any;
+    slot_times?: string[];
+    numPlayers?: number;
+    courtId?: string;
+    quote?: any;
     bookingId?: string;
 }
 

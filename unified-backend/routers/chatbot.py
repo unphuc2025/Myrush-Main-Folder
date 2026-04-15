@@ -94,7 +94,25 @@ async def get_knowledge_base(db: Session = Depends(get_db)):
     Includes cities, sports, amenities, and platform stats.
     """
     try:
-        knowledge = get_cached_knowledge_base(db)
+        knowledge = get_cached_knowledge_base(db).copy()
+        
+        # Include Global Policies for Bot context (Cancellation, Terms, etc.)
+        policies = []
+        try:
+            policies_query = text("SELECT type, value, content FROM admin_cancellations_terms WHERE is_active = true")
+            result = db.execute(policies_query)
+            for row in result:
+                # row[0] is type, row[1] is value, row[2] is content
+                p_type = str(row[0]) if row[0] else "unknown"
+                p_val = row[1] if row[1] else row[2]
+                policies.append({p_type: p_val})
+        except Exception as poly_err:
+            print(f"[CHATBOT API] Warning: Could not fetch policies: {poly_err}")
+            
+        # Add a hardcoded GST entry fallback
+        policies.append({"gst": "18.0"})
+        
+        knowledge['policies'] = policies
         return {
             "success": True,
             "data": knowledge
@@ -397,6 +415,65 @@ async def get_venue_detailed_context(venue_id: str, db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/booking/calculate")
+async def calculate_chatbot_price(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """
+    Calculate the total price for a booking draft.
+    Expected data: {venue_id, court_id, date, slot_times: [], number_of_players, slice_mask}
+    Returns: {base_price, tax, total, breakdown}
+    """
+    try:
+        from routers.user.payments import calculate_authoritative_price
+        from datetime import datetime
+        
+        venue_id = data.get('venueId') or data.get('venue_id')
+        court_id = data.get('courtId') or data.get('court_id')
+        booking_date_str = data.get('date')
+        slot_times = data.get('slot_times') or []
+        num_players = int(data.get('number_of_players') or 1)
+        slice_mask = data.get('slice_mask')
+        
+        if not (court_id and booking_date_str and slot_times):
+            raise HTTPException(status_code=400, detail="Missing required parameters")
+            
+        booking_date = datetime.strptime(booking_date_str, "%Y-%m-%d").date()
+        
+        # Prepare slots for calculation
+        requested_slots = [{"time": t} for t in slot_times]
+        
+        # 1. Base Multi-Player Price (Authoritative)
+        # This function handles the capacity logic internally
+        base_amount = calculate_authoritative_price(
+            db, court_id, booking_date, requested_slots, num_players, slice_mask
+        )
+        
+        # 2. Add GST (fetch from policies or fallback to 18%)
+        gst_query = text("SELECT value FROM admin_cancellations_terms WHERE type = 'gst' AND is_active = true")
+        gst_row = db.execute(gst_query).first()
+        gst_percent = float(gst_row[0]) if (gst_row and gst_row[0]) else 18.0
+        
+        tax_amount = (base_amount * gst_percent) / 100
+        total_amount = base_amount + tax_amount
+        
+        return {
+            "success": True,
+            "data": {
+                "base_price": round(base_amount, 2),
+                "tax": round(tax_amount, 2),
+                "total": round(total_amount, 2),
+                "currency": "INR",
+                "gst_percent": gst_percent,
+                "is_capacity_based": num_players > 1 if num_players > 1 else False # simplified
+            }
+        }
+    except Exception as e:
+        print(f"[CHATBOT API] Error calculating price: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/search/venues")
 async def search_venues_smart(
     city: Optional[str] = Query(None),
@@ -460,8 +537,8 @@ async def search_venues_smart(
                 JOIN admin_branch_game_types bgt ON bgt.branch_id = b.id
                 JOIN admin_game_types gt ON gt.id = bgt.game_type_id
             """
-            conditions.append("LOWER(gt.name) = LOWER(:sport)")
-            params['sport'] = sport
+            conditions.append("LOWER(gt.name) LIKE LOWER(:sport)")
+            params['sport'] = f"%{sport}%"
         
         # Add amenity filter via join
         if amenity:

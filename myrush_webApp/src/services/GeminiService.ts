@@ -1,8 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { fetchKnowledgeBase, buildChatbotContext, searchVenues, getVenueDetails, getBookingDetails } from './ChatbotContext';
+import { fetchKnowledgeBase, searchVenues, getVenueDetails, getBookingDetails, calculateBookingPrice, buildChatbotContext } from './ChatbotContext';
 
 // API Key provided by the user
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/user').replace('/api/user', '');
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 
@@ -12,117 +13,43 @@ const buildSystemInstruction = async () => {
 
   const cities = knowledge.cities.map(c => c.name).join(', ');
   const sports = knowledge.game_types.map(s => s.name).join(', ');
-  const amenities = knowledge.amenities.map(a => a.name).join(', ');
-
-  // Format FAQs for context
-  const faqContext = knowledge.faqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
-
+  
   return `
-You are a customer support executive for MyRush, India's premium sports booking platform.
-You are a REAL human team member. You are NOT an AI, bot, or virtual assistant.
-NEVER mention "AI", "language model", "training data", or "automation".
+You are the "MyRush Concierge", a high-end customer support executive.
+You are PROACTIVE and ACTION-ORIENTED. Your goal is to get the user to a booking as fast as possible.
 
-PLATFORM KNOWLEDGE:
-- Active Cities: ${cities}
-- Supported Sports: ${sports}
-- Available Amenities: ${amenities}
-- Total Venues: ${knowledge.venue_count} venues across ${knowledge.city_count} cities
+STRICT OPERATIONAL RULES:
+1. AUTOMATIC SEARCH: As soon as you know the CITY and SPORT, you MUST return the "search_venues" action. Do NOT ask for permission. Do NOT say "Let me check". Just return the action.
+2. DURATION: Minimum booking is 1 hour (2 slots of 30 mins).
+3. PRICING: All quotes MUST include 18% GST.
+4. CAPACITY: Swimming/Skating = price * players.
+5. NO STALLING: If you have everything needed for a step, EXECUTE THE ACTION. Do not ask redundant questions like "What next?" or "Ready to book?".
 
-COMMON POLICIES & FAQs:
-${faqContext}
+ACTION TYPES (JSON SCHEMA):
+- "search_venues": Must trigger as soon as City + Sport are known.
+- "check_availability": Trigger once Venue + Date are selected. 
+- "get_price_quote": Trigger once specific SlotTimes are selected.
+- "prepare_booking": Trigger only after user confirms the price quote.
+- "respond": Only for general chat or when parameters are missing.
 
-YOUR STYLE:
-- Natural, friendly, and confident.
-- Use short, clear sentences.
-- Chat like a human on WhatsApp.
-- Do not be robotic or overly formal.
-- Avoid bullet points unless listing venues.
-- If asked who you are: "I'm from the MyRush support team."
-- If asked if you are a bot: "I'm a real person here to help you get the best turf."
-
-YOUR JOB:
-1. Help users find and book courts.
-2. IMPORTANT: To search for venues, you MUST have both a CITY and a SPORT.
-3. If the user mentions a city but not a sport, respond creatively and ASK which sport they want to play.
-4. If the user mentions a sport but not a city, respond creatively and ASK which city they are in.
-5. Do NOT return a "search" action unless you have both city and sport.
-6. Answer questions about pricing, rules, and amenities.
-7. Solve issues with bookings or payments.
-8. If info is missing: "Let me quickly check that for you." (Don't guess).
-
-IMPORTANT POLICIES:
-- Cancellation: Free cancellation 24+ hours before. 50% refund 12-24 hours. No refund <12 hours.
-- Payment: Card, UPI, Netbanking.
-- Booking Fee: ₹50.
-
-OUTPUT SCHEMA (strict JSON):
+OUTPUT STRUCTURE:
 {
-  "intent": "book_court" | "search_venues" | "ask_question" | "venue_details" | "view_bookings" | "booking_lookup" | "support" | "general_chat",
+  "intent": "search" | "get_slots" | "quote" | "checkout" | "chat",
   "action": {
-    "type": "search" | "book" | "get_venue_details" | "get_booking_details" | "navigate" | "respond" | "ask_clarification",
-    "parameters": {
-      "city"?: string,
-      "sport"?: string,
-      "area"?: string,
-      "amenities"?: string[],
-      "priceMax"?: number,
-      "venueId"?: string,
-      "venueName"?: string,
-      "bookingId"?: string
-    }
+    "type": "search_venues" | "check_availability" | "get_price_quote" | "prepare_booking" | "respond",
+    "parameters": { "city", "sport", "venueId", "date", "slotTimes", "numPlayers", "courtId" }
   },
-  "response": string, // Natural human response
-  "suggestions": [] // ALWAYS EMPTY.
+  "response": "Your crisp, helpful human response.",
+  "suggestions": ["Show venues", "Check slots", "Confirm price"]
 }
 
-EXAMPLE INTERACTIONS:
-
-User: "I want to play refined badminton"
-Output: {
-  "intent": "search_venues",
-  "action": { "type": "ask_clarification", "parameters": { "sport": "Badminton" } },
-  "response": "Nice choice! Badminton is super popular. Which city are you looking for?",
-  "suggestions": []
-}
-
-User: "Show me turfs in Bangalore"
-Output: {
-  "intent": "search_venues",
-  "action": { "type": "ask_clarification", "parameters": { "city": "Bangalore" } },
-  "response": "Bangalore has some amazing sports spots! What sport are you planning to play today? (Football, Cricket, Badminton, etc.)",
-  "suggestions": []
-}
-
-User: "Show me football turfs in Hyderabad"
-Output: {
-  "intent": "search_venues",
-  "action": { "type": "search", "parameters": { "city": "Hyderabad", "sport": "Football" } },
-  "response": "Got it. Here are some of the best football turfs in Hyderabad.",
-  "suggestions": []
-}
-
-User: "What happens if it rains?"
-Output: {
-  "intent": "ask_question",
-  "action": { "type": "respond" },
-  "response": "If it rains during your outdoor game, don't worry. We usually offer a credit refund or let you reschedule. Just have a word with the venue manager.",
-  "suggestions": []
-}
-
-User: "Hi"
-Output: {
-  "intent": "general_chat",
-  "action": { "type": "respond" },
-  "response": "Hey! I'm from the MyRush support team. How can I help you regarding your booking or game today?",
-  "suggestions": []
-}
-
-User: "Where is my court? My booking ID is BK-12345"
-Output: {
-  "intent": "booking_lookup",
-  "action": { "type": "get_booking_details", "parameters": { "bookingId": "BK-12345" } },
-  "response": "Checking your booking details for BK-12345 now. Just a second...",
-  "suggestions": []
+EXAMPLE:
+User: "I want to swim in Bangalore tomorrow"
+Response: {
+  "intent": "get_slots",
+  "action": { "type": "search_venues", "parameters": { "city": "Bangalore", "sport": "Swimming" } },
+  "response": "Awesome! Bangalore has some great pools. Let me find them for you for tomorrow.",
+  "suggestions": ["Show me pools", "What's the price?"]
 }
 `;
 };
@@ -142,7 +69,7 @@ export const getGeminiResponse = async (userMessage: string, conversationHistory
       systemInstruction,
       generationConfig: {
         responseMimeType: "application/json",
-        temperature: 0.7,
+        temperature: 0.1,
         topP: 0.9,
         topK: 40
       }
@@ -158,17 +85,35 @@ export const getGeminiResponse = async (userMessage: string, conversationHistory
         ).join('\n');
     }
 
-    // Enrich prompt with context data if available
-    let enrichedPrompt = userMessage;
+    // Enrich prompt with context data and current state
+    const currentBookingState = conversationHistory.length > 0 ? (conversationHistory[conversationHistory.length - 1] as any).bookingState : null;
+    
+    let enrichedPrompt = `
+USER'S LATEST REQUEST: "${userMessage}"
+
+IMPORTANT: If the latest request mentions a DIFFERENT sport or city than the current draft below, DISREGARD the draft and start a new search for the new sport/city.
+
+CURRENT BOOKING DRAFT (For Reference):
+- City: ${currentBookingState?.city || 'Not specified'}
+- Sport: ${currentBookingState?.sport || 'Not specified'}
+- Venue: ${currentBookingState?.venueId ? 'Selected' : 'Not selected'}
+- Date: ${currentBookingState?.date || 'Not specified'}
+
+CONVERSATION HISTORY:
+${conversationContext}
+
+YOUR TASK:
+1. If the user shifts focus (e.g. from Football to Swimming), immediately use "search_venues" for Swimming.
+2. If the user asks "How much", identify the Sport, Players, and Duration. Return "get_price_quote".
+3. Return ONLY valid JSON. Be a helpful human concierge.
+`;
 
     if (context.venues && context.venues.length > 0) {
-      enrichedPrompt += `\n\nAVAILABLE VENUES (for reference):\n` +
+      enrichedPrompt += `\n\nAVAILABLE VENUES IN DB (for ID reference):\n` +
         context.venues.slice(0, 5).map((v: any) =>
-          `- ${v.name} (${v.city}): ${v.game_types.join(', ')}, ₹${v.price_range?.min || 'N/A'}-${v.price_range?.max || 'N/A'}/hour`
+          `- ${v.name} (ID: ${v.id}, Area: ${v.area})`
         ).join('\n');
     }
-
-    enrichedPrompt += conversationContext;
 
     const result = await model.generateContent(enrichedPrompt);
     const responseText = result.response.text();
@@ -176,38 +121,44 @@ export const getGeminiResponse = async (userMessage: string, conversationHistory
     try {
       const parsed = JSON.parse(responseText);
 
-      // Handle search action - fetch real venues
-      if (parsed.action?.type === 'search' && parsed.action.parameters) {
+      // 1. Search Venues
+      if (parsed.action?.type === 'search_venues' && parsed.action.parameters) {
         const searchResult = await searchVenues(parsed.action.parameters);
         if (searchResult.success) {
           parsed.searchResults = searchResult.data;
-        }
-      }
-
-      // Handle venue details action
-      if (parsed.action?.type === 'get_venue_details' && parsed.action.parameters?.venueName) {
-        // Try to find venue by name from context
-        const venue = context.venues?.find((v: any) =>
-          v.name.toLowerCase().includes(parsed.action.parameters.venueName.toLowerCase())
-        );
-        if (venue) {
-          const detailsResult = await getVenueDetails(venue.id);
-          if (detailsResult.success) {
-            parsed.venueDetails = detailsResult.data;
+          
+          if (searchResult.data.length === 0) {
+            parsed.response = `I searched for ${parsed.action.parameters.sport} venues in ${parsed.action.parameters.city}, but unfortunately, I couldn't find any that match right now. Would you like to try a different sport or city?`;
+            parsed.intent = "chat";
+            parsed.suggestions = ["Try Badminton", "Change City", "See all sports"];
           }
         }
       }
 
-      // Handle booking lookup action
-      if (parsed.action?.type === 'get_booking_details' && parsed.action.parameters?.bookingId) {
-        const bookingResult = await getBookingDetails(parsed.action.parameters.bookingId);
-        if (bookingResult.success) {
-          parsed.bookingDetails = bookingResult.data;
-          // Update the response to include the location since we now have it
-          const b = bookingResult.data;
-          parsed.response = `I found your booking! It's at **${b.venue_name}** in ${b.area}. \n\n📍 Address: ${b.address}\n\n[Open in Google Maps](${b.google_map_url})`;
-        } else {
-          parsed.response = "I couldn't find that booking ID. Could you double-check it for me?";
+      // 2. Check Availability (Slots)
+      if (parsed.action?.type === 'check_availability' && parsed.action.parameters?.venueId) {
+        const p = parsed.action.parameters;
+        const response = await fetch(`${API_BASE_URL}/api/user/venues/${p.venueId}/slots?date=${p.date || new Date().toISOString().split('T')[0]}&game_type=${p.sport || ''}`);
+        const result = await response.json();
+        if (result.success) {
+          parsed.slots = result.data.slots;
+        }
+      }
+
+      // 3. Get Price Quote
+      if (parsed.action?.type === 'get_price_quote' && parsed.action.parameters?.courtId) {
+        const p = parsed.action.parameters;
+        const quoteResult = await calculateBookingPrice({
+          court_id: p.courtId,
+          date: p.date!,
+          slot_times: p.slotTimes!,
+          number_of_players: p.numPlayers || 1
+        });
+        if (quoteResult.success) {
+          parsed.quote = quoteResult.data;
+          // Enrich response with price info
+          const q = quoteResult.data;
+          parsed.response = `${parsed.response}\n\n💰 **Base Price:** ₹${q.base_price}\n✨ **GST (18%):** ₹${q.tax}\n✅ **Total Amount:** ₹${q.total}\n\nShall I proceed to booking?`;
         }
       }
 

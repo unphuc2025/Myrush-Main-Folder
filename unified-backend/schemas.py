@@ -900,6 +900,10 @@ class BookingResponse(BaseModel):
     division_mode_id: Optional[UUID] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    logic_type: Optional[str] = None
+    slice_mask: Optional[int] = None
+    total_zones: Optional[int] = 1
+    zones: Optional[List[dict]] = []
 
     # Enriched venue fields (populated via JOIN in get_bookings)
     venue_name: Optional[str] = None
@@ -945,6 +949,7 @@ class Booking(BaseModel):
     division_mode_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    logic_type: Optional[str] = None
 
     @field_validator('id', 'user_id', 'court_id', mode='before')
     @classmethod

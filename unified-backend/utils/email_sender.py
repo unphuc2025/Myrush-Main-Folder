@@ -265,10 +265,12 @@ def send_contact_email(data: dict):
         return False
 
 
-def send_booking_invoice_email(db: Session, booking_id: str, to_email: str):
+def send_booking_invoice_email(booking_id: str, to_email: str):
     """
     Renders the invoice HTML and sends it to the user.
     """
+    from database import SessionLocal
+    db = SessionLocal()
     load_dotenv(override=True)
 
     smtp_server = os.getenv("INVOICE_SMTP_SERVER", "smtp.gmail.com")
@@ -311,3 +313,5 @@ def send_booking_invoice_email(db: Session, booking_id: str, to_email: str):
     except Exception as e:
         logger.exception(f"FATAL ERROR: Failed to deliver invoice email to {to_email}: {str(e)}")
         return False
+    finally:
+        db.close()

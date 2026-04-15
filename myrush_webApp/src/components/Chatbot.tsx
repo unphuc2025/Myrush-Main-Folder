@@ -133,7 +133,16 @@ export const Chatbot: React.FC = () => {
     };
 
     const handleVenueSelection = (venue: any) => {
-        setBookingState(prev => ({ ...prev, venue, step: 'selecting_date' }));
+        setBookingState(prev => ({ 
+            ...prev, 
+            venue, 
+            venueId: venue.id,
+            sport: venue.game_types?.[0]?.name || venue.game_type || prev.sport,
+            step: 'selecting_date' 
+        }));
+        
+        // Let the AI know a venue was selected by sending a hidden prompt or just updating state
+        // For now, we add a bot message to keep the flow moving naturally
         const today = new Date();
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -143,7 +152,7 @@ export const Chatbot: React.FC = () => {
             { label: 'Tomorrow', value: tomorrow.toISOString().split('T')[0], action: 'select_date' }
         ];
 
-        addBotMessage(`You chose ${venue.court_name || venue.name}. When do you want to play?`, 'options', dateOptions);
+        addBotMessage(`Excellent choice! ${venue.name || venue.court_name} is a great spot. When would you like to play?`, 'options', dateOptions);
     };
 
     const handleDateSelection = async (date: string) => {
@@ -174,23 +183,21 @@ export const Chatbot: React.FC = () => {
     };
 
     const confirmBooking = () => {
-        if (!bookingState.venue || !bookingState.date || !bookingState.slot) return;
+        if (!bookingState.venueId || !bookingState.date || !bookingState.slot_times) return;
 
         const locationState = {
-            venueId: bookingState.venue.id,
-            venueName: bookingState.venue.name || bookingState.venue.court_name,
-            venueImage: bookingState.venue.image_url || bookingState.venue.photos?.[0],
+            venueId: bookingState.venueId,
             date: bookingState.date,
-            selectedSlots: [{
-                time: bookingState.slot.time,
-                display_time: bookingState.slot.display_time,
-                price: bookingState.slot.price,
-                court_id: bookingState.slot.court_id,
-                court_name: bookingState.slot.court_name
-            }],
-            selectedSport: bookingState.sport || bookingState.venue.game_types?.[0] || 'Multi-Sport',
-            totalPrice: bookingState.slot.price,
-            numPlayers: 1
+            selectedSlots: bookingState.slot_times.map(t => ({
+                time: t,
+                display_time: t, // simplified
+                price: (bookingState.quote?.base_price || 0) / (bookingState.slot_times?.length || 1),
+                court_id: bookingState.courtId
+            })),
+            selectedSport: bookingState.sport || 'Multi-Sport',
+            totalPrice: bookingState.quote?.total || 0,
+            numPlayers: bookingState.numPlayers || 1,
+            courtId: bookingState.courtId
         };
 
         navigate('/booking/summary', { state: locationState });
@@ -209,41 +216,69 @@ export const Chatbot: React.FC = () => {
 
         const conversationHistory = messages.map(msg => ({
             text: msg.text,
-            sender: msg.sender
+            sender: msg.sender,
+            bookingState: bookingState // Pass state with history
         }));
 
         try {
             const aiResponse = await getGeminiResponse(userText, conversationHistory);
             setIsLoading(false);
 
+            // Update local state based on AI parameters
+            if (aiResponse.action?.parameters) {
+                const p = aiResponse.action.parameters;
+                
+                setBookingState(prev => {
+                    const newState = { ...prev };
+                    
+                    // If Sport or City changed, reset venue and slots
+                    if ((p.sport && p.sport !== prev.sport) || (p.city && p.city !== prev.city)) {
+                        newState.venue = undefined;
+                        newState.venueId = undefined;
+                        newState.courtId = undefined;
+                        newState.slot = undefined;
+                        newState.slot_times = undefined;
+                        newState.quote = undefined;
+                    }
+                    
+                    return {
+                        ...newState,
+                        city: p.city || newState.city,
+                        sport: p.sport || newState.sport,
+                        venueId: p.venueId || newState.venueId,
+                        date: p.date || newState.date,
+                        slot_times: p.slotTimes || newState.slot_times,
+                        numPlayers: p.numPlayers || newState.numPlayers,
+                        courtId: p.courtId || newState.courtId
+                    };
+                });
+            }
+
             // 1. Send text response
-            addBotMessage(aiResponse.response);
+            addBotMessage(aiResponse.response, 'text', undefined, { aiResponse });
 
             // 2. Handle Search Action
-            if (aiResponse.action?.type === 'search' && aiResponse.searchResults) {
-                if (aiResponse.searchResults.length > 0) {
-                    const params = aiResponse.action.parameters;
-                    setBookingState({
-                        step: 'showing_venues',
-                        city: params.city,
-                        sport: params.sport
-                    });
-                    addBotMessage(`Found ${aiResponse.searchResults.length} options:`, 'venues', undefined, aiResponse.searchResults);
-                } else {
-                    addBotMessage('I couldn\'t find any venues matching that search. Try something else?');
-                }
+            if (aiResponse.searchResults && aiResponse.searchResults.length > 0) {
+                addBotMessage(`Found ${aiResponse.searchResults.length} options:`, 'venues', undefined, aiResponse.searchResults);
             }
 
-            // 3. Handle Venue Details
-            if (aiResponse.venueDetails) {
-                addBotMessage('Here are the details:', 'venue_detail', undefined, { venue: aiResponse.venueDetails });
-                addBotMessage('Would you like to book a slot here?', 'options', [
-                    { label: 'Yes, book now', value: 'book_now', action: 'book_venue', data: { venueId: aiResponse.venueDetails.id } },
-                    { label: 'Search others', value: 'search_more', action: 'start_booking' }
-                ]);
+            // 3. Handle Slots Action
+            if (aiResponse.slots && aiResponse.slots.length > 0) {
+                addBotMessage('Here are the available slots:', 'slots', undefined, aiResponse.slots);
             }
 
-            // 4. Handle Navigation/Intent
+            // 4. Handle Quote / Prepare Booking
+            if (aiResponse.quote) {
+                setBookingState(prev => ({ ...prev, quote: aiResponse.quote }));
+                addBotMessage('Review your booking summary:', 'summary', undefined, {
+                    quote: aiResponse.quote,
+                    venue: bookingState.venue,
+                    date: bookingState.date,
+                    slot_times: bookingState.slot_times
+                });
+            }
+
+            // Handle Navigation/Intent
             if (aiResponse.intent === 'view_bookings') {
                 navigate('/bookings');
                 setIsOpen(false);
@@ -349,15 +384,24 @@ export const Chatbot: React.FC = () => {
                                         />
                                     )}
 
-                                    {msg.type === 'summary' && msg.data && (
+                                    {msg.type === 'summary' && msg.data?.quote && (
                                         <div className="bg-white rounded-xl border border-gray-200 p-4 mt-2 w-full max-w-[280px] shadow-sm">
-                                            <h4 className="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-2">Booking Summary</h4>
+                                            <h4 className="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-2">MyRush Ticket</h4>
                                             <div className="space-y-2 text-sm">
-                                                <div className="flex items-center gap-2"><FaMapMarkerAlt className="text-primary text-xs" /><span className="font-medium">{msg.data.venue.name || msg.data.venue.court_name}</span></div>
-                                                <div className="flex items-center gap-2"><FaCalendarAlt className="text-primary text-xs" /><span>{new Date(msg.data.date).toLocaleDateString()}</span></div>
-                                                <div className="flex items-center gap-2"><FaClock className="text-primary text-xs" /><span>{msg.data.slot.display_time}</span></div>
-                                                <div className="flex justify-between font-bold pt-2 border-t border-gray-100 mt-2"><span>Total</span><span className="text-primary">₹{msg.data.slot.price}</span></div>
-                                                <button onClick={confirmBooking} className="w-full bg-black text-white font-bold py-2 rounded-lg mt-2 hover:bg-gray-800 transition-all active:scale-95">Confirm Booking</button>
+                                                <div className="flex items-center justify-between text-gray-500">
+                                                    <span>Subtotal</span>
+                                                    <span className="font-bold text-gray-900">₹{msg.data.quote.base_price}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between text-gray-500">
+                                                    <span>GST (18%)</span>
+                                                    <span className="font-bold text-gray-900">₹{msg.data.quote.tax}</span>
+                                                </div>
+                                                <div className="flex justify-between font-black pt-2 border-t border-gray-100 mt-2 text-lg">
+                                                    <span className="text-gray-900">Total</span>
+                                                    <span className="text-primary">₹{msg.data.quote.total}</span>
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 italic text-center py-2">Includes all taxes and platform fees</p>
+                                                <button onClick={confirmBooking} className="w-full bg-primary text-white font-bold py-3 rounded-xl mt-2 hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20 uppercase tracking-wider">Confirm & Pay</button>
                                             </div>
                                         </div>
                                     )}
