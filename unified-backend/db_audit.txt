@@ -1,0 +1,77 @@
+Chandrashekhar Patil Stadium, Kalaburgi | Basketball | Active: True | Logic: independent
+Chandrashekhar Patil Stadium, Kalaburgi | Cricket | Active: True | Logic: independent
+Chandrashekhar Patil Stadium, Kalaburgi | Dummy Divisible Court | Active: True | Logic: divisible
+Chandrashekhar Patil Stadium, Kalaburgi | Dummy Divisible Court | Active: True | Logic: divisible
+Chandrashekhar Patil Stadium, Kalaburgi | Football | Active: True | Logic: independent
+Chandrashekhar Patil Stadium, Kalaburgi | Hockey | Active: True | Logic: independent
+Chandrashekhar Patil Stadium, Kalaburgi | Judo | Active: True | Logic: independent
+Chandrashekhar Patil Stadium, Kalaburgi | Kabaddi | Active: True | Logic: independent
+Chandrashekhar Patil Stadium, Kalaburgi | Kho Kho | Active: True | Logic: independent
+Chandrashekhar Patil Stadium, Kalaburgi | Volleyball | Active: True | Logic: independent
+Chandrashekhar Patil Stadium, Kalaburgi | Walking | Active: False | Logic: independent
+Omega Circuit By RUSH - Hyderabad  | Basketball - Omega cricuit HYD | Active: False | Logic: independent
+Omega Circuit By RUSH - Hyderabad  | Boxcricket - Omega cricuit HYD | Active: False | Logic: independent
+Omega Circuit By RUSH - Hyderabad  | Cricket Nets | Active: True | Logic: divisible
+Omega Circuit By RUSH - Hyderabad  | Football - Omega circuit HYD | Active: False | Logic: divisible
+Omega Circuit By RUSH - Hyderabad  | Main Turf (Football / Box Cricket) | Active: True | Logic: divisible
+Omega Circuit By RUSH - Hyderabad  | Multi-Sport Court (Basketball / Pickleball) | Active: True | Logic: divisible
+Omega Circuit By RUSH - Hyderabad  | Pickleball - Omega cricuit HYD | Active: False | Logic: independent
+Omega Circuit By RUSH - Hyderabad  | Volleyball - Omega cricuit HYD | Active: False | Logic: independent
+Omega Circuit By RUSH - Hyderabad  | Volleyball Court | Active: True | Logic: independent
+Racquetly x Serve Society Padel Kormangala | Padel - Kormangala | Active: False | Logic: independent
+Rush Arena - Gateway Office parks Chennai | 7 a side (1 turf) Cricket - Gateway Office | Active: False | Logic: independent
+Rush Arena - Gateway Office parks Chennai | 7 a side (1 turf) Football - Gateway office | Active: False | Logic: divisible
+Rush Arena - Gateway Office parks Chennai | Pickleball - Chennai | Active: True | Logic: divisible
+Rush Arena - Gateway Office parks Chennai | Pickleball - Gateway office | Active: False | Logic: independent
+Rush Arena - Gateway Office parks Chennai | Throwball - Gateway office | Active: False | Logic: independent
+Rush Arena - Gateway Office parks Chennai | Volleyball - Gateway office | Active: False | Logic: independent
+Rush Arena - Gunjur | 7 a side (1 turf) Cricket -  Gunjur | Active: False | Logic: independent
+Rush Arena - Gunjur | 7 a side (1 turf) Football -  Gunjur | Active: False | Logic: divisible
+Rush Arena - Gunjur | Cricket Nets - Gunjur | Active: False | Logic: independent
+Rush Arena - Kasavanahalli | 6 a side (1 turf) Boxcricket - Kasavanahalli | Active: False | Logic: independent
+Rush Arena - Kasavanahalli | Cricket Nets | Active: True | Logic: divisible
+Rush Arena - Kasavanahalli | Main Turf (Football / Box Cricket) | Active: True | Logic: divisible
+Rush Arena - Kengeri | 10 a side (1 turf) Cricket - Kengeri | Active: False | Logic: independent
+Rush Arena - Kengeri | 10 a side (1 turf) Football - Kengeri | Active: False | Logic: divisible
+Rush Arena - Kengeri | Basketball - Kengeri | Active: False | Logic: independent
+Rush Arena - Kengeri | Cricket nets Astroturf - Kengeri | Active: True | Logic: independent
+Rush Arena - Kengeri | Skating rink - Kengeri | Active: True | Logic: independent
+Rush Arena - Kengeri | Swimminng - Kengeri | Active: False | Logic: independent
+Rush Arena - Kengeri | Volleyball - Kengeri | Active: True | Logic: independent
+Rush Arena - Rajajinagar  | Box Cricket | Active: True | Logic: shared
+Rush Arena - Rajajinagar  | Football - Rajajinagar | Active: True | Logic: shared
+Rush Arena BCU  | Pickleball - BCU | Active: False | Logic: independent
+Rush Arena BCU  | Pickleball Courts (1-4) | Active: True | Logic: divisible
+Rush Arena Cooke Town | 10 a side Boxcricket - Cooke Town | Active: False | Logic: independent
+Rush Arena Cooke Town | Main Turf (Football / Box Cricket) | Active: True | Logic: divisible
+Rush Arena Cooke Town | Pickleball - Cooke Town | Active: True | Logic: divisible
+Rush Arena Malleshwaram | 5 a side Boxcricket -  Malleshwaram | Active: False | Logic: independent
+Rush Arena Malleshwaram | 5 a side Football - Malleshwaram | Active: False | Logic: divisible
+Rush Arena Malleshwaram | Main Turf (Football / Box Cricket) | Active: True | Logic: divisible
+Rush Arena Malleshwaram | Pickleball - Malleshwaram | Active: True | Logic: divisible
+Rush Arena Malleshwaram | Pickleball - Malleshwaram | Active: False | Logic: independent
+Rush Arena Railways | Boxcricket - Railways | Active: False | Logic: divisible
+Rush Arena Railways | cricket - Rush Arena Railways | Active: False | Logic: divisible
+Rush Arena Railways | Cricket Ground (11 a side) | Active: True | Logic: independent
+Rush Arena Railways | Cricket Nets | Active: True | Logic: divisible
+Rush Arena Railways | Football - Railways | Active: False | Logic: divisible
+Rush Arena Railways | Main Turf (Football / Box Cricket) | Active: True | Logic: divisible
+Rush Arena Railways | Nets - Railways | Active: False | Logic: independent
+Rush Arena Railways | Volleyball - Rush Arena Railways | Active: False | Logic: independent
+Rush Arena Railways | Volleyball Court | Active: True | Logic: independent
+Rush Arena x Grid Game | 5 a side (1 turf) Football - Grid Game | Active: False | Logic: divisible
+Rush Arena x Grid Game | Main Turf (Football / Box Cricket) | Active: True | Logic: divisible
+Rush Arena x Hotfut - South United GVH | Main Turf (Football / Box Cricket / Frisbee) | Active: False | Logic: divisible
+Rush Arena x Hotfut - South United GVH | Main Turf (Football / Box Cricket / Frisbee) | Active: True | Logic: divisible
+Rush Arena X KheloMore GT Mall | Football - KheloMore GT Mall | Active: False | Logic: independent
+Rush Arena X KheloMore GT Mall | Football / Football / Box Cricket - Khelomore GT Mall | Active: True | Logic: divisible
+Rush x Ace Arena - Hesaraghatta Main Road | Badminton | Active: True | Logic: divisible
+Rush x Ace Arena - Hesaraghatta Main Road | Badminton - Hesaraghatta | Active: False | Logic: independent
+Rush x Ace Arena - Hesaraghatta Main Road | Cricket Nets | Active: True | Logic: divisible
+Rush x Ace Arena - Hesaraghatta Main Road | Cricket Nets - Hesaraghatta | Active: False | Logic: independent
+Rush x Ace Arena - Hesaraghatta Main Road | Squash | Active: True | Logic: independent
+Rush x Ace Arena - Hesaraghatta Main Road | Squash Wooden - Hesaraghatta | Active: False | Logic: independent
+Rush x Ace Arena - Hesaraghatta Main Road | Swimming - Hesaraghatta | Active: False | Logic: independent
+Rush x Ace Arena - Hesaraghatta Main Road | Swimming Pool | Active: True | Logic: capacity
+Rush x Ace Arena - Hesaraghatta Main Road | Table Tennis | Active: True | Logic: divisible
+Rush x Ace Arena - Hesaraghatta Main Road | Table Tennis - Hesaraghatta | Active: False | Logic: independent

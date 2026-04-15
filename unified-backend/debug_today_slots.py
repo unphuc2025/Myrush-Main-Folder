@@ -35,8 +35,9 @@ def debug_slots():
         # Check why it's empty
         branch = db.query(models.Branch).filter(models.Branch.id == court.branch_id).first()
         from utils.booking_utils import get_venue_hours
-        v_start, v_end = get_venue_hours(branch.opening_hours, today)
-        print(f"Venue hours for {today}: start={v_start}, end={v_end}")
+        from utils.booking_utils import get_venue_hours
+        v_intervals = get_venue_hours(branch.opening_hours, today)
+        print(f"Venue hours for {today}: {v_intervals}")
         print(f"Opening hours config: {branch.opening_hours}")
     
     print("\n--- TOMORROW SLOTS ---")

@@ -30,37 +30,37 @@ class TestSlotLogic(unittest.TestCase):
         
         # Monday (2026-02-23 is a Monday)
         d_mon = date(2026, 2, 23)
-        self.assertEqual(get_venue_hours(opening_hours, d_mon), (8, 22))
+        self.assertEqual(get_venue_hours(opening_hours, d_mon), [{'open': 8.0, 'close': 22.0}])
         
         # Tuesday
         d_tue = date(2026, 2, 24)
-        self.assertEqual(get_venue_hours(opening_hours, d_tue), (6, 23))
+        self.assertEqual(get_venue_hours(opening_hours, d_tue), [{'open': 6.0, 'close': 23.0}])
         
         # Wednesday (Closed)
         d_wed = date(2026, 2, 25)
-        self.assertEqual(get_venue_hours(opening_hours, d_wed), (0, 0))
+        self.assertEqual(get_venue_hours(opening_hours, d_wed), [])
 
     def test_get_venue_hours_24h_variants(self):
         # 00:00 to 00:00 should be treated as 24h
-        self.assertEqual(get_venue_hours({"monday": {"isActive": True, "startTime": "00:00", "endTime": "00:00"}}, date(2026, 2, 23)), (0, 24))
+        self.assertEqual(get_venue_hours({"monday": {"isActive": True, "startTime": "00:00", "endTime": "00:00"}}, date(2026, 2, 23)), [{'open': 0.0, 'close': 24.0}])
         # 12:00 AM to 12:00 AM variant
-        self.assertEqual(get_venue_hours({"monday": {"isActive": True, "startTime": "12:00 AM", "endTime": "12:00 AM"}}, date(2026, 2, 23)), (0, 24))
+        self.assertEqual(get_venue_hours({"monday": {"isActive": True, "startTime": "12:00 AM", "endTime": "12:00 AM"}}, date(2026, 2, 23)), [{'open': 0.0, 'close': 24.0}])
         # Missing keys with isActive: True
-        self.assertEqual(get_venue_hours({"monday": {"isActive": True}}, date(2026, 2, 23)), (0, 24))
+        self.assertEqual(get_venue_hours({"monday": {"isActive": True}}, date(2026, 2, 23)), [{'open': 0.0, 'close': 24.0}])
 
     def test_get_venue_hours_nulls(self):
         # If keys are present but null
         opening_hours = {"monday": {"isActive": True, "startTime": None, "endTime": None}}
-        self.assertEqual(get_venue_hours(opening_hours, date(2026, 2, 23)), (0, 24))
+        self.assertEqual(get_venue_hours(opening_hours, date(2026, 2, 23)), [{'open': 0.0, 'close': 24.0}])
 
     def test_get_venue_hours_list_format(self):
         # Handle list format
         opening_hours = [{"day": "monday", "isActive": True, "startTime": "09:00", "endTime": "18:00"}]
-        self.assertEqual(get_venue_hours(opening_hours, date(2026, 2, 23)), (9, 18))
+        self.assertEqual(get_venue_hours(opening_hours, date(2026, 2, 23)), [{'open': 9.0, 'close': 18.0}])
 
     def test_get_venue_hours_string_bool(self):
         opening_hours = {"monday": {"isActive": "false"}}
-        self.assertEqual(get_venue_hours(opening_hours, date(2026, 2, 23)), (0, 0))
+        self.assertEqual(get_venue_hours(opening_hours, date(2026, 2, 23)), [])
 
     @patch('utils.booking_utils.get_now_ist')
     @patch('sqlalchemy.orm.Session')

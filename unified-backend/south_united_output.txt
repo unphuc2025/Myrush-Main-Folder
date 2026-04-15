@@ -1,0 +1,10 @@
+Branch: Rush Arena x Hotfut - South United GVH (69b46e52-ca4e-4712-b02c-76c6ba4d4beb)
+Court: Main Turf (Football / Box Cricket / Frisbee) (Logic: divisible, Zones: 2, Active: False)
+  Slice: Football (6 a side) (Sport: FootBall), Mask: 1, Price: 3500.00
+  Slice: Football (Full Ground) (Sport: FootBall), Mask: 3, Price: 3500.00
+  Slice: Boxcricket (Full Ground) (Sport: Boxcricket), Mask: 3, Price: 3500.00
+  Slice: Frisbee (Full Ground) (Sport: Frisbee), Mask: 3, Price: 3500.00
+Court: Main Turf (Football / Box Cricket / Frisbee) (Logic: divisible, Zones: 1, Active: True)
+  Slice: Football (5 a side) (Sport: FootBall), Mask: 1, Price: 3500.00
+  Slice: Boxcricket (5 a side) (Sport: Boxcricket), Mask: 1, Price: 3500.00
+  Slice: Frisbee (5 a side) (Sport: Frisbee), Mask: 1, Price: 3500.00
