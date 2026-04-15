@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.attributes import flag_modified
@@ -15,6 +16,7 @@ import json
 from pathlib import Path
 from utils import s3_utils
 from services.integrations.orchestrator import IntegrationOrchestrator
+from utils.booking_utils import safe_parse_time_float
 
 # Create uploads directory if it doesn't exist
 # (Local upload logic removed in favor of S3)
@@ -49,9 +51,12 @@ def get_all_courts(
         joinedload(models.Court.sport_slices)
     )
     
+    branch_joined = False
+    
     # Apply city filter if provided
     if city_id:
         query = query.join(models.Branch).filter(models.Branch.city_id == city_id)
+        branch_joined = True
     
     # 1. Apply Role-Based Restrictions (Server-side)
     if branch_filter is not None:
@@ -67,7 +72,19 @@ def get_all_courts(
 
     # 2. Search
     if search:
-        query = query.filter(models.Court.name.ilike(f"%{search}%"))
+        # If city_id filter wasn't applied, we need to join Branch to search its fields or City fields
+        if not branch_joined:
+            query = query.join(models.Branch)
+            branch_joined = True
+            
+        query = query.outerjoin(models.City, models.Branch.city_id == models.City.id).filter(
+            or_(
+                models.Court.name.ilike(f"%{search}%"),
+                models.Branch.name.ilike(f"%{search}%"),
+                models.City.name.ilike(f"%{search}%"),
+                models.City.short_code.ilike(f"%{search}%")
+            )
+        )
 
     # 3. Apply other filters
     if game_type_id:
@@ -620,11 +637,24 @@ async def bulk_update_slots(
                     price_conditions = []
 
             for date_key in date_list:
+                print(f"[DEBUG] Bulk Update: date={date_key}, target_from={from_to_match[0]}, target_to={from_to_match[1]}")
+                print(f"[DEBUG] Original price_conditions count: {len(price_conditions)}")
+                
+                target_from_f = safe_parse_time_float(from_to_match[0])
+                target_to_f = safe_parse_time_float(from_to_match[1])
+
                 # Filter OUT any existing date-specific slot for this EXACT date and the TARGET time (original or new)
-                price_conditions = [
+                new_price_conditions = [
                     pc for pc in price_conditions 
-                    if not (pc.get('dates') and date_key in pc.get('dates', []) and pc.get('slotFrom') == from_to_match[0] and pc.get('slotTo') == from_to_match[1])
+                    if not (
+                        pc.get('dates') and 
+                        date_key in pc.get('dates', []) and 
+                        safe_parse_time_float(pc.get('slotFrom') or pc.get('slot_from')) == target_from_f and 
+                        safe_parse_time_float(pc.get('slotTo') or pc.get('slot_to')) == target_to_f
+                    )
                 ]
+                print(f"[DEBUG] After filter, count: {len(new_price_conditions)}")
+                price_conditions = new_price_conditions
 
                 # Create new date-specific slot
                 new_slot = {
@@ -706,14 +736,27 @@ async def bulk_delete_slots(
                 try: price_conditions = json.loads(price_conditions)
                 except: price_conditions = []
 
+            print(f"[DEBUG] Bulk Delete: slot_from={slot_from}, slot_to={slot_to}, dates={date_list}")
+            
+            target_from_f = safe_parse_time_float(slot_from)
+            target_to_f = safe_parse_time_float(slot_to)
+
             original_len = len(price_conditions)
             
             for date_key in date_list:
+                print(f"[DEBUG] Checking date: {date_key}")
                 # Filter OUT matching slots
                 price_conditions = [
                     pc for pc in price_conditions 
-                    if not (pc.get('dates') and date_key in pc.get('dates', []) and pc.get('slotFrom') == slot_from and pc.get('slotTo') == slot_to)
+                    if not (
+                        pc.get('dates') and 
+                        date_key in pc.get('dates', []) and 
+                        safe_parse_time_float(pc.get('slotFrom') or pc.get('slot_from')) == target_from_f and 
+                        safe_parse_time_float(pc.get('slotTo') or pc.get('slot_to')) == target_to_f
+                    )
                 ]
+            
+            print(f"[DEBUG] price_conditions: original={original_len}, final={len(price_conditions)}")
 
             if len(price_conditions) != original_len:
                 court.price_conditions = price_conditions

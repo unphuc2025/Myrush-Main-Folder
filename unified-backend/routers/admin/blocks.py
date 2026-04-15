@@ -79,69 +79,102 @@ def get_blocks(
         
     return result
 
-@router.post("", response_model=schemas.CourtBlock)
-@router.post("/", response_model=schemas.CourtBlock)
+@router.post("", response_model=List[schemas.CourtBlock])
+@router.post("/", response_model=List[schemas.CourtBlock])
 def create_block(
     block: schemas.CourtBlockCreate,
     db: Session = Depends(get_db),
     current_admin: models.Admin = Depends(get_current_admin),
     _ = Depends(PermissionChecker("Court Blocks", "edit"))
 ):
-    """Create a new manual court block with overlap detection"""
-    # 1. ATOMIC LOCK & CONFLICT CHECK
+    """Create one or more manual court blocks (supports date ranges)"""
     from uuid import UUID
-    target_court_id = UUID(str(block.court_id))
+    from datetime import timedelta
+    
+    court_id_str = str(block.court_id)
+    if ":" in court_id_str:
+        court_id_str = court_id_str.split(":")[0]
+        
+    target_court_id = UUID(court_id_str)
     new_mask = block.slice_mask or 0
+    target_capacity = block.blocked_capacity # Can be None/0 for full block
 
-    # Lock the court and its siblings to prevent race conditions
+    # 1. Determine date range
+    start_date = block.block_date
+    end_date = block.end_date or start_date
+    
+    if end_date < start_date:
+        raise HTTPException(status_code=400, detail="End date cannot be before start date")
+        
+    # Limit max range to 31 days to prevent accidental massive DB spam
+    if (end_date - start_date).days > 31:
+        raise HTTPException(status_code=400, detail="Maximum block range is 31 days")
+
+    # Lock the court and its siblings for the entire operation
     from sqlalchemy import or_
     court = db.query(models.Court).filter(models.Court.id == target_court_id).first()
     if not court:
         raise HTTPException(status_code=404, detail="Court not found")
         
-    lock_query = db.query(models.Court).filter(
+    db.query(models.Court).filter(
         or_(
             models.Court.id == target_court_id,
             models.Court.shared_group_id == court.shared_group_id if court.shared_group_id else False
         )
     ).with_for_update().all()
 
-    # 2. Unified Conflict Check (Checks both Manual Blocks and User Bookings)
+    created_blocks = []
+    current_date = start_date
+    
+    # Iterate through each day in the range
     from utils.conflicts import check_court_availability_conflict
-    conflict = check_court_availability_conflict(
-        db=db,
-        court_id=target_court_id,
-        block_date=block.block_date,
-        start_time=block.start_time,
-        end_time=block.end_time,
-        slice_mask=new_mask
-    )
     
-    if conflict:
-        raise HTTPException(status_code=409, detail=conflict)
-
-    # 5. If no conflict, create the block
-    db_block = models.CourtBlock(
-        court_id=block.court_id,
-        block_date=block.block_date,
-        start_time=block.start_time,
-        end_time=block.end_time,
-        reason=block.reason,
-        slice_mask=new_mask,
-        synced_partners=block.synced_partners,
-        blocked_by_id=current_admin.id
-    )
-    db.add(db_block)
-    db.commit()
-    db.refresh(db_block)
-    
-    # --- SYNC TRIGGER ---
-    try:
-        IntegrationOrchestrator.notify_manual_block_change(db, db_block, 'block')
-    except Exception as e:
-        print(f"[BLOCK SYNC] Warning: Failed to notify partners of new block: {e}")
+    while current_date <= end_date:
+        # Conflict Check for this specific day
+        conflict = check_court_availability_conflict(
+            db=db,
+            court_id=target_court_id,
+            block_date=current_date,
+            start_time=block.start_time,
+            end_time=block.end_time,
+            slice_mask=new_mask,
+            blocked_capacity=target_capacity
+        )
         
-    return db_block
+        if conflict:
+            # If any day in the range has a conflict, we abort the WHOLE request to maintain atomicity?
+            # Or we could return a partial success? 
+            # Industry standard for "Block" is usually all-or-nothing for a single request.
+            db.rollback()
+            raise HTTPException(status_code=409, detail=f"Conflict on {current_date}: {conflict}")
+
+        # Create the block for this day
+        db_block = models.CourtBlock(
+            court_id=target_court_id,
+            block_date=current_date,
+            start_time=block.start_time,
+            end_time=block.end_time,
+            reason=block.reason,
+            slice_mask=new_mask,
+            blocked_capacity=target_capacity,
+            synced_partners=block.synced_partners,
+            blocked_by_id=current_admin.id
+        )
+        db.add(db_block)
+        created_blocks.append(db_block)
+        current_date += timedelta(days=1)
+
+    db.commit()
+    
+    # Refresh and Notify for each block
+    for b in created_blocks:
+        db.refresh(b)
+        try:
+            IntegrationOrchestrator.notify_manual_block_change(db, b, 'block')
+        except Exception as e:
+            print(f"[BLOCK SYNC] Warning: Failed to notify partners for {b.block_date}: {e}")
+        
+    return created_blocks
 
 @router.delete("/{block_id}")
 def delete_block(

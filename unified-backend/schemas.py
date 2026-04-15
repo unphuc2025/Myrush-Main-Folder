@@ -1504,11 +1504,13 @@ class CourtBlockBase(BaseModel):
     synced_partners: Optional[List[str]] = []
 
 class CourtBlockCreate(CourtBlockBase):
-    pass
+    end_date: Optional[date] = None # For multi-day blocks
+    blocked_capacity: Optional[int] = None # For capacity-based courts (None or 0 = Full)
 
 class CourtBlock(CourtBlockBase):
     id: str
     blocked_by_id: Optional[str] = None
+    blocked_capacity: Optional[int] = None
     created_at: datetime
     
     # Optional relationships

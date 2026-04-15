@@ -9,7 +9,7 @@ logger = logging.getLogger("IntegrationOrchestrator")
 
 class IntegrationOrchestrator:
     @staticmethod
-    def notify_inventory_change(db: Session, court_id: str, date: str, slot_start: float, action: str):
+    def notify_inventory_change(db: Session, court_id: str, date: str, slot_start: float, action: str, blocked_capacity: int = None):
         """
         Orchestrates notifying all active partners about an inventory change (available/block).
         Action: 'available' or 'block'
@@ -60,7 +60,8 @@ class IntegrationOrchestrator:
                         "court_id": t_court_id,
                         "date": date,
                         "slot_start": slot_start,
-                        "action": action
+                        "action": action,
+                        "blocked_capacity": blocked_capacity
                     }
                     
                     # 3. Queue the RAW event
@@ -122,7 +123,8 @@ class IntegrationOrchestrator:
                     court_id=str(block.court_id),
                     date=str(block.block_date),
                     slot_start=curr,
-                    action=action
+                    action=action,
+                    blocked_capacity=block.blocked_capacity
                 )
                 curr += 0.5
                 

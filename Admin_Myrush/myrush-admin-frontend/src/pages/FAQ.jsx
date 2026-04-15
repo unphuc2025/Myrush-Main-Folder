@@ -24,11 +24,13 @@ const FAQ = () => {
         try {
             const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
             if (adminInfo.role === 'super_admin') return {
-                add: true, edit: true, delete: true, view: true
+                add: true, edit: true, delete: true, view: true, access: true
             };
             return adminInfo.permissions?.['FAQ'] || {};
         } catch { return {}; }
     });
+
+    const hasView = !!(permissions.view || permissions.access);
 
     useEffect(() => {
         const handleAuthUpdate = () => {
@@ -61,7 +63,7 @@ const FAQ = () => {
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
         if (!token) navigate('/login');
-        if (permissions.view) loadFaqs();
+        if (permissions.view || permissions.access) loadFaqs();
     }, [navigate, page, searchTerm]);
 
     const loadFaqs = async () => {
@@ -176,7 +178,7 @@ const FAQ = () => {
         setIsFormOpen(true);
     };
 
-    if (!permissions.view && !loading) {
+    if (!hasView && !loading) {
         return (
             <Layout>
                 <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
@@ -289,7 +291,11 @@ const FAQ = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <button onClick={() => handleView(faq)} className="p-1.5 text-purple-600 bg-purple-50 rounded hover:bg-purple-100 cursor-pointer"><Eye className="h-4 w-4" /></button>
+                                                    {permissions.view && (
+                                                        <button onClick={() => handleView(faq)} className="p-1.5 text-purple-600 bg-purple-50 rounded hover:bg-purple-100 cursor-pointer">
+                                                            <Eye className="h-4 w-4" />
+                                                        </button>
+                                                    )}
                                                     {permissions.edit && (
                                                         <button
                                                             onClick={() => { setEditingFaq(faq); setViewingFaq(null); setIsFormOpen(true); }}
@@ -338,10 +344,12 @@ const FAQ = () => {
                                     <p className="text-sm text-slate-600 line-clamp-3 bg-slate-50 p-2 rounded-lg">{faq.answer}</p>
 
                                     <div className="flex items-center gap-2 pt-3 border-t border-slate-200 mt-1">
-                                        <button onClick={() => handleView(faq)} className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 cursor-pointer transition-colors">
-                                            <Eye className="h-4 w-4" />
-                                            <span className="text-sm font-medium">View</span>
-                                        </button>
+                                        {permissions.view && (
+                                            <button onClick={() => handleView(faq)} className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 cursor-pointer transition-colors">
+                                                <Eye className="h-4 w-4" />
+                                                <span className="text-sm font-medium">View</span>
+                                            </button>
+                                        )}
                                         {permissions.edit && (
                                             <button
                                                 onClick={() => { setEditingFaq(faq); setViewingFaq(null); setIsFormOpen(true); }}

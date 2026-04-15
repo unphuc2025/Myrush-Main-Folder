@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { bookingsApi } from '../services/adminApi';
 import Layout from '../components/Layout';
-import { ArrowLeft, Calendar, Clock, MapPin, User, Phone, Mail, IndianRupee, Info } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, User, Phone, Mail, IndianRupee, Info, ShieldAlert } from 'lucide-react';
 
 function BookingDetails() {
     const { id } = useParams();
@@ -11,9 +11,26 @@ function BookingDetails() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const adminPermissions = (() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return { view: true, access: true };
+            return adminInfo.permissions?.['Manage Bookings'] || {};
+        } catch { return {}; }
+    })();
+
+    const hasAccess = !!(adminPermissions.view || adminPermissions.access);
+
     useEffect(() => {
-        fetchBookingDetails();
-    }, [id]);
+        const token = localStorage.getItem('admin_token');
+        if (!token) {
+            navigate('/login');
+        } else if (hasAccess) {
+            fetchBookingDetails();
+        } else {
+            setLoading(false);
+        }
+    }, [id, hasAccess]);
 
     const fetchBookingDetails = async () => {
         try {
@@ -47,7 +64,27 @@ function BookingDetails() {
         </Layout>
     );
 
-    if (!booking) return null;
+    if (!hasAccess && !loading) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center px-4">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <ShieldAlert className="h-8 w-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-slate-500 max-w-sm">
+                        You do not have permission to view booking details. Please contact your administrator for access.
+                    </p>
+                    <button 
+                        onClick={() => navigate('/bookings')} 
+                        className="mt-4 px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all font-bold"
+                    >
+                        Go Back
+                    </button>
+                </div>
+            </Layout>
+        );
+    }
 
     // Helper for formatting time
     const formatTime = (timeStr) => {

@@ -272,9 +272,9 @@ def apply_global_condition_to_all_courts(condition, db: Session):
             if pc.get('id') != target_id:
                 if condition.condition_type == 'date':
                     # Date-specific: match by dates and time
-                    if (pc.get('dates') == condition.dates and 
-                        pc.get('slotFrom') == condition.slot_from and 
-                        pc.get('slotTo') == condition.slot_to):
+                    if ((pc.get('dates') == condition.dates) and 
+                        ((pc.get('slotFrom') or pc.get('slot_from')) == condition.slot_from) and 
+                        ((pc.get('slotTo') or pc.get('slot_to')) == condition.slot_to)):
                         # Link it to this global ID
                         pc['id'] = target_id
                         pc['price'] = str(condition.price)
@@ -283,9 +283,9 @@ def apply_global_condition_to_all_courts(condition, db: Session):
                         break
                 else:
                     # Recurring: match by days and time
-                    if (pc.get('days') == condition.days and 
-                        pc.get('slotFrom') == condition.slot_from and 
-                        pc.get('slotTo') == condition.slot_to):
+                    if ((pc.get('days') == condition.days) and 
+                        ((pc.get('slotFrom') or pc.get('slot_from')) == condition.slot_from) and 
+                        ((pc.get('slotTo') or pc.get('slot_to')) == condition.slot_to)):
                         # Link it to this global ID
                         pc['id'] = target_id
                         pc['price'] = str(condition.price)

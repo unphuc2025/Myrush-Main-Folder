@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Building2, Users, Edit3, Save, X, Trash2, Plus, Edit2, Settings } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Building2, Users, Edit3, Save, X, Trash2, Plus, Edit2, Settings, ShieldAlert } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { courtsApi, branchesApi, citiesApi } from '../../services/adminApi';
 import Layout from '../Layout';
 import Modal from './Modal';
@@ -16,11 +17,54 @@ function formatTime12Hour(time24) {
 }
 
 function CourtSlotsCalendar() {
+  const navigate = useNavigate();
   const [courts, setCourts] = useState([]);
   const [branches, setBranches] = useState([]);
   const [cities, setCities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCourt, setSelectedCourt] = useState(null);
+
+  // Permission check
+  const permissions = (() => {
+    try {
+      const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+      if (adminInfo.role === 'super_admin') return { view: true, access: true };
+      
+      const courtPerms = adminInfo.permissions?.['Manage Courts'] || {};
+      const bookingPerms = adminInfo.permissions?.['Manage Bookings'] || {};
+      
+      return {
+        view: !!(courtPerms.view || courtPerms.access || bookingPerms.view || bookingPerms.access)
+      };
+    } catch { return {}; }
+  })();
+
+  const hasAccess = !!permissions.view;
+
+  useEffect(() => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      navigate('/login');
+    } else if (hasAccess) {
+      fetchData();
+    } else {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  if (!hasAccess && !loading) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
+          <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+            <ShieldAlert className="h-8 w-8 text-red-400" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+          <p className="text-slate-500 max-w-sm">You do not have permission to view the slots calendar. Please contact your administrator.</p>
+        </div>
+      </Layout>
+    );
+  }
   const [selectedDate, setSelectedDate] = useState(null); // Used for popup editing
   const [selectedDateEnd, setSelectedDateEnd] = useState(null); // Range end
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -452,17 +496,19 @@ function CourtSlotsCalendar() {
 
       let updatedUnavailability = [...unavailability];
 
+      const slotTime = slot.slotFrom || slot.slot_from;
+
       if (slot.isBlocked) {
         updatedUnavailability = updatedUnavailability.filter(un => {
           const isDateMatch = un.dates && un.dates.includes(dateKey);
-          const isTimeMatch = un.times && un.times.includes(slot.slotFrom);
+          const isTimeMatch = un.times && un.times.includes(slotTime);
           return !(isDateMatch && isTimeMatch);
         });
       } else {
         updatedUnavailability.push({
           type: 'date',
           dates: [dateKey],
-          times: [slot.slotFrom]
+          times: [slotTime]
         });
       }
 
@@ -533,8 +579,8 @@ function CourtSlotsCalendar() {
             tempEditData.price,
             selectedBranchId || null,
             null,
-            !isAddingNew && editingSlot ? editingSlot.slotFrom : null,
-            !isAddingNew && editingSlot ? editingSlot.slotTo : null
+            !isAddingNew && editingSlot ? (editingSlot.slotFrom || editingSlot.slot_from) : null,
+            !isAddingNew && editingSlot ? (editingSlot.slotTo || editingSlot.slot_to) : null
           );
         }
         await refreshCourts();
@@ -559,12 +605,14 @@ function CourtSlotsCalendar() {
 
         // 2. Identify if we are UPDATING an existing date-specific rule or ADDING a new one
         if (!isAddingNew && editingSlot && editingSlot.isDateSpecific) {
-          const originalFrom = editingSlot.slotFrom;
-          const originalTo = editingSlot.slotTo;
+          const originalFrom = editingSlot.slotFrom || editingSlot.slot_from;
+          const originalTo = editingSlot.slotTo || editingSlot.slot_to;
 
           // Filter OUT the old one
           updatedConditions = updatedConditions.filter(pc => {
-            const isMatch = pc.dates && pc.dates.includes(dateKey) && pc.slotFrom === originalFrom && pc.slotTo === originalTo;
+            const pcFrom = pc.slotFrom || pc.slot_from;
+            const pcTo = pc.slotTo || pc.slot_to;
+            const isMatch = pc.dates && pc.dates.includes(dateKey) && pcFrom === originalFrom && pcTo === originalTo;
             return !isMatch;
           });
         }
@@ -643,10 +691,14 @@ function CourtSlotsCalendar() {
     try {
       setSaving(true);
       if (bulkEditMode) {
+        const dateKeyEnd = getDateKey(selectedDateEnd || selectedDate);
+        const isRange = dateKey !== dateKeyEnd;
+        const dates = isRange ? getDatesInRange(selectedDate, selectedDateEnd) : [dateKey];
+
         await courtsApi.bulkDeleteSlots(
-          dateKey,
-          editingSlot.slotFrom,
-          editingSlot.slotTo,
+          dates,
+          editingSlot.slotFrom || editingSlot.slot_from,
+          editingSlot.slotTo || editingSlot.slot_to,
           selectedBranchId || null,
           null
         );
@@ -671,26 +723,21 @@ function CourtSlotsCalendar() {
           : (freshCourt.unavailability_slots || []);
       } catch (e) { unavailability = []; }
 
-      const originalFrom = editingSlot.slotFrom;
-      const originalTo = editingSlot.slotTo;
+      const originalFrom = editingSlot.slotFrom || editingSlot.slot_from;
+      const originalTo = editingSlot.slotTo || editingSlot.slot_to;
 
       const updatedConditions = existingConditions.filter(pc => {
-        const isMatch = pc.dates && pc.dates.includes(dateKey) && pc.slotFrom === originalFrom && pc.slotTo === originalTo;
+        const pcFrom = pc.slotFrom || pc.slot_from;
+        const pcTo = pc.slotTo || pc.slot_to;
+        const isMatch = pc.dates && pc.dates.includes(dateKey) && pcFrom === originalFrom && pcTo === originalTo;
         return !isMatch;
       });
 
-      const alreadyUnavailable = unavailability.some(un =>
-        un.dates && un.dates.includes(dateKey) && un.times && un.times.includes(originalFrom)
-      );
-
-      let updatedUnavailability = [...unavailability];
-      if (!alreadyUnavailable) {
-        updatedUnavailability.push({
-          type: 'date',
-          dates: [dateKey],
-          times: [originalFrom]
-        });
-      }
+      // NO LONGER adding to unavailability_slots here. 
+      // If it's a base slot, they should use "Block Slot" action.
+      // If it's an added slot/override, deleting it should either make it disappear 
+      // or revert it to standard price (if it was a base slot override).
+      const updatedUnavailability = unavailability;
 
       const formData = new FormData();
       formData.append('name', freshCourt.name);

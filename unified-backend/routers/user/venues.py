@@ -530,7 +530,9 @@ def get_venue_slots(
                         match = True
                     
                     if match:
-                        item = {'slotFrom': pc.get('slotFrom'), 'slotTo': pc.get('slotTo'), 'price': float(pc.get('price', b_price)), 'id': pc.get('id', 'override')}
+                        pc_from = pc.get('slotFrom') or pc.get('slot_from')
+                        pc_to = pc.get('slotTo') or pc.get('slot_to')
+                        item = {'slotFrom': pc_from, 'slotTo': pc_to, 'price': float(pc.get('price', b_price)), 'id': pc.get('id', 'override')}
                         if is_date: l_date.append(item)
                         else: l_recurring.append(item)
             
@@ -538,8 +540,10 @@ def get_venue_slots(
             for items in [g_recurring, l_recurring, g_date, l_date]:
                 for cfg in items:
                     try:
-                        s_h = int(cfg['slotFrom'].split(':')[0])
-                        e_h = int(cfg['slotTo'].split(':')[0])
+                        cfg_from = cfg.get('slotFrom') or cfg.get('slot_from')
+                        cfg_to = cfg.get('slotTo') or cfg.get('slot_to')
+                        s_h = int(cfg_from.split(':')[0])
+                        e_h = int(cfg_to.split(':')[0])
                         for h in range(s_h, e_h):
                             court_slots[h] = {'price': cfg['price'], 'id': cfg['id']}
                     except: pass

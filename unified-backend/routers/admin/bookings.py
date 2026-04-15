@@ -189,7 +189,29 @@ def create_booking(
         db.refresh(db_booking)
         
         # Reload with relationships for response
-        return get_booking(str(db_booking.id), db)
+        response = get_booking(str(db_booking.id), db)
+
+        # Trigger inventory sync (New Booking Fix)
+        # Admins usually create mappings that should immediately block availability
+        try:
+            if db_booking.status in ['confirmed', 'pending']:
+                from services.integrations.orchestrator import IntegrationOrchestrator
+                from utils.booking_utils import safe_parse_time_float
+                for slot in (db_booking.time_slots or []):
+                    slot_start_str = slot.get('start_time') or slot.get('time') or slot.get('start')
+                    if slot_start_str:
+                        slot_start_f = safe_parse_time_float(slot_start_str)
+                        IntegrationOrchestrator.notify_inventory_change(
+                            db=db,
+                            court_id=str(db_booking.court_id),
+                            date=str(db_booking.booking_date),
+                            slot_start=slot_start_f,
+                            action='block'
+                        )
+        except Exception as ite:
+            print(f"[ADMIN BOOKING CREATE] Warning: Integration trigger failed: {ite}")
+
+        return response
     except Exception as e:
         db.rollback()
         import traceback
@@ -581,7 +603,28 @@ def update_booking(
     try:
         db.commit()
         db.refresh(db_booking)
-        return get_booking(str(db_booking.id), db)
+        response = get_booking(str(db_booking.id), db)
+
+        # Trigger inventory sync (Update Booking Fix)
+        try:
+            if db_booking.status in ['confirmed', 'pending']:
+                from services.integrations.orchestrator import IntegrationOrchestrator
+                from utils.booking_utils import safe_parse_time_float
+                for slot in (db_booking.time_slots or []):
+                    slot_start_str = slot.get('start_time') or slot.get('time') or slot.get('start')
+                    if slot_start_str:
+                        slot_start_f = safe_parse_time_float(slot_start_str)
+                        IntegrationOrchestrator.notify_inventory_change(
+                            db=db,
+                            court_id=str(db_booking.court_id),
+                            date=str(db_booking.booking_date),
+                            slot_start=slot_start_f,
+                            action='block'
+                        )
+        except Exception as ite:
+            print(f"[ADMIN BOOKING UPDATE] Warning: Integration trigger failed: {ite}")
+
+        return response
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update booking: {str(e)}")

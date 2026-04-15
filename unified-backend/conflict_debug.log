@@ -24,3 +24,9 @@
   Related Courts: [UUID('2b10a0d2-b84f-4026-8a2d-0666c63ea68a')]
   Found 2 manual blocks
   !! Conflict: Overlaps with manual block (22:00:00-23:00:00, Mask=1)
+
+[2026-04-15 19:53:09.936301] CONFLICT CHECK: Court=BoxCricket, Date=2026-04-18, Time=09:00:00-10:00:00, Mask=12
+  Related Courts: [UUID('8494fa95-f072-4ce4-97cb-4106b86d15fe'), UUID('84df147f-18bd-409c-a5a5-d08f61acf51f')]
+  Found 0 manual blocks
+  Found 1 active bookings
+  PASSED
