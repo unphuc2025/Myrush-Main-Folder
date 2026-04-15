@@ -227,8 +227,14 @@ export const VenueDetailsPage: React.FC = () => {
 
     // Derived slots based on selected config
     const filteredSlots = useMemo(() => {
-        const isCapacity = availableConfigurations.some(c => c.logicType === 'capacity') || 
-            availableSlots.some(s => s.logic_type === 'capacity' || (s as any).logicType === 'capacity');
+        const selectedSportLower = (selectedSport || '').toLowerCase();
+        const capacitySports = ['swimming', 'skating'];
+        const isSportCapacity = capacitySports.some(s => selectedSportLower.includes(s));
+
+        const isCapacity = isSportCapacity && (
+            availableConfigurations.some(c => c.logicType === 'capacity') || 
+            availableSlots.some(s => s.logic_type === 'capacity' || (s as any).logicType === 'capacity')
+        );
         
         if (isCapacity) {
             // For capacity courts, we don't need a specific configuration selected.
@@ -349,6 +355,12 @@ export const VenueDetailsPage: React.FC = () => {
     // Checks availableConfigurations first for immediate UI update based on sport selection,
     // falls back to availableSlots to catch any configurations only present in slots.
     const isCapacityBased = useMemo(() => {
+        const selectedSportLower = (selectedSport || '').toLowerCase();
+        const capacitySports = ['swimming', 'skating'];
+        const isSportCapacity = capacitySports.some(s => selectedSportLower.includes(s));
+
+        if (!isSportCapacity) return false;
+
         const configCapacity = availableConfigurations.some(c => c.logicType === 'capacity');
         if (configCapacity) return true;
         
@@ -357,7 +369,7 @@ export const VenueDetailsPage: React.FC = () => {
         return availableSlots.some(s =>
             s.logic_type === 'capacity' || (s as any).logicType === 'capacity'
         );
-    }, [availableConfigurations, availableSlots, loadingSlots]);
+    }, [availableConfigurations, availableSlots, loadingSlots, selectedSport]);
 
 
 

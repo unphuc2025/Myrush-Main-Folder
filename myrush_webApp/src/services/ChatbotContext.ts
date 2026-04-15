@@ -133,6 +133,30 @@ export const getBookingDetails = async (displayId: string) => {
 };
 
 /**
+ * Calculate pricing for a draft booking (AI Quote)
+ */
+export const calculateBookingPrice = async (data: {
+    court_id: string;
+    date: string;
+    slot_times: string[];
+    number_of_players?: number;
+    slice_mask?: number;
+}) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/chatbot/booking/calculate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error('[CHATBOT] Pricing error:', error);
+        return { success: false, message: 'Failed to calculate price' };
+    }
+};
+
+/**
  * Get all venues summary (lightweight)
  */
 export const getAllVenuesSummary = async () => {

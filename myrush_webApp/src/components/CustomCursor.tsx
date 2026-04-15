@@ -2,23 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { motion, useSpring, useMotionValue } from 'framer-motion';
 
 const isDarkOrGreen = (color: string) => {
-    if (!color || color === 'transparent') return false;
-    if (color.includes('rgba(0, 0, 0, 0)')) return false;
+    if (!color || color === 'transparent' || color.includes('rgba(0, 0, 0, 0)')) return false;
     
-    // Check for our primary green
-    if (color.includes('0, 210, 106') || color.includes('00D26A')) return true;
+    // getComputedStyle returns rgb() or rgba()
+    const rgb = color.match(/\d+/g);
+    if (!rgb || rgb.length < 3) return false;
     
-    // Simple dark check for rgb/rgba
-    const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-    if (match) {
-        const r = parseInt(match[1]);
-        const g = parseInt(match[2]);
-        const b = parseInt(match[3]);
-        // Simple luma check
-        const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        return luma < 120;
-    }
-    return false;
+    const [r, g, b, a] = rgb.map(Number);
+    
+    // If transparent (alpha 0)
+    if (a === 0) return false;
+    
+    // Check if it's the primary green (#00D26A) or a strong green background
+    const isGreen = r < 100 && g > 180 && b < 150;
+    
+    // Luma brightness calculation (Rec. 601)
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    
+    // Return true if color is green or dark (brightness < 128)
+    return isGreen || brightness < 128;
 };
 
 export const CustomCursor: React.FC = () => {

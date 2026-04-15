@@ -650,43 +650,43 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
 
         else:
             # --- FALLBACK: No slot_ids provided. Use bookings table for collision detection. ---
-            # This prevents double booking for flows that don't pass slot_ids.
-            # We check if any ACTIVE booking (pending or confirmed) for the same court/date
-            # overlaps with the requested time range AND has a conflicting bitmask.
-            from fastapi import HTTPException as FHTTPException
-            s_f = start_time_val.hour + (start_time_val.minute / 60.0)
-            e_f = end_time_val.hour + (end_time_val.minute / 60.0)
-            if e_f == 0: e_f = 24.0
+            # IMPORTANT: Skip fallback collision check for capacity-based courts (Swimming/Skating)
+            # as they allow overlapping bookings.
+            if not is_capacity:
+                from fastapi import HTTPException as FHTTPException
+                s_f = start_time_val.hour + (start_time_val.minute / 60.0)
+                e_f = end_time_val.hour + (end_time_val.minute / 60.0)
+                if e_f == 0: e_f = 24.0
 
-            existing_bookings = db.query(models.Booking).filter(
-                models.Booking.court_id == str(c_uuid),
-                models.Booking.booking_date == booking.booking_date,
-                models.Booking.status != 'cancelled',
-                models.Booking.payment_status.in_(['pending', 'paid', 'confirmed'])
-            )
-            # Exclude same razorpay_order_id (allows multi-court same-order)
-            if booking.razorpay_order_id:
-                existing_bookings = existing_bookings.filter(
-                    models.Booking.razorpay_order_id != booking.razorpay_order_id
+                existing_bookings = db.query(models.Booking).filter(
+                    models.Booking.court_id == str(c_uuid),
+                    models.Booking.booking_date == booking.booking_date,
+                    models.Booking.status != 'cancelled',
+                    models.Booking.payment_status.in_(['pending', 'paid', 'confirmed'])
                 )
+                # Exclude same razorpay_order_id (allows multi-court same-order)
+                if booking.razorpay_order_id:
+                    existing_bookings = existing_bookings.filter(
+                        models.Booking.razorpay_order_id != booking.razorpay_order_id
+                    )
 
-            for eb in existing_bookings.all():
-                eb_start = eb.start_time.hour + (eb.start_time.minute / 60.0) if eb.start_time else 0
-                eb_end = eb.end_time.hour + (eb.end_time.minute / 60.0) if eb.end_time else 24.0
-                if eb_end == 0: eb_end = 24.0
+                for eb in existing_bookings.all():
+                    eb_start = eb.start_time.hour + (eb.start_time.minute / 60.0) if eb.start_time else 0
+                    eb_end = eb.end_time.hour + (eb.end_time.minute / 60.0) if eb.end_time else 24.0
+                    if eb_end == 0: eb_end = 24.0
 
-                # Check time overlap
-                if max(s_f, eb_start) < min(e_f, eb_end):
-                    # Check bitmask conflict
-                    new_mask = booking.slice_mask if booking.slice_mask is not None else ((1 << (court_check.total_zones or 1)) - 1)
-                    ex_mask = eb.slice_mask if eb.slice_mask is not None else ((1 << (court_check.total_zones or 1)) - 1)
-                    if (new_mask & ex_mask) != 0:
-                        print(f"[CRUD BOOKING] DOUBLE BOOKING BLOCKED: Conflict with booking {eb.id} (mask={ex_mask}, new_mask={new_mask})")
-                        db.rollback()
-                        raise FHTTPException(
-                            status_code=409,
-                            detail=f"This slot is already booked (Booking {eb.booking_display_id}). Please choose a different time."
-                        )
+                    # Check time overlap
+                    if max(s_f, eb_start) < min(e_f, eb_end):
+                        # Check bitmask conflict
+                        new_mask = booking.slice_mask if booking.slice_mask is not None else ((1 << (court_check.total_zones or 1)) - 1)
+                        ex_mask = eb.slice_mask if eb.slice_mask is not None else ((1 << (court_check.total_zones or 1)) - 1)
+                        if (new_mask & ex_mask) != 0:
+                            print(f"[CRUD BOOKING] DOUBLE BOOKING BLOCKED: Conflict with booking {eb.id} (mask={ex_mask}, new_mask={new_mask})")
+                            db.rollback()
+                            raise FHTTPException(
+                                status_code=409,
+                                detail=f"This slot is already booked (Booking {eb.booking_display_id}). Please choose a different time."
+                            )
 
 
         # 4. Finalize Time Slots with Court Name
@@ -912,14 +912,25 @@ def get_bookings(db: Session, user_id: str):
                 b.payment_status,
                 b.created_at,
                 b.updated_at,
-                c.name AS venue_name,
+                br.name AS venue_name,
                 br.address_line1 AS venue_location,
-                br.name AS branch_name,
+                c.name AS court_real_name,
                 COALESCE(b.subtotal_amount, 0.0) AS subtotal_amount,
-                COALESCE(b.gst_amount, 0.0) AS gst_amount
+                COALESCE(b.gst_amount, 0.0) AS gst_amount,
+                c.logic_type,
+                b.slice_mask,
+                COALESCE(
+                    (SELECT json_agg(json_build_object('index', cz.zone_index, 'name', cz.zone_name))
+                     FROM admin_court_zones cz
+                     WHERE cz.court_id = c.id),
+                    '[]'::json
+                ) as zones,
+                c.total_zones,
+                a.name as area_name
             FROM booking b
             LEFT JOIN admin_courts c ON b.court_id::text = c.id::text
             LEFT JOIN admin_branches br ON c.branch_id::text = br.id::text
+            LEFT JOIN admin_areas a ON br.area_id::text = a.id::text
             WHERE b.user_id = :user_id
             ORDER BY b.booking_date DESC, b._deprecated_start_time_v2 DESC
         """)
@@ -943,7 +954,12 @@ def get_bookings(db: Session, user_id: str):
                 time_slots_parsed = []
 
             # Build venue_location: prefer address_line1, fall back to branch name
-            venue_location = row[24] or row[25] or "Unknown Location"
+            venue_location = row[24] or row[23] or "Unknown Location"
+            
+            # Composite venue name: "Rush (Madhapur)"
+            display_venue_name = row[23] or "Unknown Venue"
+            if row[32]: # area_name
+                display_venue_name = f"{display_venue_name} ({row[32]})"
 
             booking_dict = {
                 "id": row[0],
@@ -969,11 +985,15 @@ def get_bookings(db: Session, user_id: str):
                 "payment_status": row[20],
                 "created_at": row[21],
                 "updated_at": row[22],
-                "venue_name": row[23] or "Unknown Court",
+                "venue_name": display_venue_name,
                 "venue_location": venue_location,
-                "court_name": time_slots_parsed[0].get('court_name') if time_slots_parsed else (row[23] or "Unknown Court"),
+                "court_name": row[25] or "Unknown Sport",
                 "subtotal_amount": row[26] or 0.0,
-                "gst_amount": row[27] or 0.0
+                "gst_amount": row[27] or 0.0,
+                "logic_type": row[28],
+                "slice_mask": row[29],
+                "total_zones": row[31] or 1,
+                "zones": row[30] if isinstance(row[30], list) else json.loads(row[30]) if row[30] else []
             }
             bookings_list.append(booking_dict)
 
