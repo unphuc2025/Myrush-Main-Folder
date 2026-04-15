@@ -7,7 +7,7 @@ import { bookingsApi } from '../api/bookings';
 import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
-import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaChevronRight, FaFutbol, FaCalendarAlt, FaMapMarkerAlt, FaHeart } from 'react-icons/fa';
+import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaChevronRight, FaFutbol, FaMapMarkerAlt, FaHeart } from 'react-icons/fa';
 import { useFavorites } from '../context/FavoritesContext';
 
 export const Profile: React.FC = () => {

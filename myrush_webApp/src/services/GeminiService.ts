@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { fetchKnowledgeBase, searchVenues, getVenueDetails, getBookingDetails, calculateBookingPrice, buildChatbotContext } from './ChatbotContext';
+import { fetchKnowledgeBase, searchVenues, calculateBookingPrice, buildChatbotContext } from './ChatbotContext';
 
 // API Key provided by the user
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
@@ -9,11 +9,8 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 
 // Build dynamic system instruction with real platform data
 const buildSystemInstruction = async () => {
-  const knowledge = await fetchKnowledgeBase();
+  await fetchKnowledgeBase();
 
-  const cities = knowledge.cities.map(c => c.name).join(', ');
-  const sports = knowledge.game_types.map(s => s.name).join(', ');
-  
   return `
 You are the "MyRush Concierge", a high-end customer support executive.
 You are PROACTIVE and ACTION-ORIENTED. Your goal is to get the user to a booking as fast as possible.

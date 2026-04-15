@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { VenueDetailCard } from './chatbot/VenueDetailCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaHeadset, FaPaperPlane, FaTimes, FaMinus, FaMapMarkerAlt, FaCalendarAlt, FaClock, FaRobot } from 'react-icons/fa';
+import { FaHeadset, FaPaperPlane, FaTimes, FaMinus, FaMapMarkerAlt, FaRobot } from 'react-icons/fa';
 import type { Message, QuickReply, BookingState } from '../types/ChatbotTypes';
 import { CITIES, SPORTS } from '../types/ChatbotTypes';
 import { venuesApi } from '../api/venues';
