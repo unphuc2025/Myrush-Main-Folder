@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 class OutboxService:
     @staticmethod
-    def queue_inventory_update(db: Session, partner_id: str, payload: Dict[str, Any]):
+    def queue_inventory_update(db: Session, partner_id: str, payload: Dict[str, Any], category: str = "availability"):
         """
         Queues an inventory update event for a specific partner.
         Called by core booking/court logic whenever availability changes.
@@ -14,6 +14,7 @@ class OutboxService:
         event = models.OutboxEvent(
             partner_id=partner_id,
             event_type="INVENTORY_UPDATE",
+            category=category,
             payload=payload,
             status="pending",
             next_attempt_at=datetime.utcnow(),

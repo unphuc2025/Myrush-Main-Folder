@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any, Dict
 import models, schemas, database
-from utils.booking_utils import get_booked_slots, safe_parse_time_float, get_venue_hours
+from utils.booking_utils import get_booked_slots, safe_parse_time_float, get_venue_hours, safe_parse_hour
 from schemas import resolve_path
 import uuid
 
@@ -448,8 +448,8 @@ def get_venue_slots(
         opening_hours = branch.get('opening_hours') or {}
 
         # 3. Determine Operating Hours (Unified Logic)
-        venue_start_hour, venue_end_hour = get_venue_hours(opening_hours, booking_date)
-        branch_is_active = (venue_start_hour != venue_end_hour)
+        v_intervals = get_venue_hours(opening_hours, booking_date)
+        branch_is_active = len(v_intervals) > 0
 
         # 4. Get Relevant Courts
         court_query = """
@@ -502,8 +502,9 @@ def get_venue_slots(
             
             # A. Base Range
             if branch_is_active:
-                for h in range(int(venue_start_hour), int(venue_end_hour)):
-                    court_slots[h] = {'price': b_price, 'id': 'default'}
+                for iv in v_intervals:
+                    for h in range(int(iv['open']), int(iv['close'])):
+                        court_slots[h] = {'price': b_price, 'id': 'default'}
                     
             # B. Collect Overrides (with specific list separation for priority)
             g_recurring, l_recurring, g_date, l_date = [], [], [], []

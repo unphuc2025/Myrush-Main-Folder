@@ -50,6 +50,31 @@ def create_booking(
     if not start_time_obj:
         raise HTTPException(status_code=400, detail="Invalid start_time format")
 
+    # 1. ATOMIC LOCK & CONFLICT CHECK
+    # We lock the court (and its siblings in the shared group) to prevent race conditions
+    from sqlalchemy import or_
+    lock_query = db.query(models.Court).filter(
+        or_(
+            models.Court.id == booking.court_id,
+            models.Court.shared_group_id == court.shared_group_id if court.shared_group_id else False
+        )
+    ).with_for_update().all()
+
+    # Import conflict detection
+    from utils.conflicts import check_court_availability_conflict
+    
+    conflict = check_court_availability_conflict(
+        db=db,
+        court_id=UUID(str(booking.court_id)),
+        block_date=booking.booking_date,
+        start_time=start_time_obj,
+        end_time=end_time_obj,
+        slice_mask=booking.slice_mask or 0
+    )
+    
+    if conflict:
+        raise HTTPException(status_code=409, detail=conflict)
+
     # Calculate duration if not provided or just sanity check
     # But usually trust the provided duration_minutes or calc from end_time
     duration_minutes = booking.duration_minutes
@@ -479,6 +504,35 @@ def update_booking(
 
     if not start_time_obj:
         raise HTTPException(status_code=400, detail="Invalid start_time format")
+
+    # 1. ATOMIC LOCK & CONFLICT CHECK
+    # We lock the primary court (and its siblings in the shared group)
+    from sqlalchemy import or_
+    target_court_id = booking_update.court_id or str(db_booking.court_id)
+    court_for_lock = db.query(models.Court).filter(models.Court.id == target_court_id).first()
+    
+    lock_query = db.query(models.Court).filter(
+        or_(
+            models.Court.id == target_court_id,
+            models.Court.shared_group_id == court_for_lock.shared_group_id if court_for_lock and court_for_lock.shared_group_id else False
+        )
+    ).with_for_update().all()
+
+    # Import conflict detection
+    from utils.conflicts import check_court_availability_conflict
+    
+    conflict = check_court_availability_conflict(
+        db=db,
+        court_id=UUID(str(target_court_id)),
+        block_date=booking_update.booking_date,
+        start_time=start_time_obj,
+        end_time=end_time_obj,
+        slice_mask=booking_update.slice_mask or 0,
+        exclude_booking_id=UUID(str(booking_id))
+    )
+    
+    if conflict:
+        raise HTTPException(status_code=409, detail=conflict)
 
     # Calculate duration
     duration_minutes = booking_update.duration_minutes

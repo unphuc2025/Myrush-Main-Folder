@@ -41,7 +41,25 @@ class BaseIntegrationAdapter(ABC):
     @abstractmethod
     def format_inventory_webhook(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
         """
+        [DEPRECATED] Use format_webhook_payload instead.
         Translates a MyRush internal `InventoryChangeEvent` into the specific
         JSON payload required by the Partner's webhook receiver.
+        """
+        pass
+
+    @abstractmethod
+    def format_webhook_payload(self, category: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Translates MyRush raw data into the specific JSON payload required by the Partner.
+        category: 'availability', 'pricing', 'maintenance', etc.
+        data: Raw dictionary of internal MyRush event data.
+        """
+        pass
+
+    @abstractmethod
+    def send_webhook(self, url: str, payload: Dict[str, Any], custom_headers: Dict[str, Any] = None) -> Any:
+        """
+        Executes the HTTP POST request to the Partner's webhook endpoint.
+        Handles vendor-specific authentication (e.g., HMAC for District, Bearer tokens).
         """
         pass

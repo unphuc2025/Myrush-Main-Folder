@@ -353,24 +353,31 @@ async def district_inventory_callback(
             ).delete()
             logging.info(f"Released District-side block for court {court_id} at {start_t}")
         else:
-            # Add Block: Create new local manual block
-            existing = db.query(models.CourtBlock).filter(
-                models.CourtBlock.court_id == court_id,
-                models.CourtBlock.block_date == block_date,
-                models.CourtBlock.start_time == start_t
-            ).first()
+            # Add Block: Create new local manual block IF no conflict exists
+            from utils.conflicts import check_court_availability_conflict
+            conflict = check_court_availability_conflict(
+                db=db,
+                court_id=UUID(str(court_id)),
+                block_date=datetime.strptime(block_date, "%Y-%m-%d").date() if isinstance(block_date, str) else block_date,
+                start_time=start_t,
+                end_time=end_t,
+                slice_mask=0 # District blocks usually apply to the whole allocated unit
+            )
             
-            if not existing:
-                new_block = models.CourtBlock(
-                    court_id=court_id,
-                    block_date=block_date,
-                    start_time=start_t,
-                    end_time=end_t,
-                    reason="District Partner Sync",
-                    synced_partners=["district"]
-                )
-                db.add(new_block)
-                logging.info(f"Added District-side block for court {court_id} at {start_t}")
+            if conflict:
+                logging.warning(f"[DISTRICT CALLBACK] Conflict detected, skipping block: {conflict}")
+                return {"status": "ignored", "message": f"Conflict: {conflict}"}
+
+            new_block = models.CourtBlock(
+                court_id=court_id,
+                block_date=block_date,
+                start_time=start_t,
+                end_time=end_t,
+                reason="District Partner Sync",
+                synced_partners=["district"]
+            )
+            db.add(new_block)
+            logging.info(f"Added District-side block for court {court_id} at {start_t}")
 
         db.commit()
         return {"status": "success", "message": "Inventory synchronized"}

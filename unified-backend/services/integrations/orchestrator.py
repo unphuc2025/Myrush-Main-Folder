@@ -28,6 +28,7 @@ class IntegrationOrchestrator:
             return
 
         # Find all target courts (this one + siblings in same shared group)
+        target_court_ids = [str(court.id)]
         if court.shared_group_id:
             from uuid import UUID
             group_id = UUID(str(court.shared_group_id))
@@ -41,14 +42,19 @@ class IntegrationOrchestrator:
         
         for partner in partners:
             try:
-                adapter = None
-                if partner.name.lower() == 'district':
-                    adapter = DistrictAdapter(db, str(partner.id))
-                
-                if not adapter:
+                # 1. Validation Logic
+                # We only queue events for partners we actually have adapters for.
+                # In the future, we could also check if they have a global webhook_url set.
+                try:
+                    from .adapter_factory import AdapterFactory
+                    AdapterFactory.get_adapter(partner.name, str(partner.id), db)
+                except ValueError:
+                    # No adapter for this vendor yet, skip queuing to avoid outbox bloat
                     continue
 
                 for t_court_id in target_court_ids:
+                    # 2. Raw Internal Payload
+                    # This dictionary represents MyRush's internal state change.
                     event_data = {
                         "branch_id": str(court.branch_id),
                         "court_id": t_court_id,
@@ -57,18 +63,18 @@ class IntegrationOrchestrator:
                         "action": action
                     }
                     
-                    payload = adapter.format_inventory_webhook(event_data)
-                    OutboxService.queue_inventory_update(db, str(partner.id), payload)
-                    logger.info(f"Queued {action} event for {partner.name} - Group: {court.shared_group_id or 'None'}, Court: {t_court_id}, Slot: {slot_start}")
+                    # 3. Queue the RAW event
+                    OutboxService.queue_inventory_update(db, str(partner.id), event_data, category="availability")
+                    logger.info(f"Queued RAW {action} event for {partner.name} - Court: {t_court_id}, Slot: {slot_start}")
                 
             except Exception as e:
-                logger.error(f"Failed to queue inventory update for partner {partner.name}: {e}", exc_info=True)
+                logger.error(f"Failed to queue inventory update for partner {partner.name}: {e}")
 
     @staticmethod
     def notify_court_schedule_change(db: Session, court_id: str, action: str):
         """
         Triggered when a court is created or updated.
-        Sends the FULL 7-day schedule in a single bulk webhook (District Type A).
+        Categories as 'maintenance'.
         """
         court = db.query(models.Court).get(court_id)
         if not court: return
@@ -76,13 +82,21 @@ class IntegrationOrchestrator:
         partners = db.query(models.Partner).filter(models.Partner.is_active == True).all()
         for partner in partners:
             try:
-                if partner.name.lower() == 'district':
-                    adapter = DistrictAdapter(db, str(partner.id))
-                    payload = adapter.format_court_schedule_webhook(court, action)
-                    OutboxService.queue_inventory_update(db, str(partner.id), payload)
-                    logger.info(f"Queued BULK schedule update for {partner.name} - Court: {court.name}")
+                # Check for adapter support
+                from .adapter_factory import AdapterFactory
+                try:
+                    AdapterFactory.get_adapter(partner.name, str(partner.id), db)
+                except ValueError:
+                    continue
+
+                raw_data = {
+                    "court_id": str(court.id),
+                    "action": action
+                }
+                OutboxService.queue_inventory_update(db, str(partner.id), raw_data, category="maintenance")
+                logger.info(f"Queued RAW schedule update for {partner.name} - Court: {court.name}")
             except Exception as e:
-                logger.error(f"Failed to queue bulk recurring update: {e}")
+                logger.error(f"Failed to queue bulk maintenance update: {e}")
 
     @staticmethod
     def notify_manual_block_change(db: Session, block: models.CourtBlock, action: str):
@@ -112,17 +126,16 @@ class IntegrationOrchestrator:
                 )
                 curr += 0.5
                 
-            logger.info(f"Synchronized manual {action} for Court {block.court_id} on {block.block_date} ({block.start_time}-{block.end_time})")
+            logger.info(f"Synchronized manual {action} for Court {block.court_id} on {block.block_date}")
             
         except Exception as e:
-            logger.error(f"Failed to synchronize manual block change: {e}", exc_info=True)
+            logger.error(f"Failed to synchronize manual block change: {e}")
 
     @staticmethod
     def notify_recurring_change(db: Session, court_id: str, day: int, slot_start: float, action: str, price: float = None):
         """
-        Triggered when recurring schedules or prices change (District Type A).
-        day: 0(Sun) - 6(Sat)
-        slot_start: 0.0, 0.5, ..., 23.5
+        Triggered when recurring schedules or prices change.
+        Categorized as 'pricing'.
         """
         court = db.query(models.Court).get(court_id)
         if not court: return
@@ -130,17 +143,21 @@ class IntegrationOrchestrator:
         partners = db.query(models.Partner).filter(models.Partner.is_active == True).all()
         for partner in partners:
             try:
-                if partner.name.lower() == 'district':
-                    adapter = DistrictAdapter(db, str(partner.id))
-                    event_data = {
-                        "branch_id": str(court.branch_id),
-                        "court_id": str(court.id),
-                        "day": day,
-                        "slot_start": slot_start,
-                        "action": action,
-                        "price": price
-                    }
-                    payload = adapter.format_recurring_webhook(event_data)
-                    OutboxService.queue_inventory_update(db, str(partner.id), payload)
+                from .adapter_factory import AdapterFactory
+                try:
+                    AdapterFactory.get_adapter(partner.name, str(partner.id), db)
+                except ValueError:
+                    continue
+
+                event_data = {
+                    "branch_id": str(court.branch_id),
+                    "court_id": str(court.id),
+                    "day": day,
+                    "slot_start": slot_start,
+                    "action": action,
+                    "price": price
+                }
+                OutboxService.queue_inventory_update(db, str(partner.id), event_data, category="pricing")
+                logger.info(f"Queued RAW pricing update for {partner.name} - Court: {court.id}, Day: {day}")
             except Exception as e:
                 logger.error(f"Failed to queue recurring update: {e}")
