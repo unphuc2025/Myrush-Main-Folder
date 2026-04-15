@@ -273,18 +273,15 @@ export const ProfileSetup: React.FC = () => {
                     </div>
 
                     {/* Sports */}
-                    {gameTypes.length > 0 && (
-                        <div className="mb-6">
-                            <MultiSelectDropdown
-                                label="Favourite Sport"
-                                options={gameTypes}
-                                selected={selectedSports}
-                                onChange={setSelectedSports}
-                                placeholder="Select Favourite Sports"
-                                containerClassName="!space-y-0" // override the space-y-1 block margin to match adjacent SectionLabel fields
-                            />
-                        </div>
-                    )}
+                    <div className="mb-6">
+                        <SectionLabel>Favourite Sports</SectionLabel>
+                        <MultiSelectDropdown
+                            options={gameTypes}
+                            selected={selectedSports}
+                            onChange={setSelectedSports}
+                            placeholder="Select Favourite Sports"
+                        />
+                    </div>
 
                     {/* Playing Style */}
                     <div className="mb-2">

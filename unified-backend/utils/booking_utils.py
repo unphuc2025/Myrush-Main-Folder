@@ -570,7 +570,7 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
                 eh_full = int(h_end)
                 m_e = int((h_end % 1) * 60)
                 eh_disp = eh_full % 12 or 12
-                ampm_e = "AM" if eh_full < 12 else "PM"
+                ampm_e = "AM" if eh_full < 12 or eh_full == 24 else "PM"
 
                 allowed_slots[time_key] = {
                     "time": time_key,

@@ -892,27 +892,27 @@ export const VenueDetailsPage: React.FC = () => {
                                         <div className="relative" ref={dropdownRef}>
                                             <button
                                                 onClick={() => setIsConfigDropdownOpen(!isConfigDropdownOpen)}
-                                                className={`w-full flex items-center justify-between px-4 py-4 rounded-xl border-2 transition-all text-left ${isConfigDropdownOpen ? 'border-primary ring-4 ring-primary/10 bg-white' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                                                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border-2 transition-all text-left ${isConfigDropdownOpen ? 'border-primary bg-white shadow-lg ring-4 ring-primary/5' : 'border-gray-100 bg-gray-50/50 hover:border-gray-200 hover:bg-white'}`}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${selectedConfigs.length > 0 ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-gray-200 text-gray-400'}`}>
                                                         <FaBorderAll className="text-lg" />
                                                     </div>
                                                     <div>
-                                                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Court Setup</div>
+                                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Configuration</div>
                                                         <div className="text-sm font-bold text-gray-900 leading-tight">
                                                             {selectedConfigs.length === 0 
-                                                                ? <span>--Select Court--</span> 
+                                                                ? <span className="text-gray-400">Choose court setup...</span> 
                                                                 : selectedConfigs.length === 1 
                                                                     ? <span>{selectedConfigs[0].label}</span> 
-                                                                    : <span>{selectedConfigs.length} Selected</span>}
+                                                                    : <span>{selectedConfigs.length} Modes Selected</span>}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-4">
                                                     {selectedConfigs.length > 0 && (
-                                                        <div className="text-right transition-all animate-in fade-in slide-in-from-right-2 mr-2">
-                                                            <div className="text-[10px] font-bold text-primary uppercase tracking-tight leading-none mb-0.5">Total Hourly</div>
+                                                        <div className="text-right hidden sm:block">
+                                                            <div className="text-[10px] font-bold text-primary uppercase tracking-tight leading-none mb-0.5">Rate</div>
                                                             <div className="text-sm font-black text-gray-900">₹{selectedConfigs.reduce((sum, c) => sum + c.minPrice, 0)}/hr</div>
                                                         </div>
                                                     )}
@@ -920,17 +920,126 @@ export const VenueDetailsPage: React.FC = () => {
                                                 </div>
                                             </button>
 
-                                            {/* Selection Chips below selector */}
+                                            <AnimatePresence>
+                                                {isConfigDropdownOpen && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                                                        transition={{ duration: 0.2 }}
+                                                        className="absolute z-[100] top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-gray-100 shadow-2xl shadow-gray-200/50 overflow-hidden"
+                                                    >
+                                                        <div className="max-h-[400px] overflow-y-auto no-scrollbar p-3 space-y-4">
+                                                            {Array.from(new Set(availableConfigurations.map(c => c.courtId))).map(courtId => {
+                                                                const courtConfigs = availableConfigurations.filter(c => c.courtId === courtId);
+                                                                const courtName = courtConfigs[0].label.includes('-') ? courtConfigs[0].label.split(' - ')[0] : courtConfigs[0].label.replace('Full ', '').replace('Net ', '').replace('Zone ', '');
+                                                                
+                                                                return (
+                                                                    <div key={courtId} className="space-y-2">
+                                                                        <div className="flex items-center gap-2 px-1">
+                                                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{courtName}</span>
+                                                                            <div className="h-px flex-1 bg-gray-50"></div>
+                                                                        </div>
+                                                                        <div className="grid grid-cols-1 gap-1.5">
+                                                                            {courtConfigs.map((config, idx) => {
+                                                                                const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
+                                                                                const isSelected = selectedSliceIds.includes(configId);
+                                                                                const mask = config.slice === 'full' ? ((1 << config.totalZones) - 1) : (config.slice as SportSlice).mask;
+                                                                                const isConflict = !isSelected && selectedConfigs.some(sc => 
+                                                                                    sc.courtId === config.courtId && 
+                                                                                    (((sc.slice === 'full' ? (1 << sc.totalZones) - 1 : (sc.slice as SportSlice).mask) & mask) !== 0)
+                                                                                );
+
+                                                                                // Dynamic Icon based on slice type
+                                                                                const getLayoutIcon = () => {
+                                                                                    const total = config.totalZones;
+                                                                                    if (config.slice === 'full' || mask === (1 << total) - 1) return <FaBorderAll className="text-sm" />;
+                                                                                    return (
+                                                                                        <div className="flex gap-0.5">
+                                                                                            {[...Array(total)].map((_, i) => (
+                                                                                                <div key={i} className={`w-1.5 h-3 rounded-full ${((1 << i) & mask) ? 'bg-current' : 'bg-gray-200'}`} />
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    );
+                                                                                };
+
+                                                                                return (
+                                                                                    <button
+                                                                                        key={configId}
+                                                                                        disabled={isConflict}
+                                                                                        onClick={() => {
+                                                                                            const newIds = selectedSliceIds.includes(configId) 
+                                                                                                ? selectedSliceIds.filter(id => id !== configId) 
+                                                                                                : [...selectedSliceIds, configId];
+                                                                                            setSelectedSliceIds(newIds);
+                                                                                            setSelectedSlots([]);
+                                                                                        }}
+                                                                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all border ${
+                                                                                            isSelected 
+                                                                                                ? 'bg-primary/5 text-primary border-primary/30 shadow-sm' 
+                                                                                                : isConflict 
+                                                                                                    ? 'opacity-40 cursor-not-allowed bg-gray-50 border-transparent' 
+                                                                                                    : 'bg-white text-gray-700 border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                                                                                        }`}
+                                                                                    >
+                                                                                        <div className="flex items-center gap-3">
+                                                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-primary text-white shadow-sm' : 'bg-gray-100 text-gray-400'}`}>
+                                                                                                {getLayoutIcon()}
+                                                                                            </div>
+                                                                                            <div className="text-left">
+                                                                                                <span className={`text-sm font-bold block leading-tight ${isSelected ? 'text-primary' : 'text-gray-900'}`}>
+                                                                                                    {config.label.split(' - ').length > 1 ? config.label.split(' - ')[1] : config.label}
+                                                                                                </span>
+                                                                                                {isConflict && <span className="text-[9px] font-bold text-red-500 uppercase">Conflicts with selection</span>}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        <div className="flex items-center gap-3">
+                                                                                            <span className={`text-xs font-black ${isSelected ? 'text-primary' : 'text-gray-500'}`}>₹{config.minPrice}/hr</span>
+                                                                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary' : 'bg-white border-gray-200'}`}>
+                                                                                                {isSelected && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </button>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        
+                                                        {selectedConfigs.length > 0 && (
+                                                            <div className="p-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                                                                <div className="flex -space-x-2">
+                                                                    {selectedConfigs.map((c, i) => (
+                                                                        <div key={i} className="w-7 h-7 rounded-full bg-white border-2 border-primary flex items-center justify-center text-[10px] font-bold text-primary shadow-sm" title={c.label}>
+                                                                            {c.label.replace('Full ', '').charAt(0)}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                                <button 
+                                                                    onClick={() => setIsConfigDropdownOpen(false)}
+                                                                    className="text-xs font-bold text-primary uppercase tracking-widest hover:underline"
+                                                                >
+                                                                    Done
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+
+                                            {/* Selection Chips below selector (Integrated more cleanly) */}
                                             {selectedConfigs.length > 0 && (
-                                                <div className="flex flex-wrap gap-2 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div className="flex flex-wrap gap-1.5 mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                                     {selectedConfigs.map((config, idx) => {
                                                         const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
                                                         return (
                                                             <div 
                                                                 key={`chip-${idx}`}
-                                                                className="flex items-center gap-2 pl-3 pr-2 py-2 bg-primary/5 rounded-xl border border-primary/20 shadow-sm transition-all hover:border-primary/40 group"
+                                                                className="flex items-center gap-1.5 pl-2.5 pr-1 py-1.5 bg-white rounded-lg border border-gray-200 shadow-sm transition-all hover:border-primary/40 group"
                                                             >
-                                                                <span className="text-xs font-bold text-primary/80 uppercase tracking-tight">{config.label}</span>
+                                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{config.label}</span>
                                                                 <button 
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
@@ -938,9 +1047,9 @@ export const VenueDetailsPage: React.FC = () => {
                                                                         setSelectedSliceIds(newIds);
                                                                         setSelectedSlots([]);
                                                                     }}
-                                                                    className="p-1 rounded-md text-primary/40 hover:text-red-500 hover:bg-red-50 transition-all"
+                                                                    className="p-1 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all"
                                                                 >
-                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                                                                     </svg>
                                                                 </button>
@@ -949,75 +1058,6 @@ export const VenueDetailsPage: React.FC = () => {
                                                     })}
                                                 </div>
                                             )}
-
-                                            <AnimatePresence>
-                                                {isConfigDropdownOpen && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                        transition={{ duration: 0.2, ease: "easeOut" }}
-                                                        className="absolute z-[100] top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-gray-100 shadow-2xl shadow-gray-200/50 overflow-hidden"
-                                                    >
-                                                        <div className="max-h-[320px] overflow-y-auto no-scrollbar p-2 space-y-1">
-                                                            <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">Available Configurations</div>
-                                                            {availableConfigurations.map((config, idx) => {
-                                                                const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
-                                                                const isSelected = selectedSliceIds.includes(configId);
-                                                                const mask = config.slice === 'full' ? ((1 << config.totalZones) - 1) : (config.slice as SportSlice).mask;
-                                                                
-                                                                const isConflict = !isSelected && selectedConfigs.some(sc => 
-                                                                    sc.courtId === config.courtId && 
-                                                                    (((sc.slice === 'full' ? (1 << sc.totalZones) - 1 : (sc.slice as SportSlice).mask) & mask) !== 0)
-                                                                );
-
-                                                                return (
-                                                                    <button
-                                                                        key={`drop-${idx}`}
-                                                                        disabled={isConflict}
-                                                                        onClick={() => {
-                                                                            const newIds = selectedSliceIds.includes(configId) 
-                                                                                ? selectedSliceIds.filter(id => id !== configId) 
-                                                                                : [...selectedSliceIds, configId];
-                                                                            setSelectedSliceIds(newIds);
-                                                                            setSelectedSlots([]);
-                                                                        }}
-                                                                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all border-2 ${
-                                                                            isSelected 
-                                                                                ? 'bg-primary/5 text-primary border-primary shadow-sm' 
-                                                                                : isConflict 
-                                                                                    ? 'opacity-40 cursor-not-allowed bg-gray-50 border-transparent' 
-                                                                                    : 'bg-white text-gray-800 border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                                                                        }`}
-                                                                    >
-                                                                        <div className="flex items-center gap-4">
-                                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                                                                <FaBorderAll className="text-sm" />
-                                                                            </div>
-                                                                            <div className="text-left">
-                                                                                <span className={`text-sm font-bold block ${isSelected ? 'text-primary' : 'text-gray-900'}`}>
-                                                                                    {config.label}
-                                                                                </span>
-                                                                                {isConflict && <span className="text-[9px] font-bold text-red-500 uppercase">Conflicts with selection</span>}
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-3">
-                                                                            <span className={`text-xs font-black ${isSelected ? 'text-primary' : 'text-gray-500'}`}>₹{config.minPrice}/hr</span>
-                                                                            {isSelected && (
-                                                                                <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                                                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
-                                                                                    </svg>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
                                         </div>
                                     </div>
                                 )}

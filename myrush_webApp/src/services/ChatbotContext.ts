@@ -91,7 +91,7 @@ export const searchVenues = async (params: {
 };
 
 /**
- * Get detailed venue context including rules, pricing, amenities
+ * Get detailed venue context including rules, pricing, amenities, and court metadata
  */
 export const getVenueDetails = async (venueId: string) => {
     try {
@@ -99,16 +99,13 @@ export const getVenueDetails = async (venueId: string) => {
         const result = await response.json();
 
         if (result.success) {
-            return {
-                success: true,
-                data: result.data
-            };
+            return result.data;
         }
     } catch (error) {
         console.error('[CHATBOT] Failed to get venue details:', error);
     }
 
-    return { success: false, data: null };
+    return null;
 };
 
 /**
@@ -120,16 +117,13 @@ export const getBookingDetails = async (displayId: string) => {
         const result = await response.json();
 
         if (result.success) {
-            return {
-                success: true,
-                data: result.data
-            };
+            return result.data;
         }
     } catch (error) {
         console.error('[CHATBOT] Failed to get booking details:', error);
     }
 
-    return { success: false, message: 'Booking not found' };
+    return { error: 'Booking not found' };
 };
 
 /**
@@ -165,58 +159,11 @@ export const getAllVenuesSummary = async () => {
         const result = await response.json();
 
         if (result.success) {
-            return {
-                success: true,
-                data: result.data
-            };
+            return result.data;
         }
     } catch (error) {
         console.error('[CHATBOT] Failed to get venues summary:', error);
     }
 
-    return { success: false, data: [] };
-};
-
-/**
- * Build enriched context for Gemini based on user query and intent
- */
-export const buildChatbotContext = async (userQuery: string) => {
-    const knowledge = await fetchKnowledgeBase();
-    let contextData: any = {
-        knowledge
-    };
-
-    // If the query mentions a specific city, fetch venues for that city
-    const cityMatch = knowledge.cities.find(c =>
-        userQuery.toLowerCase().includes(c.name.toLowerCase())
-    );
-
-    if (cityMatch) {
-        const venues = await searchVenues({ city: cityMatch.name });
-        contextData.venues = venues.data;
-    }
-
-    // If the query mentions a specific sport
-    const sportMatch = knowledge.game_types.find(s =>
-        userQuery.toLowerCase().includes(s.name.toLowerCase())
-    );
-
-    if (sportMatch && cityMatch) {
-        const venues = await searchVenues({
-            city: cityMatch.name,
-            sport: sportMatch.name
-        });
-        contextData.sportVenues = venues.data;
-    }
-
-    // If the query mentions amenities
-    const amenityMatch = knowledge.amenities.find(a =>
-        userQuery.toLowerCase().includes(a.name.toLowerCase())
-    );
-
-    if (amenityMatch) {
-        contextData.requestedAmenity = amenityMatch.name;
-    }
-
-    return contextData;
+    return [];
 };
