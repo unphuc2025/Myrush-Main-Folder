@@ -676,6 +676,7 @@ class IdempotencyKey(Base):
     endpoint = Column(String(255), nullable=False)
     response_status = Column(Integer, nullable=False)
     response_body = Column(JSONB, nullable=False)  # Cached successful response
+    expires_at = Column(TIMESTAMP, nullable=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
     
     partner = relationship("Partner")

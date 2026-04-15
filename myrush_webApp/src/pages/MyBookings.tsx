@@ -28,6 +28,11 @@ interface Booking {
     court_id?: string;
     court_name?: string;
     team_name?: string;
+    number_of_players: number;
+    logic_type?: string;
+    slice_mask?: number;
+    total_zones?: number;
+    zones?: Array<{ index: number; name: string }>;
 }
 
 interface ReviewData {
@@ -184,7 +189,36 @@ export const MyBookings: React.FC = () => {
             </div>
         );
     };
+    const formatSelectedZones = (booking: Booking) => {
+        if (booking.slice_mask === undefined || booking.slice_mask === null) return null;
+        
+        // If it's a "Full Court" booking (mask covers all zones), usually don't show "Zone"
+        const totalZones = booking.total_zones || 1;
+        const fullMask = (1 << totalZones) - 1;
+        if (booking.slice_mask === fullMask && totalZones > 1) return "Full Court";
+        if (totalZones <= 1) return null;
 
+        // Try to get names from metadata
+        let selectedZoneNames: string[] = [];
+        
+        if (booking.zones && booking.zones.length > 0) {
+            selectedZoneNames = booking.zones
+                .filter(z => (booking.slice_mask! & (1 << z.index)) !== 0)
+                .map(z => z.name);
+        }
+
+        // Fallback to "Zone 1, Zone 2" if metadata is missing but mask tells us something
+        if (selectedZoneNames.length === 0) {
+            for (let i = 0; i < totalZones; i++) {
+                if ((booking.slice_mask! & (1 << i)) !== 0) {
+                    selectedZoneNames.push(`Zone ${i + 1}`);
+                }
+            }
+        }
+            
+        if (selectedZoneNames.length === 0) return null;
+        return selectedZoneNames.join(' + ');
+    };
 
     return (
         <div className="my-bookings-page-modern">
@@ -238,15 +272,36 @@ export const MyBookings: React.FC = () => {
                                 </div>
 
                                 <div className="card-body-modern">
-                                    <h3 className="venue-name">{booking.venue_name}{booking.court_name && booking.court_name !== booking.venue_name && <span className="block text-xs font-normal text-gray-500">{booking.court_name}</span>}</h3>
+                                    <h3 className="venue-name">{booking.venue_name}</h3>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
+                                        <span className="text-sm font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                                            {booking.court_name}
+                                        </span>
+                                        {formatSelectedZones(booking) && (
+                                            <span className="text-sm font-bold text-primary italic">
+                                                Zone: {formatSelectedZones(booking)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    
                                     {booking.team_name && <p className="text-xs font-bold text-primary uppercase tracking-wider mb-1">TEAM: {booking.team_name}</p>}
-                                    <p className="location-text text-primary flex items-center gap-1"><FaMapMarkerAlt className="text-primary" /> {booking.venue_location}</p>
+                                    <p className="location-text text-gray-500 flex items-center gap-1"><FaMapMarkerAlt className="text-primary" /> {booking.venue_location}</p>
 
                                     <div className="booking-details">
                                         <div className="detail-item">
                                             <span className="label">Time:</span>
                                             <span className="value flex items-center gap-1"><FaClock className="text-primary" /> {booking.start_time?.slice(0, 5) || 'N/A'} - {booking.end_time?.slice(0, 5) || 'N/A'}</span>
                                         </div>
+                                        {(booking.logic_type?.toLowerCase().trim() === 'capacity' || 
+                                          booking.venue_name?.toLowerCase().includes('swimming') || 
+                                          booking.court_name?.toLowerCase().includes('swimming') || 
+                                          booking.venue_name?.toLowerCase().includes('skating') ||
+                                          booking.court_name?.toLowerCase().includes('skating')) && (
+                                            <div className="detail-item">
+                                                <span className="label">Players:</span>
+                                                <span className="value">{booking.number_of_players || 1}</span>
+                                            </div>
+                                        )}
                                         <div className="detail-item">
                                             <span className="label">Amount:</span>
                                             <div className="flex flex-col items-end">
@@ -386,8 +441,20 @@ export const MyBookings: React.FC = () => {
                                         </div>
 
                                         <div className="detail-group">
+                                            <span className="detail-label">Sport / Court</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="detail-value">{selectedBooking.court_name}</span>
+                                                {formatSelectedZones(selectedBooking) && (
+                                                    <span className="text-sm font-bold text-primary italic">
+                                                        (Zone: {formatSelectedZones(selectedBooking)})
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="detail-group">
                                             <span className="detail-label">Location</span>
-                                            <span className="detail-value flex items-center gap-1"><FaMapMarkerAlt className="text-primary" /> {selectedBooking.venue_location}</span>
+                                            <span className="detail-value flex items-center gap-1 text-gray-500"><FaMapMarkerAlt className="text-primary" /> {selectedBooking.venue_location}</span>
                                         </div>
 
                                         {selectedBooking.team_name && (
@@ -432,6 +499,19 @@ export const MyBookings: React.FC = () => {
                                                 <span className="detail-label">Start Time</span>
                                                 <span className="detail-value flex items-center gap-1"><FaClock className="text-primary" /> {selectedBooking.start_time?.slice(0, 5) || 'N/A'}</span>
                                             </div>
+                                            {(selectedBooking.logic_type?.toLowerCase().trim() === 'capacity' || 
+                                              selectedBooking.venue_name?.toLowerCase().includes('swimming') || 
+                                              selectedBooking.court_name?.toLowerCase().includes('swimming') || 
+                                              selectedBooking.venue_name?.toLowerCase().includes('skating') ||
+                                              selectedBooking.court_name?.toLowerCase().includes('skating')) && (
+                                                <div className="detail-group">
+                                                    <span className="detail-label">Players</span>
+                                                    <span className="detail-value font-bold">{selectedBooking.number_of_players || 1} Members</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="detail-row-modern">
                                             <div className="detail-group">
                                                 <span className="detail-label">End Time</span>
                                                 <span className="detail-value flex items-center gap-1"><FaClock className="text-primary" /> {selectedBooking.end_time?.slice(0, 5) || 'N/A'}</span>

@@ -231,16 +231,7 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
                     {favorited ? <FaHeart className="w-5 h-5" /> : <FaRegHeart className="w-5 h-5" />}
                 </button>
 
-                {/* Sport Tag */}
-                <div className="absolute top-4 left-4">
-                    <div className="flex gap-1.5 bg-white/95 backdrop-blur-md text-gray-900 px-3 py-1.5 rounded-full shadow-sm border border-white/50">
-                        {venue.game_type.split(',').map((sport, i) => (
-                            <div key={i} title={sport.trim()} className="text-gray-800">
-                                {getSportIcon(sport.trim())}
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                {/* Sport Tag - MOVED TO FOOTER */}
 
                 {/* Location Overlay */}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent p-5 pt-12 md:translate-y-2 md:group-hover:translate-y-0 transition-transform duration-300">
@@ -266,16 +257,19 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
                 </div>
 
                 {/* Price & CTA */}
-                <div className="mt-auto pt-6 border-t border-gray-100 flex items-center justify-between gap-4">
-                    <div>
-                        <span className="block text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">Starting from</span>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-lg font-black text-gray-900 tracking-tight">₹{venue.prices}</span>
-                            <span className="text-xs text-gray-500 font-medium">/hr</span>
+                <div className="mt-auto pt-6 border-t border-gray-100 flex items-end justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                        <span className="block text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-3">Available Sports</span>
+                        <div className="flex flex-wrap gap-2">
+                            {venue.game_type.split(',').map((sport, i) => (
+                                <div key={i} className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600 border border-gray-100 group-hover:border-primary/30 group-hover:bg-primary/5 transition-all" title={sport.trim()}>
+                                    {getSportIcon(sport.trim())}
+                                </div>
+                            ))}
                         </div>
                     </div>
                     <button
-                        className="bg-zinc-900 text-white font-semibold text-sm px-6 py-3 rounded-lg shadow-lg transition-all duration-300 whitespace-nowrap shrink-0"
+                        className="bg-zinc-900 text-white font-bold text-xs uppercase tracking-widest px-6 py-3.5 rounded-lg shadow-lg hover:shadow-primary/20 hover:bg-primary transition-all duration-300 whitespace-nowrap shrink-0 transform active:scale-95"
                         onClick={(e) => {
                             e.stopPropagation();
                             onClick();

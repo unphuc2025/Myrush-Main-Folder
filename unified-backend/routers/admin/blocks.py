@@ -6,6 +6,7 @@ import schemas
 from database import get_db
 from dependencies import PermissionChecker, get_current_admin
 from datetime import date
+from uuid import UUID
 from services.integrations.orchestrator import IntegrationOrchestrator
 
 router = APIRouter(
@@ -32,9 +33,23 @@ def get_blocks(
         query = query.filter(models.CourtBlock.block_date <= end_date)
     
     if court_id:
-        query = query.filter(models.CourtBlock.court_id == court_id)
+        # Check if the court belongs to a shared group
+        from uuid import UUID
+        cid = UUID(str(court_id))
+        court = db.query(models.Court).filter(models.Court.id == cid).first()
+        if court and court.shared_group_id:
+            # Get all court IDs in this group
+            group_id = UUID(str(court.shared_group_id))
+            group_court_ids = db.query(models.Court.id).filter(
+                models.Court.shared_group_id == group_id
+            ).all()
+            court_ids = [cid_val[0] for cid_val in group_court_ids]
+            query = query.filter(models.CourtBlock.court_id.in_(court_ids))
+        else:
+            query = query.filter(models.CourtBlock.court_id == cid)
     elif branch_id:
-        query = query.join(models.Court).filter(models.Court.branch_id == branch_id)
+        from uuid import UUID
+        query = query.join(models.Court).filter(models.Court.branch_id == UUID(str(branch_id)))
         
     blocks = query.options(
         joinedload(models.CourtBlock.court),
@@ -57,6 +72,7 @@ def get_blocks(
             "blocked_by_id": str(b.blocked_by_id) if b.blocked_by_id else None,
             "created_at": b.created_at,
             "court_name": b.court.name if b.court else "Unknown",
+            "shared_group_id": str(b.court.shared_group_id) if b.court and b.court.shared_group_id else None,
             "blocked_by_name": b.blocked_by.name if b.blocked_by else "System"
         }
         result.append(block_data)

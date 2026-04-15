@@ -1,5 +1,7 @@
 from typing import Any, Dict, List
 from sqlalchemy.orm import Session
+from uuid import UUID
+import logging
 from datetime import datetime, date, time as dt_time, timedelta
 from .base_adapter import BaseIntegrationAdapter
 import models
@@ -7,6 +9,9 @@ import schemas_district
 from utils.booking_utils import generate_allowed_slots_map, get_booked_slots
 import json
 import uuid
+import re
+
+UUID_PATTERN = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
 
 class DistrictAdapter(BaseIntegrationAdapter):
     """
@@ -67,7 +72,10 @@ class DistrictAdapter(BaseIntegrationAdapter):
         """
         branch = self._get_branch_by_facility_name(facility_name)
         sport = self._get_game_type_by_sport_name(sport_name)
-        target_date = datetime.strptime(booking_date_str, "%d-%m-%Y").date()
+        try:
+            target_date = datetime.strptime(booking_date_str, "%d-%m-%Y").date()
+        except ValueError:
+            target_date = datetime.strptime(booking_date_str, "%Y-%m-%d").date()
 
         courts = self.db.query(models.Court).filter(
             models.Court.branch_id == branch.id,
@@ -83,30 +91,46 @@ class DistrictAdapter(BaseIntegrationAdapter):
         for court in courts:
             court_allowed_maps[court.id] = generate_allowed_slots_map(self.db, court.id, target_date)
 
-        # Optimization 2: Fetch all bookings for the day for these courts
+        # Optimization 2: Fetch all bookings for the day for these courts AND their siblings in shared groups
         court_ids = [c.id for c in courts]
+        
+        # Find siblings in shared groups
+        shared_group_ids = [UUID(str(c.shared_group_id)) for c in courts if c.shared_group_id]
+        if shared_group_ids:
+            all_relevant_courts = self.db.query(models.Court).filter(
+                models.Court.shared_group_id.in_(shared_group_ids)
+            ).all()
+            relevant_court_ids = [c.id for c in all_relevant_courts]
+            # Map for quick lookup: {sibling_id: parent_group_id}
+            sibling_to_group = {c.id: UUID(str(c.shared_group_id)) for c in all_relevant_courts}
+            court_id_to_obj = {c.id: c for c in all_relevant_courts}
+        else:
+            relevant_court_ids = court_ids
+            sibling_to_group = {}
+            court_id_to_obj = {c.id: c for c in courts}
+
         all_bookings = self.db.query(models.Booking).filter(
-            models.Booking.court_id.in_(court_ids),
+            models.Booking.court_id.in_(relevant_court_ids),
             models.Booking.booking_date == target_date,
             models.Booking.status.in_(['confirmed', 'pending', 'locked'])
         ).all()
 
         # New: Fetch manual admin blocks
         manual_blocks = self.db.query(models.CourtBlock).filter(
-            models.CourtBlock.court_id.in_(court_ids),
+            models.CourtBlock.court_id.in_(relevant_court_ids),
             models.CourtBlock.block_date == target_date
         ).all()
         
-        # Build block lookup: {court_id: [(start, end)]}
-        blocks_by_court = {cid: [] for cid in court_ids}
+        # Build lookup for blocks and bookings by court
+        blocks_by_court = {cid: [] for cid in relevant_court_ids}
         for mb in manual_blocks:
-            blocks_by_court[mb.court_id].append((mb.start_time, mb.end_time))
+            blocks_by_court[mb.court_id].append(mb)
         
-        # Build a fast lookup for booked hours: {court_id: set(hours)}
-        bookings_by_court = {cid: set() for cid in court_ids}
+        # Build lookup for booked slots by court: {court_id: {slot_start_f: slice_mask}}
+        bookings_by_court_slots = {cid: {} for cid in relevant_court_ids}
         for b in all_bookings:
             for h in get_booked_slots([b]):
-                bookings_by_court[b.court_id].add(h)
+                bookings_by_court_slots[b.court_id][h] = b.slice_mask or 0
 
         slot_data_list = []
         
@@ -124,15 +148,39 @@ class DistrictAdapter(BaseIntegrationAdapter):
                     if time_key not in allowed_map:
                         continue
                     
-                    # Check manual admin blocks
+                    # Check manual admin blocks (including siblings in shared group)
                     is_manual_blocked = False
-                    for b_start, b_end in blocks_by_court.get(court.id, []):
-                        if b_start <= slot_start_time < b_end:
-                            is_manual_blocked = True
-                            break
+                    relevant_block_court_ids = [court.id]
+                    if court.shared_group_id:
+                        c_group_id = UUID(str(court.shared_group_id))
+                        relevant_block_court_ids = [cid for cid, gid in sibling_to_group.items() if gid == c_group_id]
+                    
+                    for bc_id in relevant_block_court_ids:
+                        relevant_blocks = blocks_by_court.get(bc_id, [])
+                        court_mask = court.slice_mask or 1
+                        for block in relevant_blocks:
+                            if block.start_time <= slot_start_time < block.end_time:
+                                # Match by slice mask if present, otherwise assume it blocks the entire court
+                                block_mask = block.slice_mask if block.slice_mask is not None and block.slice_mask > 0 else (1 << (court.total_zones or 1)) - 1
+                                if (block_mask & court_mask) != 0:
+                                    is_manual_blocked = True; break
+                        if is_manual_blocked: break
 
-                    booked_slots = bookings_by_court.get(court.id, set())
-                    is_booked = slot_start_f in booked_slots or is_manual_blocked
+                    # Check bookings (including siblings)
+                    is_booked = False
+                    court_mask = court.slice_mask or 1
+                    for bc_id in relevant_block_court_ids:
+                        booked_mask = bookings_by_court_slots.get(bc_id, {}).get(slot_start_f)
+                        if booked_mask is not None:
+                            # If booked_mask is 0, it means entire court
+                            if booked_mask == 0:
+                                booked_mask = (1 << (court_id_to_obj.get(bc_id).total_zones or 1)) - 1
+                            
+                            if (booked_mask & court_mask) != 0:
+                                is_booked = True; break
+                        if is_booked: break
+                    
+                    is_booked = is_booked or is_manual_blocked
                     
                     capacity = branch.max_players if branch.max_players and sport.name.lower() in ['basketball', 'cricket', 'football'] else 1
                     
@@ -189,7 +237,10 @@ class DistrictAdapter(BaseIntegrationAdapter):
              raise ValueError("Minimum booking duration is 1 hour (2 slots).")
 
         for slot_req in payload.slots:
-            target_date = datetime.strptime(slot_req.date, '%d-%m-%Y').date()
+            try:
+                target_date = datetime.strptime(slot_req.date, '%d-%m-%Y').date()
+            except ValueError:
+                target_date = datetime.strptime(slot_req.date, '%Y-%m-%d').date()
             h = slot_req.slotNumber // 2
             m = (slot_req.slotNumber % 2) * 30
             time_key = f"{h:02d}:{m:02d}"
@@ -204,13 +255,38 @@ class DistrictAdapter(BaseIntegrationAdapter):
             if time_key not in allowed_map:
                 raise ValueError(f"Slot {slot_req.slotNumber} ({time_key}) on {slot_req.date} is not available for {court.name}")
             
+            # Conflict Check: Check this court AND siblings in same shared group
+            from uuid import UUID
+            conflict_court_ids = [court.id]
+            if court.shared_group_id:
+                group_id = UUID(str(court.shared_group_id))
+                conflict_court_ids = [c[0] for c in self.db.query(models.Court.id).filter(models.Court.shared_group_id == group_id).all()]
+
+            # Check for existing bookings
             active_bookings = self.db.query(models.Booking).filter(
-                models.Booking.court_id == court.id,
+                models.Booking.court_id.in_(conflict_court_ids),
                 models.Booking.booking_date == target_date,
                 models.Booking.status.in_(['confirmed', 'pending'])
             ).all()
-            if slot_start_f in get_booked_slots(active_bookings):
-                raise ValueError(f"Conflict: Slot {slot_req.slotNumber} on {slot_req.date} for {court.name} was already booked.")
+            
+            for b in active_bookings:
+                if slot_start_f in get_booked_slots([b]):
+                    # Simple rule: if any sibling has a 'Full Court' booking (mask 0), it's a conflict.
+                    # If it's the same court, it's a conflict.
+                    if b.court_id == court.id or not b.slice_mask:
+                        raise ValueError(f"Conflict: Slot {slot_req.slotNumber} on {slot_req.date} for {court.name} is blocked by booking on {b.court_id}")
+                    # If we had slice-specific logic for District here, we'd check masks.
+                    # For now, if they share a group, we assume conflict to be safe.
+                    raise ValueError(f"Conflict: Shared Group Slot occupied by {b.court_id}")
+
+            # Check for existing manual blocks
+            active_blocks = self.db.query(models.CourtBlock).filter(
+                models.CourtBlock.court_id.in_(conflict_court_ids),
+                models.CourtBlock.block_date == target_date
+            ).all()
+            for ab in active_blocks:
+                if ab.start_time <= dt_time(h, m) < ab.end_time:
+                    raise ValueError(f"Conflict: Slot {slot_req.slotNumber} on {slot_req.date} is under a Manual Block.")
 
             price = allowed_map[time_key]['price']
             ehh = int(h + (m+30)//60)
@@ -305,7 +381,7 @@ class DistrictAdapter(BaseIntegrationAdapter):
         ).all()
         
         # If not, try as individual booking ID
-        if not bookings:
+        if not bookings and UUID_PATTERN.match(batch_booking_id):
             individual = self.db.query(models.Booking).filter(
                 models.Booking.id == batch_booking_id,
                 models.Booking.booking_source.like('district%'),
@@ -509,6 +585,9 @@ class DistrictAdapter(BaseIntegrationAdapter):
 
     def get_booking_status(self, booking_id: str) -> Dict[str, Any]:
         """Implements GET /booking/{bookingId}"""
+        if not UUID_PATTERN.match(booking_id):
+            raise ValueError(f"Invalid Booking ID format: {booking_id}")
+            
         booking = self.db.query(models.Booking).get(booking_id)
         if not booking:
             raise ValueError(f"Booking ID {booking_id} not found.")
@@ -546,7 +625,10 @@ class DistrictAdapter(BaseIntegrationAdapter):
     def get_booking_history(self, facility_name: str, booking_date_str: str) -> Dict[str, Any]:
         """Implements GET /bookings?facilityName=...&date=..."""
         branch = self._get_branch_by_facility_name(facility_name)
-        target_date = datetime.strptime(booking_date_str, "%d-%m-%Y").date()
+        try:
+            target_date = datetime.strptime(booking_date_str, "%d-%m-%Y").date()
+        except ValueError:
+            target_date = datetime.strptime(booking_date_str, "%Y-%m-%d").date()
         
         # All courts for this branch
         court_ids = [c.id for c in branch.courts]

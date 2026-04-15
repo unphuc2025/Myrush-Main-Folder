@@ -195,7 +195,8 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
     # 1. Identify all courts that should contribute to this mask
     if shared_group_id:
         from uuid import UUID
-        cid_query = db.query(models.Court.id).filter(models.Court.shared_group_id == (UUID(str(shared_group_id)) if shared_group_id else None))
+        group_id = UUID(str(shared_group_id))
+        cid_query = db.query(models.Court.id).filter(models.Court.shared_group_id == group_id)
         group_courts = cid_query.all()
         court_ids = [c[0] for c in group_courts]
     elif court_id:
@@ -424,7 +425,9 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
     # NEW: Fetch Manual Admin Blocks (District, Playo, User App all affected)
     # Check if this court belongs to a shared group to block all related sports
     if court.shared_group_id:
-        group_court_ids = [str(c.id) for c in db.query(models.Court.id).filter(models.Court.shared_group_id == court.shared_group_id).all()]
+        from uuid import UUID
+        group_id = UUID(str(court.shared_group_id))
+        group_court_ids = [c[0] for c in db.query(models.Court.id).filter(models.Court.shared_group_id == group_id).all()]
         manual_blocks = db.query(models.CourtBlock).filter(
             models.CourtBlock.court_id.in_(group_court_ids),
             models.CourtBlock.block_date == booking_date
@@ -505,9 +508,15 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
             
             # 1. Check Manual Admin Blocks
             slot_start_time = time(hh, mm)
+            court_full_mask = (1 << (court.total_zones or 1)) - 1
             for mb in manual_blocks:
                 if mb.start_time <= slot_start_time < mb.end_time:
-                    is_blocked = True; break
+                    # If this block covers the FULL ground of the current court_id, mark as blocked
+                    # Otherwise, if it's just a slice, we let the 'is_available' logic below handle it
+                    block_mask = mb.slice_mask if mb.slice_mask is not None else 15 # Default to full
+                    if (block_mask & court_full_mask) == court_full_mask:
+                        is_blocked = True
+                        break
             
             # 2. Check Recurring Unavailability
             if not is_blocked:

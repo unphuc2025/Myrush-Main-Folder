@@ -6,6 +6,7 @@ from database import get_db
 from dependencies import get_admin_branch_filter, PermissionChecker
 import uuid
 from datetime import datetime, date
+from uuid import UUID
 from decimal import Decimal
 
 router = APIRouter(
@@ -227,7 +228,16 @@ def get_all_bookings(
             query = query.filter(models.Booking.court_id.in_(matching_court_ids))
 
         if court_id:
-            query = query.filter(models.Booking.court_id == court_id)
+            # Check if court belongs to a shared group
+            from uuid import UUID
+            target_cid = UUID(str(court_id))
+            court = db.query(models.Court).filter(models.Court.id == target_cid).first()
+            if court and court.shared_group_id:
+                group_id = UUID(str(court.shared_group_id))
+                group_court_ids = [c[0] for c in db.query(models.Court.id).filter(models.Court.shared_group_id == group_id).all()]
+                query = query.filter(models.Booking.court_id.in_(group_court_ids))
+            else:
+                query = query.filter(models.Booking.court_id == target_cid)
         if status:
             query = query.filter(models.Booking.status == status)
         if payment_status:
@@ -553,7 +563,7 @@ def update_booking_status(booking_id: str, request: dict, db: Session = Depends(
             if was_blocked != is_blocked:
                 action = 'block' if is_blocked else 'available'
                 # Import here to avoid circular dependencies if any
-                from services.integrations.booking_utils import safe_parse_time_float
+                from utils.booking_utils import safe_parse_time_float
                 for slot in (db_booking.time_slots or []):
                     slot_start_str = slot.get('start_time') or slot.get('time') or slot.get('start')
                     if slot_start_str:
@@ -602,7 +612,7 @@ def delete_booking(
 
     try:
         from services.integrations.orchestrator import IntegrationOrchestrator
-        from services.integrations.booking_utils import safe_parse_time_float
+        from utils.booking_utils import safe_parse_time_float
         for slot in (db_booking.time_slots or []):
             slot_start_str = slot.get('start_time') or slot.get('time') or slot.get('start')
             if slot_start_str:
