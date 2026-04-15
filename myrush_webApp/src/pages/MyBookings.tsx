@@ -63,24 +63,24 @@ export const MyBookings: React.FC = () => {
         setLoading(true);
         const res = await bookingsApi.getUserBookings();
         if (res.success && res.data) {
-            let processedBookings = res.data.map((b: Booking) => {
-                let status = b.status.toLowerCase();
-                if (status === 'payment_pending') return null;
-                if (status !== 'cancelled') {
-                    if (b.end_time) {
-                        const bookingTime = new Date(`${b.booking_date}T${b.end_time}`);
-                        if (bookingTime < new Date()) {
-                            status = 'completed';
-                        } else {
+            let processedBookings = res.data
+                .filter((b: any) => b.status.toLowerCase() !== 'payment_pending')
+                .map((b: any) => {
+                    let status = b.status.toLowerCase();
+                    if (status !== 'cancelled') {
+                        if (b.end_time) {
+                            const bookingTime = new Date(`${b.booking_date}T${b.end_time}`);
+                            if (bookingTime < new Date()) {
+                                status = 'completed';
+                            } else {
+                                status = 'upcoming';
+                            }
+                        } else if (status === 'confirmed') {
                             status = 'upcoming';
                         }
-                    } else if (status === 'confirmed') {
-                        // If no end time but confirmed, treat as upcoming (e.g. newly created)
-                        status = 'upcoming';
                     }
-                }
-                return { ...b, status };
-            }).filter((b: any) => b !== null);
+                    return { ...b, status };
+                });
 
             if (activeTab !== 'all') {
                 processedBookings = processedBookings.filter((b: Booking) => b.status === activeTab);

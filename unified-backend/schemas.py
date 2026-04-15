@@ -1444,16 +1444,45 @@ class PartnerBase(BaseModel):
     webhook_url: Optional[str] = None
     is_active: Optional[bool] = True
 
+class PartnerCreate(PartnerBase):
+    api_key: str # Plain text to be hashed
+
 class PartnerUpdate(BaseModel):
     name: Optional[str] = None
     webhook_url: Optional[str] = None
     is_active: Optional[bool] = None
-    api_key: Optional[str] = None # Plain text to be hashed on backend
+    api_key: Optional[str] = None
+
+class PartnerWebhookConfigBase(BaseModel):
+    event_name: str
+    webhook_url: str
+    headers: Optional[Dict[str, Any]] = None
+    is_active: Optional[bool] = True
+
+class PartnerWebhookConfigCreate(PartnerWebhookConfigBase):
+    pass
+
+class PartnerWebhookConfig(PartnerWebhookConfigBase):
+    id: str
+    partner_id: str
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator('id', 'partner_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
 
 class Partner(PartnerBase):
     id: str
     created_at: datetime
     updated_at: datetime
+    webhook_configs: Optional[List[PartnerWebhookConfig]] = []
 
     @field_validator('id', mode='before')
     @classmethod

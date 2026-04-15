@@ -69,3 +69,63 @@ def create_partner(
     db.commit()
     db.refresh(db_partner)
     return db_partner
+
+@router.get("/partners/{partner_id}/webhooks", response_model=List[schemas.PartnerWebhookConfig])
+def get_partner_webhooks(
+    partner_id: str,
+    db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker("Integrations", "view"))
+):
+    """Get granular webhook configurations for a partner"""
+    return db.query(models.PartnerWebhookConfig).filter(models.PartnerWebhookConfig.partner_id == partner_id).all()
+
+@router.post("/partners/{partner_id}/webhooks", response_model=schemas.PartnerWebhookConfig)
+def upsert_partner_webhook(
+    partner_id: str,
+    config: schemas.PartnerWebhookConfigCreate,
+    db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker("Integrations", "edit"))
+):
+    """Add or update a granular webhook configuration"""
+    db_config = db.query(models.PartnerWebhookConfig).filter(
+        models.PartnerWebhookConfig.partner_id == partner_id,
+        models.PartnerWebhookConfig.event_name == config.event_name
+    ).first()
+    
+    if db_config:
+        db_config.webhook_url = config.webhook_url
+        db_config.headers = config.headers
+        db_config.is_active = config.is_active
+    else:
+        db_config = models.PartnerWebhookConfig(
+            partner_id=partner_id,
+            event_name=config.event_name,
+            webhook_url=config.webhook_url,
+            headers=config.headers,
+            is_active=config.is_active
+        )
+        db.add(db_config)
+    
+    db.commit()
+    db.refresh(db_config)
+    return db_config
+
+@router.delete("/partners/{partner_id}/webhooks/{webhook_id}")
+def delete_partner_webhook(
+    partner_id: str,
+    webhook_id: str,
+    db: Session = Depends(get_db),
+    _ = Depends(PermissionChecker("Integrations", "edit"))
+):
+    """Delete a granular webhook configuration"""
+    db_config = db.query(models.PartnerWebhookConfig).filter(
+        models.PartnerWebhookConfig.partner_id == partner_id,
+        models.PartnerWebhookConfig.id == webhook_id
+    ).first()
+    
+    if not db_config:
+        raise HTTPException(status_code=404, detail="Webhook configuration not found")
+        
+    db.delete(db_config)
+    db.commit()
+    return {"message": "Webhook configuration deleted"}

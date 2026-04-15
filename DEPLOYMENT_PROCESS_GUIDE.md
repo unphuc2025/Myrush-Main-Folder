@@ -5,7 +5,7 @@ This guide documents the process for redeploying the MyRush Backend and Admin Fr
 **Server Details:**
 - **IP Address:** `65.0.195.149`
 - **SSH User:** `ec2-user`
-- **Identity File:** `C:\Users\Z BOOK\Downloads\host\dev_ec2\dev-main-server.pem`
+- **Identity File:** `C:\Users\ajayp\Downloads\host\dev_ec2\dev-main-server.pem`
 - **Project Root on Server:** `~/Accelerator/Admin-Main/Myrush-Main-Folder/`
 
 ---
@@ -23,7 +23,7 @@ Before deploying, ensure you have:
 Open a terminal and SSH into the server:
 
 ```powershell
-ssh -o StrictHostKeyChecking=no -i "C:\Users\Z BOOK\Downloads\host\dev_ec2\dev-main-server.pem" ec2-user@65.0.195.149
+ssh -o StrictHostKeyChecking=no -i "C:\Users\ajayp\Downloads\host\dev_ec2\dev-main-server.pem" ec2-user@65.0.195.149
 ```
 
 ---

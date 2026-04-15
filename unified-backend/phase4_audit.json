@@ -1,0 +1,373 @@
+{
+  "Railways": {
+    "id": "bbdec863-c298-481a-a29b-b889207cf65d",
+    "name": "Rush Arena Railways",
+    "hours": {
+      "friday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "monday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "sunday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "tuesday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "saturday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "thursday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "wednesday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      }
+    },
+    "courts": [
+      {
+        "id": "adc9df6c-709c-41aa-bcf4-b6d87f1aef2f",
+        "name": "cricket - Rush Arena Railways",
+        "logic": "divisible",
+        "active": false,
+        "game_type": "Cricket",
+        "slices": [
+          {
+            "name": "cricket",
+            "sport": "Cricket",
+            "price": 1000.0
+          }
+        ]
+      },
+      {
+        "id": "5f6bbfd1-6634-4ae2-a492-66a9b028863f",
+        "name": "Volleyball - Rush Arena Railways",
+        "logic": "independent",
+        "active": false,
+        "game_type": "Volleyball",
+        "slices": []
+      },
+      {
+        "id": "30636923-41f3-47c6-8073-a41d393cf446",
+        "name": "Football - Railways",
+        "logic": "divisible",
+        "active": false,
+        "game_type": "FootBall",
+        "slices": [
+          {
+            "name": "FootBall",
+            "sport": "FootBall",
+            "price": 1000.0
+          }
+        ]
+      },
+      {
+        "id": "6bd6ee5e-d100-4ee5-8369-e6989a4ba69f",
+        "name": "Nets - Railways",
+        "logic": "independent",
+        "active": false,
+        "game_type": "Nets",
+        "slices": []
+      },
+      {
+        "id": "0e376b13-b84d-4808-9281-038daa4e1984",
+        "name": "Boxcricket - Railways",
+        "logic": "divisible",
+        "active": false,
+        "game_type": "Boxcricket",
+        "slices": [
+          {
+            "name": "Boxcricket",
+            "sport": "Boxcricket",
+            "price": 1000.0
+          }
+        ]
+      },
+      {
+        "id": "2b10a0d2-b84f-4026-8a2d-0666c63ea68a",
+        "name": "Main Turf (Football / Box Cricket)",
+        "logic": "divisible",
+        "active": true,
+        "game_type": "FootBall",
+        "slices": [
+          {
+            "name": "Football (7 a side)",
+            "sport": "FootBall",
+            "price": 1800.0
+          },
+          {
+            "name": "Box Cricket (7 a side)",
+            "sport": "Boxcricket",
+            "price": 1800.0
+          }
+        ]
+      },
+      {
+        "id": "c80c3f36-3959-44cc-92a6-8731cf6ac258",
+        "name": "Cricket Ground (11 a side)",
+        "logic": "independent",
+        "active": true,
+        "game_type": "Cricket",
+        "slices": []
+      },
+      {
+        "id": "16b7f27a-c91a-40f0-a352-efc724f08d79",
+        "name": "Cricket Nets",
+        "logic": "divisible",
+        "active": true,
+        "game_type": "Cricket Nets",
+        "slices": [
+          {
+            "name": "Net 1",
+            "sport": "Cricket Nets",
+            "price": 500.0
+          },
+          {
+            "name": "Net 2",
+            "sport": "Cricket Nets",
+            "price": 500.0
+          },
+          {
+            "name": "Net 3",
+            "sport": "Cricket Nets",
+            "price": 500.0
+          }
+        ]
+      },
+      {
+        "id": "5e018ecd-9466-47cb-8310-5579e9831809",
+        "name": "Volleyball Court",
+        "logic": "independent",
+        "active": true,
+        "game_type": "Volleyball",
+        "slices": []
+      }
+    ]
+  },
+  "Malleshwaram": {
+    "id": "06abcc0b-97ba-43ae-ab01-746f5b7fe527",
+    "name": "Rush Arena Malleshwaram",
+    "hours": {
+      "friday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "monday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "sunday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "tuesday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "saturday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "thursday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "wednesday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      }
+    },
+    "courts": [
+      {
+        "id": "4ba27742-8897-45a4-8448-6b589d9665d5",
+        "name": "Pickleball - Malleshwaram",
+        "logic": "divisible",
+        "active": true,
+        "game_type": "Pickleball",
+        "slices": [
+          {
+            "name": "Court 1",
+            "sport": "Pickleball",
+            "price": 1000.0
+          },
+          {
+            "name": "Court 2",
+            "sport": "Pickleball",
+            "price": 1000.0
+          },
+          {
+            "name": "Court 3",
+            "sport": "Pickleball",
+            "price": 1000.0
+          },
+          {
+            "name": "Court 4",
+            "sport": "Pickleball",
+            "price": 1000.0
+          }
+        ]
+      },
+      {
+        "id": "f9e63780-e9ac-4a20-8fc0-77af88fa5619",
+        "name": "5 a side Boxcricket -  Malleshwaram",
+        "logic": "independent",
+        "active": false,
+        "game_type": "Boxcricket",
+        "slices": []
+      },
+      {
+        "id": "126cd145-4ba8-4a13-8b24-e1c8454f2eae",
+        "name": "Pickleball - Malleshwaram",
+        "logic": "independent",
+        "active": false,
+        "game_type": "Pickleball",
+        "slices": []
+      },
+      {
+        "id": "30e1d0fe-bea1-409a-8bec-5ec2544d1deb",
+        "name": "Main Turf (Football / Box Cricket)",
+        "logic": "divisible",
+        "active": true,
+        "game_type": "FootBall",
+        "slices": [
+          {
+            "name": "Football (6 a side)",
+            "sport": "FootBall",
+            "price": 2000.0
+          },
+          {
+            "name": "Football (7 a side)",
+            "sport": "FootBall",
+            "price": 3500.0
+          },
+          {
+            "name": "Box Cricket",
+            "sport": "Boxcricket",
+            "price": 2000.0
+          }
+        ]
+      },
+      {
+        "id": "fa18406e-d222-46b3-bf8b-56e39cb5cd3c",
+        "name": "5 a side Football - Malleshwaram",
+        "logic": "divisible",
+        "active": false,
+        "game_type": "FootBall",
+        "slices": [
+          {
+            "name": "5 a side",
+            "sport": "FootBall",
+            "price": 2000.0
+          },
+          {
+            "name": "7 a side",
+            "sport": "FootBall",
+            "price": 3500.0
+          }
+        ]
+      }
+    ]
+  },
+  "BCU": {
+    "id": "cfc0df1c-07c9-486f-960e-6b15bb9e3bf5",
+    "name": "Rush Arena BCU ",
+    "hours": {
+      "friday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "monday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "sunday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "tuesday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "saturday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "thursday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      },
+      "wednesday": {
+        "open": "06:00",
+        "close": "23:59",
+        "isActive": true
+      }
+    },
+    "courts": [
+      {
+        "id": "b1d49345-1c01-4c4b-a772-0c2c4639ff44",
+        "name": "Pickleball Courts (1-4)",
+        "logic": "divisible",
+        "active": true,
+        "game_type": "Pickleball",
+        "slices": [
+          {
+            "name": "Court 1",
+            "sport": "Pickleball",
+            "price": 1000.0
+          },
+          {
+            "name": "Court 2",
+            "sport": "Pickleball",
+            "price": 1000.0
+          },
+          {
+            "name": "Court 3",
+            "sport": "Pickleball",
+            "price": 1000.0
+          },
+          {
+            "name": "Court 4",
+            "sport": "Pickleball",
+            "price": 1000.0
+          }
+        ]
+      },
+      {
+        "id": "ac608dca-c720-414a-bca2-a599bbbb14b1",
+        "name": "Pickleball - BCU",
+        "logic": "independent",
+        "active": false,
+        "game_type": "Pickleball",
+        "slices": []
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
 
-function Drawer({ title, children, onClose, isOpen }) {
+function Drawer({ title, children, onClose, isOpen, size = 'md' }) {
     // Prevent body scroll when drawer is open
     useEffect(() => {
         if (isOpen) {
@@ -16,6 +16,13 @@ function Drawer({ title, children, onClose, isOpen }) {
 
     if (!isOpen) return null;
 
+    const sizeClasses = {
+        'md': 'max-w-md',
+        'lg': 'max-w-lg',
+        'xl': 'max-w-xl',
+        '2xl': 'max-w-2xl'
+    };
+
     return (
         <div className="fixed inset-0 z-50 overflow-hidden">
             <div className="absolute inset-0 overflow-hidden">
@@ -27,7 +34,7 @@ function Drawer({ title, children, onClose, isOpen }) {
 
                 {/* Drawer Panel */}
                 <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-0 sm:pl-10">
-                    <div className="pointer-events-auto w-screen max-w-md transform transition-transform duration-300 ease-in-out bg-white shadow-2xl">
+                    <div className={`pointer-events-auto w-screen ${sizeClasses[size] || 'max-w-md'} transform transition-transform duration-300 ease-in-out bg-white shadow-2xl`}>
                         <div className="flex h-full flex-col overflow-y-scroll bg-white">
                             {/* Header */}
                             <div className="px-6 py-6 border-b border-slate-100 flex items-center justify-between">

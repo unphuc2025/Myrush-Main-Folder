@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Search, Filter, ArrowUpDown, Eye, Pencil, Plus, MapPin, Building, Activity, XCircle, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Search, Filter, ArrowUpDown, Eye, Pencil, Plus, MapPin, Building, Activity, XCircle, Trash2, ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
 import Drawer from '../settings/Drawer';
 import AddBookingForm from './AddBookingForm';
-import { bookingsApi, citiesApi, branchesApi } from '../../services/adminApi';
+import { bookingsApi, citiesApi, branchesApi, gameTypesApi } from '../../services/adminApi';
 
 function BookingsManager() {
     const [bookings, setBookings] = useState([]);
@@ -15,7 +15,9 @@ function BookingsManager() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCityId, setSelectedCityId] = useState('');
     const [selectedBranchId, setSelectedBranchId] = useState('');
+    const [selectedGameTypeId, setSelectedGameTypeId] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
+    const [gameTypes, setGameTypes] = useState([]);
 
     // Sorting
     const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
@@ -57,15 +59,17 @@ function BookingsManager() {
 
                 // Fetch data individually to prevent 403 errors on metadata (e.g. cities/branches) 
                 // from blocking the main bookings result for restricted admins.
-                let citiesData = [], branchesData = [], bookingsData = [];
+                let citiesData = [], branchesData = [], bookingsData = [], gameTypesData = [];
                 try { citiesData = await citiesApi.getAll(); } catch (e) { console.warn("Bookings: Cities fetch failed", e); }
                 try { branchesData = await branchesApi.getAll(); } catch (e) { console.warn("Bookings: Branches fetch failed", e); }
                 try { bookingsData = await bookingsApi.getAll(branchId); } catch (e) { console.warn("Bookings: Bookings fetch failed", e); }
+                try { gameTypesData = await gameTypesApi.getAll(); } catch (e) { console.warn("Bookings: Game types fetch failed", e); }
 
                 if (isMounted) {
                     setCities(citiesData?.items || citiesData || []);
                     setBranches(branchesData?.items || branchesData || []);
                     setBookings(bookingsData?.items || bookingsData || []);
+                    setGameTypes(gameTypesData?.items || gameTypesData || []);
                 }
             } catch (err) {
                 console.error('Error fetching data:', err);
@@ -110,15 +114,18 @@ function BookingsManager() {
         .filter(booking => {
             const cityMatch = selectedCityId ? booking.court?.branch?.city_id === selectedCityId : true;
             const branchMatch = selectedBranchId ? booking.court?.branch_id === selectedBranchId : true;
+            const gameTypeMatch = selectedGameTypeId ? (booking.game_type_id === selectedGameTypeId || booking.court?.game_type_id === selectedGameTypeId) : true;
             const statusMatch = selectedStatus ? booking.status === selectedStatus : true;
             const searchMatch = searchTerm
                 ? (booking.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     booking.booking_reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     booking.customer_phone?.includes(searchTerm) ||
-                    booking.court?.branch?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+                    booking.court?.branch?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    booking.game_type?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    booking.court?.game_type?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
                 : true;
 
-            return cityMatch && branchMatch && statusMatch && searchMatch;
+            return cityMatch && branchMatch && gameTypeMatch && statusMatch && searchMatch;
         })
         .sort((a, b) => {
             if (!sortConfig.key) return 0;
@@ -215,7 +222,7 @@ function BookingsManager() {
         <div className="space-y-6">
             {/* Controls Bar */}
             <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full xl:w-auto flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 w-full xl:w-auto flex-1">
                     {/* Search */}
                     <div className="relative">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -255,6 +262,21 @@ function BookingsManager() {
                             <option value="">All Branches</option>
                             {filteredBranches.map(branch => (
                                 <option key={branch.id} value={branch.id}>{branch.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Filter - Sport */}
+                    <div className="relative">
+                        <Trophy className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <select
+                            value={selectedGameTypeId}
+                            onChange={(e) => setSelectedGameTypeId(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm appearance-none"
+                        >
+                            <option value="">All Sports</option>
+                            {gameTypes.map(type => (
+                                <option key={type.id} value={type.id}>{type.name}</option>
                             ))}
                         </select>
                     </div>
@@ -626,6 +648,7 @@ function BookingsManager() {
             <Drawer
                 title={editingBooking ? 'Edit Booking' : 'New Booking'}
                 isOpen={showDrawer && !viewingBooking}
+                size="lg"
                 onClose={() => {
                     setShowDrawer(false);
                     setEditingBooking(null);

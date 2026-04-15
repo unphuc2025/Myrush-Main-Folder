@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myrush Database ERD</title>
+    <!-- Include Mermaid JS from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .mermaid {
+            margin: 30px 0;
+            padding: 20px;
+            background: #ffffff;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Myrush Database Entity-Relationship Diagrams</h1>
+        
+        <h2>1. Core Hierarchy & Booking Flow</h2>
+        <div class="mermaid">
+            erDiagram
+                City ||--o{ Area : "contains"
+                City ||--o{ Branch : "has_venues"
+                Area ||--o{ Branch : "has_venues"
+            
+                Branch ||--o{ Court : "contains"
+                Branch }|--|{ GameType : "offers_sports"
+                Branch }|--|{ Amenity : "provides"
+            
+                Court }o--|| GameType : "is_type_of"
+                Court }o--|| FacilityType : "is_type_of"
+                Court }o--o| SharedGroup : "linked_to (for turf sharing)"
+                Court ||--o{ CourtUnit : "divided_into (A, B, C)"
+                Court ||--o{ DivisionMode : "can_be_booked_as (6-a-side)"
+                DivisionMode }|--|{ CourtUnit : "uses"
+            
+                User ||--|| Profile : "extended_data"
+                User ||--o{ Booking : "creates"
+                User ||--o{ Review : "writes"
+                User ||--o{ Tournament : "organizes"
+                User ||--o{ TournamentParticipant : "joins"
+                User ||--o{ PaymentMethod : "saves"
+            
+                Booking }o--|| Court : "reserves_slots"
+                Booking }o--o| Coupon : "applies_discount"
+                Booking ||--o| Review : "receives"
+                Booking ||--o| PlayoOrder : "originates_from"
+            
+                Tournament ||--o{ TournamentParticipant : "has_players"
+            
+                Admin }o--o| Role : "has_permissions"
+                Admin }|--|{ Branch : "manages"
+        </div>
+
+        <h2>2. Partner Integrations & Extensions</h2>
+        <div class="mermaid">
+            erDiagram
+                Partner ||--o{ IdempotencyKey : "prevents_duplicates"
+                Partner ||--o{ IntegrationLog : "audits_requests"
+                Partner ||--o{ OutboxEvent : "receives_webhooks"
+            
+                Branch ||--o{ PlayoOrder : "receives"
+                Court ||--o{ PlayoOrder : "receives"
+        </div>
+
+        <h2>3. Attribute Definitions (Key Tables)</h2>
+        <div class="mermaid">
+            erDiagram
+                User {
+                    UUID id PK
+                    String phone_number UK
+                    String email UK
+                    String password_hash
+                    String full_name
+                    Boolean is_verified
+                }
+            
+                Profile {
+                    UUID id PK "FK to User"
+                    Integer games_played
+                    Integer reliability_score
+                    Decimal rating
+                    JSON sports_interests
+                }
+            
+                Booking {
+                    UUID id PK
+                    UUID user_id FK
+                    UUID court_id FK
+                    Date booking_date
+                    JSON time_slots "Stores the half-hour chunks"
+                    Decimal total_amount
+                    String status
+                    String payment_status
+                }
+            
+                Court {
+                    UUID id PK
+                    UUID branch_id FK
+                    String name
+                    String logic_type "independent, shared, divisible"
+                    Decimal price_per_hour
+                    JSON unavailability_slots "Blocked out times"
+                    JSON price_conditions "Surge/Discount rules"
+                }
+            
+                Branch {
+                    UUID id PK
+                    String name
+                    String address_line1
+                    JSON opening_hours
+                    Decimal latitude
+                    Decimal longitude
+                }
+        </div>
+
+        <h2>4. Court Sharing & Overlaps Architecture</h2>
+        <div class="mermaid">
+            erDiagram
+                Court {
+                    UUID id PK
+                    String logic_type "independent | shared | divisible | capacity"
+                    Integer capacity_limit "Used if logic_type=capacity"
+                }
+
+                Booking {
+                    UUID id PK
+                    UUID court_id FK
+                    JSON time_slots "Stores the actual reserved times"
+                    UUID division_mode_id FK "Used ONLY if logic_type=divisible"
+                }
+
+                SharedGroup {
+                    UUID id PK
+                    String name "e.g., Main Turf Group"
+                }
+
+                CourtUnit {
+                    UUID id PK
+                    String name "e.g., A, B, C, D"
+                }
+
+                DivisionMode {
+                    UUID id PK
+                    String name "e.g., 6-a-side, 11-a-side"
+                }
+
+                Court }o--o| SharedGroup : "Belongs to (If logic=shared)"
+                Court ||--o{ CourtUnit : "Divided into (If logic=divisible)"
+                Court ||--o{ DivisionMode : "Can be booked as (If logic=divisible)"
+                
+                DivisionMode }|--|{ CourtUnit : "Comprises (e.g., A+B)"
+                
+                Booking }o--|| Court : "Reserves"
+                Booking }o--o| DivisionMode : "Selects Configuration"
+        </div>
+    </div>
+
+    <!-- Initialize Mermaid -->
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            er: {
+                useMaxWidth: true
+            }
+        });
+    </script>
+</body>
+</html>

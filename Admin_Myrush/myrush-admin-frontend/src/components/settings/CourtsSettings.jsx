@@ -3,7 +3,7 @@ import { Edit2, Plus, Play, Eye, Trash2, X, Settings, Search, Building2, MapPin,
 import ToggleSwitch from './ToggleSwitch';
 import AddCourtForm from './AddCourtForm';
 import Drawer from './Drawer';
-import { citiesApi, branchesApi, gameTypesApi, courtsApi, globalPriceConditionsApi, IMAGE_BASE_URL, getImageUrl } from '../../services/adminApi';
+import { citiesApi, branchesApi, gameTypesApi, courtsApi, globalPriceConditionsApi, adminsApi, IMAGE_BASE_URL, getImageUrl } from '../../services/adminApi';
 
 const formatTimeAMPM = (timeStr) => {
   if (!timeStr) return '';
@@ -73,13 +73,51 @@ function CourtsSettings() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Permission Logic
-  const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
-  const isSuperAdmin = adminInfo.role === 'super_admin';
-  const permissions = adminInfo.permissions?.['Manage Courts'] || {};
-  const canAdd = isSuperAdmin || permissions.add;
-  const canEdit = isSuperAdmin || permissions.edit;
-  const canDelete = isSuperAdmin || permissions.delete;
-  const canView = isSuperAdmin || permissions.view;
+  const [adminPermissions, setAdminPermissions] = useState(() => {
+    const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+    const isSuperAdmin = adminInfo.role === 'super_admin';
+    const perms = adminInfo.permissions?.['Manage Courts'] || {};
+    return {
+      isSuperAdmin,
+      canAdd: isSuperAdmin || perms.add,
+      canEdit: isSuperAdmin || perms.edit,
+      canDelete: isSuperAdmin || perms.delete,
+      canView: isSuperAdmin || perms.view || perms.access
+    };
+  });
+
+  const { isSuperAdmin, canAdd, canEdit, canDelete, canView } = adminPermissions;
+
+  // Sync permissions with fresh data from backend on mount
+  useEffect(() => {
+    const refreshPermissions = async () => {
+      try {
+        const freshAdmin = await adminsApi.getMe();
+        if (freshAdmin) {
+          // Update localStorage to keep it in sync for other components
+          localStorage.setItem('admin_info', JSON.stringify(freshAdmin));
+          
+          const perms = freshAdmin.permissions?.['Manage Courts'] || {};
+          const isSuper = freshAdmin.role === 'super_admin';
+          
+          setAdminPermissions({
+            isSuperAdmin: isSuper,
+            canAdd: isSuper || perms.add,
+            canEdit: isSuper || perms.edit,
+            canDelete: isSuper || perms.delete,
+            canView: isSuper || perms.view || perms.access
+          });
+          
+          // Trigger event for sidebar and other listeners
+          window.dispatchEvent(new Event('admin-info-updated'));
+        }
+      } catch (err) {
+        console.error('Failed to refresh admin permissions:', err);
+      }
+    };
+
+    refreshPermissions();
+  }, []);
 
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);

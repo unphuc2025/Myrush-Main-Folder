@@ -9,7 +9,6 @@ import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
 import { FaUser, FaTrophy, FaEdit, FaCalendarCheck, FaClock, FaStar, FaChevronRight, FaFutbol, FaCalendarAlt, FaMapMarkerAlt, FaHeart } from 'react-icons/fa';
 import { useFavorites } from '../context/FavoritesContext';
-import { useNotification } from '../context/NotificationContext';
 
 export const Profile: React.FC = () => {
     const navigate = useNavigate();
@@ -23,7 +22,7 @@ export const Profile: React.FC = () => {
     const [reviewsLoading, setReviewsLoading] = useState(false);
     const [activeMobileSection, setActiveMobileSection] = useState<'profile' | 'reviews' | 'favorites' | null>(null);
     const [searchParams] = useSearchParams();
-    const { showAlert } = useNotification();
+
 
     // Sync activeMobileSection with query parameter
     useEffect(() => {

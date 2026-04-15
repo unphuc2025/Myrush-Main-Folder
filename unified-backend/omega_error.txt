@@ -1,0 +1,118 @@
+ERROR: (psycopg2.errors.ForeignKeyViolation) insert or update on table "admin_courts" violates foreign key constraint "fk_courts_game_type"
+DETAIL:  Key (game_type_id)=(086326ed-7848-4e8c-a131-4be501178619) is not present in table "admin_game_types".
+
+[SQL: INSERT INTO admin_courts (id, branch_id, game_type_id, facility_type_id, name, logic_type, shared_group_id, capacity_limit, total_zones, price_per_hour, images, videos, terms_and_conditions, amenities, is_active, created_at, updated_at) VALUES (%(id)s::UUID, %(branch_id)s::UUID, %(game_type_id)s::UUID, %(facility_type_id)s::UUID, %(name)s, %(logic_type)s, %(shared_group_id)s::UUID, %(capacity_limit)s, %(total_zones)s, %(price_per_hour)s, %(images)s::TEXT[], %(videos)s::TEXT[], %(terms_and_conditions)s, %(amenities)s::VARCHAR[], %(is_active)s, %(created_at)s, %(updated_at)s)]
+[parameters: {'id': UUID('80c422bb-b5ad-46d3-93ea-af6673b13e0a'), 'branch_id': '4a3708bd-5d29-4b61-ac5c-87f1b737cb49', 'game_type_id': '086326ed-7848-4e8c-a131-4be501178619', 'facility_type_id': UUID('6b94382b-6471-4c37-a82d-7fdb0b85d2d3'), 'name': 'Multi-Sport Court (Basketball / Pickleball)', 'logic_type': 'divisible', 'shared_group_id': None, 'capacity_limit': 1, 'total_zones': 4, 'price_per_hour': 800, 'images': None, 'videos': None, 'terms_and_conditions': None, 'amenities': None, 'is_active': True, 'created_at': datetime.datetime(2026, 3, 24, 10, 46, 9, 741993), 'updated_at': datetime.datetime(2026, 3, 24, 10, 46, 9, 741999)}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+Traceback (most recent call last):
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\engine\default.py", line 941, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.ForeignKeyViolation: insert or update on table "admin_courts" violates foreign key constraint "fk_courts_game_type"
+DETAIL:  Key (game_type_id)=(086326ed-7848-4e8c-a131-4be501178619) is not present in table "admin_game_types".
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\myrush-Main-folder\unified-backend\fix_omega_circuit.py", line 94, in <module>
+    db.flush()
+    ~~~~~~~~^^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\orm\session.py", line 4352, in flush
+    self._flush(objects)
+    ~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\orm\session.py", line 4487, in _flush
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\orm\session.py", line 4448, in _flush
+    flush_context.execute()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.mapper,
+        ^^^^^^^^^^^^
+        uow.states_for_mapper_hierarchy(self.mapper, False, False),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        uow,
+        ^^^^
+    )
+    ^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\orm\persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        base_mapper,
+        ^^^^^^^^^^^^
+    ...<3 lines>...
+        insert,
+        ^^^^^^^
+    )
+    ^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\orm\persistence.py", line 1048, in _emit_insert_statements
+    result = connection.execute(
+        statement, multiparams, execution_options=execution_options
+    )
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\engine\base.py", line 1418, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\sql\elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\engine\base.py", line 1640, in _execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<8 lines>...
+        cache_hit=cache_hit,
+    )
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ajayp\Desktop\python\Lib\site-packages\sqlalchemy\engine\default.py", line 941, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.IntegrityError: (psycopg2.errors.ForeignKeyViolation) insert or update on table "admin_courts" violates foreign key constraint "fk_courts_game_type"
+DETAIL:  Key (game_type_id)=(086326ed-7848-4e8c-a131-4be501178619) is not present in table "admin_game_types".
+
+[SQL: INSERT INTO admin_courts (id, branch_id, game_type_id, facility_type_id, name, logic_type, shared_group_id, capacity_limit, total_zones, price_per_hour, images, videos, terms_and_conditions, amenities, is_active, created_at, updated_at) VALUES (%(id)s::UUID, %(branch_id)s::UUID, %(game_type_id)s::UUID, %(facility_type_id)s::UUID, %(name)s, %(logic_type)s, %(shared_group_id)s::UUID, %(capacity_limit)s, %(total_zones)s, %(price_per_hour)s, %(images)s::TEXT[], %(videos)s::TEXT[], %(terms_and_conditions)s, %(amenities)s::VARCHAR[], %(is_active)s, %(created_at)s, %(updated_at)s)]
+[parameters: {'id': UUID('80c422bb-b5ad-46d3-93ea-af6673b13e0a'), 'branch_id': '4a3708bd-5d29-4b61-ac5c-87f1b737cb49', 'game_type_id': '086326ed-7848-4e8c-a131-4be501178619', 'facility_type_id': UUID('6b94382b-6471-4c37-a82d-7fdb0b85d2d3'), 'name': 'Multi-Sport Court (Basketball / Pickleball)', 'logic_type': 'divisible', 'shared_group_id': None, 'capacity_limit': 1, 'total_zones': 4, 'price_per_hour': 800, 'images': None, 'videos': None, 'terms_and_conditions': None, 'amenities': None, 'is_active': True, 'created_at': datetime.datetime(2026, 3, 24, 10, 46, 9, 741993), 'updated_at': datetime.datetime(2026, 3, 24, 10, 46, 9, 741999)}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)

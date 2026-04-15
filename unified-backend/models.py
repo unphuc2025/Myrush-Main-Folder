@@ -667,6 +667,25 @@ class Partner(Base):
     created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
 
+    webhook_configs = relationship("PartnerWebhookConfig", back_populates="partner", cascade="all, delete-orphan")
+
+class PartnerWebhookConfig(Base):
+    """Specific webhook endpoints for different event categories per partner"""
+    __tablename__ = "integration_partner_webhooks"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
+    partner_id = Column(UUID(as_uuid=True), ForeignKey("integration_partners.id", ondelete="CASCADE"), nullable=False)
+    event_name = Column(String(100), nullable=False)  # e.g., 'availability', 'pricing', 'maintenance'
+    webhook_url = Column(Text, nullable=False)
+    headers = Column(JSONB, nullable=True)  # custom auth or meta headers
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
+
+    partner = relationship("Partner", back_populates="webhook_configs")
+    __table_args__ = (
+        UniqueConstraint('partner_id', 'event_name', name='uq_partner_event_webhook'),
+    )
+
 class IdempotencyKey(Base):
     """Stores unique transaction IDs from partners to prevent duplicate processing"""
     __tablename__ = "integration_idempotency_keys"
@@ -704,12 +723,14 @@ class OutboxEvent(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
     partner_id = Column(UUID(as_uuid=True), ForeignKey("integration_partners.id", ondelete="CASCADE"), nullable=False)
     event_type = Column(String(100), nullable=False)  # e.g., 'INVENTORY_UPDATE'
+    category = Column(String(50), nullable=True)  # e.g., 'availability', 'pricing'
     payload = Column(JSONB, nullable=False)  # The exact JSON string to send to the webhook
-    status = Column(String(20), default='pending', index=True)  # 'pending', 'processing', 'completed', 'failed'
+    status = Column(String(20), default='pending', index=True)  # 'pending', 'processing', 'completed', 'failed', 'dead'
     attempts = Column(Integer, default=0)
     max_attempts = Column(Integer, default=5)
     last_attempt_at = Column(TIMESTAMP, nullable=True)
     next_attempt_at = Column(TIMESTAMP, default=datetime.utcnow, index=True)  # Used for Exponential Backoff
+    error_message = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
 
     partner = relationship("Partner")
@@ -724,9 +745,13 @@ class CourtBlock(Base):
     end_time = Column(Time, nullable=False)
     reason = Column(String(255), nullable=True) # e.g., "Maintenance", "Tournament"
     blocked_by_id = Column(UUID(as_uuid=True), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)
-    slice_mask = Column(Integer, nullable=True, default=0) # 0 means block entire court, >0 blocks specific bits
+    slice_mask = Column(Integer, nullable=False, default=0, server_default='0') # 0 means block entire court, >0 blocks specific bits
     synced_partners = Column(ARRAY(String), default=[]) # e.g. ["District", "Playo"]
     created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
     
     court = relationship("Court")
     blocked_by = relationship("Admin")
+
+    __table_args__ = (
+        UniqueConstraint('court_id', 'block_date', 'start_time', 'end_time', 'slice_mask', name='unique_court_block_slot'),
+    )

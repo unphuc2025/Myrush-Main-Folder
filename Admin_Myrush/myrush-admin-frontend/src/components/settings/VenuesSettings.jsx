@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import Drawer from './Drawer';
 import ToggleSwitch from './ToggleSwitch';
-import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi, IMAGE_BASE_URL, getImageUrl, sanitizeImageUrl } from '../../services/adminApi';
+import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi, adminsApi, IMAGE_BASE_URL, getImageUrl, sanitizeImageUrl } from '../../services/adminApi';
 
 function VenueViewModal({ venue, cities, areas, onClose }) {
   const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -37,8 +37,8 @@ function VenueViewModal({ venue, cities, areas, onClose }) {
         </div>
 
         {/* Action Status */}
-        <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-100">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-100 overflow-hidden">
+          <div className="flex items-center gap-3 min-w-0">
             <div className={`h-10 w-10 rounded-full flex items-center justify-center ${venue.is_active ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
               {venue.is_active ? <CheckCircle2 className="h-6 w-6" /> : <XCircle className="h-6 w-6" />}
             </div>
@@ -59,7 +59,7 @@ function VenueViewModal({ venue, cities, areas, onClose }) {
               <div className="bg-white border border-slate-100 rounded-xl p-4 space-y-4 shadow-sm">
                 <div>
                   <label className="text-[10px] text-slate-400 uppercase font-black">Venue Name</label>
-                  <p className="font-bold text-slate-900 text-lg">{venue.name}</p>
+                  <p className="font-bold text-slate-900 text-lg break-words">{venue.name}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -186,12 +186,14 @@ function VenueViewModal({ venue, cities, areas, onClose }) {
                 <div className="space-y-2">
                   {DAYS.map(day => {
                     const hoursRaw = venue.opening_hours ? (typeof venue.opening_hours === 'string' ? JSON.parse(venue.opening_hours) : venue.opening_hours) : {};
-                    const hours = hoursRaw[day] || { open: '09:00', close: '22:00', isActive: false };
+                    const hours = hoursRaw[day] || { slots: [{ open: '09:00', close: '22:00' }], isActive: false };
                     return (
                       <div key={day} className="flex items-center justify-between text-xs py-1 border-b border-slate-50 last:border-0">
                         <span className="capitalize font-bold text-slate-500">{day}</span>
-                        <span className={`font-black ${hours.isActive ? 'text-slate-900' : 'text-slate-300 italic'}`}>
-                          {hours.isActive ? `${hours.open} - ${hours.close}` : 'Closed'}
+                        <span className={`font-black text-right ${hours.isActive ? 'text-slate-900' : 'text-slate-300 italic'}`}>
+                          {hours.isActive ? (
+                            hours.slots ? hours.slots.map(s => `${s.open}-${s.close}`).join(', ') : `${hours.open}-${hours.close}`
+                          ) : 'Closed'}
                         </span>
                       </div>
                     );
@@ -247,13 +249,51 @@ function VenuesSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Permission Logic
-  const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
-  const isSuperAdmin = adminInfo.role === 'super_admin';
-  const permissions = adminInfo.permissions?.['Manage Branch'] || {};
-  const canAdd = isSuperAdmin || permissions.add;
-  const canEdit = isSuperAdmin || permissions.edit;
-  const canDelete = isSuperAdmin || permissions.delete;
-  const canView = isSuperAdmin || permissions.view;
+  const [adminPermissions, setAdminPermissions] = useState(() => {
+    const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+    const isSuperAdmin = adminInfo.role === 'super_admin';
+    const perms = adminInfo.permissions?.['Manage Branch'] || {};
+    return {
+      isSuperAdmin,
+      canAdd: isSuperAdmin || perms.add,
+      canEdit: isSuperAdmin || perms.edit,
+      canDelete: isSuperAdmin || perms.delete,
+      canView: isSuperAdmin || perms.view || perms.access
+    };
+  });
+
+  const { isSuperAdmin, canAdd, canEdit, canDelete, canView } = adminPermissions;
+
+  // Sync permissions with fresh data from backend on mount
+  useEffect(() => {
+    const refreshPermissions = async () => {
+      try {
+        const freshAdmin = await adminsApi.getMe();
+        if (freshAdmin) {
+          // Update localStorage to keep it in sync for other components
+          localStorage.setItem('admin_info', JSON.stringify(freshAdmin));
+          
+          const perms = freshAdmin.permissions?.['Manage Branch'] || {};
+          const isSuper = freshAdmin.role === 'super_admin';
+          
+          setAdminPermissions({
+            isSuperAdmin: isSuper,
+            canAdd: isSuper || perms.add,
+            canEdit: isSuper || perms.edit,
+            canDelete: isSuper || perms.delete,
+            canView: isSuper || perms.view || perms.access
+          });
+          
+          // Trigger event for sidebar and other listeners
+          window.dispatchEvent(new Event('admin-info-updated'));
+        }
+      } catch (err) {
+        console.error('Failed to refresh admin permissions:', err);
+      }
+    };
+
+    refreshPermissions();
+  }, []);
 
   // Filter state
   const [selectedCityId, setSelectedCityId] = useState('');
@@ -435,6 +475,45 @@ function VenuesSettings() {
   // Filter venues - now handled server-side mostly, but client side city filter used if citiesApi doesn't support it
   const filteredVenues = venues;
 
+  const normalizeOpeningHours = (raw) => {
+    const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const defaultHours = {};
+    DAYS.forEach(day => {
+      defaultHours[day] = { isActive: true, slots: [{ open: '09:00', close: '22:00' }] };
+    });
+
+    if (!raw) return defaultHours;
+    
+    let parsed = raw;
+    if (typeof raw === 'string') {
+      try { parsed = JSON.parse(raw); } catch (e) { return defaultHours; }
+    }
+
+    const normalized = {};
+    DAYS.forEach(day => {
+      const config = parsed[day] || parsed[day.charAt(0).toUpperCase() + day.slice(1)] || {};
+      
+      // If it has slots, it's already new format
+      if (Array.isArray(config.slots)) {
+        normalized[day] = {
+          isActive: config.isActive !== undefined ? config.isActive : (config.active !== undefined ? config.active : true),
+          slots: config.slots.length > 0 ? config.slots : [{ open: '09:00', close: '22:00' }]
+        };
+      } else {
+        // Legacy format
+        normalized[day] = {
+          isActive: config.isActive !== undefined ? config.isActive : (config.active !== undefined ? config.active : false),
+          slots: [{
+            open: config.open || config.startTime || '09:00',
+            close: config.close || config.endTime || '22:00'
+          }]
+        };
+      }
+    });
+
+    return normalized;
+  };
+
   const handleAddClick = () => {
     setEditingVenue(null);
     setFormData({
@@ -455,15 +534,7 @@ function VenuesSettings() {
       groundType: 'single',
       selectedGames: [],
       selectedAmenities: [],
-      openingHours: {
-        monday: { open: '09:00', close: '22:00', isActive: true },
-        tuesday: { open: '09:00', close: '22:00', isActive: true },
-        wednesday: { open: '09:00', close: '22:00', isActive: true },
-        thursday: { open: '09:00', close: '22:00', isActive: true },
-        friday: { open: '09:00', close: '22:00', isActive: true },
-        saturday: { open: '08:00', close: '23:00', isActive: true },
-        sunday: { open: '08:00', close: '23:00', isActive: true }
-      },
+      openingHours: normalizeOpeningHours(null),
       images: [],
       imagePreviews: [],
       existingImages: [],
@@ -474,28 +545,6 @@ function VenuesSettings() {
 
   const handleEditClick = (venue) => {
     setEditingVenue(venue);
-
-    // Parse opening hours if string, otherwise use default
-    let openingHours = {
-      monday: { open: '09:00', close: '22:00', isActive: true },
-      tuesday: { open: '09:00', close: '22:00', isActive: true },
-      wednesday: { open: '09:00', close: '22:00', isActive: true },
-      thursday: { open: '09:00', close: '22:00', isActive: true },
-      friday: { open: '09:00', close: '22:00', isActive: true },
-      saturday: { open: '08:00', close: '23:00', isActive: true },
-      sunday: { open: '08:00', close: '23:00', isActive: true }
-    };
-
-    if (venue.opening_hours) {
-      try {
-        openingHours = typeof venue.opening_hours === 'string'
-          ? JSON.parse(venue.opening_hours)
-          : venue.opening_hours;
-      } catch (e) {
-        console.error("Error parsing opening hours", e);
-      }
-    }
-
     setFormData({
       name: venue.name,
       cityId: venue.city_id ? venue.city_id.toString() : '',
@@ -514,7 +563,7 @@ function VenuesSettings() {
       groundType: venue.ground_type || 'single',
       selectedGames: venue.game_types?.map(gt => gt.id) || [],
       selectedAmenities: venue.amenities?.map(am => am.id) || [],
-      openingHours: openingHours,
+      openingHours: normalizeOpeningHours(venue.opening_hours),
       images: [],
       imagePreviews: [],
       existingImages: venue.images || [],
@@ -607,17 +656,49 @@ function VenuesSettings() {
     }));
   };
 
-  const handleOpeningHoursChange = (day, type, value) => {
+  const handleOpeningHoursChange = (day, index, field, value) => {
+    setFormData(prev => {
+      const newSlots = [...prev.openingHours[day].slots];
+      newSlots[index] = { ...newSlots[index], [field]: value };
+      return {
+        ...prev,
+        openingHours: {
+          ...prev.openingHours,
+          [day]: { ...prev.openingHours[day], slots: newSlots }
+        }
+      };
+    });
+  };
+
+  const addInterval = (day) => {
     setFormData(prev => ({
       ...prev,
       openingHours: {
         ...prev.openingHours,
         [day]: {
           ...prev.openingHours[day],
-          [type]: value
+          isActive: true,
+          slots: [...prev.openingHours[day].slots, { open: '09:00', close: '22:00' }]
         }
       }
     }));
+  };
+
+  const removeInterval = (day, index) => {
+    setFormData(prev => {
+      const dayConfig = prev.openingHours[day];
+      if (dayConfig.slots.length <= 1) return prev;
+      return {
+        ...prev,
+        openingHours: {
+          ...prev.openingHours,
+          [day]: {
+            ...dayConfig,
+            slots: dayConfig.slots.filter((_, i) => i !== index)
+          }
+        }
+      };
+    });
   };
 
   const handleDayToggle = (day) => {
@@ -883,8 +964,8 @@ function VenuesSettings() {
             <div className="md:hidden space-y-4 p-4">
               {filteredVenues.map(venue => (
                 <div key={venue.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3">
+                  <div className="flex justify-between items-start gap-4 w-full">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="h-12 w-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                         {venue.images && venue.images.length > 0 ? (
                           <img src={getImageUrl(venue.images[0])} alt={venue.name} className="h-full w-full object-cover" />
@@ -894,8 +975,8 @@ function VenuesSettings() {
                           </div>
                         )}
                       </div>
-                      <div className="flex-[3] min-w-0 pr-2">
-                        <h4 className="font-bold text-slate-900 truncate leading-tight">{venue.name}</h4>
+                      <div className="flex-1 min-w-0 pr-2">
+                        <h4 className="font-bold text-slate-900 line-clamp-2 leading-snug">{venue.name}</h4>
                         <div className="flex flex-wrap gap-1 mt-1.5">
                           <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide capitalize ${venue.ground_type === 'multiple' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                             {venue.ground_type || 'Single'}
@@ -907,11 +988,13 @@ function VenuesSettings() {
                         </div>
                       </div>
                     </div>
-                    <ToggleSwitch
-                      isChecked={venue.is_active}
-                      onToggle={() => canEdit && handleToggleVenue(venue)}
-                      disabled={!canEdit}
-                    />
+                    <div className="flex-shrink-0">
+                      <ToggleSwitch
+                        isChecked={venue.is_active}
+                        onToggle={() => canEdit && handleToggleVenue(venue)}
+                        disabled={!canEdit}
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -1400,7 +1483,7 @@ function VenuesSettings() {
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 ml-1">Opening Hours</label>
               <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 {DAYS.map(day => {
-                  const hours = formData.openingHours[day] || { open: '09:00', close: '22:00', isActive: false };
+                  const hours = formData.openingHours[day] || { slots: [{ open: '09:00', close: '22:00' }], isActive: false };
                   return (
                     <div key={day} className="flex items-center gap-3">
                       <div className="w-40 flex items-center gap-2">
@@ -1414,22 +1497,45 @@ function VenuesSettings() {
                       </div>
 
                       {hours.isActive ? (
-                        <div className="flex-1 flex items-center gap-2">
-                          <input
-                            type="time"
-                            value={hours.open}
-                            onChange={(e) => handleOpeningHoursChange(day, 'open', e.target.value)}
-                            disabled={!!viewingVenue}
-                            className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:border-green-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
-                          />
-                          <span className="text-slate-400 self-center">-</span>
-                          <input
-                            type="time"
-                            value={hours.close}
-                            onChange={(e) => handleOpeningHoursChange(day, 'close', e.target.value)}
-                            disabled={!!viewingVenue}
-                            className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:border-green-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
-                          />
+                        <div className="flex-1 space-y-2">
+                          {Array.isArray(hours.slots) && hours.slots.map((slot, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <input
+                                type="time"
+                                value={slot.open}
+                                onChange={(e) => handleOpeningHoursChange(day, index, 'open', e.target.value)}
+                                disabled={!!viewingVenue}
+                                className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:border-green-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                              />
+                              <span className="text-slate-400 self-center">-</span>
+                              <input
+                                type="time"
+                                value={slot.close}
+                                onChange={(e) => handleOpeningHoursChange(day, index, 'close', e.target.value)}
+                                disabled={!!viewingVenue}
+                                className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:border-green-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                              />
+                              {!viewingVenue && hours.slots.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeInterval(day, index)}
+                                  className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                  title="Remove Interval"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          {!viewingVenue && (
+                            <button
+                              type="button"
+                              onClick={() => addInterval(day)}
+                              className="inline-flex items-center gap-1.5 text-[10px] font-bold text-green-600 hover:text-green-700 uppercase tracking-wider ml-1 hover:underline"
+                            >
+                              <Plus className="h-3 w-3" /> Add Range
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <div className="flex-1 py-1.5">

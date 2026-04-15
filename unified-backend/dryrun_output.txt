@@ -1,0 +1,262 @@
+--- SMART MERGE DRY RUN ---
+[ERROR] Could not match branch: Location
+
+[TARGET] Rush Arena - Rajajinagar -> Football/Boxcricket
+   Zones: 1, Type: Turf
+   Pricing/Rules: '2000'
+   [MERGE] Selected Master Court: 'Football - Rajajinagar' (ID: cdd873c0-331a-4ccd-ae9e-6d4e63200718)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Rush Arena X KheloMore GT Mall -> Football & Boxcricket
+   Zones: 2, Type: Turf
+   Pricing/Rules: '2000'
+   [MERGE] Selected Master Court: 'Boxcricket - Khelomore GT Mall' (ID: e9f8c22b-6029-461c-aeb7-b8408a931f86)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 2
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Rush Arena Cooke Town -> Football/Boxcricket
+   Zones: 4, Type: Turf
+   Pricing/Rules: '6 a side 2000\n8 a side 3500\n10 a side 6000'
+   [MERGE] Selected Master Court: 'Football' (ID: 8494fa95-f072-4ce4-97cb-4106b86d15fe)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 4
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Rush Arena Cooke Town -> Pickleball
+   Zones: 4, Type: Court
+   Pricing/Rules: '1000'
+   [MERGE] Selected Master Court: 'Pickleball - Cooke Town' (ID: 2c2cccff-ba16-413f-998e-f15fa2246210)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 4
+
+[TARGET] Rush Arena x Hotfut - South United GVH -> Football,Boxcricket & Frisbee
+   Zones: 1, Type: Turf
+   Pricing/Rules: '1400'
+   [MERGE] Selected Master Court: '5 a side (1 turf) Football - South United GVH' (ID: baa0aa72-e313-49c5-ba77-7c9a02cfae55)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Rush Arena - Kasavanahalli -> Football,Boxcricket
+   Zones: 1, Type: Turf
+   Pricing/Rules: '1400'
+   [MERGE] Selected Master Court: '6 a side (1 turf) Football - Kasavanahalli' (ID: 4599e4bc-d9d2-413e-a82c-8c84ebbcc758)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Rush Arena - Kasavanahalli -> Cricket Nets
+   Zones: 2, Type: Nets
+   Pricing/Rules: '350'
+   [ACTION] No existing court found! Script would CREATE a new one.
+
+[TARGET] Rush x Ace Arena - Hesaraghatta Main Road -> Badminton
+   Zones: 3, Type: Court
+   Pricing/Rules: '300'
+   [MERGE] Selected Master Court: 'Badminton - Hesaraghatta' (ID: 1769ad76-0a4d-43c7-9b4f-69c2e8e0fdbd)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 3
+
+[TARGET] Rush x Ace Arena - Hesaraghatta Main Road -> Swimming
+   Zones: 1, Type: Pool
+   Pricing/Rules: '150'
+   [MERGE] Selected Master Court: 'Swimming - Hesaraghatta' (ID: fe8a5cd9-4ccb-40ad-bd98-a247d6776cb8)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 1
+
+[TARGET] Rush x Ace Arena - Hesaraghatta Main Road -> Squash Wooden
+   Zones: 1, Type: Court
+   Pricing/Rules: '150'
+   [MERGE] Selected Master Court: 'Squash Wooden - Hesaraghatta' (ID: 4d7c6733-1019-4eb3-aff3-dc0fdfbf1d8a)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 1
+
+[TARGET] Rush x Ace Arena - Hesaraghatta Main Road -> Table Tennis
+   Zones: 2, Type: Table
+   Pricing/Rules: '150'
+   [ACTION] No existing court found! Script would CREATE a new one.
+
+[TARGET] Rush x Ace Arena - Hesaraghatta Main Road -> Cricket Nets
+   Zones: 3, Type: Nets
+   Pricing/Rules: '200'
+   [ACTION] No existing court found! Script would CREATE a new one.
+[ERROR] Could not match sport: Bowling Machine for row Rush x Ace Arena - Hesaraghatta Main Road
+
+[TARGET] Rush Arena x Grid Game -> Football/Boxcricket
+   Zones: 1, Type: Turf
+   Pricing/Rules: '1000'
+   [MERGE] Selected Master Court: '5 a side (1 turf) Football - Grid Game' (ID: f0eb02ee-b32f-4b03-99c2-d1dfcfa85205)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Omega Circuit By RUSH - Hyderabad -> Football/Boxcricket
+   Zones: 1, Type: Turf
+   Pricing/Rules: '1800'
+   [MERGE] Selected Master Court: 'Football - Omega circuit HYD' (ID: 648cc35b-28ae-4e2d-98c5-f9e5d14beaa9)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Omega Circuit By RUSH - Hyderabad -> Basketball/Pickleball
+   Zones: 1, Type: Court
+   Pricing/Rules: 'Basketball 1800\nPickleball 800'
+   [MERGE] Selected Master Court: 'Basketball - Omega cricuit HYD' (ID: 461dc8d2-4494-4b06-b5b1-cab3085d0a8d)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 1
+
+[TARGET] Omega Circuit By RUSH - Hyderabad -> Volleyball
+   Zones: 1, Type: Court
+   Pricing/Rules: '800'
+   [MERGE] Selected Master Court: 'Volleyball - Omega cricuit HYD' (ID: 45a9085e-5bfa-4342-86f9-b44e9c07d449)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 1
+
+[TARGET] Rush Arena Railways -> Boxcricket
+   Zones: 1, Type: Turf
+   Pricing/Rules: '3000'
+   [MERGE] Selected Master Court: 'Boxcricket - Railways' (ID: 0e376b13-b84d-4808-9281-038daa4e1984)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Rush Arena Railways -> nets
+   Zones: 3, Type: Nets
+   Pricing/Rules: '500'
+   [MERGE] Selected Master Court: 'Nets - Railways' (ID: 6bd6ee5e-d100-4ee5-8369-e6989a4ba69f)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 3
+
+[TARGET] Rush Arena Railways -> cricket
+   Zones: 1, Type: Turf
+   Pricing/Rules: '5000'
+   [MERGE] Selected Master Court: 'Boxcricket - Railways' (ID: 0e376b13-b84d-4808-9281-038daa4e1984)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Rush Arena Railways -> Volleyball
+   Zones: 1, Type: Court
+   Pricing/Rules: '1000'
+   [ACTION] No existing court found! Script would CREATE a new one.
+
+[TARGET] Rush Arena Railways -> Football
+   Zones: 1, Type: Turf
+   Pricing/Rules: '3000'
+   [MERGE] Selected Master Court: 'Football - Railways' (ID: 30636923-41f3-47c6-8073-a41d393cf446)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Rush Arena Malleshwaram -> Pickleball
+   Zones: 4, Type: Court
+   Pricing/Rules: '1000'
+   [MERGE] Selected Master Court: 'Pickleball - Malleshwaram' (ID: 126cd145-4ba8-4a13-8b24-e1c8454f2eae)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 4
+
+[TARGET] Rush Arena Malleshwaram -> Football/Boxcricket
+   Zones: 1, Type: Turf
+   Pricing/Rules: '5 a side - 2000\n7 a side - 3500'
+   [MERGE] Selected Master Court: '5 a side Football - Malleshwaram' (ID: fa18406e-d222-46b3-bf8b-56e39cb5cd3c)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Rush Arena Malleshwaram -> Pickleball
+   Zones: 4, Type: Court
+   Pricing/Rules: '1000'
+   [MERGE] Selected Master Court: 'Pickleball - Malleshwaram' (ID: 126cd145-4ba8-4a13-8b24-e1c8454f2eae)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 4
+
+[TARGET] Rush Arena BCU -> Pickleball
+   Zones: 4, Type: Court
+   Pricing/Rules: '1000'
+   [MERGE] Selected Master Court: 'Pickleball - BCU' (ID: ac608dca-c720-414a-bca2-a599bbbb14b1)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 4
+
+[TARGET] Kormangala -> Padel
+   Zones: 1, Type: Court
+   Pricing/Rules: '2000'
+   [MERGE] Selected Master Court: 'Padel - Kormangala' (ID: 7099dd5e-665c-4958-b6dd-0491acd63d8c)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 1
+
+[TARGET] Kengeri -> Swimming Outdoor
+   Zones: 1, Type: Pool
+   Pricing/Rules: '(weekdays 150) (Weekendays -200)'
+   [MERGE] Selected Master Court: 'Swimminng - Kengeri' (ID: 23913058-53f4-484f-891c-7a6b630bcfd9)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 1
+
+[TARGET] Kengeri -> Basketball
+   Zones: 1, Type: Court
+   Pricing/Rules: '1200'
+   [MERGE] Selected Master Court: 'Basketball - Kengeri' (ID: 231a604e-9a33-4984-820f-3d32df1f23fe)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 1
+
+[TARGET] Kengeri -> Cricket nets Astroturf
+   Zones: 1, Type: Nets
+   Pricing/Rules: ''
+   [ACTION] No existing court found! Script would CREATE a new one.
+
+[TARGET] Kengeri -> Volleyball
+   Zones: 1, Type: Court
+   Pricing/Rules: ''
+   [ACTION] No existing court found! Script would CREATE a new one.
+
+[TARGET] Kengeri -> Skating rink
+   Zones: 1, Type: 
+   Pricing/Rules: '300'
+   [ACTION] No existing court found! Script would CREATE a new one.
+
+[TARGET] Kengeri -> Football / Cricket
+   Zones: 1, Type: Turf
+   Pricing/Rules: '(5-1200) (7-2200) (10 -3000)'
+   [MERGE] Selected Master Court: '10 a side (1 turf) Football - Kengeri' (ID: 381c8b05-4553-41bc-a4d9-8f6668c92825)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Gunjur -> cricket nets
+   Zones: 4, Type: Nets
+   Pricing/Rules: ''
+   [ACTION] No existing court found! Script would CREATE a new one.
+
+[TARGET] Gunjur -> Football / Cricket
+   Zones: 1, Type: Turf
+   Pricing/Rules: ''
+   [MERGE] Selected Master Court: '7 a side (1 turf) Football -  Gunjur' (ID: 89ac8a47-7ad4-466d-8a89-eba0d90724b0)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Chennai -> Football / Cricket
+   Zones: 1, Type: Turf
+   Pricing/Rules: '(5 A side 1500) ( 7 a side 2600)'
+   [MERGE] Selected Master Court: '7 a side (1 turf) Football - Gateway office' (ID: 7c4eebf6-4b12-441e-9cee-762616eb4330)
+   [UPDATE] Set logic_type = divisible
+   [UPDATE] Set total_zones = 1
+   [UPDATE] Will inject specific sport_slices derived from Brief and Price text.
+
+[TARGET] Chennai -> Pickleball
+   Zones: 4, Type: Court
+   Pricing/Rules: '700  and Paddle Rent Rs.50 per Head/ per booking'
+   [MERGE] Selected Master Court: 'Pickleball - Gateway office' (ID: fdd26e1b-ce75-408b-abd6-19f12d6e007e)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 4
+
+[TARGET] Chennai -> Volleyball / Throwball
+   Zones: 1, Type: Court
+   Pricing/Rules: '700'
+   [MERGE] Selected Master Court: 'Volleyball - Gateway office' (ID: e920a6ec-d283-4f08-8b6b-199271376055)
+   [UPDATE] Set logic_type = independent
+   [UPDATE] Set total_zones = 1
+
+--- END OF DRY RUN ---

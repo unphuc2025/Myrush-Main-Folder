@@ -1,0 +1,6 @@
+Branch: Rush Arena x Grid Game (040c9924-32c0-44eb-9d7f-ac7888d057e5)
+Court: Main Turf (Football / Box Cricket) (Logic: divisible, Active: True)
+  Slice: Football (5 a side) (Sport: FootBall), Price: 1400.00
+  Slice: Boxcricket (5 a side) (Sport: Boxcricket), Price: 1400.00
+Court: 5 a side (1 turf) Football - Grid Game (Logic: divisible, Active: False)
+  Slice: FootBall (Sport: FootBall), Price: 1000.00

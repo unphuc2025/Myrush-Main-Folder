@@ -1,0 +1,21 @@
+Branch: Omega Circuit By RUSH - Hyderabad  (4a3708bd-5d29-4b61-ac5c-87f1b737cb49)
+Timing: 00:00 - 23:59
+Court: Basketball - Omega cricuit HYD (Logic: independent, Active: False)
+Court: Volleyball - Omega cricuit HYD (Logic: independent, Active: False)
+Court: Football - Omega circuit HYD (Logic: divisible, Active: False)
+  Slice: FootBall (Sport: FootBall), Price: 1000.00
+Court: Pickleball - Omega cricuit HYD (Logic: independent, Active: False)
+Court: Main Turf (Football / Box Cricket) (Logic: divisible, Active: True)
+  Slice: Football (6 a side) (Sport: FootBall), Price: 1800.00
+  Slice: Boxcricket (6 a side) (Sport: Boxcricket), Price: 1800.00
+Court: Multi-Sport Court (Basketball / Pickleball) (Logic: divisible, Active: True)
+  Slice: Pickleball 1 (Sport: Pickleball), Price: 800.00
+  Slice: Pickleball 2 (Sport: Pickleball), Price: 800.00
+  Slice: Pickleball 3 (Sport: Pickleball), Price: 800.00
+  Slice: Basketball (Full Court) (Sport: Basketball), Price: 800.00
+Court: Volleyball Court (Logic: independent, Active: True)
+Court: Cricket Nets (Logic: divisible, Active: True)
+  Slice: Net 1 (Sport: Cricket Nets), Price: 500.00
+  Slice: Net 2 (Sport: Cricket Nets), Price: 500.00
+  Slice: Net 3 (Sport: Cricket Nets), Price: 500.00
+Court: Boxcricket - Omega cricuit HYD (Logic: independent, Active: False)
