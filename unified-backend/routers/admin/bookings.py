@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import models, schemas
@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime, date
 from uuid import UUID
 from decimal import Decimal
+from utils.notification_helpers import notify_booking_event
 
 router = APIRouter(
     prefix="/bookings",
@@ -17,6 +18,7 @@ router = APIRouter(
 @router.post("/", response_model=schemas.AdminBooking)
 def create_booking(
     booking: schemas.BookingCreate, 
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     _ = Depends(PermissionChecker("Manage Bookings", "add")),
     branch_filter: Optional[List[str]] = Depends(get_admin_branch_filter)
@@ -210,6 +212,14 @@ def create_booking(
                         )
         except Exception as ite:
             print(f"[ADMIN BOOKING CREATE] Warning: Integration trigger failed: {ite}")
+
+        # Trigger Notification
+        background_tasks.add_task(
+            notify_booking_event,
+            event_type="booking_confirmed",
+            booking_id=str(db_booking.id),
+            user_id=str(db_booking.user_id)
+        )
 
         return response
     except Exception as e:
@@ -630,7 +640,7 @@ def update_booking(
         raise HTTPException(status_code=500, detail=f"Failed to update booking: {str(e)}")
 
 @router.patch("/{booking_id}/status", dependencies=[Depends(PermissionChecker(["Manage Bookings", "Transactions And Earnings"], "edit"))])
-def update_booking_status(booking_id: str, request: dict, db: Session = Depends(get_db)):
+def update_booking_status(booking_id: str, request: dict, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Update user booking status in 'booking' table"""
     db_booking = db.query(models.Booking).filter(models.Booking.id == booking_id).first()
     if not db_booking:
@@ -640,6 +650,25 @@ def update_booking_status(booking_id: str, request: dict, db: Session = Depends(
     if not new_status:
         raise HTTPException(status_code=400, detail="Status is required")
     
+    if new_status == 'cancelled':
+        import crud
+        # For admin cancellation, we pass the user_id from the booking itself to allow crud.cancel_booking to authorize
+        # BUT wait, crud.cancel_booking has a 1-hour rule. Admins should be able to override this.
+        # Let's check if the admin wants to override or if we should add an 'admin_force' flag.
+        # For now, I'll call cancel_booking but I'll need to handle the admin override.
+        # IMPROVEMENT: pass a specialized flag or use a different crud function.
+        # Actually, let's just do the refund and status update manually here if we want to bypass the 1-hour rule,
+        # OR update crud.cancel_booking to accept a bypass.
+        
+        result = crud.cancel_booking(db, booking_id, str(db_booking.user_id), ignore_time_limit=True)
+        background_tasks.add_task(
+            notify_booking_event,
+            event_type="booking_cancelled",
+            booking_id=str(booking_id),
+            user_id=str(db_booking.user_id)
+        )
+        return result
+
     old_status = db_booking.status
     db_booking.status = new_status
     db.commit()

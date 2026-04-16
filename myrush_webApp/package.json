@@ -17,6 +17,8 @@
     "@tailwindcss/typography": "^0.5.19",
     "@types/marked": "^6.0.0",
     "axios": "^1.13.2",
+    "date-fns": "^4.1.0",
+    "firebase": "^12.12.0",
     "framer-motion": "^12.26.1",
     "marked": "^17.0.4",
     "react": "^19.2.0",

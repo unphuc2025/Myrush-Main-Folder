@@ -218,12 +218,18 @@ class PermissionChecker:
         for module in self.modules:
             module_perms = permissions.get(module)
             if module_perms:
+                # MANDATORY: 'access' must be True for anything else to work
+                # This ensures consistent security across the platform
+                if not module_perms.get("access"):
+                    continue
+
                 for action in self.actions:
                     if module_perms.get(action):
                         has_access = True
                         break
-                    # 'access' permission also grants 'view' capability
-                    if action == "view" and module_perms.get("access"):
+                    # 'access' permission already verified above, 
+                    # so granting 'view' if 'access' is True is implicitly safe
+                    if action == "view":
                         has_access = True
                         break
                 if has_access:
@@ -345,3 +351,25 @@ async def verify_playo_api_key(
     db.commit()
 
     return api_key
+
+def get_current_user_or_admin(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> Union[models.User, models.Admin]:
+    """
+    Unified authentication that returns either a User or an Admin.
+    Allows endpoints to be used by both frontend and admin panel.
+    """
+    try:
+        # Try finding as user (JWT)
+        return get_current_user(token, db)
+    except HTTPException:
+        try:
+            # Try finding as admin (simple token)
+            return get_current_admin(token, db)
+        except HTTPException:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )

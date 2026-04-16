@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 import schemas, crud, models, database
 from dependencies import get_current_user
+from utils.notification_helpers import notify_booking_event
 from datetime import datetime
 
 import os
@@ -20,6 +21,7 @@ client = razorpay.Client(auth=(os.getenv("RAZORPAY_KEY_ID"), os.getenv("RAZORPAY
 def create_booking(
     booking: schemas.BookingCreate,
     current_user: Annotated[models.User, Depends(get_current_user)],
+    background_tasks: BackgroundTasks,
     db: Session = Depends(database.get_db)
 ):
     try:
@@ -60,13 +62,25 @@ def create_booking(
                 
             except razorpay.errors.SignatureVerificationError:
                 print("[BOOKINGS API] Payment Signature Verification Failed")
+                background_tasks.add_task(
+                    notify_booking_event, 
+                    event_type="payment_failed", 
+                    booking_id=booking.razorpay_order_id, # Fallback ID
+                    user_id=str(current_user.id)
+                )
+                
                 raise HTTPException(status_code=400, detail="Payment verification failed")
             except HTTPException as hexp:
                 raise hexp
             except Exception as e:
                 print(f"[BOOKINGS API] Payment Verification Error: {e}")
-                import traceback
-                traceback.print_exc()
+                background_tasks.add_task(
+                    notify_booking_event, 
+                    event_type="payment_error", 
+                    booking_id=booking.razorpay_order_id, 
+                    user_id=str(current_user.id)
+                )
+                
                 raise HTTPException(status_code=400, detail=f"Payment verification error: {str(e)}")
         else:
              print("[BOOKINGS API] No payment ID provided - assuming legacy/pay-at-venue flow")
@@ -102,11 +116,24 @@ def create_booking(
             
             db.commit()
             db.refresh(existing_booking)
+
+            background_tasks.add_task(
+                notify_booking_event,
+                event_type="booking_confirmed",
+                booking_id=str(existing_booking.id),
+                user_id=str(existing_booking.user_id)
+            )
+
             result = existing_booking
         else:
             # Fallback for flows where order wasn't pre-persisted
-            print("[BOOKINGS API] No existing pending booking found. Creating new record.")
             result = crud.create_booking(db=db, booking=booking, user_id=current_user.id)
+            background_tasks.add_task(
+                notify_booking_event,
+                event_type="booking_confirmed",
+                booking_id=str(result.id),
+                user_id=str(result.user_id)
+            )
         # -----------------------------------------------
         
         print("[BOOKINGS API] BOOKING PROCESSED SUCCESSFULLY")
@@ -138,6 +165,14 @@ def get_bookings(
 def cancel_booking(
     booking_id: str,
     current_user: Annotated[models.User, Depends(get_current_user)],
+    background_tasks: BackgroundTasks,
     db: Session = Depends(database.get_db),
 ):
-    return crud.cancel_booking(db=db, booking_id=booking_id, user_id=current_user.id)
+    result = crud.cancel_booking(db=db, booking_id=booking_id, user_id=current_user.id)
+    background_tasks.add_task(
+        notify_booking_event,
+        event_type="booking_cancelled",
+        booking_id=str(result.id),
+        user_id=str(result.user_id)
+    )
+    return result
