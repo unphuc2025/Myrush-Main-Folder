@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
@@ -19,7 +19,7 @@ const LocationCard: React.FC<{ loc: any, idx: number, navigate: any }> = ({ loc,
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: idx * 0.1 }}
-            className="group relative flex flex-col bg-white rounded-xl shadow-premium hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 h-full"
+            className="group relative flex flex-col bg-white rounded-xl shadow-premium hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100"
         >
             <div className="h-72 overflow-hidden relative">
                 <div className="absolute inset-0 bg-gray-200" />
@@ -109,7 +109,10 @@ export const Pickleball: React.FC = () => {
         }
     ];
 
-    const faqs = [
+    const [faqs, setFaqs] = useState<{question: string, answer: string}[]>([]);
+    const [loadingFaqs, setLoadingFaqs] = useState(true);
+
+    const fallbackFaqs = [
         {
             question: "What amenities are available at Rush Sports pickleball arenas?",
             answer: "Our pickleball arenas feature high-quality courts with professional lighting, ventilation, and non-slip surfacing. We also offer equipment rentals, changing rooms, and rest areas."
@@ -131,6 +134,26 @@ export const Pickleball: React.FC = () => {
             answer: "We offer equipment rental for paddles and balls. However, you are welcome to bring your own professional gear if you prefer."
         }
     ];
+
+    useEffect(() => {
+        const fetchFaqs = async () => {
+            try {
+                const response = await apiClient.get('/faq/');
+                if (response.data && response.data.items && response.data.items.length > 0) {
+                    setFaqs(response.data.items);
+                } else {
+                    setFaqs(fallbackFaqs);
+                }
+            } catch (err) {
+                console.error("Failed to fetch FAQs:", err);
+                setFaqs(fallbackFaqs);
+            } finally {
+                setLoadingFaqs(false);
+            }
+        };
+
+        fetchFaqs();
+    }, []);
 
     const { scrollY } = useScroll();
     const indicatorOpacity = useTransform(scrollY, [0, 300], [1, 0]);
@@ -235,7 +258,7 @@ export const Pickleball: React.FC = () => {
                         Our Locations
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
                         {locations.map((loc, idx) => (
                             <LocationCard key={idx} loc={loc} idx={idx} navigate={navigate} />
                         ))}
@@ -254,23 +277,33 @@ export const Pickleball: React.FC = () => {
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4 md:gap-y-8">
-                        {faqs.map((faq, idx) => (
-                            <motion.div
-                                key={idx}
-                                initial={{ opacity: 0, x: -20 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: idx * 0.1 }}
-                                className="mb-6"
-                            >
-                                <h4 className="text-black">
-                                    {faq.question}
-                                </h4>
-                                <p className="text-black/70 mb-8 leading-relaxed flex-1">
-                                    {faq.answer}
-                                </p>
-                            </motion.div>
-                        ))}
+                        {loadingFaqs ? (
+                            [1, 2, 3, 4].map((i) => (
+                                <div key={i} className="animate-pulse mb-6">
+                                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
+                                    <div className="h-4 bg-gray-100 rounded w-full mb-2"></div>
+                                    <div className="h-4 bg-gray-100 rounded w-5/6"></div>
+                                </div>
+                            ))
+                        ) : (
+                            faqs.map((faq, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: idx * 0.1 }}
+                                    className="mb-6"
+                                >
+                                    <h4 className="text-black text-lg font-bold mb-3">
+                                        {faq.question}
+                                    </h4>
+                                    <p className="text-black/70 mb-8 leading-relaxed flex-1">
+                                        {faq.answer}
+                                    </p>
+                                </motion.div>
+                            ))
+                        )}
                     </div>
                 </div>
             </section>

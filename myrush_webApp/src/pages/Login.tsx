@@ -109,14 +109,14 @@ export const Login: React.FC = () => {
                         <p className="text-xs text-white/40 leading-relaxed">
                             By continuing, you agree to our{' '}
                             <span
-                                onClick={() => navigate('/terms')}
+                                onClick={() => navigate('/p/terms')}
                                 className="text-primary hover:text-white transition-colors cursor-pointer font-semibold underline underline-offset-2"
                             >
                                 Terms of Service
                             </span>{' '}
                             &{' '}
                             <span
-                                onClick={() => navigate('/terms')}
+                                onClick={() => navigate('/p/privacy-policy')}
                                 className="text-primary hover:text-white transition-colors cursor-pointer font-semibold underline underline-offset-2"
                             >
                                 Privacy Policy

@@ -80,7 +80,7 @@ export const MyBookings: React.FC = () => {
                         }
                     }
                     return { ...b, status };
-                });
+                }).filter((b: Booking | null): b is Booking => b !== null);
 
             if (activeTab !== 'all') {
                 processedBookings = processedBookings.filter((b: Booking) => b.status === activeTab);
@@ -92,6 +92,7 @@ export const MyBookings: React.FC = () => {
             // Check review status for completed bookings
             const completed = processedBookings.filter((b: Booking) => b.status === 'completed');
             for (const booking of completed) {
+                if (!booking) continue;
                 const reviewRes = await bookingsApi.checkBookingReviewed(booking.id);
                 if (reviewRes.success) {
                     setReviewStates(prev => ({
