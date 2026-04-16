@@ -29,7 +29,7 @@ function Coupons() {
         const token = localStorage.getItem('admin_token');
         if (!token) {
             navigate('/login');
-        } else if (!permissions.view) {
+        } else if (!permissions.view && !permissions.access) {
             // Already handled by hasAnyAccess check in render
         } else {
             fetchMetadata();
@@ -239,7 +239,7 @@ function Coupons() {
         }
     };
 
-    if (!permissions.view && !loading) {
+    if (!permissions.view && !permissions.access && !loading) {
         return (
             <Layout>
                 <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">

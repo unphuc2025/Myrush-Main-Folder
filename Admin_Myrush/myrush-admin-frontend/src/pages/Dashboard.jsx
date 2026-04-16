@@ -55,10 +55,19 @@ function Dashboard() {
     if (!token) {
       navigate('/login');
     } else {
-      const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
-      const canView = adminInfo.role === 'super_admin' || (adminInfo.permissions && Object.values(adminInfo.permissions).some(modulePerms => 
+      const adminInfoStr = localStorage.getItem('admin_info');
+      if (!adminInfoStr) {
+        setHasPermission(false);
+        setLoading(false);
+        return;
+      }
+      
+      const adminInfo = JSON.parse(adminInfoStr);
+      const perms = adminInfo.permissions || {};
+      
+      const canView = adminInfo.role === 'super_admin' || Object.values(perms).some(modulePerms => 
         Object.values(modulePerms).some(v => v === true)
-      ));
+      );
       
       if (!canView) {
         setHasPermission(false);
@@ -225,12 +234,28 @@ function Dashboard() {
     }).format(amount);
   };
 
-  return (
-    <Layout onLogout={() => {
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_info');
-      navigate('/login');
-    }}>
+    if (!hasPermission && !loading) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
+                    <div className="h-20 w-20 rounded-full bg-red-50 flex items-center justify-center">
+                        <ShieldAlert className="h-10 w-10 text-red-400" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-slate-500 max-w-sm">
+                        You do not have permission to access the administrative dashboard. Please contact your administrator for credentials.
+                    </p>
+                </div>
+            </Layout>
+        );
+    }
+
+    return (
+        <Layout onLogout={() => {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_info');
+            navigate('/login');
+        }}>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
         <p className="text-slate-500 mt-1">Real-time overview of your sports platform.</p>

@@ -6,7 +6,7 @@ import NotificationWidget from './NotificationWidget';
 const Header = ({ sidebarOpen, setSidebarOpen }) => {
     const adminInfo = localStorage.getItem('admin_info');
     const parsed = adminInfo ? JSON.parse(adminInfo) : {};
-    const userRole = parsed.role || 'super_admin';
+    const userRole = parsed.role || null;
 
     return (
         <header className="sticky top-0 z-999 flex w-full bg-white drop-shadow-1 dark:bg-boxdark dark:drop-shadow-none">
@@ -59,7 +59,7 @@ const Header = ({ sidebarOpen, setSidebarOpen }) => {
                                 {parsed.name || 'Admin User'}
                             </span>
                             <span className="block text-xs">
-                                {userRole === 'super_admin' ? 'Super Admin' : 'Admin'}
+                                {userRole === 'super_admin' ? 'Super Admin' : (parsed.role_rel?.name || 'Staff')}
                             </span>
                         </span>
 

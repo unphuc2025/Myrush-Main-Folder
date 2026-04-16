@@ -746,6 +746,7 @@ class CourtBlock(Base):
     reason = Column(String(255), nullable=True) # e.g., "Maintenance", "Tournament"
     blocked_by_id = Column(UUID(as_uuid=True), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)
     slice_mask = Column(Integer, nullable=False, default=0, server_default='0') # 0 means block entire court, >0 blocks specific bits
+    blocked_capacity = Column(Integer, nullable=True) # For capacity-based courts (e.g. block 5 slots out of 20)
     synced_partners = Column(ARRAY(String), default=[]) # e.g. ["District", "Playo"]
     created_at = Column(TIMESTAMP, default=datetime.utcnow, server_default=func.now())
     

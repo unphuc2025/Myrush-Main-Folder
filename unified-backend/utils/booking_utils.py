@@ -472,28 +472,36 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
         # 1. Court Date
         for pc in price_rules:
             if date_str in (pc.get('dates') or []):
-                if safe_parse_time_float(pc.get('slotFrom')) <= h_start < (safe_parse_time_float(pc.get('slotTo')) or 24.0):
+                pc_from = pc.get('slotFrom') or pc.get('slot_from')
+                pc_to = pc.get('slotTo') or pc.get('slot_to')
+                if safe_parse_time_float(pc_from) <= h_start < (safe_parse_time_float(pc_to) or 24.0):
                     matched_rule = pc; matched_rule['source'] = 'court_date'; break
         
         # 2. Court Day
         if not matched_rule:
             for pc in price_rules:
                 if day_short in [d.lower()[:3] for d in (pc.get('days') or [])]:
-                    if safe_parse_time_float(pc.get('slotFrom')) <= h_start < (safe_parse_time_float(pc.get('slotTo')) or 24.0):
+                    pc_from = pc.get('slotFrom') or pc.get('slot_from')
+                    pc_to = pc.get('slotTo') or pc.get('slot_to')
+                    if safe_parse_time_float(pc_from) <= h_start < (safe_parse_time_float(pc_to) or 24.0):
                         matched_rule = pc; matched_rule['source'] = 'court_day'; break
 
         # 3. Global Date
         if not matched_rule:
             for gr in global_rules:
                 if date_str in (gr.get('dates') or []):
-                    if safe_parse_time_float(gr.get('slotFrom')) <= h_start < (safe_parse_time_float(gr.get('slotTo')) or 24.0):
+                    gr_from = gr.get('slotFrom') or gr.get('slot_from')
+                    gr_to = gr.get('slotTo') or gr.get('slot_to')
+                    if safe_parse_time_float(gr_from) <= h_start < (safe_parse_time_float(gr_to) or 24.0):
                         matched_rule = gr; matched_rule['source'] = 'global_date'; break
 
         # 4. Global Day
         if not matched_rule:
             for gr in global_rules:
                 if day_short in (gr.get('days') or []):
-                    if safe_parse_time_float(gr.get('slotFrom')) <= h_start < (safe_parse_time_float(gr.get('slotTo')) or 24.0):
+                    gr_from = gr.get('slotFrom') or gr.get('slot_from')
+                    gr_to = gr.get('slotTo') or gr.get('slot_to')
+                    if safe_parse_time_float(gr_from) <= h_start < (safe_parse_time_float(gr_to) or 24.0):
                         matched_rule = gr; matched_rule['source'] = 'global_day'; break
         
         # Determine if court has ANY specific timings (rules) for this day
@@ -543,7 +551,9 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
                     for un in un_slots:
                         # Date specific block
                         if un.get('date') == date_str:
-                            if safe_parse_time_float(un.get('from')) <= h_start < (safe_parse_time_float(un.get('to')) or 24.0):
+                            un_from = un.get('from') or un.get('slot_from') or un.get('slotFrom')
+                            un_to = un.get('to') or un.get('slot_to') or un.get('slotTo')
+                            if safe_parse_time_float(un_from) <= h_start < (safe_parse_time_float(un_to) or 24.0):
                                 is_blocked = True; break
                         # Recurring block
                         match = (date_str in (un.get('dates') or [])) or (day_short in [d.lower()[:3] for d in (un.get('days') or [])])

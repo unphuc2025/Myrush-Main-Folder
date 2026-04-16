@@ -524,10 +524,55 @@ class DistrictAdapter(BaseIntegrationAdapter):
         slot_start = event_data['slot_start']
         slot_idx = int(slot_start * 2)
         
+        # Calculate remaining capacity for the slot
+        from utils.booking_utils import safe_parse_time_float
+        from sqlalchemy import or_
+        from datetime import time as dt_time
+        
+        h = int(slot_start)
+        m = int((slot_start % 1) * 60)
+        slot_time = dt_time(h, m)
+        
+        if court.logic_type == 'capacity':
+            total_cap = court.capacity_limit or 1
+            
+            # Sum Admin Blocks
+            blocks = self.db.query(models.CourtBlock).filter(
+                models.CourtBlock.court_id == court.id,
+                models.CourtBlock.block_date == target_date_obj.date(),
+                models.CourtBlock.start_time <= slot_time,
+                models.CourtBlock.end_time > slot_time
+            ).all()
+            blocked_sum = sum((b.blocked_capacity if b.blocked_capacity is not None else total_cap) for b in blocks)
+            
+            # Sum User Bookings
+            bookings = self.db.query(models.Booking).filter(
+                models.Booking.court_id == court.id,
+                models.Booking.booking_date == target_date_obj.date(),
+                or_(models.Booking.status.is_(None), models.Booking.status.notin_(['cancelled', 'failed', 'refunded']))
+            ).all()
+            
+            booked_sum = 0
+            for bk in bookings:
+                t_slots = bk.time_slots or []
+                for s in t_slots:
+                    try:
+                        s_f = safe_parse_time_float(s.get('start_time') or s.get('time') or s.get('start'))
+                        e_f = safe_parse_time_float(s.get('end_time') or s.get('end'))
+                        if s_f <= slot_start < e_f:
+                            booked_sum += getattr(bk, 'num_tickets', 1) or 1
+                            break
+                    except: continue
+            
+            final_count = max(0, total_cap - (blocked_sum + booked_sum))
+        else:
+            # Standard binary availability
+            final_count = 0 if event_data['action'] == 'block' else 1
+
         webhook_data = [{
             "courtNumber": str(court_index),
             "slotNumber": str(slot_idx),
-            "count": "1",
+            "count": str(final_count),
             "sport": court.game_type.name,
             "facilityName": branch.name,
             "date": date_str

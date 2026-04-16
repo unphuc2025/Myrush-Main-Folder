@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { rolesApi } from '../services/adminApi';
-import { Edit2, Plus, Trash2, Search, XCircle, ShieldCheck } from 'lucide-react';
+import { Edit2, Plus, Trash2, Search, XCircle, ShieldCheck, ShieldAlert } from 'lucide-react';
 
 const Roles = () => {
     const navigate = useNavigate();
@@ -12,21 +12,31 @@ const Roles = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     // Permission Logic
-    const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
-    const isSuperAdmin = adminInfo.role === 'super_admin';
-    const permissions = adminInfo.permissions?.['Role Management'] || {};
-    const canAdd = isSuperAdmin || permissions.add;
-    const canEdit = isSuperAdmin || permissions.edit;
-    const canDelete = isSuperAdmin || permissions.delete;
+    const permissions = (() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return {
+                add: true, edit: true, delete: true, view: true, access: true
+            };
+            return adminInfo.permissions?.['Role Management'] || {};
+        } catch { return {}; }
+    })();
+
+    const canAdd = !!permissions.add;
+    const canEdit = !!permissions.edit;
+    const canDelete = !!permissions.delete;
+    const hasAccess = !!(permissions.view || permissions.access);
 
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
         if (!token) {
             navigate('/login');
-        } else {
+        } else if (hasAccess) {
             loadRoles();
+        } else {
+            setLoading(false);
         }
-    }, [navigate]);
+    }, [navigate, hasAccess]);
 
     const loadRoles = async () => {
         try {
@@ -59,7 +69,6 @@ const Roles = () => {
         }
     };
 
-
     const handleToggleStatus = async (id, currentStatus) => {
         try {
             await rolesApi.update(id, { is_active: !currentStatus });
@@ -77,6 +86,22 @@ const Roles = () => {
         role.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    if (loading) return null;
+
+    if (!hasAccess) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <ShieldAlert className="h-8 w-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-slate-500 max-w-sm">You do not have permission to manage roles. Please contact your administrator.</p>
+                </div>
+            </Layout>
+        );
+    }
+
     return (
         <Layout onLogout={() => {
             localStorage.removeItem('admin_token');
@@ -89,30 +114,26 @@ const Roles = () => {
             </div>
 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-                {/* Header & Controls */}
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-                    <div></div>
-                    <div className="flex w-full md:w-auto gap-3">
-                        <div className="relative flex-1 md:w-64">
-                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm"
-                            />
-                        </div>
-                        {canAdd && (
-                            <button
-                                onClick={() => navigate('/roles/new')}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
-                            >
-                                <Plus className="h-4 w-4" />
-                                <span className="text-sm font-semibold">New Admin Role</span>
-                            </button>
-                        )}
+                    <div className="relative flex-1 md:w-64">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm"
+                        />
                     </div>
+                    {canAdd && (
+                        <button
+                            onClick={() => navigate('/roles/new')}
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:transform active:scale-95"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span className="text-sm font-semibold">New Admin Role</span>
+                        </button>
+                    )}
                 </div>
 
                 {error && (
@@ -121,126 +142,109 @@ const Roles = () => {
                     </div>
                 )}
 
-                {/* Table Content */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                    {loading ? (
-                        <div className="p-12 text-center text-slate-500">Loading roles...</div>
-                    ) : (
-                        <>
-                            {/* Desktop Table View */}
-                            <div className="hidden md:block overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-50 border-b border-slate-200">
-                                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Sr. No.</th>
-                                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-                                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                            {(canEdit || canDelete) && <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {filteredRoles.map((role, index) => (
-                                            <tr key={role.id} className="hover:bg-slate-50/80 transition-colors">
-                                                <td className="px-6 py-4 text-sm text-slate-600">
-                                                    {index + 1}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="font-bold text-slate-900">{role.name}</div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <button
-                                                        onClick={() => canEdit && handleToggleStatus(role.id, role.is_active)}
-                                                        disabled={!canEdit}
-                                                        className={`w-11 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out ${role.is_active ? 'bg-green-500' : 'bg-slate-300'} ${!canEdit ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                                    >
-                                                        <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${role.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
-                                                    </button>
-                                                </td>
-                                                 {(canEdit || canDelete) && (
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            {canEdit && (
-                                                                <button
-                                                                    onClick={() => navigate(`/roles/edit/${role.id}`)}
-                                                                    className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
-                                                                >
-                                                                    <Edit2 className="h-4 w-4" />
-                                                                </button>
-                                                            )}
-                                                            {canDelete && (
-                                                                <button
-                                                                    onClick={() => handleDelete(role.id)}
-                                                                    className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                                {filteredRoles.length === 0 && (
-                                    <div className="text-center py-12 text-slate-500">
-                                        <ShieldCheck className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-                                        <p className="text-base font-medium">No roles found.</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Mobile Card View */}
-                            <div className="md:hidden space-y-3 p-4">
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Sr. No.</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                                    {(canEdit || canDelete) && <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
                                 {filteredRoles.map((role, index) => (
-                                    <div key={role.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center justify-between gap-4">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-xs font-bold text-slate-400">#{index + 1}</span>
-                                                <h4 className="font-bold text-slate-900">{role.name}</h4>
-                                            </div>
-                                             <div className="flex items-center gap-2 mt-2">
-                                                <span className="text-xs text-slate-500 font-medium">Status:</span>
-                                                <button
-                                                    onClick={() => canEdit && handleToggleStatus(role.id, role.is_active)}
-                                                    disabled={!canEdit}
-                                                    className={`w-9 h-5 flex items-center rounded-full transition-colors duration-200 ease-in-out ${role.is_active ? 'bg-green-500' : 'bg-slate-300'} ${!canEdit ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                                >
-                                                    <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${role.is_active ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                                                </button>
-                                            </div>
-                                        </div>
+                                    <tr key={role.id} className="hover:bg-slate-50/80 transition-colors">
+                                        <td className="px-6 py-4 text-sm text-slate-600">{index + 1}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="font-bold text-slate-900">{role.name}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <button
+                                                onClick={() => canEdit && handleToggleStatus(role.id, role.is_active)}
+                                                disabled={!canEdit}
+                                                className={`w-11 h-6 flex items-center rounded-full transition-colors duration-200 ease-in-out ${role.is_active ? 'bg-green-500' : 'bg-slate-300'} ${!canEdit ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                            >
+                                                <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${role.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
+                                            </button>
+                                        </td>
                                         {(canEdit || canDelete) && (
-                                            <div className="flex items-center gap-2">
-                                                {canEdit && (
-                                                    <button
-                                                        onClick={() => navigate(`/roles/edit/${role.id}`)}
-                                                        className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
-                                                    >
-                                                        <Edit2 className="h-4 w-4" />
-                                                    </button>
-                                                )}
-                                                {canDelete && (
-                                                    <button
-                                                        onClick={() => handleDelete(role.id)}
-                                                        className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
-                                                )}
-                                            </div>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {canEdit && (
+                                                        <button
+                                                            onClick={() => navigate(`/roles/edit/${role.id}`)}
+                                                            className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                    {canDelete && (
+                                                        <button
+                                                            onClick={() => handleDelete(role.id)}
+                                                            className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {filteredRoles.length === 0 && (
+                            <div className="text-center py-12 text-slate-500">
+                                <ShieldCheck className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                                <p className="text-base font-medium">No roles found.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="md:hidden space-y-3 p-4">
+                        {filteredRoles.map((role, index) => (
+                            <div key={role.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center justify-between gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-xs font-bold text-slate-400">#{index + 1}</span>
+                                        <h4 className="font-bold text-slate-900">{role.name}</h4>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="text-xs text-slate-500 font-medium">Status:</span>
+                                        <button
+                                            onClick={() => canEdit && handleToggleStatus(role.id, role.is_active)}
+                                            disabled={!canEdit}
+                                            className={`w-9 h-5 flex items-center rounded-full transition-colors duration-200 ease-in-out ${role.is_active ? 'bg-green-500' : 'bg-slate-300'} ${!canEdit ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                        >
+                                            <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${role.is_active ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                        </button>
+                                    </div>
+                                </div>
+                                {(canEdit || canDelete) && (
+                                    <div className="flex items-center gap-2">
+                                        {canEdit && (
+                                            <button
+                                                onClick={() => navigate(`/roles/edit/${role.id}`)}
+                                                className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                                            >
+                                                <Edit2 className="h-4 w-4" />
+                                            </button>
+                                        )}
+                                        {canDelete && (
+                                            <button
+                                                onClick={() => handleDelete(role.id)}
+                                                className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
                                         )}
                                     </div>
-                                ))}
-                                {filteredRoles.length === 0 && (
-                                    <div className="text-center py-8 text-slate-500">
-                                        <ShieldCheck className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                                        <p>No roles found.</p>
-                                    </div>
                                 )}
                             </div>
-                        </>
-                    )}
+                        ))}
+                    </div>
                 </div>
             </div>
         </Layout>

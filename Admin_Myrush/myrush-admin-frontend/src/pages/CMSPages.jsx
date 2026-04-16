@@ -27,11 +27,13 @@ const CMSPages = () => {
         try {
             const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
             if (adminInfo.role === 'super_admin') return {
-                add: true, edit: true, delete: true, view: true
+                add: true, edit: true, delete: true, view: true, access: true
             };
             return adminInfo.permissions?.['CMS Pages'] || {};
         } catch { return {}; }
     })();
+
+    const hasView = !!(permissions.view || permissions.access);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -44,12 +46,12 @@ const CMSPages = () => {
             navigate('/login');
             return;
         }
-        if (permissions.view) {
+        if (hasView) {
             loadPages();
         } else {
             setLoading(false);
         }
-    }, [navigate, page, searchTerm, permissions.view]);
+    }, [navigate, page, searchTerm, hasView]);
 
     const loadPages = async () => {
         try {
@@ -93,7 +95,7 @@ const CMSPages = () => {
 
     const handleView = (page) => {
         if (!permissions.view) {
-            setError('You do not have permission to view CMS pages.');
+            setError('You do not have permission to view CMS page details.');
             return;
         }
         setEditingPage(page);
@@ -286,7 +288,7 @@ const CMSPages = () => {
         );
     }
 
-    if (!permissions.view && !loading) {
+    if (!permissions.view && !permissions.access && !loading) {
         return (
             <Layout>
                 <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
