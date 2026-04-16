@@ -31,15 +31,15 @@ const Users = () => {
         try {
             const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
             if (adminInfo.role === 'super_admin') return {
-                add: true, edit: true, delete: true, view: true
+                add: true, edit: true, delete: true, view: true, access: true
             };
             return adminInfo.permissions?.['User Management'] || {};
         } catch { return {}; }
     })();
 
-    const canEdit = permissions.edit;
-    const canDelete = permissions.delete;
-    const hasView = permissions.view;
+    const canEdit = !!permissions.edit;
+    const canDelete = !!permissions.delete;
+    const hasView = !!(permissions.view || permissions.access);
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
         if (!token) {
@@ -247,13 +247,15 @@ const Users = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        onClick={() => handleView(user)}
-                                                        className="p-1.5 text-purple-600 bg-purple-50 rounded hover:bg-purple-100 transition-colors"
-                                                        title="View Details"
-                                                    >
-                                                        <Eye className="h-4 w-4" />
-                                                    </button>
+                                                    {canView && (
+                                                        <button
+                                                            onClick={() => handleView(user)}
+                                                            className="p-1.5 text-purple-600 bg-purple-50 rounded hover:bg-purple-100 transition-colors"
+                                                            title="View Details"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </button>
+                                                    )}
                                                     {canEdit && (
                                                         <button
                                                             onClick={() => handleEdit(user)}
@@ -316,12 +318,14 @@ const Users = () => {
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={() => handleView(user)}
-                                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-purple-600 bg-purple-50 rounded-xl font-bold text-sm hover:bg-purple-100 transition-all active:scale-95"
-                                        >
-                                            <Eye className="h-4 w-4" /> View
-                                        </button>
+                                        {canView && (
+                                            <button
+                                                onClick={() => handleView(user)}
+                                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-purple-600 bg-purple-50 rounded-xl font-bold text-sm hover:bg-purple-100 transition-all active:scale-95"
+                                            >
+                                                <Eye className="h-4 w-4" /> View
+                                            </button>
+                                        )}
                                         {canEdit && (
                                             <button
                                                 onClick={() => handleEdit(user)}

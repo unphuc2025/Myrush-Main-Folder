@@ -84,6 +84,7 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
 
     const [formData, setFormData] = useState({
         court_id: '',
+        slice_mask: 0,
         user_id: '',
         date: new Date().toISOString().split('T')[0],
         time_slots: [{ start: '09:00', end: '10:00', price: 0 }],
@@ -153,16 +154,17 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
     }, [booking]);
 
     useEffect(() => {
-        // Only auto-recalculate for NEW bookings, not when editing existing
-        // (the edit total already comes from backend with discount applied)
-        if (!isEditingExisting && formData.time_slots) {
+        // Auto-recalculate for NEW bookings or when slot prices change
+        // (the edit total already comes from backend, but if slot changes, we re-calc)
+        if (formData.time_slots) {
             const rawTotal = formData.time_slots.reduce((sum, slot) => sum + (parseFloat(slot.price) || 0), 0);
             const total = Math.max(0, rawTotal - (parseFloat(formData.discount_amount) || 0));
-            if (total !== parseFloat(formData.total_amount)) {
+            // Only update if it actually changed to avoid infinite loops
+            if (Math.abs(total - parseFloat(formData.total_amount)) > 0.01) {
                 setFormData(prev => ({ ...prev, total_amount: total }));
             }
         }
-    }, [formData.time_slots, formData.discount_amount, isEditingExisting]);
+    }, [formData.time_slots, formData.discount_amount]);
 
     const fetchData = async () => {
         try {
@@ -314,17 +316,40 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
             newPrice = parseFloat(selectedCourt.price_per_hour) || 0;
         }
 
-        // Update slots with new price
-        const updatedSlots = formData.time_slots.map(slot => ({
-            ...slot,
-            price: newPrice
-        }));
-
-        setFormData({
-            ...formData,
+        setFormData(prev => ({
+            ...prev,
             court_id: newCourtId,
-            time_slots: updatedSlots
-        });
+            slice_mask: 0, // Reset mask when court changes
+            time_slots: prev.time_slots.map(slot => ({
+                ...slot,
+                price: newPrice
+            }))
+        }));
+    };
+
+    const handleLogicChange = (e) => {
+        const mask = parseInt(e.target.value);
+        const selectedCourt = courts.find(c => c.id === formData.court_id);
+        
+        // Default to court's base price
+        let newPrice = parseFloat(selectedCourt?.price_per_hour) || 0;
+        
+        // If a specific slice is selected, check if it has a custom price
+        if (mask !== 0 && selectedCourt?.sport_slices) {
+            const slice = selectedCourt.sport_slices.find(s => s.mask === mask);
+            if (slice && slice.price_per_hour) {
+                newPrice = parseFloat(slice.price_per_hour);
+            }
+        }
+        
+        setFormData(prev => ({
+            ...prev,
+            slice_mask: mask,
+            time_slots: prev.time_slots.map(slot => ({
+                ...slot,
+                price: newPrice
+            }))
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -347,6 +372,7 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
 
             const payload = {
                 court_id: formData.court_id,
+                slice_mask: formData.slice_mask || 0,
                 user_id: formData.user_id,
                 booking_date: formData.date,
                 start_time: firstSlot.start,
@@ -457,7 +483,7 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
                             >
                                 <option value="">Select Branch (Optional)</option>
                                 {branches
-                                    .filter(b => !selectedCityId || String(b.city_id) === String(selectedCityId))
+                                    .filter(b => (!selectedCityId || String(b.city_id) === String(selectedCityId)) && b.is_active)
                                     .map(branch => (
                                         <option key={branch.id} value={branch.id}>{branch.name}</option>
                                     ))
@@ -491,6 +517,34 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
                             </select>
                         </div>
                     </div>
+
+                    {/* Granular Logic Selection (Shared/Divisible) */}
+                    {(() => {
+                        const selectedCourt = courts.find(c => c.id === formData.court_id);
+                        if (!selectedCourt || (selectedCourt.logic_type !== 'shared' && selectedCourt.logic_type !== 'divisible')) return null;
+
+                        return (
+                            <div className="space-y-2 pb-2">
+                                <label className="block text-[10px] font-bold text-blue-600 uppercase tracking-widest italic ml-1 flex items-center gap-2">
+                                    <Tag className="w-3 h-3" />
+                                    Occupancy Type / Sport Logic
+                                </label>
+                                <select 
+                                    className="w-full bg-blue-50/50 border-2 border-blue-100 rounded-xl px-4 py-3 outline-none focus:border-blue-500 font-bold text-sm text-blue-700 transition-all font-mono"
+                                    value={formData.slice_mask}
+                                    onChange={handleLogicChange}
+                                    required
+                                >
+                                    <option value={0}>BLOCK FULL FACILITY (ALL LOGICS)</option>
+                                    {selectedCourt.sport_slices?.map(slice => (
+                                        <option key={slice.id} value={slice.mask}>
+                                            → {slice.name.toUpperCase()} (MASK: {slice.mask})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        );
+                    })()}
                 </div>
 
                 <div className="h-px bg-slate-100 my-2" />

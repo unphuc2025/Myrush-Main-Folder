@@ -18,13 +18,18 @@ const Integrations = () => {
     });
     const [message, setMessage] = useState({ type: '', text: '' });
 
-    const [permissions, setPermissions] = useState(() => {
+    const permissions = (() => {
         try {
             const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
-            if (adminInfo.role === 'super_admin') return { edit: true, view: true };
-            return adminInfo.permissions?.['Settings'] || {};
+            if (adminInfo.role === 'super_admin') return {
+                add: true, edit: true, delete: true, view: true, access: true
+            };
+            return adminInfo.permissions?.['Integrations'] || {};
         } catch { return {}; }
-    });
+    })();
+
+    const hasAccess = !!(permissions.access || permissions.view);
+    const canEdit = !!permissions.edit;
 
     useEffect(() => {
         fetchPartners();
@@ -90,11 +95,29 @@ const Integrations = () => {
         return <Puzzle className="w-6 h-6 text-primary" />;
     };
 
+    if (!hasAccess && !loading) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <AlertTriangle className="h-8 w-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-slate-500 max-w-sm">You do not have permission to manage integrations. Please contact your administrator.</p>
+                </div>
+            </Layout>
+        );
+    }
+
     return (
-        <Layout>
+        <Layout onLogout={() => {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_info');
+            navigate('/login');
+        }}>
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-black uppercase">Partner Integrations</h1>
-                <p className="text-sm text-body">
+                <h1 className="text-2xl font-bold text-slate-900 uppercase">Partner Integrations</h1>
+                <p className="text-sm text-slate-500">
                     Connect MyRush with third-party platforms to synchronize inventory and bookings.
                 </p>
             </div>

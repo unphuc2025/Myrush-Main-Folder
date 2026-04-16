@@ -58,7 +58,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
         location.pathname.startsWith('/users')
     );
 
-    const [userRole, setUserRole] = useState('super_admin');
+    const [userRole, setUserRole] = useState(null);
     const [permissions, setPermissions] = useState({});
 
     useEffect(() => {
@@ -66,7 +66,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
             const adminInfo = localStorage.getItem('admin_info');
             if (adminInfo) {
                 const parsed = JSON.parse(adminInfo);
-                setUserRole(parsed.role || 'super_admin');
+                setUserRole(parsed.role || null);
                 setPermissions(parsed.permissions || {});
             }
         };
@@ -84,6 +84,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
 
     // Check if the admin has any access (view/add/edit/delete) to a given module
     const hasModuleAccess = (moduleName) => {
+        if (!userRole) return false;
         if (userRole === 'super_admin') return true;
         const modulePerms = permissions[moduleName];
         if (!modulePerms) return false;
@@ -91,6 +92,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
     };
 
     const hasAnyAccess = () => {
+        if (!userRole) return false;
         if (userRole === 'super_admin') return true;
         return Object.values(permissions).some(modulePerms => 
             Object.values(modulePerms).some(v => v === true)
@@ -418,8 +420,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                                 </Link>
                                             </li>
                                         )}
-                                        {/* Analytics also accessible to Transactions & Earnings admins */}
-                                        {(hasModuleAccess('Reports and analytics') || hasModuleAccess('Transactions And Earnings')) && (
+                                        {/* Analytics section - strictly based on Reports and analytics permission */}
+                                        {hasModuleAccess('Reports and analytics') && (
                                             <li>
                                                 <Link
                                                     to="/reports"

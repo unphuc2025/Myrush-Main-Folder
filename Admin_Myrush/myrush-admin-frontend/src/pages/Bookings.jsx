@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import BookingsManager from '../components/bookings/BookingsManager';
 import TransactionsDashboard from '../components/bookings/TransactionsDashboard';
+import { ShieldAlert } from 'lucide-react';
 
 function Bookings() {
     const navigate = useNavigate();
@@ -10,8 +11,13 @@ function Bookings() {
     const [activeTab, setActiveTab] = useState('manage');
 
     const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
-    const hasManageAccess = adminInfo.role === 'super_admin' || (adminInfo.permissions && adminInfo.permissions['Manage Bookings']?.access);
-    const hasTransactionsAccess = adminInfo.role === 'super_admin' || (adminInfo.permissions && adminInfo.permissions['Transactions And Earnings']?.access);
+    const isSuperAdmin = adminInfo.role === 'super_admin';
+    const managePerms = adminInfo.permissions?.['Manage Bookings'] || {};
+    const transPerms = adminInfo.permissions?.['Transactions And Earnings'] || {};
+
+    const hasManageAccess = isSuperAdmin || !!(managePerms.access || managePerms.view);
+    const hasTransactionsAccess = isSuperAdmin || !!(transPerms.access || transPerms.view);
+    const hasAnyAccess = hasManageAccess || hasTransactionsAccess;
 
     // Handle tab changes via hash
     useEffect(() => {
@@ -46,6 +52,20 @@ function Bookings() {
         setActiveTab(tab);
         navigate(`/bookings#${tab}`);
     };
+
+    if (!hasAnyAccess) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <ShieldAlert className="h-8 w-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-slate-500 max-w-sm">You do not have permission to view bookings or transactions. Please contact your administrator.</p>
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout onLogout={() => {

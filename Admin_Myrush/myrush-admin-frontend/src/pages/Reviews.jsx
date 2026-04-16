@@ -15,14 +15,14 @@ function Reviews() {
         try {
             const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
             if (adminInfo.role === 'super_admin') return {
-                add: true, edit: true, delete: true, view: true
+                add: true, edit: true, delete: true, view: true, access: true
             };
             return adminInfo.permissions?.['Manage Review And Ratings'] || {};
         } catch { return {}; }
     })();
 
-    const canManage = permissions.edit || permissions.delete || permissions.add;
-    const hasView = permissions.view;
+    const canManage = !!(permissions.edit || permissions.delete || permissions.add);
+    const hasView = !!(permissions.view || permissions.access);
 
     useEffect(() => {
         const token = localStorage.getItem('admin_token');

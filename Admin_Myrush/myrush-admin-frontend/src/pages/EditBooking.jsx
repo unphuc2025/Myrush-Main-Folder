@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { bookingsApi } from '../services/adminApi';
 import AddBookingForm from '../components/bookings/AddBookingForm';
 import Layout from '../components/Layout';
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft, ShieldAlert } from 'lucide-react';
 
 const EditBooking = () => {
     const { id } = useParams();
@@ -11,20 +11,29 @@ const EditBooking = () => {
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [hasPermission, setHasPermission] = useState(true);
+
+    // Permission check
+    const adminPermissions = (() => {
+        try {
+            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            if (adminInfo.role === 'super_admin') return { view: true, access: true, edit: true };
+            return adminInfo.permissions?.['Manage Bookings'] || {};
+        } catch { return {}; }
+    })();
+
+    const hasAccess = !!(adminPermissions.view || adminPermissions.access);
+    const canEdit = !!adminPermissions.edit;
 
     useEffect(() => {
-        const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
-        const canEdit = adminInfo.role === 'super_admin' || adminInfo.permissions?.['Manage Bookings']?.edit;
-        
-        if (!canEdit) {
-            setHasPermission(false);
+        const token = localStorage.getItem('admin_token');
+        if (!token) {
+            navigate('/login');
+        } else if (hasAccess && canEdit) {
+            fetchBooking();
+        } else {
             setLoading(false);
-            return;
         }
-
-        fetchBooking();
-    }, [id]);
+    }, [id, hasAccess, canEdit]);
 
     const fetchBooking = async () => {
         try {
@@ -53,25 +62,27 @@ const EditBooking = () => {
         </Layout>
     );
 
-    if (!hasPermission) return (
-        <Layout>
-            <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center px-4">
-                <div className="h-20 w-20 rounded-full bg-red-50 flex items-center justify-center animate-bounce">
-                    <X className="h-10 w-10 text-red-500" />
+    if ((!hasAccess || !canEdit) && !loading) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center px-4">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <ShieldAlert className="h-8 w-8 text-red-500" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-slate-500 max-w-sm">
+                        You do not have {canEdit ? 'view' : 'edit'} permission for bookings. Please contact your administrator for access.
+                    </p>
+                    <button 
+                        onClick={() => navigate('/bookings')} 
+                        className="mt-4 px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all font-bold shadow-lg"
+                    >
+                        Go Back to Bookings
+                    </button>
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800">Access Restricted</h2>
-                <p className="text-slate-500 max-w-sm">
-                    You do not have permission to edit bookings. Please contact your administrator for access.
-                </p>
-                <button 
-                    onClick={() => navigate('/bookings')} 
-                    className="mt-4 px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all font-bold shadow-lg"
-                >
-                    Go Back to Bookings
-                </button>
-            </div>
-        </Layout>
-    );
+            </Layout>
+        );
+    }
 
     if (error) return (
         <Layout>

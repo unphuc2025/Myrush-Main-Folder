@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { bookingsApi, branchesApi, citiesApi } from '../services/adminApi';
-import { Download, Calendar, Filter, FileText, IndianRupee, TrendingUp, Users, Clock, PieChart as PieChartIcon } from 'lucide-react';
+import { Download, Calendar, Filter, FileText, IndianRupee, TrendingUp, Users, Clock, PieChart as PieChartIcon, ShieldAlert } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -18,21 +18,22 @@ const Reports = () => {
 
     const permissions = (() => {
         try {
-            const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+            const adminInfoStr = localStorage.getItem('admin_info');
+            if (!adminInfoStr) return {};
+            const adminInfo = JSON.parse(adminInfoStr);
+            
             if (adminInfo.role === 'super_admin') return {
                 add: true, edit: true, delete: true, view: true
             };
             
-            // Allow access if user has either 'Reports and analytics' OR 'Transactions And Earnings'
+            // Strictly base permissions on the 'Reports and analytics' module
             const reports = adminInfo.permissions?.['Reports and analytics'] || {};
-            const transactions = adminInfo.permissions?.['Transactions And Earnings'] || {};
             
-            // Strictly convert bit settings to booleans
             return {
-                view: !!(reports.view || transactions.view || reports.access || transactions.access),
-                add: !!(reports.add || transactions.add),
-                edit: !!(reports.edit || transactions.edit),
-                delete: !!(reports.delete || transactions.delete)
+                view: !!(reports.view || reports.access),
+                add: !!reports.add,
+                edit: !!reports.edit,
+                delete: !!reports.delete
             };
         } catch { return {}; }
     })();
@@ -307,10 +308,10 @@ const Reports = () => {
             <Layout>
                 <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
                     <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
-                        <PieChartIcon className="h-8 w-8 text-red-400" />
+                        <ShieldAlert className="h-8 w-8 text-red-400" />
                     </div>
                     <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
-                    <p className="text-gray-500 max-w-sm">You don't have permission to view analytics reports. Please contact your administrator.</p>
+                    <p className="text-slate-500 max-w-sm">You do not have permission to view reports and analytics. Please contact your administrator.</p>
                 </div>
             </Layout>
         );

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { settingsApi, IMAGE_BASE_URL, getImageUrl } from '../services/adminApi';
-import { Settings, Upload, Save, Info, Mail, Phone, MapPin, Copyright } from 'lucide-react';
+import { Settings, Upload, Save, Info, Mail, Phone, MapPin, Copyright, ShieldAlert } from 'lucide-react';
 
 const SiteSettings = () => {
     const navigate = useNavigate();
@@ -10,6 +10,7 @@ const SiteSettings = () => {
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [canEdit, setCanEdit] = useState(true);
+    const [hasAccess, setHasAccess] = useState(true);
 
     const [logoPreview, setLogoPreview] = useState(null);
     const [formData, setFormData] = useState({
@@ -41,6 +42,7 @@ const SiteSettings = () => {
         } else {
             const settingsPerms = perms['Settings'] || {};
             setCanEdit(!!settingsPerms.edit || !!settingsPerms.add);
+            setHasAccess(!!(settingsPerms.access || settingsPerms.view));
         }
 
         loadSettings();
@@ -125,6 +127,20 @@ const SiteSettings = () => {
             setSubmitting(false);
         }
     };
+
+    if (!hasAccess && !loading) {
+        return (
+            <Layout>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <ShieldAlert className="h-8 w-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+                    <p className="text-slate-500 max-w-sm">You do not have permission to manage site settings. Please contact your administrator.</p>
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout>
