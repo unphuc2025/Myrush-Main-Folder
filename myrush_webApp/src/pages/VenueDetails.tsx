@@ -941,7 +941,7 @@ export const VenueDetailsPage: React.FC = () => {
                                                                             <div className="h-px flex-1 bg-gray-50"></div>
                                                                         </div>
                                                                         <div className="grid grid-cols-1 gap-1.5">
-                                                                            {courtConfigs.map((config, idx) => {
+                                                                            {courtConfigs.map((config) => {
                                                                                 const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
                                                                                 const isSelected = selectedSliceIds.includes(configId);
                                                                                 const mask = config.slice === 'full' ? ((1 << config.totalZones) - 1) : (config.slice as SportSlice).mask;

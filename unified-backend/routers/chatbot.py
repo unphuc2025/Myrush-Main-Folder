@@ -250,8 +250,8 @@ async def get_all_venues_summary(db: Session = Depends(get_db)):
                 b.images,
                 b.opening_hours
             FROM admin_branches b
-            JOIN admin_cities c ON c.id = b.city_id
-            JOIN admin_areas a ON a.id = b.area_id
+            LEFT JOIN admin_cities c ON c.id = b.city_id
+            LEFT JOIN admin_areas a ON a.id = b.area_id
             WHERE b.is_active = true
             ORDER BY c.name, b.name
         """)
@@ -341,8 +341,8 @@ async def get_venue_detailed_context(venue_id: str, db: Session = Depends(get_db
                     '[]'
                 ) as amenities
             FROM admin_branches b
-            JOIN admin_cities c ON c.id = b.city_id
-            JOIN admin_areas a ON a.id = b.area_id
+            LEFT JOIN admin_cities c ON c.id = b.city_id
+            LEFT JOIN admin_areas a ON a.id = b.area_id
             WHERE b.id = :venue_id AND b.is_active = true
         """)
         

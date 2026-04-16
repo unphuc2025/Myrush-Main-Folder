@@ -28,6 +28,8 @@ export interface BookingState {
     courtId?: string;
     quote?: any;
     bookingId?: string;
+    sliceMask?: number;
+    playingModeName?: string;
 }
 
 export const CITIES = ['Hyderabad', 'Bangalore', 'Mumbai', 'Delhi'];

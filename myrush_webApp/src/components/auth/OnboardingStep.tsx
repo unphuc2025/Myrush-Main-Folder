@@ -54,8 +54,6 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({ phone, token, on
         try {
             if (token) {
                 login(token);
-                // Ensure token is persisted to localStorage before generating the apiClient request natively
-                await new Promise(resolve => setTimeout(resolve, 100));
             }
             const cityName = cities.find(c => c.id === selectedCityId)?.name || '';
             await apiClient.post('/profile/', {

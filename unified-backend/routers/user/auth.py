@@ -137,7 +137,7 @@ def verify_otp(payload: schemas.VerifyOTPRequest):
                 sub_value = str(raw_sub)
                 access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
                 access_token = create_access_token(
-                    data={"sub": sub_value}, expires_delta=access_token_expires
+                    data={"sub": str(user.id)}, expires_delta=access_token_expires
                 )
                 db.close()
                 return {
@@ -221,7 +221,7 @@ def verify_otp(payload: schemas.VerifyOTPRequest):
 
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
             access_token = create_access_token(
-                data={"sub": sub_value}, expires_delta=access_token_expires
+                data={"sub": str(user.id)}, expires_delta=access_token_expires
             )
 
             db.close()
@@ -270,7 +270,7 @@ def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Sessio
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 

@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { getGeminiResponse } from '../services/GeminiService';
 import { featureFlags } from '../config/featureFlags';
 import { generateUUID } from '../utils/uuid';
+import { fetchKnowledgeBase, searchVenues } from '../services/ChatbotContext';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/user').replace('/api/user', '');
 
@@ -27,6 +28,8 @@ export const Chatbot: React.FC = () => {
     const [inputText, setInputText] = useState('');
     const [bookingState, setBookingState] = useState<BookingState>({ step: 'idle' });
     const [isLoading, setIsLoading] = useState(false);
+    const [dynamicCities, setDynamicCities] = useState<string[]>(CITIES);
+    const [dynamicSports, setDynamicSports] = useState<string[]>(SPORTS);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const getImageUrl = (venue: any) => {
@@ -43,6 +46,23 @@ export const Chatbot: React.FC = () => {
     useEffect(() => {
         scrollToBottom();
     }, [messages, isOpen, isLoading]);
+
+    useEffect(() => {
+        const loadKnowledge = async () => {
+            try {
+                const kb = await fetchKnowledgeBase();
+                if (kb.cities?.length > 0) {
+                    setDynamicCities(kb.cities.map(c => c.name));
+                }
+                if (kb.game_types?.length > 0) {
+                    setDynamicSports(kb.game_types.map(s => s.name));
+                }
+            } catch (error) {
+                console.error('[CHATBOT] Error loading dynamic knowledge:', error);
+            }
+        };
+        loadKnowledge();
+    }, []);
 
     const addBotMessage = (text: string, type: Message['type'] = 'text', options?: QuickReply[], data?: any) => {
         const newMessage: Message = {
@@ -83,7 +103,7 @@ export const Chatbot: React.FC = () => {
             case 'start_booking':
                 setBookingState({ step: 'selecting_city' });
                 addBotMessage('Great! Let\'s get you playing. Which city are you in?', 'options',
-                    CITIES.map(c => ({ label: c, value: c, action: 'select_city' }))
+                    dynamicCities.map(c => ({ label: c, value: c, action: 'select_city' }))
                 );
                 break;
             case 'view_bookings':
@@ -96,7 +116,7 @@ export const Chatbot: React.FC = () => {
             case 'select_city':
                 setBookingState(prev => ({ ...prev, city: option.value, step: 'selecting_sport' }));
                 addBotMessage(`You selected ${option.value}. What sport do you want to play?`, 'options',
-                    SPORTS.map(s => ({ label: s, value: s, action: 'select_sport' }))
+                    dynamicSports.map(s => ({ label: s, value: s, action: 'select_sport' }))
                 );
                 break;
             case 'select_sport':
@@ -114,14 +134,15 @@ export const Chatbot: React.FC = () => {
         if (!cityIndex) {
             setBookingState(prev => ({ ...prev, sport, step: 'selecting_city' }));
             addBotMessage('Which city are you looking for?', 'options',
-                CITIES.map(c => ({ label: c, value: c, action: 'select_city' }))
+                dynamicCities.map(c => ({ label: c, value: c, action: 'select_city' }))
             );
             return;
         }
 
         setBookingState(prev => ({ ...prev, city: cityIndex, sport, step: 'selecting_venue' }));
         setIsLoading(true);
-        const res = await venuesApi.getVenues({ city: cityIndex, game_type: sport });
+        // Use the improved searchVenues service for chatbot fuzzy matching
+        const res = await searchVenues({ city: cityIndex, sport });
         setIsLoading(false);
 
         if (res.success && res.data && res.data.length > 0) {
