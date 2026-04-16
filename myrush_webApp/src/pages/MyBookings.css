@@ -872,3 +872,85 @@
         margin-left: auto;
     }
 }
+/* --- Inline Invoice Modal --- */
+.invoice-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10100;
+    padding: 20px;
+}
+
+.invoice-modal-content {
+    background: white;
+    border-radius: 20px;
+    width: 95%;
+    max-width: 900px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+    cursor: auto !important;
+}
+
+.invoice-modal-header {
+    background: #1A1D1F;
+    color: white;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.invoice-modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.close-invoice-btn {
+    background: #00D26A;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.invoice-modal-body {
+    flex: 1;
+    background: #f5f5f5;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.invoice-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: white;
+    cursor: auto !important;
+}
+
+.invoice-modal-footer {
+    padding: 15px 30px;
+    background: #f8f9fa;
+    border-top: 1px solid #ddd;
+    text-align: center;
+}

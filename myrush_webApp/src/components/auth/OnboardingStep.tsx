@@ -67,8 +67,9 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({ phone, token, on
                 playing_style: 'All-court'
             });
             onSuccess();
-        } catch (error) {
-            showAlert('Failed to save profile. Please try again.', 'error');
+        } catch (error: any) {
+            const errorMsg = error?.response?.data?.detail || 'Failed to save profile. Please try again.';
+            showAlert(errorMsg, 'error');
         } finally {
             setIsSaving(false);
         }
