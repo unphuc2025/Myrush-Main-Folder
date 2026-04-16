@@ -120,19 +120,26 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({ phone, token, on
                 </div>
                 <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">City</label>
-                    <select
-                        value={selectedCityId || ''}
-                        onChange={e => setSelectedCityId(e.target.value)}
-                        className="w-full h-12 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary text-sm font-bold appearance-none cursor-pointer"
-                    >
-                        <option value="" disabled>Select City</option>
-                        {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+                    <div className="relative">
+                        <select
+                            value={selectedCityId || ''}
+                            onChange={e => setSelectedCityId(e.target.value)}
+                            className="w-full h-12 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary text-sm font-bold appearance-none cursor-pointer"
+                        >
+                            <option value="" disabled>Select City</option>
+                            {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                            <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                                <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="col-span-2">
+                <div className="col-span-2 space-y-1">
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Favorite Sports</label>
                     <MultiSelectDropdown
-                        label="Favorite Sport"
                         options={gameTypes}
                         selected={selectedSports}
                         onChange={setSelectedSports}

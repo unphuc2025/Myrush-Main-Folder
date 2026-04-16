@@ -408,7 +408,7 @@ export const Corporate: React.FC = () => {
                                     <button
                                         type="submit"
                                         disabled={isSubmittingForm}
-                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow hover:bg-white transition-all active:scale-95 text-lg flex items-center justify-center min-w-[200px]"
+                                        className="w-full md:w-auto px-12 py-5 bg-primary text-black rounded-xl uppercase tracking-[0.2em] font-black shadow-glow transition-all active:scale-95 text-lg flex items-center justify-center min-w-[200px]"
                                     >
                                         {isSubmittingForm ? (
                                             <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>

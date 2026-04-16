@@ -18,7 +18,7 @@
 .bookings-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 40px;
+    padding: 140px 40px 40px;
 }
 
 /* Header */
@@ -746,7 +746,7 @@
 /* Responsive */
 @media (max-width: 768px) {
     .bookings-container {
-        padding: 20px 12px;
+        padding: 100px 12px 20px;
     }
 
     .bookings-header {

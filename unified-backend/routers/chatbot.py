@@ -99,13 +99,14 @@ async def get_knowledge_base(db: Session = Depends(get_db)):
         # Include Global Policies for Bot context (Cancellation, Terms, etc.)
         policies = []
         try:
+            # Use named columns for clarity
             policies_query = text("SELECT type, value, content FROM admin_cancellations_terms WHERE is_active = true")
-            result = db.execute(policies_query)
+            result = db.execute(policies_query).fetchall()
             for row in result:
-                # row[0] is type, row[1] is value, row[2] is content
-                p_type = str(row[0]) if row[0] else "unknown"
-                p_val = row[1] if row[1] else row[2]
-                policies.append({p_type: p_val})
+                p_type = str(row.type) if row.type else "unknown"
+                p_val = row.value if row.value else row.content
+                if p_val:
+                    policies.append({p_type: p_val})
         except Exception as poly_err:
             print(f"[CHATBOT API] Warning: Could not fetch policies: {poly_err}")
             
@@ -350,51 +351,83 @@ async def get_venue_detailed_context(venue_id: str, db: Session = Depends(get_db
         if not result:
             raise HTTPException(status_code=404, detail="Venue not found")
         
-        # Get courts and pricing for this venue
+        # Get courts and their zones (SportSlices) for this venue
         courts_query = text("""
             SELECT 
-                court_name,
-                game_type,
-                price,
-                opening_time,
-                closing_time
-            FROM admin_courts
-            WHERE branch_id = :venue_id AND is_active = true
-            ORDER BY court_name
+                c.id,
+                c.name,
+                c.price_per_hour,
+                c.logic_type,
+                c.capacity_limit,
+                c.total_zones,
+                c.shared_group_id,
+                gt.name as game_type,
+                COALESCE(
+                    (SELECT json_agg(
+                        json_build_object(
+                            'id', ss.id,
+                            'name', ss.name,
+                            'mask', ss.mask,
+                            'price_per_hour', ss.price_per_hour
+                        )
+                    )
+                     FROM admin_sport_slices ss
+                     WHERE ss.court_id = c.id),
+                    '[]'
+                ) as slices
+            FROM admin_courts c
+            JOIN admin_game_types gt ON gt.id = c.game_type_id
+            WHERE c.branch_id = :venue_id AND c.is_active = true
+            ORDER BY c.name
         """)
         
-        courts_result = db.execute(courts_query, {"venue_id": venue_id})
-        courts = [{
-            'name': row[0],
-            'game_type': row[1],
-            'price': float(row[2]) if row[2] else None,
-            'opening_time': str(row[3]) if row[3] else None,
-            'closing_time': str(row[4]) if row[4] else None
-        } for row in courts_result]
+        courts_result = db.execute(courts_query, {"venue_id": venue_id}).fetchall()
+        courts = []
+        for row in courts_result:
+            try:
+                slices = row.slices if isinstance(row.slices, list) else json.loads(row.slices) if row.slices else []
+            except: slices = []
+            
+            courts.append({
+                'id': str(row.id),
+                'name': row.name,
+                'price': float(row.price_per_hour) if row.price_per_hour else None,
+                'logic_type': row.logic_type,
+                'capacity_limit': row.capacity_limit,
+                'total_zones': row.total_zones,
+                'shared_group_id': str(row.shared_group_id) if row.shared_group_id else None,
+                'game_type': row.game_type,
+                'slices': slices
+            })
         
-        # Parse JSON fields
-        game_types = result[18] if isinstance(result[18], list) else json.loads(result[18]) if result[18] else []
-        amenities = result[19] if isinstance(result[19], list) else json.loads(result[19]) if result[19] else []
-        images = result[15] if isinstance(result[15], list) else json.loads(result[15]) if result[15] else []
-        videos = result[16] if isinstance(result[16], list) else json.loads(result[16]) if result[16] else []
-        opening_hours = result[17] if isinstance(result[17], dict) else json.loads(result[17]) if result[17] else {}
+        # Parse JSON fields with safer checks
+        def safe_json(val, default=[]):
+            if isinstance(val, (list, dict)): return val
+            try: return json.loads(val) if val else default
+            except: return default
+
+        game_types = safe_json(result.game_types)
+        amenities = safe_json(result.amenities)
+        images = safe_json(result.images)
+        videos = safe_json(result.videos)
+        opening_hours = safe_json(result.opening_hours, default={})
         
         venue = {
-            'id': str(result[0]),
-            'name': result[1],
-            'city': result[2],
-            'area': result[3],
-            'address_line1': result[4],
-            'address_line2': result[5],
-            'landmark': result[6],
-            'location': result[7],
-            'phone': result[8],
-            'email': result[9],
-            'google_map_url': result[10],
-            'overview': result[11],
-            'terms': result[12],
-            'rules': result[13],
-            'max_players': result[14],
+            'id': str(result.id),
+            'name': result.name,
+            'city': result.city_name,
+            'area': result.area_name,
+            'address_line1': result.address_line1,
+            'address_line2': result.address_line2,
+            'landmark': result.landmark,
+            'location': result.search_location,
+            'phone': result.phone_number,
+            'email': result.email,
+            'google_map_url': result.google_map_url,
+            'overview': result.ground_overview,
+            'terms': result.terms_condition,
+            'rules': result.rule,
+            'max_players': result.max_players,
             'images': images,
             'videos': videos,
             'opening_hours': opening_hours,
@@ -402,8 +435,8 @@ async def get_venue_detailed_context(venue_id: str, db: Session = Depends(get_db
             'amenities': amenities,
             'courts': courts,
             'price_range': {
-                'min': min([c['price'] for c in courts if c['price']]) if courts else None,
-                'max': max([c['price'] for c in courts if c['price']]) if courts else None
+                'min': min([c['price'] for c in courts if c['price']]) if courts and any(c['price'] for c in courts) else None,
+                'max': max([c['price'] for c in courts if c['price']]) if courts and any(c['price'] for c in courts) else None
             }
         }
         
@@ -432,22 +465,33 @@ async def calculate_chatbot_price(
         venue_id = data.get('venueId') or data.get('venue_id')
         court_id = data.get('courtId') or data.get('court_id')
         booking_date_str = data.get('date')
-        slot_times = data.get('slot_times') or []
-        num_players = int(data.get('number_of_players') or 1)
+        # Support both slot_times and time_slots (standard booking schema)
+        slot_list = data.get('slot_times') or data.get('time_slots') or []
+        num_players = int(data.get('number_of_players') or data.get('num_players') or 1)
         slice_mask = data.get('slice_mask')
         
-        if not (court_id and booking_date_str and slot_times):
-            raise HTTPException(status_code=400, detail="Missing required parameters")
-            
+        if not (court_id and booking_date_str and slot_list):
+            raise HTTPException(status_code=400, detail="Missing required parameters: court_id, date, slot_times")
+        
+        # Convert date string to date object
         booking_date = datetime.strptime(booking_date_str, "%Y-%m-%d").date()
         
-        # Prepare slots for calculation
-        requested_slots = [{"time": t} for t in slot_times]
+        # Format slots for the calculation utility
+        requested_slots = []
+        for s in slot_list:
+            if isinstance(s, dict):
+                requested_slots.append(s)
+            else:
+                requested_slots.append({"time": str(s)})
         
-        # 1. Base Multi-Player Price (Authoritative)
-        # This function handles the capacity logic internally
+        # Authoritative Price Calculation using the same logic as payments.py
         base_amount = calculate_authoritative_price(
-            db, court_id, booking_date, requested_slots, num_players, slice_mask
+            db, 
+            court_id, 
+            booking_date, 
+            requested_slots, 
+            num_players,
+            slice_mask
         )
         
         # 2. Add GST (fetch from policies or fallback to 18%)
@@ -474,6 +518,29 @@ async def calculate_chatbot_price(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Normalized sport name mapping for chatbot search
+SPORT_SYNONYMS = {
+    "pool": "Swimming",
+    "swimming pool": "Swimming",
+    "turf": "FootBall",
+    "football turf": "FootBall",
+    "cricket turf": "Cricket",
+    "cricket nets": "Nets",
+    "badminton court": "Badminton",
+    "shuttle": "Badminton",
+    "table tennis": "Table tennis",
+    "tt": "Table tennis",
+    "padel": "Padel",
+    "skating": "Skating",
+    "squash": "Squash"
+}
+
+def normalize_sport_name(sport: str) -> str:
+    """Map common user terms to official game_type names"""
+    if not sport: return sport
+    s = sport.lower().strip()
+    return SPORT_SYNONYMS.get(s, sport)
+
 @router.get("/search/venues")
 async def search_venues_smart(
     city: Optional[str] = Query(None),
@@ -485,26 +552,49 @@ async def search_venues_smart(
 ):
     """
     Smart venue search with multiple filters.
-    Returns venues matching the criteria, sorted by relevance.
+    Uses fuzzy matching (LIKE) for broad results.
     """
     try:
+        # Normalize inputs
+        sport = normalize_sport_name(sport)
+        
         conditions = ["b.is_active = true"]
         params = {}
         
         if city:
-            conditions.append("LOWER(c.name) = LOWER(:city)")
-            params['city'] = city
+            conditions.append("c.name ILIKE :city")
+            params['city'] = f"%{city}%"
         
         if area:
-            conditions.append("LOWER(a.name) = LOWER(:area)")
-            params['area'] = area
+            conditions.append("a.name ILIKE :area")
+            params['area'] = f"%{area}%"
         
+        if sport:
+            conditions.append("""
+                EXISTS (
+                    SELECT 1 FROM admin_branch_game_types bgt_f
+                    JOIN admin_game_types gt_f ON gt_f.id = bgt_f.game_type_id
+                    WHERE bgt_f.branch_id = b.id AND gt_f.name ILIKE :sport AND gt_f.is_active = true
+                )
+            """)
+            params['sport'] = f"%{sport}%"
+            
+        if amenity:
+            conditions.append("""
+                EXISTS (
+                    SELECT 1 FROM admin_branch_amenities ba_f
+                    JOIN admin_amenities am_f ON am_f.id = ba_f.amenity_id
+                    WHERE ba_f.branch_id = b.id AND am_f.name ILIKE :amenity AND am_f.is_active = true
+                )
+            """)
+            params['amenity'] = f"%{amenity}%"
+
         query_str = f"""
             SELECT
                 b.id,
                 b.name,
-                c.name as city_name,
-                a.name as area_name,
+                COALESCE(c.name, 'Unknown City') as city_name,
+                COALESCE(a.name, 'Other') as area_name,
                 b.address_line1,
                 b.search_location,
                 b.google_map_url,
@@ -514,74 +604,66 @@ async def search_venues_smart(
                     (SELECT json_agg(DISTINCT gt.name)
                      FROM admin_branch_game_types bgt
                      JOIN admin_game_types gt ON gt.id = bgt.game_type_id
-                     WHERE bgt.branch_id = b.id),
+                     WHERE bgt.branch_id = b.id AND gt.is_active = true),
                     '[]'::json
                 ) as game_types,
                 COALESCE(
                     (SELECT json_agg(am.name)
                      FROM admin_branch_amenities ba
                      JOIN admin_amenities am ON am.id = ba.amenity_id
-                     WHERE ba.branch_id = b.id),
+                     WHERE ba.branch_id = b.id AND am.is_active = true),
                     '[]'::json
                 ) as amenities,
-                NULL as min_price,
-                NULL as max_price
+                (SELECT MIN(price_per_hour) FROM admin_courts WHERE branch_id = b.id AND is_active = true) as min_price,
+                (SELECT MAX(price_per_hour) FROM admin_courts WHERE branch_id = b.id AND is_active = true) as max_price
             FROM admin_branches b
-            JOIN admin_cities c ON c.id = b.city_id
-            JOIN admin_areas a ON a.id = b.area_id
+            LEFT JOIN admin_cities c ON c.id = b.city_id
+            LEFT JOIN admin_areas a ON a.id = b.area_id
+            WHERE {' AND '.join(conditions)}
+            ORDER BY b.name
         """
         
-        # Add sport filter via join
-        if sport:
-            query_str += """
-                JOIN admin_branch_game_types bgt ON bgt.branch_id = b.id
-                JOIN admin_game_types gt ON gt.id = bgt.game_type_id
-            """
-            conditions.append("LOWER(gt.name) LIKE LOWER(:sport)")
-            params['sport'] = f"%{sport}%"
-        
-        # Add amenity filter via join
-        if amenity:
-            query_str += """
-                JOIN admin_branch_amenities ba ON ba.branch_id = b.id
-                JOIN admin_amenities am ON am.id = ba.amenity_id
-            """
-            conditions.append("LOWER(am.name) LIKE LOWER(:amenity)")
-            params['amenity'] = f"%{amenity}%"
-        
-        query_str += f" WHERE {' AND '.join(conditions)} ORDER BY b.name"
-        
-        result = db.execute(text(query_str), params)
+        result = db.execute(text(query_str), params).fetchall()
         venues = []
         seen_ids = set()
         
         for row in result:
-            venue_id = str(row[0])
+            venue_id = str(row.id)
             if venue_id in seen_ids:
                 continue
             seen_ids.add(venue_id)
             
-            min_price = float(row[11]) if row[11] else None
-            max_price = float(row[12]) if row[12] else None
+            # Robust price range handling
+            min_price = float(row.min_price) if row.min_price is not None else None
+            max_price = float(row.max_price) if row.max_price is not None else None
             
             # Apply price filter if specified
-            if price_max and min_price and min_price > price_max:
+            if price_max and min_price is not None and min_price > price_max:
                 continue
             
-            game_types = row[9] if isinstance(row[9], list) else json.loads(row[9]) if row[9] else []
-            amenities = row[10] if isinstance(row[10], list) else json.loads(row[10]) if row[10] else []
-            images = row[7] if isinstance(row[7], list) else json.loads(row[7]) if row[7] else []
+            # Safe JSON parsing for fields
+            try:
+                game_types = row.game_types if isinstance(row.game_types, list) else json.loads(row.game_types) if row.game_types else []
+            except: game_types = []
+            
+            try:
+                amenities = row.amenities if isinstance(row.amenities, list) else json.loads(row.amenities) if row.amenities else []
+            except: amenities = []
+            
+            try:
+                images = row.images if isinstance(row.images, list) else json.loads(row.images) if row.images else []
+            except: images = []
             
             venues.append({
                 'id': venue_id,
-                'name': row[1],
-                'city': row[2],
-                'area': row[3],
-                'address': row[4],
-                'location': row[5],
-                'google_map_url': row[6],
+                'name': row.name,
+                'city': row.city_name,
+                'area': row.area_name,
+                'address': row.address_line1,
+                'location': row.search_location,
+                'google_map_url': row.google_map_url,
                 'image_url': images[0] if images else None,
-                'max_players': row[8],
+                'max_players': row.max_players,
                 'game_types': game_types,
                 'amenities': amenities,
                 'price_range': {
@@ -590,10 +672,14 @@ async def search_venues_smart(
                 }
             })
         
-        return {"success": True, "data": venues, "count": len(venues)}
+        return {
+            "success": True,
+            "data": venues
+        }
     except Exception as e:
         print(f"[CHATBOT API] Error searching venues: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/booking/{display_id}")
 async def get_booking_details(display_id: str, db: Session = Depends(get_db)):
     """

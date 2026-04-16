@@ -1,182 +1,260 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { fetchKnowledgeBase, searchVenues, calculateBookingPrice, buildChatbotContext } from './ChatbotContext';
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { 
+  fetchKnowledgeBase, 
+  searchVenues, 
+  getVenueDetails, 
+  getBookingDetails, 
+  calculateBookingPrice 
+} from './ChatbotContext';
 
-// API Key provided by the user
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/user').replace('/api/user', '');
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-// Build dynamic system instruction with real platform data
+// Define Tools for Gemini
+const tools = [
+  {
+    functionDeclarations: [
+      {
+        name: "search_venues",
+        description: "Search for sports venues based on city, sport, area, or price.",
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            city: { type: SchemaType.STRING, description: "City name" },
+            sport: { type: SchemaType.STRING, description: "Sport name (e.g. Football, Badminton, Swimming)" },
+            area: { type: SchemaType.STRING, description: "Specific area in the city" },
+            price_max: { type: SchemaType.NUMBER, description: "Maximum price per slot" }
+          }
+        }
+      },
+      {
+        name: "get_venue_details",
+        description: "Get detailed information about a specific venue, including its courts, prices, rules, and amenities.",
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            venueId: { type: SchemaType.STRING, description: "The unique ID of the venue" }
+          },
+          required: ["venueId"]
+        }
+      },
+      {
+        name: "get_available_slots",
+        description: "Get available time slots for a specific venue, date, and sport.",
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            venueId: { type: SchemaType.STRING, description: "The unique ID of the venue" },
+            date: { type: SchemaType.STRING, description: "The date (YYYY-MM-DD)" },
+            sport: { type: SchemaType.STRING, description: "The sport name" }
+          },
+          required: ["venueId", "date"]
+        }
+      },
+      {
+        name: "calculate_price_quote",
+        description: "Calculate the exact price for a booking, including GST and player multipliers.",
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            courtId: { type: SchemaType.STRING, description: "The unique ID of the specific court" },
+            date: { type: SchemaType.STRING, description: "The booking date (YYYY-MM-DD)" },
+            slotTimes: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING }, description: "List of 30-min slot start times (e.g. ['10:00', '10:30'])" },
+            numPlayers: { type: SchemaType.NUMBER, description: "Number of players (Required for Capacity courts like Swimming)" },
+            sliceMask: { type: SchemaType.NUMBER, description: "Bitmask for the selected playing mode/zone (Required for Divisible courts like Cricket Nets)" }
+          },
+          required: ["courtId", "date", "slotTimes"]
+        }
+      },
+      {
+        name: "lookup_booking",
+        description: "Look up details of an existing booking by its Display ID.",
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            displayId: { type: SchemaType.STRING, description: "The Booking ID (e.g. BK-12345)" }
+          },
+          required: ["displayId"]
+        }
+      }
+    ]
+  }
+];
+
 const buildSystemInstruction = async () => {
-  await fetchKnowledgeBase();
+  const knowledge = await fetchKnowledgeBase();
+  const cities = knowledge.cities.map(c => c.name).join(', ');
+  const sports = knowledge.game_types.map(s => s.name).join(', ');
 
   return `
-You are the "MyRush Concierge", a high-end customer support executive.
-You are PROACTIVE and ACTION-ORIENTED. Your goal is to get the user to a booking as fast as possible.
+You are the "MyRush Concierge", a premium, action-oriented booking assistant.
+Your goal is to guide the user from interest to a confirmed booking by handling all complex court logic and pricing transparently.
+
+BOOKING FUNNEL & COURT LOGIC:
+1. IDENTIFY: Get City and Sport. (Use search_venues)
+2. EXPLORE: Present venues. (Use get_venue_details to see courts and their logic types)
+3. CONFIG (CRITICAL):
+    - If logic_type is "divisible": The court has "slices" (zones). Fetch the venue details, look at the "slices" for that court, and ask the user to choose a mode (e.g., "Full Court" vs "Net 1"). You MUST get the 'mask' from the selected slice.
+    - If logic_type is "capacity": (e.g., Swimming) Ask for the "Number of Players".
+4. AVAILABILITY: Ask for a date and show slots. (Use get_available_slots). For divisible courts, availability is granular; advise the user on which modes are free.
+5. QUOTE: Provide an authoritative price quote. (Use calculate_price_quote with the selected sliceMask and numPlayers).
+6. CHECKOUT: When the user is ready, use intent: "checkout" and provide the "prepare_booking" parameters.
 
 STRICT OPERATIONAL RULES:
-1. AUTOMATIC SEARCH: As soon as you know the CITY and SPORT, you MUST return the "search_venues" action. Do NOT ask for permission. Do NOT say "Let me check". Just return the action.
-2. DURATION: Minimum booking is 1 hour (2 slots of 30 mins).
-3. PRICING: All quotes MUST include 18% GST.
-4. CAPACITY: Swimming/Skating = price * players.
-5. NO STALLING: If you have everything needed for a step, EXECUTE THE ACTION. Do not ask redundant questions like "What next?" or "Ready to book?".
+- SPELLING CORRECTION: Use the provided lists: Cities: [${cities}], Sports: [${sports}]. Correct user typos.
+- ZONES & MASKS: Never guess a mask. Always use the masks provided in the court's "slices" array from get_venue_details.
+- DATA MANDATE: When tool results are available, you MUST include them in the "data" object.
+- JSON ONLY: Your response MUST be a single, valid JSON object.
 
-ACTION TYPES (JSON SCHEMA):
-- "search_venues": Must trigger as soon as City + Sport are known.
-- "check_availability": Trigger once Venue + Date are selected. 
-- "get_price_quote": Trigger once specific SlotTimes are selected.
-- "prepare_booking": Trigger only after user confirms the price quote.
-- "respond": Only for general chat or when parameters are missing.
-
-OUTPUT STRUCTURE:
+JSON SCHEMA:
 {
-  "intent": "search" | "get_slots" | "quote" | "checkout" | "chat",
-  "action": {
-    "type": "search_venues" | "check_availability" | "get_price_quote" | "prepare_booking" | "respond",
-    "parameters": { "city", "sport", "venueId", "date", "slotTimes", "numPlayers", "courtId" }
+  "intent": "search" | "slots" | "quote" | "checkout" | "chat",
+  "action": { 
+    "type": "respond" | "prepare_booking", 
+    "parameters": { 
+       "venueId": "ID", "courtId": "ID", "date": "YYYY-MM-DD", "slots": ["10:00"], "numPlayers": 1, "sliceMask": 3, "playingModeName": "Full Court" 
+    } 
   },
-  "response": "Your crisp, helpful human response.",
-  "suggestions": ["Show venues", "Check slots", "Confirm price"]
-}
-
-EXAMPLE:
-User: "I want to swim in Bangalore tomorrow"
-Response: {
-  "intent": "get_slots",
-  "action": { "type": "search_venues", "parameters": { "city": "Bangalore", "sport": "Swimming" } },
-  "response": "Awesome! Bangalore has some great pools. Let me find them for you for tomorrow.",
-  "suggestions": ["Show me pools", "What's the price?"]
+  "response": "Your helpful conversational response.",
+  "suggestions": ["Choose Net 1", "6:00 PM"],
+  "data": { ... }
 }
 `;
 };
 
-// Enhanced Gemini response with context enrichment
+// Handlers for tool calls
+const toolHandlers: any = {
+  search_venues: async (args: any) => {
+    try {
+      const res = await searchVenues(args);
+      return { searchResults: res.success ? res.data : [], count: res.success ? res.data.length : 0 };
+    } catch (e) {
+      return { error: "Search failed", searchResults: [] };
+    }
+  },
+  get_venue_details: async (args: any) => {
+    try {
+      const data = await getVenueDetails(args.venueId);
+      return { venue: data || {} };
+    } catch (e) {
+      return { error: "Failed to fetch venue details", venue: {} };
+    }
+  },
+  get_available_slots: async (args: any) => {
+    try {
+      const sportParam = args.sport ? `&game_type=${encodeURIComponent(args.sport)}` : '';
+      const response = await fetch(`${API_BASE_URL}/api/user/venues/${args.venueId}/slots?date=${args.date}${sportParam}`);
+      const result = await response.json();
+      return { slots: result.success ? result.data.slots : [] };
+    } catch (e) {
+      return { error: "Failed to fetch slots", slots: [] };
+    }
+  },
+  calculate_price_quote: async (args: any) => {
+    try {
+      const res = await calculateBookingPrice({
+        court_id: args.courtId,
+        date: args.date,
+        slot_times: args.slotTimes,
+        number_of_players: args.numPlayers || 1,
+        slice_mask: args.sliceMask // Pass the bitmask to the price engine
+      });
+      return { quote: res.success ? res.data : {} };
+    } catch (e) {
+      return { error: "Price calculation failed", quote: {} };
+    }
+  },
+  lookup_booking: async (args: any) => {
+    try {
+      const data = await getBookingDetails(args.displayId);
+      return { booking: data };
+    } catch (e) {
+      return { error: "Booking lookup failed" };
+    }
+  }
+};
+
+const extractJson = (text: string) => {
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return jsonMatch[0];
+    }
+  } catch (e) {}
+  return text;
+};
+
 export const getGeminiResponse = async (userMessage: string, conversationHistory: any[] = []) => {
   try {
-    // Build context based on user message
-    const context = await buildChatbotContext(userMessage);
-
-    // Build dynamic system instruction
     const systemInstruction = await buildSystemInstruction();
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash", 
+      systemInstruction, // Back to string format
+      tools 
+    });
 
-    // Create model with enhanced configuration
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
-      systemInstruction,
-      generationConfig: {
-        responseMimeType: "application/json",
+    const history = conversationHistory
+      .map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.text }]
+      }));
+    
+    // Ensure history starts with user role
+    const firstUserIndex = history.findIndex(h => h.role === 'user');
+    const validHistory = firstUserIndex !== -1 ? history.slice(firstUserIndex) : [];
+
+    const chat = model.startChat({
+      history: validHistory.slice(-10),
+      generationConfig: { 
         temperature: 0.1,
-        topP: 0.9,
-        topK: 40
+        responseMimeType: "application/json" // Hint for JSON
       }
     });
 
-    // Build conversation context (last 6 messages for memory)
-    let conversationContext = '';
-    if (conversationHistory.length > 0) {
-      const recentMessages = conversationHistory.slice(-6);
-      conversationContext = '\n\nRECENT CONVERSATION:\n' +
-        recentMessages.map(msg =>
-          `${msg.sender === 'user' ? 'User' : 'Bot'}: ${msg.text}`
-        ).join('\n');
+    let result = await chat.sendMessage(userMessage);
+    let response = result.response;
+    let functionCalls = response.functionCalls();
+
+    // Robust tool execution loop
+    let turns = 0;
+    while (functionCalls && functionCalls.length > 0 && turns < 5) {
+      turns++;
+      console.log("[GEMINI] Function calls requested:", functionCalls.map(c => c.name));
+      const toolResponses = await Promise.all(
+        functionCalls.map(async (call) => {
+          const handler = toolHandlers[call.name];
+          const data = handler ? await handler(call.args) : { error: "Tool not found" };
+          return { functionResponse: { name: call.name, response: data } };
+        })
+      );
+
+      result = await chat.sendMessage(toolResponses);
+      response = result.response;
+      functionCalls = response.functionCalls();
     }
 
-    // Enrich prompt with context data and current state
-    const currentBookingState = conversationHistory.length > 0 ? (conversationHistory[conversationHistory.length - 1] as any).bookingState : null;
-    
-    let enrichedPrompt = `
-USER'S LATEST REQUEST: "${userMessage}"
-
-IMPORTANT: If the latest request mentions a DIFFERENT sport or city than the current draft below, DISREGARD the draft and start a new search for the new sport/city.
-
-CURRENT BOOKING DRAFT (For Reference):
-- City: ${currentBookingState?.city || 'Not specified'}
-- Sport: ${currentBookingState?.sport || 'Not specified'}
-- Venue: ${currentBookingState?.venueId ? 'Selected' : 'Not selected'}
-- Date: ${currentBookingState?.date || 'Not specified'}
-
-CONVERSATION HISTORY:
-${conversationContext}
-
-YOUR TASK:
-1. If the user shifts focus (e.g. from Football to Swimming), immediately use "search_venues" for Swimming.
-2. If the user asks "How much", identify the Sport, Players, and Duration. Return "get_price_quote".
-3. Return ONLY valid JSON. Be a helpful human concierge.
-`;
-
-    if (context.venues && context.venues.length > 0) {
-      enrichedPrompt += `\n\nAVAILABLE VENUES IN DB (for ID reference):\n` +
-        context.venues.slice(0, 5).map((v: any) =>
-          `- ${v.name} (ID: ${v.id}, Area: ${v.area})`
-        ).join('\n');
-    }
-
-    const result = await model.generateContent(enrichedPrompt);
-    const responseText = result.response.text();
-
+    const responseText = response.text();
     try {
-      const parsed = JSON.parse(responseText);
-
-      // 1. Search Venues
-      if (parsed.action?.type === 'search_venues' && parsed.action.parameters) {
-        const searchResult = await searchVenues(parsed.action.parameters);
-        if (searchResult.success) {
-          parsed.searchResults = searchResult.data;
-          
-          if (searchResult.data.length === 0) {
-            parsed.response = `I searched for ${parsed.action.parameters.sport} venues in ${parsed.action.parameters.city}, but unfortunately, I couldn't find any that match right now. Would you like to try a different sport or city?`;
-            parsed.intent = "chat";
-            parsed.suggestions = ["Try Badminton", "Change City", "See all sports"];
-          }
-        }
-      }
-
-      // 2. Check Availability (Slots)
-      if (parsed.action?.type === 'check_availability' && parsed.action.parameters?.venueId) {
-        const p = parsed.action.parameters;
-        const response = await fetch(`${API_BASE_URL}/api/user/venues/${p.venueId}/slots?date=${p.date || new Date().toISOString().split('T')[0]}&game_type=${p.sport || ''}`);
-        const result = await response.json();
-        if (result.success) {
-          parsed.slots = result.data.slots;
-        }
-      }
-
-      // 3. Get Price Quote
-      if (parsed.action?.type === 'get_price_quote' && parsed.action.parameters?.courtId) {
-        const p = parsed.action.parameters;
-        const quoteResult = await calculateBookingPrice({
-          court_id: p.courtId,
-          date: p.date!,
-          slot_times: p.slotTimes!,
-          number_of_players: p.numPlayers || 1
-        });
-        if (quoteResult.success) {
-          parsed.quote = quoteResult.data;
-          // Enrich response with price info
-          const q = quoteResult.data;
-          parsed.response = `${parsed.response}\n\n💰 **Base Price:** ₹${q.base_price}\n✨ **GST (18%):** ₹${q.tax}\n✅ **Total Amount:** ₹${q.total}\n\nShall I proceed to booking?`;
-        }
-      }
-
+      const cleanJson = extractJson(responseText);
+      const parsed = JSON.parse(cleanJson);
       return parsed;
     } catch (e) {
-      console.error("Failed to parse Gemini response:", e, responseText);
-      // Fallback object
-      return {
-        intent: "general_chat",
-        action: { type: "respond" },
-        response: responseText || "I didn't quite catch that. Could you tell me again?",
-        suggestions: []
+      console.error("Gemini JSON Parse Fallback:", responseText);
+      // Fallback for plain text responses
+      return { 
+        intent: "chat", 
+        response: responseText, 
+        suggestions: ["Check available venues", "How do I book?"] 
       };
     }
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    return {
-      intent: "error",
-      action: { type: "respond" },
-      response: "Our system is running a bit slow. Give me a moment to check that.",
-      suggestions: []
+    console.error("Gemini Critical Error:", error);
+    return { 
+      intent: "chat", 
+      response: "I'm having a bit of trouble processing that. Could you try rephrasing or checking back in a moment?", 
+      suggestions: ["Retry"] 
     };
   }
 };

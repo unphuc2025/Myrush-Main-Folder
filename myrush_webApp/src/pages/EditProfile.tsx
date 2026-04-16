@@ -161,7 +161,7 @@ export const EditProfile: React.FC = () => {
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
             <TopNav />
 
-            <div className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+            <div className="pt-28 md:pt-36 pb-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
                 {/* Back Button */}
                 <button
                     onClick={() => navigate('/profile')}
@@ -277,8 +277,8 @@ export const EditProfile: React.FC = () => {
 
                                     {isCityDropdownOpen && (
                                         <motion.div
-                                            initial={{ opacity: 0, y: -10 }}
-                                            animate={{ opacity: 1, y: 0 }}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
                                             className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto"
                                         >
                                             {cities.map(city => (
@@ -388,8 +388,8 @@ export const EditProfile: React.FC = () => {
 
                                 {isSportsDropdownOpen && (
                                     <motion.div
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
                                         className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto"
                                     >
                                         {gameTypes.map(gameType => (

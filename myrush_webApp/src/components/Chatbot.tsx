@@ -186,18 +186,18 @@ export const Chatbot: React.FC = () => {
         if (!bookingState.venueId || !bookingState.date || !bookingState.slot_times) return;
 
         const locationState = {
-            venueId: bookingState.venueId,
-            date: bookingState.date,
             selectedSlots: bookingState.slot_times.map(t => ({
                 time: t,
                 display_time: t, // simplified
-                price: (bookingState.quote?.base_price || 0) / (bookingState.slot_times?.length || 1),
+                price: (bookingState.quote?.original_amount || bookingState.quote?.base_price || 0) / (bookingState.slot_times?.length || 1),
                 court_id: bookingState.courtId
             })),
             selectedSport: bookingState.sport || 'Multi-Sport',
-            totalPrice: bookingState.quote?.total || 0,
+            totalPrice: bookingState.quote?.total_amount || bookingState.quote?.total || 0,
             numPlayers: bookingState.numPlayers || 1,
-            courtId: bookingState.courtId
+            courtId: bookingState.courtId,
+            sliceMask: bookingState.sliceMask,
+            playingModeName: bookingState.playingModeName || bookingState.sport
         };
 
         navigate('/booking/summary', { state: locationState });
@@ -247,9 +247,11 @@ export const Chatbot: React.FC = () => {
                         sport: p.sport || newState.sport,
                         venueId: p.venueId || newState.venueId,
                         date: p.date || newState.date,
-                        slot_times: p.slotTimes || newState.slot_times,
+                        slot_times: p.slotTimes || p.slots || newState.slot_times,
                         numPlayers: p.numPlayers || newState.numPlayers,
-                        courtId: p.courtId || newState.courtId
+                        courtId: p.courtId || newState.courtId,
+                        sliceMask: p.sliceMask || newState.sliceMask,
+                        playingModeName: p.playingModeName || newState.playingModeName
                     };
                 });
             }
@@ -257,31 +259,49 @@ export const Chatbot: React.FC = () => {
             // 1. Send text response
             addBotMessage(aiResponse.response, 'text', undefined, { aiResponse });
 
-            // 2. Handle Search Action
-            if (aiResponse.searchResults && aiResponse.searchResults.length > 0) {
-                addBotMessage(`Found ${aiResponse.searchResults.length} options:`, 'venues', undefined, aiResponse.searchResults);
+            // 2. Handle Search Action (New data structure)
+            const results = aiResponse.data?.searchResults || aiResponse.searchResults;
+            if (results && results.length > 0) {
+                addBotMessage(`Found ${results.length} options:`, 'venues', undefined, results);
+            } else if (aiResponse.intent === 'search') {
+                addBotMessage("I couldn't find any venues matching your criteria. Would you like to try a different area or sport?", 'text');
             }
 
-            // 3. Handle Slots Action
-            if (aiResponse.slots && aiResponse.slots.length > 0) {
-                addBotMessage('Here are the available slots:', 'slots', undefined, aiResponse.slots);
+            // 3. Handle Slots Action (New data structure)
+            const slots = aiResponse.data?.slots || aiResponse.slots;
+            if (slots && slots.length > 0) {
+                addBotMessage('Here are the available slots:', 'slots', undefined, slots);
+            } else if (aiResponse.intent === 'slots') {
+                addBotMessage("It looks like there are no available slots for the selected date. Would you like to check another day?", 'text');
             }
 
-            // 4. Handle Quote / Prepare Booking
-            if (aiResponse.quote) {
-                setBookingState(prev => ({ ...prev, quote: aiResponse.quote }));
+            // 4. Handle Quote / Prepare Booking (New data structure)
+            const quote = aiResponse.data?.quote || aiResponse.quote;
+            if (quote) {
+                setBookingState(prev => ({ ...prev, quote }));
                 addBotMessage('Review your booking summary:', 'summary', undefined, {
-                    quote: aiResponse.quote,
+                    quote: quote,
                     venue: bookingState.venue,
                     date: bookingState.date,
                     slot_times: bookingState.slot_times
                 });
             }
 
+            // 5. Handle Venue Detail (New data structure)
+            const venue = aiResponse.data?.venue || aiResponse.venue;
+            if (venue) {
+                addBotMessage(`Here are more details about ${venue.name}:`, 'venue_detail', undefined, { venue });
+            }
+
             // Handle Navigation/Intent
             if (aiResponse.intent === 'view_bookings') {
                 navigate('/bookings');
                 setIsOpen(false);
+            }
+
+            if (aiResponse.intent === 'checkout') {
+                // Auto-confirm if AI says checkout
+                setTimeout(() => confirmBooking(), 1500); 
             }
 
         } catch (error) {
