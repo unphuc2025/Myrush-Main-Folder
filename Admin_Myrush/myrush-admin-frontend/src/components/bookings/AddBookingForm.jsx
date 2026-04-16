@@ -30,24 +30,24 @@ const TimePicker = ({ value, onChange, className }) => {
     };
 
     return (
-        <div className={`flex gap-1 ${className}`}>
+        <div className={`flex gap-0.5 ${className}`}>
             <div className="relative flex-1">
                 <select
                     value={h}
                     onChange={handleHourChange}
-                    className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 text-center font-bold"
+                    className="w-full appearance-none bg-slate-50 border-2 border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block py-2.5 px-0.5 text-center font-semibold"
                 >
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
                         <option key={num} value={num}>{num}</option>
                     ))}
                 </select>
             </div>
-            <span className="self-center font-bold text-slate-400">:</span>
+            <span className="self-center font-bold text-slate-400 mb-0.5">:</span>
             <div className="relative flex-1">
                 <select
                     value={m}
                     onChange={handleMinuteChange}
-                    className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 text-center font-bold"
+                    className="w-full appearance-none bg-slate-50 border-2 border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block py-2.5 px-0.5 text-center font-semibold"
                 >
                     {['00', '15', '30', '45'].map(min => (
                         <option key={min} value={min}>{min}</option>
@@ -58,7 +58,7 @@ const TimePicker = ({ value, onChange, className }) => {
                 <select
                     value={ampm}
                     onChange={handleAmpmChange}
-                    className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 text-center font-bold"
+                    className="w-full appearance-none bg-slate-50 border-2 border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block py-2.5 px-0.5 text-center font-semibold"
                 >
                     <option value="AM">AM</option>
                     <option value="PM">PM</option>
@@ -577,8 +577,8 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
                     <div className="space-y-4">
                         {formData.time_slots.map((slot, index) => (
                             <div key={index} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 relative group transition-all hover:border-slate-300 shadow-sm">
-                                <div className="grid grid-cols-12 gap-3 items-end">
-                                    <div className="col-span-12 sm:col-span-4">
+                                <div className="grid grid-cols-12 gap-x-4 gap-y-3 items-start">
+                                    <div className="col-span-6">
                                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Start Time</label>
                                         <TimePicker
                                             value={slot.start}
@@ -586,7 +586,7 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
                                             disabled={isViewing}
                                         />
                                     </div>
-                                    <div className="col-span-12 sm:col-span-4">
+                                    <div className="col-span-6">
                                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">End Time</label>
                                         <TimePicker
                                             value={slot.end}
@@ -594,7 +594,7 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
                                             disabled={isViewing}
                                         />
                                     </div>
-                                    <div className="col-span-12 sm:col-span-4 flex gap-2 items-center">
+                                    <div className="col-span-12 flex gap-3 items-start">
                                         <div className="flex-1">
                                             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Price per Hour</label>
                                             <div className="relative">
@@ -610,14 +610,16 @@ export default function AddBookingForm({ onClose, onBookingAdded, booking = null
                                         </div>
 
                                         {!isViewing && formData.time_slots.length > 1 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => removeSlot(index)}
-                                                className="mt-5 p-2.5 bg-white text-red-500 border border-slate-200 rounded-xl hover:bg-red-50 transition-all shadow-sm active:scale-95"
-                                                title="Remove Slot"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
+                                            <div className="pt-5 flex items-center h-full">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeSlot(index)}
+                                                    className="p-2.5 bg-white text-red-500 border border-slate-200 rounded-xl hover:bg-red-50 transition-all shadow-sm active:scale-95"
+                                                    title="Remove Slot"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

@@ -202,6 +202,8 @@ function Dashboard() {
     'pending': '#f59e0b',
     'cancelled': '#ef4444',
     'completed': '#3b82f6',
+    'payment pending': '#f59e0b',
+    'payment_pending': '#f59e0b',
     'unknown': '#94a3b8'
   };
 
@@ -413,11 +415,14 @@ function Dashboard() {
               </div>
               <div className="h-72 flex items-center justify-center w-full min-h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
+                  <PieChart 
+                    margin={{ top: 0, right: 0, bottom: 40, left: 0 }}
+                    style={{ outline: 'none' }}
+                  >
                     <Pie
                       data={statusData}
                       cx="50%"
-                      cy="45%"
+                      cy="40%"
                       innerRadius={60}
                       outerRadius={80}
                       paddingAngle={5}
@@ -430,7 +435,7 @@ function Dashboard() {
                     <Tooltip
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     />
-                    <Legend verticalAlign="bottom" height={40} wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
+                    <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

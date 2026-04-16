@@ -1,0 +1,13 @@
+{
+  "id": "unique-id",
+  "apiKey": "api-key",
+  "facilityName": "Rush Arena - Kasavanahalli",
+  "sportName": "Boxcricket",
+  "userName": "Terminal Test",
+  "userPhone": "1234567890",
+  "userEmail": "test@district.in",
+  "slots": [
+    { "date": "20-03-2026", "slotNumber": 12, "courtNumber": 0 },
+    { "date": "20-03-2026", "slotNumber": 13, "courtNumber": 0 }
+  ]
+}

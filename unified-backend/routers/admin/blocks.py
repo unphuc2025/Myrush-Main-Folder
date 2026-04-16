@@ -87,14 +87,47 @@ def create_block(
     current_admin: models.Admin = Depends(get_current_admin),
     _ = Depends(PermissionChecker("Court Blocks", "edit"))
 ):
-    """Create a new manual court block"""
+    """Create a new manual court block with overlap detection"""
+    # 1. ATOMIC LOCK & CONFLICT CHECK
+    from uuid import UUID
+    target_court_id = UUID(str(block.court_id))
+    new_mask = block.slice_mask or 0
+
+    # Lock the court and its siblings to prevent race conditions
+    from sqlalchemy import or_
+    court = db.query(models.Court).filter(models.Court.id == target_court_id).first()
+    if not court:
+        raise HTTPException(status_code=404, detail="Court not found")
+        
+    lock_query = db.query(models.Court).filter(
+        or_(
+            models.Court.id == target_court_id,
+            models.Court.shared_group_id == court.shared_group_id if court.shared_group_id else False
+        )
+    ).with_for_update().all()
+
+    # 2. Unified Conflict Check (Checks both Manual Blocks and User Bookings)
+    from utils.conflicts import check_court_availability_conflict
+    conflict = check_court_availability_conflict(
+        db=db,
+        court_id=target_court_id,
+        block_date=block.block_date,
+        start_time=block.start_time,
+        end_time=block.end_time,
+        slice_mask=new_mask
+    )
+    
+    if conflict:
+        raise HTTPException(status_code=409, detail=conflict)
+
+    # 5. If no conflict, create the block
     db_block = models.CourtBlock(
         court_id=block.court_id,
         block_date=block.block_date,
         start_time=block.start_time,
         end_time=block.end_time,
         reason=block.reason,
-        slice_mask=block.slice_mask or 0,
+        slice_mask=new_mask,
         synced_partners=block.synced_partners,
         blocked_by_id=current_admin.id
     )

@@ -457,9 +457,54 @@ class DistrictAdapter(BaseIntegrationAdapter):
             "bookings": cancelled_details
         }
 
+    def format_webhook_payload(self, category: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Primary entry point for the OutboxWorker to translate raw internal data 
+        into District-specific JSON formats based on the event category.
+        """
+        if category == "availability":
+            return self.format_inventory_webhook(data)
+        elif category == "maintenance":
+            return self.format_court_schedule_webhook_raw(data)
+        elif category == "pricing":
+            return self.format_recurring_webhook(data)
+        
+        # Fallback for unknown categories
+        return data
+
+    def send_webhook(self, url: str, payload: Dict[str, Any], custom_headers: Dict[str, Any] = None) -> Any:
+        """
+        Executes the HTTP POST request to District's Gateway, automatically 
+        handling the required HMAC-SHA256 signatures.
+        """
+        from .gateway_client import DistrictGatewayClient
+        
+        partner = self.db.query(models.Partner).get(self.partner_id)
+        if not partner:
+            raise ValueError(f"Partner {self.partner_id} not found for webhook transmission.")
+
+        client = DistrictGatewayClient(
+            vendor_id=partner.unique_id,
+            vendor_secret=partner.api_key_hash
+        )
+        
+        headers = {"User-Agent": "RUSH-Webhook/1.0"}
+        if custom_headers:
+            headers.update(custom_headers)
+            
+        return client.post(url, json_data=payload, extra_headers=headers)
+
     def format_inventory_webhook(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
         """Maps internal change to District Type B specific date webhook"""
-        target_date_obj = datetime.strptime(event_data['date'], '%Y-%m-%d')
+        date_val = event_data['date']
+        if isinstance(date_val, str):
+            try:
+                target_date_obj = datetime.strptime(date_val, '%Y-%m-%d')
+            except ValueError:
+                target_date_obj = datetime.strptime(date_val, '%d-%m-%Y')
+        else:
+            target_date_obj = date_val
+
         date_str = target_date_obj.strftime('%d-%m-%Y')
         
         branch = self.db.query(models.Branch).get(event_data['branch_id'])
@@ -495,6 +540,11 @@ class DistrictAdapter(BaseIntegrationAdapter):
             "timestamp": int(datetime.utcnow().timestamp()),
             "requestId": f"req-B-{uuid.uuid4().hex[:8]}"
         }
+
+    def format_court_schedule_webhook_raw(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Wraps the court object logic for the OutboxWorker which passes raw IDs."""
+        court = self.db.query(models.Court).get(event_data['court_id'])
+        return self.format_court_schedule_webhook(court, event_data['action'])
 
     def format_court_schedule_webhook(self, court: models.Court, action: str) -> Dict[str, Any]:
         """

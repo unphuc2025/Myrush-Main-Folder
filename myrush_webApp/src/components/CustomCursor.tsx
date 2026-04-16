@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { motion, useSpring, useMotionValue } from 'framer-motion';
 
 const isDarkOrGreen = (color: string) => {
-    if (!color || color === 'transparent') return false;
+    if (!color || color === 'transparent' || color.includes('rgba(0, 0, 0, 0)')) return false;
     
     // getComputedStyle returns rgb() or rgba()
     const rgb = color.match(/\d+/g);
     if (!rgb || rgb.length < 3) return false;
     
-    const [r, g, b] = rgb.map(Number);
+    const [r, g, b, a] = rgb.map(Number);
+    
+    // If transparent (alpha 0)
+    if (a === 0) return false;
     
     // Check if it's the primary green (#00D26A) or a strong green background
     const isGreen = r < 100 && g > 180 && b < 150;

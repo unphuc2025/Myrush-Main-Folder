@@ -121,30 +121,31 @@ def get_booked_slots(active_bookings: list) -> set:
     print(f"[BOOKING UTILS] Final booked slots: {sorted(list(booked_slots))}")
     return booked_slots
 
-def get_venue_hours(opening_hours: Any, booking_date: date) -> tuple:
+def get_venue_hours(opening_hours: Any, booking_date: date) -> List[Dict[str, float]]:
     """
-    Extract opening and closing hours for a specific date (HH.F format).
+    Extract opening and closing operating intervals for a specific date (HH.F format).
+    Returns a list of intervals: [{'open': 7.0, 'close': 10.0}, ...]
     """
+    default_range = [{'open': 0.0, 'close': 24.0}]
+    
     if not opening_hours:
-        return 0.0, 24.0
+        return default_range
 
     if isinstance(opening_hours, str):
         try: opening_hours = json.loads(opening_hours)
-        except: return 0.0, 24.0
+        except: return default_range
 
     day_name_full = booking_date.strftime("%A").lower()
     day_name_short = day_name_full[:3]
     day_config = None
 
     if isinstance(opening_hours, dict):
-        # 1. Broadest possible day-key match (lowercase, capitalized, short, etc.)
         possible_keys = [day_name_full, day_name_full.capitalize(), day_name_short, day_name_short.capitalize(), 'default']
         for key in possible_keys:
             if key in opening_hours:
                 day_config = opening_hours[key]
                 break
     elif isinstance(opening_hours, list):
-        # 2. Iterate through list to find matching day
         for item in opening_hours:
             if isinstance(item, dict):
                 item_day = str(item.get('day', '')).lower()
@@ -152,34 +153,47 @@ def get_venue_hours(opening_hours: Any, booking_date: date) -> tuple:
                     day_config = item
                     break
     
-    # 3. Robust Config Field Extraction
     if not day_config:
-        return 0.0, 24.0 # Default fallback for unconfigured days? Or 0.0, 0.0 for "Closed"?
-        # User said they added timings, so if we can't find it, we might be hitting an unconfigured day.
-        # But for 'perfect fetch', we assume unconfigured means closed, or 24h depending on project policy.
-        # Given the 24h complaint, let's keep it 24h only if opening_hours is literally empty.
+        return default_range
 
-    # 4. Check Activity State
-    # Support 'isActive', 'active', 'is_active', or presence of times
+    # Check Activity State
     is_active = day_config.get('isActive')
     if is_active is None: is_active = day_config.get('active')
     if is_active is None: is_active = day_config.get('is_active')
     if is_active is False:
-        return 0.0, 0.0
+        return [] # Closed
     
-    # 5. Support various start/end time formats: startTime, open, start, from, to...
+    # NEW: Support 'slots' array for multiple intervals
+    slots = day_config.get('slots')
+    if isinstance(slots, list) and len(slots) > 0:
+        intervals = []
+        for s in slots:
+            s_str = s.get('startTime') or s.get('open') or s.get('start') or s.get('from')
+            e_str = s.get('endTime') or s.get('close') or s.get('end') or s.get('to')
+            
+            if s_str is not None and e_str is not None:
+                start_h = safe_parse_time_float(s_str)
+                if e_str in ('23:59', '00:00', '24:00', '12:00 AM', None, '23:30'):
+                    end_h = 24.0
+                else:
+                    end_h = safe_parse_time_float(e_str)
+                    if end_h == 0: end_h = 24.0
+                intervals.append({'open': start_h, 'close': end_h})
+        if intervals:
+            return intervals
+
+    # Legacy Fallback (single set of fields)
     s_str = day_config.get('startTime') or day_config.get('open') or day_config.get('start') or day_config.get('from') or '00:00'
     e_str = day_config.get('endTime') or day_config.get('close') or day_config.get('end') or day_config.get('to')
     
     start_h = safe_parse_time_float(s_str)
-    
     if e_str in ('23:59', '00:00', '24:00', '12:00 AM', None, '23:30'):
         end_h = 24.0
     else:
         end_h = safe_parse_time_float(e_str)
         if end_h == 0: end_h = 24.0
 
-    return start_h, end_h
+    return [{'open': start_h, 'close': end_h}]
 
 def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group_id: Any = None, court_id: Any = None) -> Dict[str, int]:
     """
@@ -417,7 +431,7 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
 
     allowed_slots = {}
     branch = db.query(models.Branch).filter(models.Branch.id == court.branch_id).first()
-    v_start, v_end = get_venue_hours(branch.opening_hours if branch else None, booking_date)
+    v_intervals = get_venue_hours(branch.opening_hours if branch else None, booking_date)
     
     now_ist = get_now_ist()
     is_today = (booking_date == now_ist.date())
@@ -492,7 +506,7 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
         )
         
         # Check Venue Hours Boundary
-        is_venue_open_now = (v_start <= h_start < v_end)
+        is_venue_open_now = any(iv['open'] <= h_start < iv['close'] for iv in v_intervals)
         
         # FINAL ALLOWANCE LOGIC:
         # A slot is visible IF:

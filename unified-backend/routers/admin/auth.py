@@ -106,7 +106,7 @@ def get_current_admin_me(
 ):
     """Get the currently logged-in admin's fresh data including live permissions from their role."""
     # Re-fetch from DB to get the absolute latest role/permissions
-    admin = db.query(models.Admin).filter(models.Admin.id == current_admin.id).first()
+    admin = db.query(models.Admin).options(joinedload(models.Admin.role_rel)).filter(models.Admin.id == current_admin.id).first()
     if not admin:
         raise HTTPException(status_code=404, detail="Admin not found")
 

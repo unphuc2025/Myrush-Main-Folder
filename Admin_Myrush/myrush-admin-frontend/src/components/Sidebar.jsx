@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
-import logo from '../assets/myrushlogo.png';
+import logo from '../assets/myrushlogo_dark.png';
 import {
     Home,
     Calendar,
@@ -21,7 +21,8 @@ import {
     Tag,
     PieChart,
     Users,
-    ArrowLeft
+    ArrowLeft,
+    X
 } from 'lucide-react';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
@@ -172,12 +173,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                     }`}
             >
                 {/* <!-- SIDEBAR HEADER --> */}
-                <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
-                    <Link to="/dashboard" onClick={() => setSidebarOpen(false)} className="flex items-center justify-center gap-2 w-full">
+                <div className="flex items-center justify-between gap-2 px-6 py-4 lg:py-5 bg-[#0f172a] border-b border-white/5">
+                    <Link to="/dashboard" onClick={() => setSidebarOpen(false)} className="flex items-center justify-center gap-2 w-full group">
                         <img
                             src={logo}
                             alt="MyRush Logo"
-                            className="w-full h-auto object-contain max-w-[220px]"
+                            className="w-full h-auto object-contain max-w-[180px] drop-shadow-md transition-transform duration-300 group-hover:scale-105"
                         />
                     </Link>
 
@@ -188,7 +189,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                         aria-expanded={sidebarOpen}
                         className="block lg:hidden"
                     >
-                        <ArrowLeft className="h-6 w-6 text-white" />
+                        <X className="h-6 w-6 text-white" />
                     </button>
                 </div>
                 {/* <!-- SIDEBAR HEADER --> */}
