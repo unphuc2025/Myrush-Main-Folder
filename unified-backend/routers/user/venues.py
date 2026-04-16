@@ -603,15 +603,7 @@ def get_venue_slots(
                     h_e = int(h_end_float)
                     m_e = int((h_end_float % 1) * 60)
 
-                    sh_disp = h if h <= 12 else h - 12
-                    if sh_disp == 0: sh_disp = 12
-                    ampm_s = "AM" if h < 12 else "PM"
-                    
-                    eh_disp = h_e if h_e <= 12 else h_e - 12
-                    if eh_disp == 0: eh_disp = 12
-                    ampm_e = "AM" if h_e < 12 or h_e == 24 else "PM"
-                    if h_e == 24: ampm_e = "AM"
-                    
+
                     consolidated_slots[slot_key] = {
                         "time": time_key,
                         "display_time": details['display_time'],
