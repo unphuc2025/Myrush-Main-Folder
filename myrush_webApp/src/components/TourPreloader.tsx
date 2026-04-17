@@ -40,6 +40,7 @@ export const TourPreloader: React.FC = () => {
                     width="1" 
                     height="1" 
                     style={{ border: 0 }}
+                    allow="accelerometer; gyroscope"
                 />
             ))}
         </div>
