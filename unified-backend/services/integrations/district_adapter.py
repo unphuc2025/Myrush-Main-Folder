@@ -12,6 +12,7 @@ import uuid
 import re
 
 UUID_PATTERN = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+logger = logging.getLogger("DistrictAdapter")
 
 class DistrictAdapter(BaseIntegrationAdapter):
     """
@@ -474,25 +475,31 @@ class DistrictAdapter(BaseIntegrationAdapter):
 
     def send_webhook(self, url: str, payload: Dict[str, Any], custom_headers: Dict[str, Any] = None) -> Any:
         """
-        Executes the HTTP POST request to District's Gateway, automatically 
-        handling the required HMAC-SHA256 signatures.
+        Executes the HTTP POST request to District's callback endpoint.
+        Uses simple API-KEY + Basic auth headers (NOT HMAC — that's for inbound gateway).
         """
-        from .gateway_client import DistrictGatewayClient
+        import requests as http_requests
         
         partner = self.db.query(models.Partner).get(self.partner_id)
         if not partner:
             raise ValueError(f"Partner {self.partner_id} not found for webhook transmission.")
 
-        client = DistrictGatewayClient(
-            vendor_id=partner.unique_id,
-            vendor_secret=partner.api_key_hash
-        )
-        
-        headers = {"User-Agent": "RUSH-Webhook/1.0"}
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "RUSH-Webhook/1.0",
+            "true-client-ip": "localhost",
+            "API-KEY": partner.api_key_hash,
+            "Authorization": f"Basic {partner.unique_id}"
+        }
         if custom_headers:
             headers.update(custom_headers)
-            
-        return client.post(url, json_data=payload, extra_headers=headers)
+        
+        logger.info(f"[DISTRICT WEBHOOK] POST {url}")
+        logger.info(f"[DISTRICT WEBHOOK] Payload: {json.dumps(payload, indent=2)[:500]}")
+        
+        response = http_requests.post(url, json=payload, headers=headers, timeout=30)
+        logger.info(f"[DISTRICT WEBHOOK] Response: {response.status_code} {response.text[:300]}")
+        return response
 
     def format_inventory_webhook(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
         """Maps internal change to District Type B specific date webhook"""
@@ -510,6 +517,10 @@ class DistrictAdapter(BaseIntegrationAdapter):
         branch = self.db.query(models.Branch).get(event_data['branch_id'])
         court = self.db.query(models.Court).get(event_data['court_id'])
         
+        if not branch or not court:
+            logger.warning(f"Skipping webhook: branch={event_data.get('branch_id')} court={event_data.get('court_id')} not found")
+            return {}
+
         all_courts = self.db.query(models.Court).filter(
             models.Court.branch_id == branch.id,
             models.Court.game_type_id == court.game_type_id
@@ -569,13 +580,27 @@ class DistrictAdapter(BaseIntegrationAdapter):
             # Standard binary availability
             final_count = 0 if event_data['action'] == 'block' else 1
 
+        # Calculate day of week (0=Monday in Python, but District uses 0=Sunday convention)
+        day_of_week = target_date_obj.weekday()  # 0=Mon, 6=Sun
+        # Convert to District's convention (0=Sun, 1=Mon, ..., 6=Sat)
+        district_day = (day_of_week + 1) % 7
+
+        # Get price for this slot
+        from utils.booking_utils import generate_allowed_slots_map
+        allowed_map = generate_allowed_slots_map(self.db, court.id, target_date_obj.date() if hasattr(target_date_obj, 'date') else target_date_obj)
+        slot_price = 0
+        price_key = f"{h}:{m:02d}"
+        if price_key in allowed_map:
+            slot_price = float(allowed_map[price_key].get('price', 0))
+
         webhook_data = [{
             "courtNumber": str(court_index),
             "slotNumber": str(slot_idx),
             "count": str(final_count),
             "sport": court.game_type.name,
             "facilityName": branch.name,
-            "date": date_str
+            "day": str(district_day),
+            "price": slot_price
         }]
 
         return {

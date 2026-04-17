@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import NotificationPrompt from './NotificationPrompt';
 import { adminsApi } from '../services/adminApi';
 
 const Layout = ({ children, onLogout }) => {
@@ -49,6 +50,7 @@ const Layout = ({ children, onLogout }) => {
                     <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
                     <main>
+                        <NotificationPrompt />
                         <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
                             {children}
                         </div>

@@ -52,7 +52,27 @@ async def lifespan(app: FastAPI):
         # Optionally create tables (comment out if using migrations)
         Base.metadata.create_all(bind=engine)
         print("[DB] Database tables created/verified successfully")
+
+        # --- FIREBASE ADMIN SDK INITIALIZATION (Phase 3) ---
+        try:
+            import firebase_admin
+            from firebase_admin import credentials
+            if not firebase_admin._apps:
+                cred = credentials.Certificate('myrush-eba39-firebase-adminsdk-fbsvc-bde7fc0b34.json')
+                firebase_admin.initialize_app(cred)
+                print("[FIREBASE] Admin SDK initialized successfully")
+        except Exception as fe:
+            print(f"[FIREBASE ERROR] Failed to initialize Admin SDK: {fe}")
         
+        # --- START SCHEDULER (Phase 4) ---
+        try:
+            from services.scheduler import start_scheduler
+            import asyncio
+            asyncio.create_task(start_scheduler())
+            print("[SCHEDULER] Background services started successfully")
+        except Exception as se:
+            print(f"[SCHEDULER ERROR] Failed to start background services: {se}")
+
         print("[STARTUP] Server ready!")
         print("[STARTUP] Admin API: http://localhost:8000/api/admin")
         print("[STARTUP] User API: http://localhost:8000/api/user")
@@ -182,7 +202,6 @@ from routers.admin import (
     global_price_conditions,
     coupons as admin_coupons,
     policies,
-    policies,
     users as admin_users,
     reviews_v2 as admin_reviews,
     faq as admin_faq,
@@ -191,7 +210,8 @@ from routers.admin import (
     site_settings as admin_site_settings,
     integrations as admin_integrations,
     blocks as admin_blocks,
-    facilities
+    facilities,
+    notifications as admin_notifications
 )
 
 # Import media proxy router (serves private S3 files via server-side AWS credentials)
@@ -223,6 +243,7 @@ app.include_router(admin_site_settings.router, prefix="/api/admin", tags=["Admin
 app.include_router(admin_integrations.router, prefix="/api/admin", tags=["Admin Integrations"])
 app.include_router(admin_blocks.router, prefix="/api/admin", tags=["Admin Court Blocks"])
 app.include_router(facilities.router, prefix="/api/admin", tags=["Admin Facilities"])
+app.include_router(admin_notifications.router, prefix="/api/admin", tags=["Admin Notifications"])
 
 # ============================================================================
 # IMPORT AND INCLUDE USER ROUTERS
@@ -236,10 +257,6 @@ from routers.user import (
     courts as user_courts,
     coupons as user_coupons,
     reviews as user_reviews,
-    notifications,
-    notifications,
-    courts_ratings,
-    notifications,
     courts_ratings,
     payments,
     academy,
@@ -263,7 +280,7 @@ app.include_router(user_venues.router, prefix="/api/user", tags=["User Venues"])
 app.include_router(user_courts.router, prefix="/api/user", tags=["User Courts"])
 app.include_router(user_coupons.router, prefix="/api/user", tags=["User Coupons"])
 app.include_router(user_reviews.router, prefix="/api/user", tags=["User Reviews"])
-app.include_router(notifications.router, prefix="/api/user", tags=["User Notifications"])
+# Notifications router removed from here (now unified under /api/notifications)
 app.include_router(courts_ratings.router, prefix="/api/user", tags=["User Court Ratings"])
 app.include_router(payments.router, prefix="/api/user", tags=["Payments"])
 app.include_router(academy.router, prefix="/api/user/academy", tags=["User Academy"])
@@ -277,6 +294,15 @@ app.include_router(user_invoices.router, prefix="/api/user", tags=["Invoices"])
 
 # Include chatbot knowledge API
 app.include_router(chatbot.router, tags=["Chatbot Knowledge"])
+
+# Include the new unified notifications history API at top-level /api and /api/admin
+from routers import notifications_history
+app.include_router(notifications_history.router, prefix="/api", tags=["Notifications History"])
+app.include_router(notifications_history.router, prefix="/api/admin", tags=["Notifications History"])
+
+# Include the WebSocket router
+from routers import ws
+app.include_router(ws.router)
 
 # ============================================================================
 # PLAYO INTEGRATION ROUTER

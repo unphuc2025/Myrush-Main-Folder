@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { featureFlags } from '../config/featureFlags';
 import { Button } from './ui/Button';
-import { FaUser, FaStar, FaSignOutAlt, FaChevronRight, FaBars, FaTimes } from 'react-icons/fa';
+import { FaUser, FaStar, FaSignOutAlt, FaChevronRight, FaBars, FaTimes, FaBell } from 'react-icons/fa';
+import { NotificationDrawer } from './NotificationDrawer';
 
 interface TopNavProps {
     onLogout?: () => void;
@@ -18,6 +19,8 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
     const { isAuthenticated, user, logout, openAuthModal } = useAuth();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const restrictedPaths = ['/academy', '/arena', '/corporate', '/pickleball'];
@@ -113,8 +116,23 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
 
                     <div className="flex items-center gap-3 md:gap-4">
                         {isAuthenticated ? (
-                            // Profile icon for authenticated users - hidden on mobile globally
-                            <div className="hidden md:flex items-center gap-3 relative" ref={dropdownRef}>
+                            <div className="flex items-center gap-3 md:gap-4">
+                                {/* Notification Bell */}
+                                <button
+                                    onClick={() => setIsNotificationOpen(true)}
+                                    className="relative p-2.5 rounded-xl hover:bg-gray-100 transition-all group"
+                                    title="Notifications"
+                                >
+                                    <FaBell className={`text-xl transition-colors ${unreadCount > 0 ? 'text-primary' : 'text-gray-400 group-hover:text-black'}`} />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm animate-pulse">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    )}
+                                </button>
+
+                                {/* Profile icon for authenticated users - hidden on mobile globally */}
+                                <div className="hidden md:flex items-center gap-3 relative" ref={dropdownRef}>
                                 <button
                                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border-2 ${isDropdownOpen
                                         ? 'bg-primary text-white border-primary shadow-lg shadow-primary/25'
@@ -199,6 +217,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
                                     )}
                                 </AnimatePresence>
                             </div>
+                        </div>
                         ) : (
                             // Login/Signup button for unauthenticated users
                             <Button
@@ -268,6 +287,13 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Notification Drawer */}
+            <NotificationDrawer 
+                isOpen={isNotificationOpen} 
+                onClose={() => setIsNotificationOpen(false)}
+                onUnreadChange={setUnreadCount}
+            />
         </>
     );
 };
