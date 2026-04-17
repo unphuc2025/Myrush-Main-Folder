@@ -28,11 +28,11 @@ if "postgresql" in SQLALCHEMY_DATABASE_URL or "supabase" in SQLALCHEMY_DATABASE_
     # Using small pool to keep connections reuse high while respecting Supabase limits
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
-        pool_size=5,
-        max_overflow=10,
-        pool_timeout=15, # Fail faster if pool is full
-        pool_pre_ping=True,
-        connect_args={'connect_timeout': 10}, # TCP connection timeout
+        pool_size=15,          # Increased for better concurrency
+        max_overflow=25,       # Increased for peak loads
+        pool_timeout=60,       # Increased to wait longer for a connection before 503
+        pool_pre_ping=True,    # Verify connection before using
+        connect_args={'connect_timeout': 20}, # Increased for slower network/Supabase
         echo=False
     )
 else:

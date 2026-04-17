@@ -203,6 +203,9 @@ export const Profile: React.FC = () => {
                             <div>
                                 <h1 className="text-xl font-black text-gray-900">{user?.full_name || 'MyRush Player'}</h1>
                                 <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{user?.phone_number || 'Athlete'}</p>
+                                {user?.email && (
+                                    <p className="text-[10px] font-bold text-primary truncate max-w-[150px]">{user.email}</p>
+                                )}
                             </div>
                         </div>
                         <button
@@ -545,7 +548,14 @@ export const Profile: React.FC = () => {
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                                     <div>
                                         <h1 className="text-2xl lg:text-4xl font-black text-gray-900 mb-1 lg:mb-2 tracking-tight">Profile <span className="text-primary italic">Settings</span></h1>
-                                        <p className="text-gray-500 lg:text-gray-600 text-xs md:text-sm lg:text-lg">Manage your account details and preferences</p>
+                                        <div className="flex flex-col gap-0.5">
+                                            <p className="text-gray-500 lg:text-gray-600 text-xs md:text-sm lg:text-lg">Manage your account details and preferences</p>
+                                            {user?.email && (
+                                                <p className="text-primary font-bold text-xs lg:text-sm tracking-wide bg-primary/5 w-fit px-3 py-1 rounded-lg border border-primary/10">
+                                                    {user.email}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
                                         <Button

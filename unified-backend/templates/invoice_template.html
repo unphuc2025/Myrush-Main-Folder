@@ -3,331 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receipt - {{ booking.booking_display_id }}</title>
+    <title>Invoice - {{ booking.booking_display_id }}</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Outfit:wght@400;700&display=swap');
-        
+        /* Email client specific styles */
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            padding: 40px;
             margin: 0;
-        }
-
-        .receipt-container {
-            width: 800px;
-            background: white;
-            border: 2px solid #000;
             padding: 0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100% !important;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            background-color: #f8f9fa;
         }
-
-        .header {
-            display: flex;
-            align-items: center;
-            padding: 10px 20px;
-            border-bottom: 2px solid #000;
+        img {
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+            display: block;
         }
-
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        table {
+            border-collapse: collapse !important;
         }
-
-        .logo-circle {
-            width: 35px;
-            height: 35px;
-            background-color: #2ecc71;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 20px;
+        /* Layout overrides */
+        .page-container {
+            width: 100%;
+            background-color: #f8f9fa;
         }
-
-        .brand-name {
-            font-size: 28px;
-            font-weight: 800;
-            color: #000;
-            letter-spacing: -1px;
+        .invoice-card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
         }
-
-        .venue-info {
-            margin-left: 40px;
-            text-align: left;
+        /* Brand Colors */
+        .text-primary { color: #00D26A; }
+        .bg-primary { background-color: #00D26A; }
+        .text-gray { color: #64748b; }
+        .text-black { color: #0f172a; }
+        
+        /* Typography */
+        .font-sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        
+        /* Tables */
+        .items-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
         }
-
-        .venue-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #000;
-        }
-
-        .venue-url {
-            color: #0000EE;
-            text-decoration: underline;
-            font-size: 14px;
-        }
-
-        .title-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 5px 20px;
-            border-bottom: 1px solid #ccc;
-            background-color: #fff;
-        }
-
-        .voucher-title {
-            color: #e74c3c;
-            font-weight: bold;
-            font-size: 16px;
-            flex-grow: 1;
-            text-align: center;
-        }
-
-        .metadata {
-            font-size: 14px;
-            font-weight: bold;
-            display: flex;
-            gap: 40px;
-        }
-
-        .info-row {
-            display: flex;
-            padding: 8px 20px;
-            border-bottom: 1px solid #ccc;
-            font-size: 14px;
-        }
-
-        .label {
-            font-weight: bold;
-            width: 100px;
-        }
-
-        .value {
-            border-bottom: 1px solid #999;
-            flex-grow: 1;
-            padding-left: 10px;
-        }
-
-        .table-header {
-            display: flex;
-            border-bottom: 1px solid #000;
-            font-weight: bold;
-            font-size: 13px;
-        }
-
-        .col-desc { flex: 4; border-right: 1px solid #000; padding: 5px 10px; text-align: center; }
-        .col-amt { flex: 1; padding: 5px 10px; text-align: center; }
-
-        .table-body {
-            min-height: 150px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .table-row {
-            display: flex;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-
-        .cell-desc { flex: 4; border-right: 1px solid #000; padding: 8px 10px; font-weight: bold; }
-        .cell-amt { flex: 1; padding: 8px 10px; text-align: right; font-weight: bold; }
-
-        .total-row {
-            display: flex;
-            border-top: 2px solid #000;
-            font-weight: bold;
-        }
-
-        .total-label { flex: 4; border-right: 1px solid #000; padding: 8px 10px; text-align: right; }
-        .total-value { flex: 1; padding: 8px 10px; text-align: right; }
-
-        .footer-mode {
-            padding: 5px 10px;
-            border-top: 1px solid #000;
-            border-bottom: 1px solid #000;
-            font-size: 12px;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .signature-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            font-size: 12px;
-            border-bottom: 1px solid #000;
-        }
-
-        .sig-box {
-            border-right: 1px solid #000;
-            padding: 5px;
-            height: 80px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-        }
-
-        .sig-box:last-child { border-right: none; }
-
-        .sig-label {
-            text-align: center;
-            font-weight: bold;
-            text-decoration: underline;
-        }
-
-        .sig-value {
-            text-align: center;
-            margin-bottom: 5px;
-            font-style: italic;
-            color: #666;
-        }
-
-        .mobile-row {
-            padding: 5px 10px;
-            font-size: 11px;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .gst-number {
-            font-size: 10px;
-            color: #666;
-            margin-top: 2px;
-        }
-
-        @media print {
-            body { background: white; padding: 0; }
-            .receipt-container { box-shadow: none; border: 2px solid #000; }
-        }
+        
     </style>
 </head>
-<body>
-    <div class="receipt-container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo-section">
-                {% if site.site_logo %}
-                <img src="/uploads/{{ site.site_logo }}?t={{ booking.updated_at.timestamp() if booking.updated_at else '1' }}" 
-                     alt="Rush Logo" 
-                     style="height: 50px; width: auto; max-width: 200px; object-fit: contain; display: block;"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="brand-name" style="display: none;">{{ site.company_name | default('RUSH') }}</div>
-                {% else %}
-                <div class="logo-circle">⚡</div>
-                <div class="brand-name">{{ site.company_name | default('RUSH') }}</div>
-                {% endif %}
-            </div>
-            <div class="venue-info">
-                <div class="venue-name">{{ branch.name }}</div>
-                <div class="venue-url">{{ site.site_url | default('www.myrush.in') }}</div>
-                {% if site.gst_number %}
-                <div class="gst-number">GSTIN: {{ site.gst_number }}</div>
-                {% endif %}
-            </div>
-        </div>
+<body class="font-sans">
+    <table border="0" cellpadding="0" cellspacing="0" class="page-container">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table border="0" cellpadding="0" cellspacing="0" width="600" class="invoice-card" style="box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                    <!-- 1. Header with Logo -->
+                    <tr>
+                        <td class="bg-primary" style="padding: 24px 40px;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td valign="middle">
+                                        {% if logo_url %}
+                                        <img src="{{ logo_url }}" alt="MyRush" height="40" style="display: block; filter: brightness(0) invert(1);">
+                                        {% else %}
+                                        <div style="color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">MYRUSH.</div>
+                                        {% endif %}
+                                    </td>
+                                    <td align="right" valign="middle">
+                                        <span style="color: #ffffff; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Booking Receipt</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-        <!-- Title & Metadata -->
-        <div class="title-row">
-            <div class="voucher-title">RECEIPT VOUCHER</div>
-            <div class="metadata" style="display: block; text-align: right; font-size: 11px; line-height: 1.4;">
-                <div style="color: #333;">Receipt No: <span style="color: #000; font-size: 13px;">{{ booking.invoice_number or 'N/A' }}</span></div>
-                <div style="color: #333;">Booking ID: <span style="color: #000; font-size: 13px;">{{ booking.booking_display_id }}</span></div>
-                <div style="margin-top: 4px;">DATE : <strong>{{ booking.booking_date }}</strong></div>
-            </div>
-        </div>
+                    <!-- 2. Invoice Details -->
+                    <tr>
+                        <td style="padding: 32px 40px;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td style="padding-bottom: 24px;">
+                                        <p style="margin: 0; color: #64748b; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Customer Information</p>
+                                        <p style="margin: 4px 0 0; color: #0f172a; font-size: 18px; font-weight: 800;">{{ user.full_name or 'MyRush Athlete' }}</p>
+                                        <p style="margin: 2px 0 0; color: #64748b; font-size: 13px;">{{ user.phone_number }}</p>
+                                    </td>
+                                    <td align="right" valign="top" style="padding-bottom: 24px;">
+                                        <p style="margin: 0; color: #64748b; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Invoice No</p>
+                                        <p style="margin: 4px 0 0; color: #0f172a; font-size: 14px; font-weight: 700;">#{{ booking.booking_display_id }}</p>
+                                        <p style="margin: 2px 0 0; color: #64748b; font-size: 12px;">{{ booking.booking_date }}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" style="border-top: 1px solid #f1f5f9; padding-top: 24px;">
+                                        <div style="background-color: #f8fafc; border-radius: 8px; padding: 16px; border: 1px solid #f1f5f9;">
+                                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                                <tr>
+                                                    <td width="32" valign="top">
+                                                        <div style="background-color: #00D26A; width: 24px; height: 24px; border-radius: 6px; display: inline-block;"></div>
+                                                    </td>
+                                                    <td>
+                                                        <p style="margin: 0; color: #64748b; font-size: 9px; font-weight: 700; text-transform: uppercase;">Arena Location</p>
+                                                        <p style="margin: 2px 0 0; color: #0f172a; font-size: 14px; font-weight: 700;">{{ branch.name or 'Rush Arena' }}</p>
+                                                        <p style="margin: 2px 0 0; color: #64748b; font-size: 12px;">{{ branch.address_line1 or branch.city.name or 'Main Street' }}</p>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-        <!-- Payer Info -->
-        <div class="info-row">
-            <div class="label">Paid By,</div>
-            <div class="value">{{ user.full_name or user.phone_number }}</div>
-        </div>
-        <div class="info-row">
-            <div class="label">Towards A/c,</div>
-            <div class="value">{{ court.name }} Booking Charges</div>
-        </div>
+                    <!-- 3. Items Table -->
+                    <tr>
+                        <td style="padding: 0 40px;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" class="items-table">
+                                <thead style="background-color: #f8fafc;">
+                                    <tr>
+                                        <td style="color: #64748b; font-size: 10px; font-weight: 700; text-transform: uppercase; border-bottom: 2px solid #e2e8f0;">Slot Description</td>
+                                        <td align="right" style="color: #64748b; font-size: 10px; font-weight: 700; text-transform: uppercase; border-bottom: 2px solid #e2e8f0;">Price</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for slot in booking.time_slots %}
+                                    <tr>
+                                        <td style="color: #0f172a; font-size: 13px; font-weight: 600;">{{ court.name }} - {{ slot.display_time }}</td>
+                                        <td align="right" style="color: #0f172a; font-size: 13px; font-weight: 700;">₹{{ "{:,.2f}".format(slot.price | float) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
 
-        <!-- Table -->
-        <div class="table-header">
-            <div class="col-desc">DESCRIPTIONS / REFERENCE</div>
-            <div class="col-amt">AMOUNT</div>
-        </div>
-        <div class="table-body">
-            {% for slot in booking.time_slots %}
-            <div class="table-row">
-                <div class="cell-desc">{{ court.name }} - {{ slot.display_time }}</div>
-                <div class="cell-amt">{{ "{:,.2f}".format(slot.price | float) }}</div>
-            </div>
-            {% endfor %}
-            
-            {% if booking.discount_amount > 0 %}
-            <div class="table-row">
-                <div class="cell-desc">Discount ({{ booking.coupon_code or 'Promo' }})</div>
-                <div class="cell-amt">- {{ "{:,.2f}".format(booking.discount_amount | float) }}</div>
-            </div>
-            {% endif %}
+                    <!-- 4. Totals -->
+                    <tr>
+                        <td style="padding: 24px 40px 40px;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td width="60%"></td>
+                                    <td>
+                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                            <tr>
+                                                <td style="padding: 4px 0; color: #64748b; font-size: 13px;">Subtotal</td>
+                                                <td align="right" style="padding: 4px 0; color: #030712; font-size: 13px; font-weight: 600;">₹{{ "{:,.2f}".format((booking.total_amount - booking.gst_amount + booking.discount_amount) | float) }}</td>
+                                            </tr>
+                                            {% if booking.gst_amount > 0 %}
+                                            <tr>
+                                                <td style="padding: 4px 0; color: #64748b; font-size: 13px;">GST ({% if site %}{{ site.gst_percent | default('18') }}{% else %}18{% endif %}%)</td>
+                                                <td align="right" style="padding: 4px 0; color: #030712; font-size: 13px; font-weight: 600;">₹{{ "{:,.2f}".format(booking.gst_amount | float) }}</td>
+                                            </tr>
+                                            {% endif %}
+                                            {% if booking.discount_amount > 0 %}
+                                            <tr>
+                                                <td style="padding: 4px 0; color: #00D26A; font-size: 13px; font-weight: 600;">Discount</td>
+                                                <td align="right" style="padding: 4px 0; color: #00D26A; font-size: 13px; font-weight: 700;">-₹{{ "{:,.2f}".format(booking.discount_amount | float) }}</td>
+                                            </tr>
+                                            {% endif %}
+                                            <tr>
+                                                <td style="padding: 16px 0 0; border-top: 1px solid #f1f5f9; color: #0f172a; font-size: 11px; font-weight: 700; text-transform: uppercase;">Total Payable</td>
+                                                <td align="right" style="padding: 16px 0 0; border-top: 1px solid #f1f5f9; color: #0D26A; font-size: 24px; font-weight: 900; color: #0f172a;">₹{{ "{:,.2f}".format(booking.total_amount | float) }}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-            {% if booking.gst_amount > 0 %}
-            <div class="table-row">
-                <div class="cell-desc">GST Amount</div>
-                <div class="cell-amt">{{ "{:,.2f}".format(booking.gst_amount | float) }}</div>
-            </div>
-            {% endif %}
-
-            <!-- Empty rows for spacing -->
-            <div class="table-row"><div class="cell-desc" style="height: 40px;"></div><div class="cell-amt"></div></div>
-        </div>
-
-        <!-- Total -->
-        <div class="total-row">
-            <div class="total-label">TOTAL ({{ currency | default('INR') }})</div>
-            <div class="total-value">{{ "{:,.2f}".format(booking.total_amount | float) }}</div>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer-mode">
-            <div>MODE : {{ booking.payment_mode | default('ONLINE') | upper }}</div>
-            <div>STATUS: {{ booking.payment_status | upper }}</div>
-        </div>
-
-        <div class="signature-grid">
-            <div class="sig-box">
-                <div class="sig-value">{{ user.full_name or 'Customer' }}</div>
-                <div class="sig-label">PAID By</div>
-            </div>
-            <div class="sig-box"></div>
-            <div class="sig-box">
-                <div class="sig-value">MyRush System</div>
-                <div class="sig-label">ACCOUNTANT</div>
-            </div>
-            <div class="sig-box">
-                <div class="sig-value">Secured Payment</div>
-                <div class="sig-label">RECEIVED By</div>
-            </div>
-        </div>
-
-        <div class="mobile-row">
-            <div>Contact : {{ branch.phone_number or site.contact_number }}</div>
-            <div>Support : {{ site.email }}</div>
-        </div>
-    </div>
-
-    {% if auto_print %}
-    <script>
-        window.onload = function() {
-            window.print();
-        }
-    </script>
-    {% endif %}
+                    <!-- 5. Footer Info -->
+                    <tr>
+                        <td style="background-color: #0f172a; padding: 24px 40px; text-align: center;">
+                            <p style="margin: 0; color: #ffffff; font-size: 13px; font-weight: 700;">Thank you for playing with RUSH!</p>
+                            <p style="margin: 4px 0 0; color: #94a3b8; font-size: 11px;">Payment Mode: {{ booking.payment_mode or 'RAZORPAY' }} | Status: {{ booking.payment_status }}</p>
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 20px; border-top: 1px solid #1e293b; padding-top: 16px;">
+                                <tr>
+                                    <td align="left" style="color: #94a3b8; font-size: 10px;">Contact: {{ branch.phone_number or site.contact_number or '+91 76248 98999' }}</td>
+                                    <td align="right" style="color: #94a3b8; font-size: 10px;">Email: {{ site.email or 'support@myrush.in' }}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p style="margin-top: 24px; text-align: center; color: #94a3b8; font-size: 11px;">
+                    This is an automated receipt for your booking at MyRush Arena.<br>
+                    © 2026 MyRush Sports. All rights reserved.
+                </p>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

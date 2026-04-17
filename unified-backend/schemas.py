@@ -731,6 +731,7 @@ class ProfileBase(BaseModel):
     skill_level: Optional[str] = None
     sports: Optional[List[str]] = None
     playing_style: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 # FAQ Schemas
 class FAQBase(BaseModel):

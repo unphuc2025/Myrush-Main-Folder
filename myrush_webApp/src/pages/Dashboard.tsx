@@ -50,11 +50,6 @@ export const Dashboard: React.FC = () => {
                             <span className="text-primary">.</span>
                         </h1>
                     </div>
-                    <div className="flex-shrink-0">
-                        <button onClick={() => navigate('/profile/edit')} className="px-3 md:px-5 py-2 md:py-2.5 rounded-xl bg-white/50 backdrop-blur-md border border-gray-200 text-[10px] md:text-sm font-bold shadow-sm hover:bg-white hover:border-black transition-all whitespace-nowrap">
-                            Edit Profile
-                        </button>
-                    </div>
                 </motion.div>
 
                 {/* 2. MAIN DASHBOARD CONTENT (Vertical Stack) */}

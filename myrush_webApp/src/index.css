@@ -465,12 +465,7 @@ iframe {
   user-select: text;
 }
 
-/* Hide default cursor on desktop/hoverable devices */
-@media (hover: hover) and (pointer: fine) {
-  * {
-    cursor: none !important;
-  }
-}
+/* Custom cursor logic moved to CustomCursor.tsx for better control */
 
 /* Prevent zoom on input focus on iOS */
 @media screen and (max-width: 767px) {
