@@ -3,6 +3,8 @@ from utils.websocket_manager import manager
 import schemas
 import json
 from typing import Optional
+from jose import jwt
+from dependencies import SECRET_KEY, ALGORITHM
 
 router = APIRouter(
     tags=["websockets"],
@@ -24,15 +26,15 @@ async def websocket_endpoint(
         if token.startswith("admin-token-"):
             identifier = token.replace("admin-token-", "")
         else:
-            # For users, we'd decode JWT to get sub here
-            # For now, let's allow the token itself as identifier or extract if possible
+            # For users, decode JWT to get sub
             try:
-                from jose import jwt
-                from dependencies import SECRET_KEY, ALGORITHM
                 payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
                 identifier = payload.get("sub")
-            except:
+                print(f"[WS] Authenticated user: {identifier}")
+            except Exception as e:
+                print(f"[WS] Auth Error for token {token[:10]}...: {e}")
                 identifier = token # Fallback
+            
     
     await manager.connect(str(identifier), websocket)
     try:

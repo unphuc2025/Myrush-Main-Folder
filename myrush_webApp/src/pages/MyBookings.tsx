@@ -33,6 +33,10 @@ interface Booking {
     slice_mask?: number;
     total_zones?: number;
     zones?: Array<{ index: number; name: string }>;
+    // Refund fields
+    refund_status?: string;
+    refund_amount?: number;
+    refund_id?: string;
 }
 
 interface ReviewData {
@@ -130,14 +134,18 @@ export const MyBookings: React.FC = () => {
         }
     };
 
-    const handleCancelBooking = async (bookingId: string) => {
+    const handleCancelBooking = async (booking: Booking) => {
+        // Calculate predicted refund (80% based on 20% fee policy)
+        const refundPercent = 80;
+        const predictedRefund = (Number(booking.total_amount) * refundPercent) / 100;
+        
         showConfirm(
-            'Are you sure you want to cancel this booking? This action cannot be undone.',
+            `Are you sure you want to cancel this booking? As per our policy, a 20% cancellation fee applies. You will be refunded ₹${predictedRefund.toFixed(2)}.`,
             async () => {
-                const res = await bookingsApi.cancelBooking(bookingId);
+                const res = await bookingsApi.cancelBooking(booking.id);
                 if (res.success) {
-                    showAlert('Booking cancelled successfully.', 'success');
-                    loadBookings(); // Refresh list
+                    showAlert('Booking cancelled successfully. Refund is being processed.', 'success');
+                    loadBookings(); // Refresh list to show 'Refund Processing' status
                 } else {
                     showAlert(res.error || 'Failed to cancel booking.', 'error');
                 }
@@ -171,16 +179,37 @@ export const MyBookings: React.FC = () => {
         }
     };
 
-    const getStatusBadge = (status: string) => {
+    const getStatusBadge = (booking: Booking) => {
+        let status = booking.status;
         let className = 'status-badge-modern';
-        switch (status) {
-            case 'completed': className += ' completed'; break;
-            case 'upcoming':
-            case 'confirmed': className += ' upcoming'; break;
-            case 'cancelled': className += ' cancelled'; break;
-            default: className += ' default';
+        let label = status;
+
+        if (status === 'cancelled' && booking.refund_status && booking.refund_status !== 'none') {
+            switch (booking.refund_status) {
+                case 'pending': 
+                    className += ' pending-refund'; 
+                    label = `Refund Processing`; 
+                    break;
+                case 'processed': 
+                    className += ' completed'; 
+                    label = `Refunded ₹${booking.refund_amount}`; 
+                    break;
+                case 'failed': 
+                    className += ' cancelled'; 
+                    label = `Refund Failed`; 
+                    break;
+            }
+        } else {
+            switch (status) {
+                case 'completed': className += ' completed'; break;
+                case 'upcoming':
+                case 'confirmed': className += ' upcoming'; break;
+                case 'cancelled': className += ' cancelled'; break;
+                default: className += ' default';
+            }
         }
-        return <span className={className}>{status}</span>;
+        
+        return <span className={className}>{label}</span>;
     };
 
     const renderStars = (rating: number, interactive = false, onRate?: (r: number) => void) => {
@@ -276,7 +305,7 @@ export const MyBookings: React.FC = () => {
                                         <span className="month">{new Date(booking.booking_date).toLocaleDateString('en-US', { month: 'short' })}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {getStatusBadge(booking.status)}
+                                        {getStatusBadge(booking)}
                                     </div>
                                 </div>
 
@@ -330,7 +359,7 @@ export const MyBookings: React.FC = () => {
                                             {isCancellable(booking) ? (
                                                 <button 
                                                     className="cancel-booking-btn-card"
-                                                    onClick={() => handleCancelBooking(booking.id)}
+                                                    onClick={() => handleCancelBooking(booking)}
                                                     title="Cancel Booking (Allowed up to 1h before)"
                                                 >
                                                     Cancel
@@ -490,16 +519,21 @@ export const MyBookings: React.FC = () => {
                                             <div className="detail-group">
                                                 <span className="detail-label">Status</span>
                                                 <div className="flex flex-col items-start gap-1">
-                                                    {getStatusBadge(selectedBooking.status)}
+                                                    {getStatusBadge(selectedBooking)}
                                                     {isCancellable(selectedBooking) && (
                                                         <button 
                                                             className="cancel-booking-btn-modal"
-                                                            onClick={() => handleCancelBooking(selectedBooking.id)}
+                                                            onClick={() => handleCancelBooking(selectedBooking)}
                                                         >
                                                             Cancel Booking
                                                         </button>
                                                     )}
                                                 </div>
+                                                {selectedBooking.status === 'cancelled' && selectedBooking.refund_status === 'pending' && (
+                                                    <p className="text-[10px] text-gray-400 mt-2 italic">
+                                                        Refunds usually take 5-7 business days to reflect in your account.
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
 
@@ -519,6 +553,24 @@ export const MyBookings: React.FC = () => {
                                                 </div>
                                             )}
                                         </div>
+                                        
+                                        {selectedBooking.refund_amount && (
+                                            <div className="detail-group border-t border-gray-100 pt-4 col-span-2">
+                                                <span className="detail-label">Refund Details</span>
+                                                <div className="flex justify-between items-center mt-1">
+                                                    <span className="text-sm text-gray-600">Refunded Amount</span>
+                                                    <span className="font-bold text-green-600">₹{selectedBooking.refund_amount}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-[10px] text-gray-400 mt-1">
+                                                    <span>Original Amount</span>
+                                                    <span>₹{selectedBooking.total_amount}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-[10px] text-red-400 mt-0.5">
+                                                    <span>Cancellation Fee</span>
+                                                    <span>-₹{(Number(selectedBooking.total_amount) - Number(selectedBooking.refund_amount)).toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="detail-row-modern">
                                             <div className="detail-group">

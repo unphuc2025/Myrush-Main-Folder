@@ -195,7 +195,7 @@ def get_venue_hours(opening_hours: Any, booking_date: date) -> List[Dict[str, fl
 
     return [{'open': start_h, 'close': end_h}]
 
-def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group_id: Any = None, court_id: Any = None) -> Dict[str, int]:
+def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group_id: Any = None, court_id: Any = None, exclude_user_id: Optional[str] = None) -> Dict[str, int]:
     """
     Calculate the aggregate occupied mask for a shared group OR a specific court.
     This ensures that the 'booking' table is the single source of truth,
@@ -234,10 +234,28 @@ def get_consolidated_occupied_mask(db: Session, booking_date: date, shared_group
                 (b.payment_status != 'pending' AND b.status != 'payment_pending')
                 OR b.created_at > (NOW() AT TIME ZONE 'UTC' - INTERVAL '10 minutes')
             )
+            AND (
+                :exclude_user_id IS NULL 
+                OR b.user_id IS NULL
+                OR b.user_id != CAST(:exclude_user_id AS uuid)
+                -- If it belongs to the user, ONLY exclude if it is still in a pending/unconfirmed state
+                OR (
+                    COALESCE(b.payment_status, 'paid') != 'pending' 
+                    AND COALESCE(b.status, 'confirmed') != 'payment_pending'
+                )
+            )
         )
     """)
     
-    group_bookings = db.execute(sql_bookings, {"c_ids": [str(cid) for cid in court_ids], "d": str(booking_date)}).fetchall()
+    group_bookings = db.execute(sql_bookings, {
+        "c_ids": [str(cid) for cid in court_ids], 
+        "d": str(booking_date),
+        "exclude_user_id": exclude_user_id
+    }).fetchall()
+    
+    if exclude_user_id:
+        print(f"[BOOKING UTILS] Calculating personalized mask for user {exclude_user_id} on {booking_date}")
+    print(f"[BOOKING UTILS] Found {len(group_bookings)} active bookings (others + own confirmed) to build occupancy mask.")
 
     # 2.5 Fetch manual blocks from Admin Panel
     sql_blocks = text("""
@@ -384,7 +402,7 @@ def ensure_slots_for_date(db: Session, court_id: Any, booking_date: date):
     
     return {s.start_time.strftime("%H:%M"): s for s in existing_slots}
 
-def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -> Dict[str, Dict[str, Any]]:
+def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date, user_id: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
     """
     30-Minute Slot Engine. 
     Halves the 'price_per_hour' to get the 30-min slot price by default.
@@ -414,7 +432,8 @@ def generate_allowed_slots_map(db: Session, court_id: Any, booking_date: date) -
         db, 
         booking_date, 
         shared_group_id=court.shared_group_id,
-        court_id=court.id if not court.shared_group_id else None
+        court_id=court.id if not court.shared_group_id else None,
+        exclude_user_id=user_id
     )
 
     global_rules_query = db.query(models.GlobalPriceCondition).filter(models.GlobalPriceCondition.is_active == True).all()

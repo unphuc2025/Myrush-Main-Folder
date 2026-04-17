@@ -304,6 +304,12 @@
     color: #D32F2F;
 }
 
+.status-badge-modern.pending-refund {
+    background-color: var(--warning-light);
+    color: #F57C00;
+    border: 1px solid rgba(245, 124, 0, 0.2);
+}
+
 /* Cancellation Buttons */
 .cancel-booking-btn-minimal {
     font-size: 0.75rem;

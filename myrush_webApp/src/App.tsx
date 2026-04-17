@@ -32,7 +32,7 @@ import { Chatbot } from './components/Chatbot';
 import { CustomCursor } from './components/CustomCursor';
 import { MobileNav } from './components/MobileNav';
 import { AuthModal } from './components/auth/AuthModal';
-import { TourPreloader } from './components/TourPreloader';
+
 import './App.css';
 
 
@@ -71,8 +71,6 @@ const AppContent = () => {
       {/* Custom Cursor */}
       <CustomCursor />
 
-      {/* Global Tour Preloader */}
-      <TourPreloader />
 
       {/* Global Background */}
       <div className="fixed inset-0 z-[-1] mesh-bg opacity-40 pointer-events-none"></div>

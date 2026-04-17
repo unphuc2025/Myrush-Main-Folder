@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 def generate_uuid():
     return uuid.uuid4()
@@ -489,6 +489,11 @@ class Booking(Base):
     invoice_number = Column(String(50), unique=True, nullable=True)
     coupon_id = Column(UUID(as_uuid=True), ForeignKey("admin_coupons.id"), nullable=True)
     
+    # Refund Tracking
+    refund_id = Column(String(255), nullable=True)
+    refund_status = Column(String(50), default='none') # none, pending, processed, failed
+    refund_amount = Column(DECIMAL(10, 2), nullable=True)
+    
     # Playo Integration Fields
     playo_order_id = Column(String(255), nullable=True, index=True)
     playo_booking_id = Column(String(255), nullable=True, index=True)
@@ -505,6 +510,13 @@ class Booking(Base):
     user = relationship("User", back_populates="bookings")
     # court = relationship("Court", foreign_keys=[court_id], back_populates="bookings")
     coupon = relationship("Coupon", back_populates="bookings")
+    
+    @property
+    def hold_expiry_at(self):
+        """Returns the timestamp when this booking's payment-hold expires (10 minutes after creation)."""
+        if self.created_at:
+            return self.created_at + timedelta(minutes=10)
+        return None
 
 class Review(Base):
     __tablename__ = "reviews"

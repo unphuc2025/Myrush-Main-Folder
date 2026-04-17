@@ -402,12 +402,21 @@ export const Venues: React.FC = () => {
     }, [selectedCity]);
 
     useEffect(() => {
-        fetchVenues();
-        fetchGameTypes();
-    }, [selectedCity]);
-
-    useEffect(() => {
-        fetchBranches();
+        const loadAllData = async () => {
+            setLoading(true);
+            try {
+                await Promise.all([
+                    fetchVenues(),
+                    fetchGameTypes(),
+                    fetchBranches()
+                ]);
+            } catch (err) {
+                console.error("Error loading Venues data:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadAllData();
     }, [selectedCity]);
 
     const displayedSports = React.useMemo(() => {

@@ -83,6 +83,7 @@ export const VenueDetailsPage: React.FC = () => {
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [isConfigDropdownOpen, setIsConfigDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const fetchIdRef = useRef(0);
     const [numPlayers, setNumPlayers] = useState(1);
 
     // Game Type Selection State
@@ -408,15 +409,16 @@ export const VenueDetailsPage: React.FC = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
     const loadVenueData = async (venueId: string) => {
         setLoadingVenue(true);
         try {
-            const [venueRes, ratingsRes, reviewsRes] = await Promise.all([
+            const [venueRes, ratingsRes, reviewsRes, zonesRes] = await Promise.all([
                 venuesApi.getVenueById(venueId),
                 courtsApi.getCourtRatings(venueId),
-                courtsApi.getCourtReviews(venueId)
+                courtsApi.getCourtReviews(venueId),
+                venuesApi.getVenueZones(venueId)
             ]);
+            
             if (venueRes.success && venueRes.data) {
                 setVenue(venueRes.data);
                 // Set default sport if available
@@ -427,14 +429,14 @@ export const VenueDetailsPage: React.FC = () => {
             }
             if (ratingsRes.success) setRatings(ratingsRes.data);
             if (reviewsRes.success) setReviews(reviewsRes.data.reviews);
-
-            // Fetch all configured zones (playing modes) for this venue
-            const zonesRes = await venuesApi.getVenueZones(venueId);
             if (zonesRes.success && zonesRes.data) {
                 setVenueZones(zonesRes.data.zones);
             }
-        } catch (error) { console.error(error); }
-        finally { setLoadingVenue(false); }
+        } catch (error) { 
+            console.error(error); 
+        } finally { 
+            setLoadingVenue(false); 
+        }
     };
 
 
@@ -471,16 +473,30 @@ export const VenueDetailsPage: React.FC = () => {
     };
 
     const fetchSlots = async (venueId: string) => {
+        const fetchId = ++fetchIdRef.current;
         setLoadingSlots(true);
+        setAvailableSlots([]); // Clear stale slots immediately
+        
         try {
             const year = currentDate.getFullYear();
             const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
             const day = selectedDate.toString().padStart(2, '0');
+            
             const res = await venuesApi.getVenueSlots(venueId, `${year}-${month}-${day}`, selectedSport);
-            // Only show slots that are actually available
-            setAvailableSlots(res.success && res.data ? res.data.slots : []);
-        } catch (error) { setAvailableSlots([]); }
-        finally { setLoadingSlots(false); }
+            
+            // Only update if this is still the most recent request
+            if (fetchId === fetchIdRef.current) {
+                setAvailableSlots(res.success && res.data ? res.data.slots : []);
+            }
+        } catch (error) { 
+            if (fetchId === fetchIdRef.current) {
+                setAvailableSlots([]); 
+            }
+        } finally { 
+            if (fetchId === fetchIdRef.current) {
+                setLoadingSlots(false); 
+            }
+        }
     };
 
     const handleSlotClick = (slot: Slot) => {
@@ -1164,6 +1180,9 @@ export const VenueDetailsPage: React.FC = () => {
                                                     onClick={() => {
                                                         setSelectedDate(dayNumber);
                                                         setCurrentDate(date);
+                                                        // Immediate visual feedback: clear slots and show spinner
+                                                        setLoadingSlots(true);
+                                                        setAvailableSlots([]);
                                                     }}
                                                     className={`flex flex-col items-center justify-center min-w-[60px] h-[75px] rounded-xl border-2 transition-all duration-200 flex-shrink-0 ${isSelected
                                                         ? 'bg-primary border-primary text-white shadow-lg'

@@ -270,16 +270,18 @@ def validate_booking_rules(
         import json
         
         # 2. Check for simultaneous bookings by the same user (Double booking prevention)
+        # We allow a user to have multiple 'payment_pending' bookings for overlapping slots
+        # to handle cases where they cancel payment and re-attempt.
         user_bookings_query = db.query(Booking).filter(
             Booking.user_id == user_id,
             Booking.booking_date == booking_date,
-            Booking.status != 'cancelled'
+            Booking.status != 'cancelled',
+            # Ignore other pending bookings by the same user so they can re-attempt same/overlapping slots
+            or_(
+                and_(Booking.status != 'payment_pending', Booking.payment_status != 'pending'),
+                Booking.razorpay_order_id == razorpay_order_id
+            )
         )
-        
-        if razorpay_order_id:
-             # IMPORTANT: Skip collision check with bookings from the SAME transaction/order.
-             # This allows multi-court confirmation to succeed for all courts in the order.
-             user_bookings_query = user_bookings_query.filter(Booking.razorpay_order_id != razorpay_order_id)
              
         user_bookings = user_bookings_query.all()
         
@@ -564,7 +566,7 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         c_uuid = UUID(str(booking.court_id))
         is_capacity = court_check.logic_type == 'capacity'
 
-        # --- ATOMIC LOCKING & VALIDATION ---
+        # 569: --- ATOMIC LOCKING & VALIDATION ---
         # Acquire row-level lock on the court OR the entire shared group
         if court_check.shared_group_id:
             print(f"[CRUD BOOKING] Shared Group detected! Locking all courts in group {court_check.shared_group_id}")
@@ -572,6 +574,14 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         else:
             print(f"[CRUD BOOKING] Independent court. Locking court {c_uuid}")
             db.query(models.Court).filter(models.Court.id == c_uuid).with_for_update().first()
+
+        # 3. ATOMIC SOURCE OF TRUTH LOCK (SLOTS TABLE)
+        # This prevents ANY other booking transaction for this court/date from proceeding until we finish.
+        from sqlalchemy import text, or_, and_
+        db.execute(
+            text("SELECT 1 FROM slots WHERE court_id = :cid AND slot_date = :d FOR UPDATE"),
+            {"cid": str(booking.court_id), "d": booking.booking_date}
+        )
 
         # --- FRAUD CHECK: DOUBLE SPEND / REPLAY ATTACK ---
         if booking.razorpay_payment_id:
@@ -611,13 +621,32 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         if not user_exists:
             raise ValueError(f"User {user_id} not found")
 
-        # 3. Fast Atomic Allocation (via slots table if slot_ids provided)
+        # 4. Fast Atomic Allocation (via slots table if slot_ids provided)
         if booking.slot_ids:
-            from sqlalchemy import text
+            print(f"[CRUD BOOKING] Using slot-based collision logic (slot_ids provided)")
+            from utils.booking_utils import get_consolidated_occupied_mask
+
+            authoritative_masks, _ = get_consolidated_occupied_mask(
+                db, 
+                booking.booking_date, 
+                shared_group_id=court_check.shared_group_id,
+                court_id=court_check.id if not court_check.shared_group_id else None,
+                exclude_user_id=user_id
+            )
+
             for slot_id in booking.slot_ids:
+                # Find the slot record to get its time_key
+                slot_row = db.query(models.Slot).filter(models.Slot.id == slot_id).first()
+                if not slot_row: continue
+                
+                time_key = slot_row.start_time.strftime("%H:%M")
+                true_occupied_mask = authoritative_masks.get(time_key, 0)
+
                 if is_capacity:
                     # Capacity Based: Atomically increment booked_capacity
                     num_players = booking.number_of_players or 1
+                    # Note: Capacity logic already handles multiple bookings for same user naturally,
+                    # but we keep the atomic increment for safety.
                     result = db.execute(
                         text("""
                         UPDATE slots
@@ -634,31 +663,24 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
                 else:
                     # Regular Court: Atomically update bitmask
                     if booking.slice_mask is not None:
-                        # Check if this slot was ALREADY claimed by the same order (to avoid self-collision)
-                        already_claimed = False
-                        if booking.razorpay_order_id:
-                            existing_order_booking = db.query(models.Booking).filter(
-                                models.Booking.razorpay_order_id == booking.razorpay_order_id,
-                                models.Booking.court_id == str(c_uuid),
-                                models.Booking.slice_mask == booking.slice_mask
-                            ).first()
-                            if existing_order_booking:
-                                already_claimed = True
+                        # 1. SMART CHECK: Does the requested mask conflict with the TRUE occupancy?
+                        # This ignores the user's OWN pending bookings.
+                        if (true_occupied_mask & booking.slice_mask) != 0:
+                            db.rollback()
+                            raise ValueError(f"Conflict: Slot is already booked by another user for the requested part of the field.")
 
-                        if not already_claimed:
-                            result = db.execute(
-                                text("""
-                                UPDATE slots
-                                SET occupied_mask = COALESCE(occupied_mask, 0) | :mask
-                                WHERE id = :slot_id
-                                AND (COALESCE(occupied_mask, 0) & :mask) = 0
-                                RETURNING id
-                                """),
-                                {"slot_id": slot_id, "mask": booking.slice_mask}
-                            )
-                            if not result.fetchone():
-                                db.rollback()
-                                raise ValueError(f"Conflict: Slot is no longer available for the requested part of the field.")
+                        # 2. PERFORM UPDATE: Since we've already validated against the source of truth (Bookings table) 
+                        # and we have a lock, we can apply the mask update. 
+                        # We use a forced update here because the 'occupied_mask' in the 'slots' table 
+                        # might still have the user's OWN pending bits set from a previous attempt.
+                        db.execute(
+                            text("""
+                            UPDATE slots
+                            SET occupied_mask = COALESCE(occupied_mask, 0) | :mask
+                            WHERE id = :slot_id
+                            """),
+                            {"slot_id": slot_id, "mask": booking.slice_mask}
+                        )
 
         else:
             # --- FALLBACK: No slot_ids provided. Use bookings table for collision detection. ---
@@ -670,12 +692,23 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
                 e_f = end_time_val.hour + (end_time_val.minute / 60.0)
                 if e_f == 0: e_f = 24.0
 
+                # Authoritative list of conflicting bookings
+                # Ignore: cancelled, AND ignore your own 'payment_pending' records
                 existing_bookings = db.query(models.Booking).filter(
                     models.Booking.court_id == str(c_uuid),
                     models.Booking.booking_date == booking.booking_date,
-                    models.Booking.status != 'cancelled',
-                    models.Booking.payment_status.in_(['pending', 'paid', 'confirmed'])
+                    models.Booking.status != 'cancelled'
                 )
+                
+                # CORE FIX: Ignore current user's pending attempts in fallback too
+                existing_bookings = existing_bookings.filter(
+                    or_(
+                        and_(models.Booking.status != 'payment_pending', models.Booking.payment_status != 'pending'),
+                        models.Booking.user_id != user_id
+                    )
+                )
+                
+                print(f"[CRUD BOOKING] Fallback: Checking against {existing_bookings.count()} active bookings for user {user_id}")
                 # Exclude same razorpay_order_id (allows multi-court same-order)
                 if booking.razorpay_order_id:
                     existing_bookings = existing_bookings.filter(
@@ -820,6 +853,17 @@ def verify_otp_record(db: Session, phone_number: str, otp_code: str):
     db.refresh(otp)
     return otp
 
+def release_booking_hold(db: Session, razorpay_order_id: str, user_id: str):
+    """
+    Delete pending bookings associated with a Razorpay order to release the slot hold.
+    """
+    db.query(models.Booking).filter(
+        models.Booking.razorpay_order_id == razorpay_order_id,
+        models.Booking.user_id == user_id,
+        models.Booking.status == 'payment_pending'
+    ).delete(synchronize_session=False)
+    db.commit()
+
 def cancel_booking(db: Session, booking_id: str, user_id: str, ignore_time_limit: bool = False):
     """
     Cancel a booking if it's at least 1 hour before the start time.
@@ -855,23 +899,52 @@ def cancel_booking(db: Session, booking_id: str, user_id: str, ignore_time_limit
         import razorpay
         import os
         try:
-            print(f"[CRUD] Initiating automatic refund for booking {booking_id}, payment {db_booking.payment_id}")
+            from models import AdminPolicy
+            # 1. Fetch exact cancellation policy
+            policy = db.query(AdminPolicy).filter(
+                AdminPolicy.type == 'cancellation',
+                AdminPolicy.is_active == True
+            ).first()
+            
+            deduction_percent = float(policy.value) if policy and policy.value else 0.0
+            total_amount = float(db_booking.total_amount)
+            
+            # 2. Calculate Final Refund
+            deduction_amount = (total_amount * deduction_percent) / 100.0
+            refund_amount = total_amount - deduction_amount
+            refund_amount_paise = int(refund_amount * 100)
+            
+            print(f"[CRUD] Initiating automatic refund for booking {booking_id}")
+            print(f"       Policy: {deduction_percent}% fee. Total: {total_amount}. Refund: {refund_amount}")
+            
             client = razorpay.Client(auth=(os.getenv("RAZORPAY_KEY_ID"), os.getenv("RAZORPAY_KEY_SECRET")))
             
-            refund_amount_paise = int(db_booking.total_amount * 100)
-            
+            # 3. Process Refund through Razorpay
             refund = client.payment.refund(db_booking.payment_id, {
                 "amount": refund_amount_paise,
                 "notes": {
                     "reason": "User cancelled booking",
-                    "booking_id": str(db_booking.id)
+                    "booking_id": str(db_booking.id),
+                    "deduction_percent": f"{deduction_percent}%"
                 }
             })
-            print(f"[CRUD] Successfully processed refund: {refund.get('id')}")
-            db_booking.payment_status = 'refunded'
+            
+            refund_id = refund.get('id')
+            print(f"[CRUD] Successfully initiated refund: {refund_id}")
+            
+            # 4. Store metrics in booking
+            db_booking.refund_id = refund_id
+            db_booking.refund_amount = refund_amount
+            db_booking.refund_status = 'pending' # Will be confirmed by Webhook later
+            
         except Exception as e:
             print(f"[CRUD] Razorpay Refund Error: {e}")
-            raise HTTPException(status_code=500, detail=f"Failed to process automatic refund: {str(e)}. Please contact support.")
+            import traceback
+            traceback.print_exc()
+            # We don't block cancellation if refund initiation fails, 
+            # but we notify that manual support is needed.
+            db_booking.refund_status = 'failed'
+            # Note: In a production app, you might want to log this to an admin alert system
 
     # Update status
     db_booking.status = 'cancelled'
@@ -966,7 +1039,10 @@ def get_bookings(db: Session, user_id: str):
                     '[]'::json
                 ) as zones,
                 c.total_zones,
-                a.name as area_name
+                a.name as area_name,
+                b.refund_id,
+                b.refund_status,
+                b.refund_amount
             FROM booking b
             LEFT JOIN admin_courts c ON b.court_id::text = c.id::text
             LEFT JOIN admin_branches br ON c.branch_id::text = br.id::text
@@ -1032,8 +1108,11 @@ def get_bookings(db: Session, user_id: str):
                 "gst_amount": row[27] or 0.0,
                 "logic_type": row[28],
                 "slice_mask": row[29],
+                "zones": row[30] if isinstance(row[30], list) else json.loads(row[30]) if row[30] else [],
                 "total_zones": row[31] or 1,
-                "zones": row[30] if isinstance(row[30], list) else json.loads(row[30]) if row[30] else []
+                "refund_id": row[33],
+                "refund_status": row[34] or 'none',
+                "refund_amount": row[35]
             }
             bookings_list.append(booking_dict)
 

@@ -7,7 +7,8 @@ import { useNotification } from '../context/NotificationContext';
 
 import { Button } from '../components/ui/Button';
 import { TopNav } from '../components/TopNav';
-import { FaMapMarkerAlt, FaTicketAlt, FaClock, FaChevronLeft } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaMapMarkerAlt, FaTicketAlt, FaClock, FaChevronLeft, FaExclamationTriangle } from 'react-icons/fa';
 
 interface Slot {
     time: string;
@@ -58,6 +59,72 @@ export const BookingSummary: React.FC = () => {
     const [gstPercent, setGstPercent] = useState(0);
     const [cancellationPolicy, setCancellationPolicy] = useState<any>(null);
 
+    // Reservation & Timer State
+    const [orderResData, setOrderResData] = useState<any>(null);
+    const [timeLeft, setTimeLeft] = useState<string>("10:00");
+    const [isExpired, setIsExpired] = useState(false);
+    const reservationInitiated = React.useRef(false);
+    const localHoldStartTime = React.useRef(Date.now());
+    const [isReleasing, setIsReleasing] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+
+    // Navigation Interceptor
+    useEffect(() => {
+        if (isExpired || !orderResData || submitting || isReleasing) return;
+
+        // 1. Browser Back Button Interceptor
+        const handlePopState = (e: PopStateEvent) => {
+            // Re-push state to keep user on same URL
+            window.history.pushState(null, '', window.location.href);
+            setShowCancelModal(true);
+        };
+
+        // 2. Tab Close/Refresh Interceptor
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+            e.returnValue = ''; // Required for Chrome
+        };
+
+        // Initialize blocking state
+        window.history.pushState(null, '', window.location.href);
+        window.addEventListener('popstate', handlePopState);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [isExpired, orderResData, submitting, isReleasing]);
+
+    const handleBackClick = () => {
+        if (!isExpired && orderResData && !submitting) {
+            setShowCancelModal(true);
+        } else {
+            navigate(-1);
+        }
+    };
+
+    const handleReleaseHold = async () => {
+        if (!orderResData?.id) {
+            navigate(`/venues/${state?.venueId || ''}`, { replace: true });
+            return;
+        }
+
+        setIsReleasing(true);
+        try {
+            await bookingsApi.releaseHold(orderResData.id);
+            setShowCancelModal(false);
+            // Use window.history.go(-2) to jump past the dummy state and back to VenueDetails
+            window.history.go(-2);
+        } catch (error) {
+            console.error("Failed to release hold:", error);
+            setShowCancelModal(false);
+            window.history.go(-2); 
+        } finally {
+            setIsReleasing(false);
+        }
+    };
+
     useEffect(() => {
         if (!state) {
             navigate('/venues');
@@ -100,6 +167,95 @@ export const BookingSummary: React.FC = () => {
         loadPolicies();
     }, [state, state?.venueId, navigate]);
 
+    // PRE-RESERVE SLOTS (10-minute hold starts now)
+    useEffect(() => {
+        if (state && !reservationInitiated.current) {
+            reservationInitiated.current = true;
+            initiateProactiveReservation();
+        }
+    }, [state]);
+
+    // Timer Logic
+    useEffect(() => {
+        const timer = setInterval(() => {
+            const now = new Date().getTime();
+            let expiry: number;
+
+            if (orderResData?.hold_expiry_at) {
+                expiry = new Date(orderResData.hold_expiry_at).getTime();
+            } else {
+                // Fallback to local 10-minute timer while server is processing
+                expiry = localHoldStartTime.current + (10 * 60 * 1000);
+            }
+
+            const diff = expiry - now;
+
+            if (diff <= 0) {
+                setTimeLeft("00:00");
+                setIsExpired(true);
+                clearInterval(timer);
+            } else {
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                setTimeLeft(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+            }
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [orderResData]);
+
+    const initiateProactiveReservation = async () => {
+        try {
+            const sortedSlots = [...state.selectedSlots].sort((a, b) => a.time.localeCompare(b.time));
+            const startTime = sortedSlots[0].time;
+            const durationMinutes = sortedSlots.length * 30;
+            const configs = state.selectedConfigs && state.selectedConfigs.length > 0
+                ? state.selectedConfigs
+                : [{ courtId: state.courtId || state.selectedSlots[0]?.court_id || state.venueId, label: state.venueName || 'Standard Arena', sliceId: 'full', sliceMask: state.sliceMask || 0 }];
+
+            const rawSlotIds = state.selectedSlots.map(s => s.slot_id).filter(Boolean) as string[];
+            const slotIds = Array.from(new Set(rawSlotIds));
+
+            let res;
+            if (configs.length > 1) {
+                res = await bookingsApi.createMultiCourtOrder({
+                    configs: configs.map(c => ({ courtId: c.courtId, sliceMask: c.sliceMask, branchId: state.venueId })),
+                    bookingDate: state.date,
+                    timeSlots: sortedSlots,
+                    slotIds: slotIds,
+                    numberOfPlayers: numPlayers,
+                    couponCode: couponCode || undefined,
+                    teamName: teamName || undefined,
+                    // Essential for Razorpay order creation
+                    originalAmount: slotsCost,
+                    totalAmount: totalAmount
+                });
+            } else {
+                res = await bookingsApi.createPaymentOrder({
+                    courtId: configs[0].courtId,
+                    bookingDate: state.date,
+                    startTime: startTime,
+                    durationMinutes: durationMinutes,
+                    timeSlots: sortedSlots,
+                    slotIds: slotIds,
+                    sliceMask: configs[0].sliceMask,
+                    numberOfPlayers: numPlayers,
+                    couponCode: couponCode || undefined,
+                    teamName: teamName || undefined,
+                    // Essential for Razorpay order creation
+                    originalAmount: slotsCost,
+                    totalAmount: totalAmount
+                });
+            }
+
+            if (res.success) {
+                setOrderResData(res.data);
+            }
+        } catch (err) {
+            console.error("Proactive Reservation Failed:", err);
+        }
+    };
+
     if (!state || (!venue && !state.venueName)) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div></div>;
 
     // Slot prices forwarded from VenueDetails are already the *total* per-slot cost:
@@ -126,6 +282,11 @@ export const BookingSummary: React.FC = () => {
                 setAppliedCouponCode(couponCode.trim().toUpperCase()); // lock in the code
                 setAppliedCouponInfo(res.data);
                 showAlert(`Coupon Applied: ₹${res.data.discount_amount} Off`, 'success');
+                
+                // Clear existing reservation to force a new one with the coupon
+                setOrderResData(null);
+                reservationInitiated.current = false;
+                initiateProactiveReservation();
             } else {
                 setDiscount(0);
                 setAppliedCouponCode('');
@@ -157,9 +318,17 @@ export const BookingSummary: React.FC = () => {
                 return;
             }
 
+            const configs = state.selectedConfigs && state.selectedConfigs.length > 0
+                ? state.selectedConfigs
+                : [{ courtId: state.courtId || state.selectedSlots[0]?.court_id || state.venueId, label: state.venueName || 'Standard Arena', sliceId: 'full', sliceMask: state.sliceMask || 0 }];
+            const numCourts = configs.length;
+
             const sortedSlots = [...state.selectedSlots].sort((a, b) => a.time.localeCompare(b.time));
             const startTime = sortedSlots[0].time;
             const durationMinutes = sortedSlots.length * 30;
+
+            const rawSlotIds = state.selectedSlots.map(s => s.slot_id).filter(Boolean) as string[];
+            const slotIds = Array.from(new Set(rawSlotIds));
 
             if (durationMinutes < 60) {
                 showAlert('Minimum booking duration is 1 hour (2 slots).', 'warning');
@@ -167,59 +336,55 @@ export const BookingSummary: React.FC = () => {
                 return;
             }
 
-            const configs = state.selectedConfigs && state.selectedConfigs.length > 0
-                ? state.selectedConfigs
-                : [{ courtId: state.courtId || state.selectedSlots[0]?.court_id || state.venueId, label: state.venueName || 'Standard Arena', sliceId: 'full', sliceMask: state.sliceMask || 0 }];
-
-            const numCourts = configs.length;
-            // Gather all slot IDs and deduplicate them. 
-            // Crucial step: If multiple configurations of the SAME parent court are selected
-            // for the same time, they share the exact same slot_id in the DB.
-            // Sending duplicates will cause the backend's atomic lock loop to fail on the 2nd iteration.
-            const rawSlotIds = state.selectedSlots.map(s => s.slot_id).filter(Boolean) as string[];
-            const slotIds = Array.from(new Set(rawSlotIds));
-
-
-            // --- Create one Razorpay order for the TOTAL combined amount ---
-            let orderRes;
-            if (numCourts > 1) {
-                orderRes = await bookingsApi.createMultiCourtOrder({
-                    configs: configs.map(c => ({ 
-                        courtId: c.courtId, 
-                        sliceMask: c.sliceMask,
-                        branchId: state.venueId 
-                    })),
-                    bookingDate: state.date,
-                    timeSlots: sortedSlots,
-                    slotIds: slotIds,
-                    numberOfPlayers: numPlayers,
-                    couponCode: couponCode || undefined,
-                    teamName: teamName || undefined
-                });
-            } else {
-                orderRes = await bookingsApi.createPaymentOrder({
-                    courtId: configs[0].courtId,
-                    bookingDate: state.date,
-                    startTime: startTime,
-                    durationMinutes: durationMinutes,
-                    timeSlots: sortedSlots,
-                    slotIds: slotIds,
-                    sliceMask: configs[0].sliceMask,
-                    numberOfPlayers: numPlayers,
-                    couponCode: couponCode || undefined,
-                    originalAmount: slotsCost,   // ← full total (not per-person) for backend validation
-                    totalAmount: totalAmount,
-                    teamName: teamName || undefined
-                });
+            // --- Use existing order or create new if missing ---
+            let orderRes = orderResData;
+            let finalOrderData = orderResData;
+            
+            // If order data is missing or coupon changed, we might need a fresh order
+            if (!orderRes || (appliedCouponCode && orderRes.coupon_code !== appliedCouponCode)) {
+                let response;
+                if (numCourts > 1) {
+                    response = await bookingsApi.createMultiCourtOrder({
+                        configs: configs.map(c => ({ courtId: c.courtId, sliceMask: c.sliceMask, branchId: state.venueId })),
+                        bookingDate: state.date,
+                        timeSlots: sortedSlots,
+                        slotIds: slotIds,
+                        numberOfPlayers: numPlayers,
+                        couponCode: appliedCouponCode || undefined,
+                        teamName: teamName || undefined
+                    });
+                } else {
+                    response = await bookingsApi.createPaymentOrder({
+                        courtId: configs[0].courtId,
+                        bookingDate: state.date,
+                        startTime: startTime,
+                        durationMinutes: durationMinutes,
+                        timeSlots: sortedSlots,
+                        slotIds: slotIds,
+                        sliceMask: configs[0].sliceMask,
+                        numberOfPlayers: numPlayers,
+                        couponCode: appliedCouponCode || undefined,
+                        originalAmount: slotsCost,
+                        totalAmount: totalAmount,
+                        teamName: teamName || undefined
+                    });
+                }
+                
+                if (!response.success || !response.data) {
+                    showAlert((response as any).error || 'Could not initiate payment. Please try again.', 'error');
+                    setSubmitting(false);
+                    return;
+                }
+                finalOrderData = response.data;
             }
 
-            if (!orderRes.success || !orderRes.data) {
-                showAlert('Failed to initiate payment: ' + ((orderRes as any).error || 'Unknown error'), 'error');
+            if (!finalOrderData) {
+                showAlert('Could not initiate payment. Please try again.', 'error');
                 setSubmitting(false);
                 return;
             }
 
-            const { id: order_id, amount, currency, key_id, server_calculated_amount } = orderRes.data;
+            const { id: order_id, amount, currency, key_id, server_calculated_amount } = finalOrderData;
             
             // Server's authoritative price calculation should override frontend's naive slot sum
             const authoritativeTotal = server_calculated_amount || (amount / 100);
@@ -239,12 +404,15 @@ export const BookingSummary: React.FC = () => {
                 handler: async function (response: any) {
                     try {
                         const results = [];
-                        const serverBreakdown = orderRes.data?.breakdown;
+                        const serverBreakdown = finalOrderData?.breakdown;
 
                         if (numCourts > 1 && Array.isArray(serverBreakdown)) {
                             // --- MULTI-COURT FLOW ---
                             // Use the server-provided breakdown to accurately match 'Pending' records
                             for (const item of serverBreakdown) {
+                                const rawSlotIds = state.selectedSlots.map(s => s.slot_id).filter(Boolean) as string[];
+                                const slotIds = Array.from(new Set(rawSlotIds));
+                                
                                 const payload = {
                                     courtId: item.courtId,
                                     bookingDate: state.date,
@@ -335,9 +503,36 @@ export const BookingSummary: React.FC = () => {
             <TopNav />
 
             <div className="pt-20 md:pt-26 max-w-screen-2xl mx-auto px-4 md:px-8">
+                {/* Floating Top-Right Timer */}
+                <div className={`fixed top-24 right-4 md:right-8 z-[100] transition-all duration-500 transform ${timeLeft ? 'translate-x-0 opacity-100' : 'translate-x-12 opacity-0'}`}>
+                    <div className={`backdrop-blur-xl border-2 px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 ${
+                        isExpired 
+                            ? 'bg-red-50/90 border-red-200 text-red-600 animate-bounce' 
+                            : 'bg-white/90 border-primary/20 text-gray-900'
+                    }`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isExpired ? 'bg-red-100' : 'bg-primary/10'}`}>
+                            <FaClock className={`text-lg ${isExpired ? 'text-red-500' : 'text-primary'}`} />
+                        </div>
+                        <div>
+                            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 leading-none mb-1">
+                                {isExpired ? 'RESERVATION' : orderResData ? 'HOLD ACTIVE' : 'SECURING SLOT'}
+                            </div>
+                            <div className={`text-xl font-black tracking-tighter tabular-nums leading-none ${!orderResData && !isExpired ? 'animate-pulse' : ''}`}>
+                                {isExpired ? 'EXPIRED' : timeLeft}
+                            </div>
+                        </div>
+                        {!isExpired && (
+                            <div className="flex flex-col gap-1 ml-2">
+                                <div className="w-1 h-1 rounded-full bg-primary animate-ping"></div>
+                                <div className="w-1 h-1 rounded-full bg-primary animate-ping [animation-delay:300ms]"></div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 <header className="mb-4 text-left">
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={handleBackClick}
                         className="group flex items-center mb-2"
                         title="Back"
                     >
@@ -350,6 +545,68 @@ export const BookingSummary: React.FC = () => {
                     </h1>
                     <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-2">Re-verify your booking details below</p>
                 </header>
+
+                {/* Cancel Confirmation Modal */}
+                <AnimatePresence>
+                    {showCancelModal && (
+                        <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4">
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowCancelModal(false)}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                className="relative w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl border border-yellow-500/20 overflow-hidden"
+                            >
+                                <div className="flex flex-col items-center text-center relative z-10">
+                                    <div className="w-20 h-20 bg-yellow-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                                        <FaExclamationTriangle className="text-yellow-500 text-4xl" />
+                                    </div>
+                                    
+                                    <div className="mb-2">
+                                        <span className="text-[10px] font-black tracking-[0.2em] text-yellow-600 uppercase bg-yellow-100 px-3 py-1 rounded-full">
+                                            Hold expires in: {timeLeft}
+                                        </span>
+                                    </div>
+
+                                    <h3 className="text-2xl font-black text-black mb-4 uppercase tracking-tight">
+                                        Wait!
+                                    </h3>
+                                    
+                                    <p className="text-gray-600 text-lg leading-relaxed font-medium mb-8">
+                                        Leaving now will release your <span className="text-black font-bold">10-minute slot hold</span>. Other players can book this immediately.
+                                    </p>
+                                    
+                                    <div className="flex gap-4 w-full">
+                                        <button
+                                            onClick={handleReleaseHold}
+                                            disabled={isReleasing}
+                                            className="flex-1 py-4 px-6 rounded-2xl bg-gray-100 text-black font-bold hover:bg-gray-200 transition-all uppercase tracking-wider text-sm disabled:opacity-50"
+                                        >
+                                            {isReleasing ? 'Releasing...' : 'Yes, Cancel'}
+                                        </button>
+                                        <button
+                                            onClick={() => setShowCancelModal(false)}
+                                            disabled={isReleasing}
+                                            className="flex-1 py-4 px-6 rounded-2xl bg-primary text-white font-bold hover:shadow-lg hover:shadow-primary/30 transition-all uppercase tracking-wider text-sm disabled:opacity-50"
+                                        >
+                                            Keep Hold
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Decorative element matching CustomNotification */}
+                                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
+                                <div className="absolute -top-4 -left-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                     {/* LEFT COLUMN: Verification Details */}
@@ -449,7 +706,7 @@ export const BookingSummary: React.FC = () => {
                         <div className="static lg:sticky lg:top-28 space-y-6">
                             <div className="bg-white rounded-xl p-5 sm:p-8 shadow-xl border border-gray-100 relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-400"></div>
-                                <h3 className="text-xl font-bold font-heading uppercase mb-8 flex items-center gap-2 text-gray-800 tracking-tight">
+                                <h3 className="text-xl font-bold font-heading uppercase mb-2 flex items-center gap-2 text-gray-800 tracking-tight">
                                     Reservation Summary <span className="text-[10px] font-bold text-gray-400">({state.selectedSlots.length} Slots)</span>
                                 </h3>
 
@@ -590,11 +847,11 @@ export const BookingSummary: React.FC = () => {
 
                             <Button
                                 variant="primary"
-                                className="w-full h-16 text-lg font-bold uppercase tracking-widest shadow-2xl shadow-primary/30 hover:shadow-primary/40 transition-all hover:-translate-y-1 rounded-xl"
+                                className={`w-full h-16 text-lg font-bold uppercase tracking-widest shadow-2xl transition-all rounded-xl ${isExpired ? 'bg-gray-400 cursor-not-allowed opacity-50' : 'shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-1'}`}
                                 onClick={handleConfirm}
-                                disabled={submitting}
+                                disabled={submitting || isExpired}
                             >
-                                {submitting ? <span>GENERATING ORDER...</span> : <span>CONFIRM &amp; PAY ₹{totalAmount}</span>}
+                                {submitting ? <span>GENERATING ORDER...</span> : isExpired ? <span>HOLD EXPIRED</span> : <span>CONFIRM &amp; PAY ₹{totalAmount}</span>}
                             </Button>
 
                         </div>

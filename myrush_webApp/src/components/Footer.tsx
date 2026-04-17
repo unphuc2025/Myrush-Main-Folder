@@ -32,16 +32,16 @@ export const Footer: React.FC = () => {
     const hasLegalPages = cmsPages.filter(p => p.slug !== 'terms').length > 0;
 
     return (
-        <footer className="bg-white border-t border-zinc-200 pt-3 pb-20 md:py-6 w-full">
+        <footer className="bg-white border-t border-zinc-200 pt-2 pb-20 md:py-4 w-full">
             <div className="w-full px-6 md:px-12 lg:px-24">
-                <div className={`grid grid-cols-1 ${hasLegalPages ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-6 mb-4 text-zinc-900 text-sm`}>
+                <div className={`grid grid-cols-1 ${hasLegalPages ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-4 mb-4 text-zinc-900 text-sm`}>
                     <div className="col-span-1 md:col-span-2">
                         {settings?.site_logo ? (
-                            <img src={`${IMAGE_BASE_URL}${settings.site_logo}`} alt="Rush" className="h-32 mb-2 object-contain" />
+                            <img src={`${IMAGE_BASE_URL}${settings.site_logo}`} alt="Rush" className="h-20 mb-1 object-contain" />
                         ) : (
-                            <img src="/Rush-logo.webp" alt="Rush" className="h-32 mb-2 object-contain" />
+                            <img src="/Rush-logo.webp" alt="Rush" className="h-20 mb-1 object-contain" />
                         )}
-                        <p className="max-w-xl mb-6 text-sm leading-relaxed text-zinc-600">
+                        <p className="max-w-xl mb-3 text-sm leading-relaxed text-zinc-600">
                             The premier destination for sports enthusiasts. Book world-class venues, join elite academies, and compete in high-stakes tournaments.
                         </p>
                         <div className="flex gap-6">
@@ -126,7 +126,7 @@ export const Footer: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div className="border-t border-zinc-200 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center text-[11px] md:text-xs text-zinc-500 uppercase tracking-[0.1em] font-medium">
+                <div className="border-t border-zinc-200 mt-4 pt-4 flex flex-col md:flex-row justify-between items-center text-[11px] md:text-xs text-zinc-500 uppercase tracking-[0.1em] font-medium">
                     <p>{settings?.copyright_text || '© 2026 Addrush Sports Private Limited.'}</p>
                     <div className="flex gap-8 mt-4 md:mt-0">
                         <Link to="/p/terms" onClick={() => window.scrollTo(0, 0)} className="hover:text-primary transition-colors">Terms of Service</Link>
