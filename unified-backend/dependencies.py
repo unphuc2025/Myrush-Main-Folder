@@ -59,24 +59,21 @@ def get_current_user(
         raise credentials_exception
     
     user = None
-    # 1. Try finding by email (if sub contains @)
-    if "@" in sub:
+    # 1. Try finding by UUID ID (Preferred for stable sessions)
+    try:
+        import uuid
+        user_uuid = uuid.UUID(sub)
+        user = db.query(models.User).filter(models.User.id == user_uuid).first()
+        if user:
+            print(f"[AUTH] Found user by ID: {sub}")
+    except (ValueError, TypeError, Exception):
+        pass # Not a UUID, try email
+    
+    # 2. Try finding by email (Fallback)
+    if user is None and "@" in sub:
         user = db.query(models.User).filter(models.User.email == sub).first()
         if user:
             print(f"[AUTH] Found user by email: {sub}")
-    
-    # 2. Try finding by UUID ID
-    if user is None:
-        try:
-            import uuid
-            # Ensure sub is a valid UUID before querying
-            user_id = uuid.UUID(sub)
-            user = db.query(models.User).filter(models.User.id == user_id).first()
-            if user:
-                print(f"[AUTH] Found user by ID: {sub}")
-        except (ValueError, TypeError, Exception) as e:
-            print(f"[AUTH] ID search failed for {sub}: {type(e).__name__}")
-            pass # Not a UUID or other query error
             
     if user is None:
         print(f"[AUTH] User not found in DB for sub: {sub}")

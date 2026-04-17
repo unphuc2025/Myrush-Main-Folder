@@ -34,13 +34,25 @@ def render_invoice_html(db: Session, booking_id: str, auto_print: bool = False):
     # 6. Prepare Template Context
     template = jinja_env.get_template('invoice_template.html')
     
+    # Construct base URL for images and links
+    base_url = getattr(site, 'site_url', None) or "https://myrush.in"
+    if base_url.endswith('/'):
+        base_url = base_url[:-1]
+    
+    # Construct absolute logo URL
+    logo_url = None
+    if site and getattr(site, 'site_logo', None):
+        logo_url = f"{base_url}/uploads/{site.site_logo}"
+    
     context = {
         "booking": booking,
         "user": user,
         "court": court,
         "branch": branch,
         "site": site,
-        "auto_print": auto_print
+        "auto_print": auto_print,
+        "base_url": base_url,
+        "logo_url": logo_url
     }
 
     return template.render(context)

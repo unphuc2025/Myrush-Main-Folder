@@ -139,9 +139,14 @@ configure_alerts()
 # Global exception handlers
 @app.exception_handler(OperationalError)
 async def db_connection_exception_handler(request: Request, exc: OperationalError):
+    print(f"[DB ERROR] Connection failed: {type(exc).__name__}: {str(exc)}")
+    logger.error(f"Database connection error for {request.url.path}: {str(exc)}")
     return JSONResponse(
         status_code=503,
-        content={"detail": "Database connection failed. Please check your network or database server status."},
+        content={
+            "detail": "Database connection failed. Please check your network or database server status.",
+            "error_type": type(exc).__name__
+        },
     )
 
 @app.exception_handler(Exception)

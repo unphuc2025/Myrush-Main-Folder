@@ -50,6 +50,7 @@ export const MyBookings: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [reviewStates, setReviewStates] = useState<Record<string, ReviewData>>({});
     const [showRatingModal, setShowRatingModal] = useState<string | null>(null);
+    const [showInvoiceId, setShowInvoiceId] = useState<string | null>(null);
     const [selectedRating, setSelectedRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -80,7 +81,7 @@ export const MyBookings: React.FC = () => {
                         }
                     }
                     return { ...b, status };
-                });
+                }).filter((b: Booking | null): b is Booking => b !== null);
 
             if (activeTab !== 'all') {
                 processedBookings = processedBookings.filter((b: Booking) => b.status === activeTab);
@@ -92,6 +93,7 @@ export const MyBookings: React.FC = () => {
             // Check review status for completed bookings
             const completed = processedBookings.filter((b: Booking) => b.status === 'completed');
             for (const booking of completed) {
+                if (!booking) continue;
                 const reviewRes = await bookingsApi.checkBookingReviewed(booking.id);
                 if (reviewRes.success) {
                     setReviewStates(prev => ({
@@ -144,8 +146,15 @@ export const MyBookings: React.FC = () => {
     };
 
     const handleDownloadInvoice = (bookingId: string) => {
-        const url = `${config.apiBaseUrl}/bookings/${bookingId}/invoice?print=true`;
-        window.open(url, '_blank');
+        // Explicit "Kill Switch" for custom cursor: instantly restore system cursor 
+        if (typeof document !== 'undefined') {
+            const styleFragment = document.getElementById('cursor-hide-rules');
+            if (styleFragment) styleFragment.remove();
+            document.body.style.cursor = 'auto';
+        }
+
+        // Instead of opening a new tab, show the inline modal
+        setShowInvoiceId(bookingId);
     };
 
     const isCancellable = (booking: Booking): boolean => {
@@ -568,6 +577,54 @@ export const MyBookings: React.FC = () => {
                                         )}
                                         <button className="done-btn flex-1" onClick={() => setSelectedBooking(null)}>Close</button>
                                     </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Inline Invoice Modal */}
+                <AnimatePresence>
+                    {showInvoiceId && (
+                        <div className="invoice-modal-overlay" onClick={() => setShowInvoiceId(null)}>
+                            <motion.div
+                                className="invoice-modal-content"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="invoice-modal-header">
+                                    <div className="flex items-center gap-2">
+                                        <FaDownload className="text-primary" />
+                                        <h3>Booking Receipt</h3>
+                                    </div>
+                                    <button className="close-invoice-btn" onClick={() => setShowInvoiceId(null)}>
+                                        CLOSE RECEIPT ✕
+                                    </button>
+                                </div>
+                                <div className="invoice-modal-body">
+                                    <iframe
+                                        src={`${config.apiBaseUrl}/bookings/${showInvoiceId}/invoice?print=true`}
+                                        title="Invoice"
+                                        className="invoice-iframe"
+                                        onLoad={(e) => {
+                                            // Ensure cursor is auto inside the iframe context if possible
+                                            try {
+                                                const frame = e.target as HTMLIFrameElement;
+                                                if (frame.contentDocument) {
+                                                    frame.contentDocument.body.style.cursor = 'auto';
+                                                }
+                                            } catch (err) {
+                                                // Cross-origin might block this, but backend template already has cursor: auto
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <div className="invoice-modal-footer">
+                                    <p className="text-sm text-gray-500 italic">
+                                        The print dialog will open automatically. Please close it before clicking "CLOSE RECEIPT".
+                                    </p>
                                 </div>
                             </motion.div>
                         </div>

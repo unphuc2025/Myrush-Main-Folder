@@ -94,7 +94,7 @@ def create_user_with_phone(db: Session, phone_number: str, profile_data: Optiona
     if profile_data:
         # only copy known profile fields
         allowed = [
-            "full_name", "age", "city", "gender", "handedness", "skill_level", "sports", "playing_style"
+            "full_name", "age", "city", "gender", "handedness", "skill_level", "sports", "playing_style", "email", "avatar_url"
         ]
         for k in allowed:
             if k in profile_data and profile_data[k] is not None:
@@ -146,7 +146,7 @@ def create_or_update_profile(db: Session, profile: schemas.ProfileCreate, user_i
                 print(f"[CRUD] WARNING: Cannot update email to {new_email} - already in use by user {existing_user.id}")
                 # We can either raise an error or just skip. Raising error is safer for user feedback.
                 from fastapi import HTTPException
-                raise HTTPException(status_code=400, detail="This email is already registered with another account.")
+                raise HTTPException(status_code=400, detail="This email is already taken.")
             
             user.email = new_email
             print(f"[CRUD] Synced user email to: {new_email}")
@@ -213,7 +213,8 @@ def validate_booking_rules(
     user_id: str, 
     slice_mask: int = 0, 
     number_of_players: int = 1,
-    razorpay_order_id: str = None
+    razorpay_order_id: str = None,
+    expected_duration_minutes: Optional[int] = None
 ):
     """
     Validate basic constraints before allowing a booking.
@@ -250,6 +251,14 @@ def validate_booking_rules(
     
     if duration_h < 0.95: # Allow slight floating point variance
         raise HTTPException(status_code=400, detail="Minimum booking duration is 60 minutes (2 slots).")
+
+    # --- Rule 3: Continuity Check ---
+    if expected_duration_minutes is not None:
+        expected_h = expected_duration_minutes / 60.0
+        # If the span (end - start) is greater than the sum of slot durations, there's a gap
+        if abs(duration_h - expected_h) > 0.01:
+            print(f"[RULES CHECK FAIL] Continuity mismatch: span={duration_h}h vs slots_total={expected_h}h")
+            raise HTTPException(status_code=400, detail="Selected slots must be consecutive. Gaps between slots are not allowed.")
 
     # --- Rule 3: User Overlap Check ---
     # Skip user overlap check for capacity courts, as users can book multiple tickets
@@ -582,7 +591,8 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             user_id=user_id,
             slice_mask=booking.slice_mask,
             number_of_players=booking.number_of_players or 1,
-            razorpay_order_id=booking.razorpay_order_id
+            razorpay_order_id=booking.razorpay_order_id,
+            expected_duration_minutes=total_duration
         )
 
         # 2. Config & Price

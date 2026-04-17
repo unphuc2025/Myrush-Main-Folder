@@ -36,10 +36,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [token]);
 
     const login = useCallback((newToken: string) => {
+        localStorage.setItem('token', newToken);
         setToken(newToken);
     }, []);
 
     const logout = useCallback(() => {
+        localStorage.removeItem('token');
         setToken(null);
     }, []);
 

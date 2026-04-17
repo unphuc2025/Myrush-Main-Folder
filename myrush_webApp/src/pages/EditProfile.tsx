@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { TopNav } from '../components/TopNav';
 import { Button } from '../components/ui/Button';
 import { useNotification } from '../context/NotificationContext';
-import { FaUser, FaPhone, FaMapMarkerAlt, FaTrophy, FaCalendarAlt, FaVenusMars, FaHandPaper, FaHeartbeat, FaGamepad, FaLock } from 'react-icons/fa';
+import { FaUser, FaPhone, FaMapMarkerAlt, FaTrophy, FaCalendarAlt, FaVenusMars, FaHandPaper, FaHeartbeat, FaGamepad, FaLock, FaEnvelope } from 'react-icons/fa';
 
 export const EditProfile: React.FC = () => {
     const navigate = useNavigate();
@@ -16,6 +16,7 @@ export const EditProfile: React.FC = () => {
     // Profile fields matching mobile app
     const [phoneNumber, setPhoneNumber] = useState('');
     const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
     const [age, setAge] = useState('');
     const [selectedCity, setSelectedCity] = useState('');
     const [cityId, setCityId] = useState<string | null>(null);
@@ -68,6 +69,7 @@ export const EditProfile: React.FC = () => {
                 const data = profileRes.data;
                 setPhoneNumber(data.phone_number || '');
                 setFullName(data.full_name || '');
+                setEmail(data.email || '');
                 setAge(data.age ? data.age.toString() : '');
                 setSelectedCity(data.city || '');
                 setCityId(data.city_id || null);
@@ -100,11 +102,17 @@ export const EditProfile: React.FC = () => {
             return;
         }
 
+        if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showAlert('Please enter a valid email address.', 'warning');
+            return;
+        }
+
         setSaving(true);
         try {
             const profileData: Partial<ProfileData> = {
                 phone_number: phoneNumber,
                 full_name: fullName.trim(),
+                email: email.trim() || undefined,
                 age: parseInt(age, 10) || undefined,
                 city: selectedCity,
                 city_id: cityId || undefined,
@@ -164,13 +172,13 @@ export const EditProfile: React.FC = () => {
             <div className="pt-28 md:pt-36 pb-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
                 {/* Back Button */}
                 <button
-                    onClick={() => navigate('/profile')}
+                    onClick={() => navigate(-1)}
                     className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors mb-6 group"
                 >
                     <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
-                    <span className="text-sm font-medium">Back to Profile</span>
+                    <span className="text-sm font-medium">Back</span>
                 </button>
 
                 {/* Header */}
@@ -216,6 +224,21 @@ export const EditProfile: React.FC = () => {
                                         <span className="text-gray-400"><FaLock /></span>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Email Address */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <FaEnvelope className="text-primary" />
+                                    Email Address
+                                </label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    placeholder="Enter your email address"
+                                />
                             </div>
 
                             {/* Full Name */}
