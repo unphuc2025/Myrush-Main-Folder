@@ -54,8 +54,6 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({ phone, token, on
         try {
             if (token) {
                 login(token);
-                // Ensure token is persisted to localStorage before generating the apiClient request natively
-                await new Promise(resolve => setTimeout(resolve, 100));
             }
             const cityName = cities.find(c => c.id === selectedCityId)?.name || '';
             await apiClient.post('/profile/', {
@@ -69,8 +67,9 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({ phone, token, on
                 playing_style: 'All-court'
             });
             onSuccess();
-        } catch (error) {
-            showAlert('Failed to save profile. Please try again.', 'error');
+        } catch (error: any) {
+            const errorMsg = error?.response?.data?.detail || 'Failed to save profile. Please try again.';
+            showAlert(errorMsg, 'error');
         } finally {
             setIsSaving(false);
         }

@@ -135,6 +135,12 @@ export const Arena: React.FC = () => {
         { label: 'Rajajinagar', url: 'https://rush-arena-rj.talkinglands.studio/' },
     ];
     const [activeTour, setActiveTour] = React.useState(0);
+    const [isTourActive, setIsTourActive] = React.useState(false);
+
+    // Reset interaction when tour changes
+    React.useEffect(() => {
+        setIsTourActive(false);
+    }, [activeTour]);
 
     const validateForm = () => {
         const errors: Record<string, string> = {};
@@ -325,19 +331,41 @@ export const Arena: React.FC = () => {
                                     ↗ Open Full Screen
                                 </a>
                             </div>
-                            <div className="relative w-full" style={{ height: 'calc(100% - 40px)' }}>
+                            <div className="relative w-full overflow-hidden" style={{ height: 'calc(100% - 40px)' }}>
                                 {TOUR_LIST.map((tour, i) => (
                                     <iframe
                                         key={i}
                                         src={tour.url}
                                         title={`Rush Arena ${tour.label} — 360° Virtual Tour`}
                                         className={`absolute inset-0 w-full h-full border-0 transition-opacity duration-500 ${
-                                            activeTour === i ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                                            activeTour === i 
+                                                ? `opacity-100 ${isTourActive ? 'pointer-events-auto' : 'pointer-events-none'}` 
+                                                : 'opacity-0 pointer-events-none'
                                         }`}
                                         allow="fullscreen; accelerometer; gyroscope"
                                         allowFullScreen
                                     />
                                 ))}
+
+                                {/* Click to Interact Overlay */}
+                                {!isTourActive && (
+                                    <div 
+                                        className="absolute inset-0 z-30 bg-black/5 hover:bg-black/10 backdrop-blur-[1px] transition-all duration-300 flex flex-col items-center justify-center cursor-pointer group"
+                                        onClick={() => setIsTourActive(true)}
+                                    >
+                                        <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl border border-white/20 transform group-hover:scale-105 transition-transform duration-300 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                                                </svg>
+                                            </div>
+                                            <span className="text-black font-black uppercase tracking-widest text-sm">Click to Explore 360°</span>
+                                        </div>
+                                        <p className="text-white text-[10px] font-bold uppercase tracking-[0.2em] mt-4 opacity-60 group-hover:opacity-100 transition-opacity">
+                                            Interact within the view
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </motion.div>

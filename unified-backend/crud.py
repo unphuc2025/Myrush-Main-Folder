@@ -9,6 +9,7 @@ from datetime import timedelta, datetime, time, date
 import random
 import json
 from sqlalchemy import and_
+from utils.booking_utils import safe_parse_time_float, safe_parse_hour
 
 from typing import List, Optional, Any, Dict
 
@@ -93,7 +94,7 @@ def create_user_with_phone(db: Session, phone_number: str, profile_data: Optiona
     if profile_data:
         # only copy known profile fields
         allowed = [
-            "full_name", "age", "city", "gender", "handedness", "skill_level", "sports", "playing_style"
+            "full_name", "age", "city", "gender", "handedness", "skill_level", "sports", "playing_style", "email", "avatar_url"
         ]
         for k in allowed:
             if k in profile_data and profile_data[k] is not None:
@@ -145,7 +146,7 @@ def create_or_update_profile(db: Session, profile: schemas.ProfileCreate, user_i
                 print(f"[CRUD] WARNING: Cannot update email to {new_email} - already in use by user {existing_user.id}")
                 # We can either raise an error or just skip. Raising error is safer for user feedback.
                 from fastapi import HTTPException
-                raise HTTPException(status_code=400, detail="This email is already registered with another account.")
+                raise HTTPException(status_code=400, detail="This email is already taken.")
             
             user.email = new_email
             print(f"[CRUD] Synced user email to: {new_email}")
@@ -212,7 +213,8 @@ def validate_booking_rules(
     user_id: str, 
     slice_mask: int = 0, 
     number_of_players: int = 1,
-    razorpay_order_id: str = None
+    razorpay_order_id: str = None,
+    expected_duration_minutes: Optional[int] = None
 ):
     """
     Validate basic constraints before allowing a booking.
@@ -250,12 +252,21 @@ def validate_booking_rules(
     if duration_h < 0.95: # Allow slight floating point variance
         raise HTTPException(status_code=400, detail="Minimum booking duration is 60 minutes (2 slots).")
 
+    # --- Rule 3: Continuity Check ---
+    if expected_duration_minutes is not None:
+        expected_h = expected_duration_minutes / 60.0
+        # If the span (end - start) is greater than the sum of slot durations, there's a gap
+        if abs(duration_h - expected_h) > 0.01:
+            print(f"[RULES CHECK FAIL] Continuity mismatch: span={duration_h}h vs slots_total={expected_h}h")
+            raise HTTPException(status_code=400, detail="Selected slots must be consecutive. Gaps between slots are not allowed.")
+
     # --- Rule 3: User Overlap Check ---
     # Skip user overlap check for capacity courts, as users can book multiple tickets
     is_capacity = court.logic_type == 'capacity'
 
+    from utils.booking_utils import safe_parse_time_float, safe_parse_hour
+
     if not is_capacity:
-        from utils.booking_utils import safe_parse_time_float
         import json
         
         # 2. Check for simultaneous bookings by the same user (Double booking prevention)
@@ -580,7 +591,8 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
             user_id=user_id,
             slice_mask=booking.slice_mask,
             number_of_players=booking.number_of_players or 1,
-            razorpay_order_id=booking.razorpay_order_id
+            razorpay_order_id=booking.razorpay_order_id,
+            expected_duration_minutes=total_duration
         )
 
         # 2. Config & Price
@@ -769,6 +781,8 @@ def create_booking(db: Session, booking: schemas.BookingCreate, user_id: str):
         except Exception as ite:
             print(f"[CRUD BOOKING] Warning: Integration trigger failed: {ite}")
 
+        # --- NOTIFICATION TRIGGER (Moved to Router) ---
+        print(f"[CRUD BOOKING] Success. Handover to router for notifications.")
         return db_booking
 
     except ValueError as ve:
@@ -806,9 +820,10 @@ def verify_otp_record(db: Session, phone_number: str, otp_code: str):
     db.refresh(otp)
     return otp
 
-def cancel_booking(db: Session, booking_id: str, user_id: str):
+def cancel_booking(db: Session, booking_id: str, user_id: str, ignore_time_limit: bool = False):
     """
     Cancel a booking if it's at least 1 hour before the start time.
+    Admins can bypass the time limit.
     """
     from models import Booking
     from utils.booking_utils import get_now_ist
@@ -827,12 +842,13 @@ def cancel_booking(db: Session, booking_id: str, user_id: str):
         raise HTTPException(status_code=400, detail="Booking is already cancelled.")
 
     # 1-hour cancellation rule
-    now_ist = get_now_ist()
-    booking_start = datetime.combine(db_booking.booking_date, db_booking.start_time)
-    
-    # Check if cancellation is within 1 hour of start time
-    if booking_start - now_ist < timedelta(hours=1):
-        raise HTTPException(status_code=400, detail="Cancellations are only allowed up to 1 hour before the booked time.")
+    if not ignore_time_limit:
+        now_ist = get_now_ist()
+        booking_start = datetime.combine(db_booking.booking_date, db_booking.start_time)
+        
+        # Check if cancellation is within 1 hour of start time
+        if booking_start - now_ist < timedelta(hours=1):
+            raise HTTPException(status_code=400, detail="Cancellations are only allowed up to 1 hour before the booked time.")
 
     # --- PROCESS AUTOMATED REFUND ---
     if db_booking.payment_status == 'paid' and db_booking.payment_id:
@@ -879,7 +895,31 @@ def cancel_booking(db: Session, booking_id: str, user_id: str):
     except Exception as e:
         print(f"[CRUD] Warning: Failed to release inventory after cancellation: {e}")
 
+    # --- NOTIFICATION TRIGGER (Moved to Router) ---
+    print(f"[CRUD] Cancellation Success. Handover to router for notifications.")
     return db_booking
+
+def get_bookings_for_reminders(db: Session):
+    """
+    Fetch bookings starting in the next 60-75 minutes that haven't been reminded.
+    """
+    from datetime import datetime, timedelta
+    from utils.booking_utils import get_now_ist
+    
+    now = get_now_ist()
+    window_start = now + timedelta(minutes=55)
+    window_end = now + timedelta(minutes=75)
+    
+    # Simple query based on booking_date and start_time
+    # Note: This approach assumes start_time fits in the window. 
+    # For robust production, consider time zone offsets.
+    return db.query(models.Booking).filter(
+        models.Booking.booking_date == window_start.date(),
+        models.Booking.start_time >= window_start.time(),
+        models.Booking.start_time <= window_end.time(),
+        models.Booking.status == 'confirmed',
+        models.Booking.reminder_sent == False
+    ).all()
 
 def get_bookings(db: Session, user_id: str):
     """Get all bookings for a user, enriched with court name and venue location."""
@@ -1242,8 +1282,8 @@ def get_top_players(db: Session, limit: int = 10):
     # Sort by rating descending
     players.sort(key=lambda x: x['rating'], reverse=True)
     return players
-def create_push_token(db: Session, token_data: schemas.PushTokenCreate, user_id: str):
-    """Create or update a push token for a user"""
+def create_push_token(db: Session, token_data: schemas.PushTokenCreate, user_id: str = None, admin_id: str = None):
+    """Create or update a push token for a user or admin"""
     try:
         # Check if token already exists
         existing_token = db.query(models.PushToken).filter(
@@ -1253,6 +1293,7 @@ def create_push_token(db: Session, token_data: schemas.PushTokenCreate, user_id:
         if existing_token:
             # Update existing token
             existing_token.user_id = user_id
+            existing_token.admin_id = admin_id
             existing_token.device_type = token_data.device_type
             existing_token.device_info = token_data.device_info
             existing_token.is_active = True
@@ -1264,6 +1305,7 @@ def create_push_token(db: Session, token_data: schemas.PushTokenCreate, user_id:
             # Create new token
             db_token = models.PushToken(
                 user_id=user_id,
+                admin_id=admin_id,
                 device_token=token_data.device_token,
                 device_type=token_data.device_type,
                 device_info=token_data.device_info,
@@ -1275,6 +1317,14 @@ def create_push_token(db: Session, token_data: schemas.PushTokenCreate, user_id:
             return db_token
 
     except Exception as e:
+        db.rollback()
+        # Handle concurrent inserts safely
+        if "UniqueViolation" in str(e) or "push_tokens_device_token_key" in str(e):
+            existing = db.query(models.PushToken).filter(
+                models.PushToken.device_token == token_data.device_token
+            ).first()
+            if existing:
+                return existing
         print(f"[CRUD] Error creating/updating push token: {e}")
         raise
 
@@ -1284,6 +1334,23 @@ def get_push_tokens_for_user(db: Session, user_id: str):
         models.PushToken.user_id == user_id,
         models.PushToken.is_active == True
     ).all()
+
+def get_push_tokens_for_admin(db: Session, admin_id: str):
+    """Get all active push tokens for an admin"""
+    from uuid import UUID
+    try:
+        if isinstance(admin_id, str):
+            admin_id_uuid = UUID(admin_id)
+        else:
+            admin_id_uuid = admin_id
+            
+        return db.query(models.PushToken).filter(
+            models.PushToken.admin_id == admin_id_uuid,
+            models.PushToken.is_active == True
+        ).all()
+    except Exception as e:
+        print(f"[CRUD] Error in get_push_tokens_for_admin: {e}")
+        return []
 
 def get_active_push_tokens(db: Session, user_ids: list = None):
     """Get active push tokens for specific users or all users"""
@@ -1334,3 +1401,183 @@ def cleanup_inactive_tokens(db: Session, days_old: int = 30):
 
     db.commit()
     return deleted_count
+
+# Notification CRUD Functions
+
+def create_notification(db: Session, notification_data: schemas.NotificationCreate):
+    """Create a new notification record"""
+    db_notification = models.Notification(
+        user_id=notification_data.user_id,
+        admin_id=notification_data.admin_id,
+        title=notification_data.title,
+        body=notification_data.body,
+        type=notification_data.type,
+        metadata_json=notification_data.metadata_json,
+        is_read=False
+    )
+    db.add(db_notification)
+    db.commit()
+    db.refresh(db_notification)
+    return db_notification
+
+def get_notifications(db: Session, user_id: str = None, admin_id: str = None, limit: int = 50, skip: int = 0):
+    """Get notifications for a user or admin"""
+    query = db.query(models.Notification)
+    
+    if user_id:
+        query = query.filter(models.Notification.user_id == user_id)
+    elif admin_id:
+        query = query.filter(models.Notification.admin_id == admin_id)
+    else:
+        return [], 0
+        
+    total_unread = query.filter(models.Notification.is_read == False).count()
+    
+    items = query.order_by(models.Notification.created_at.desc())\
+                 .offset(skip)\
+                 .limit(limit)\
+                 .all()
+                 
+    return items, total_unread
+
+def mark_notification_as_read(db: Session, notification_id: str):
+    """Mark a single notification as read"""
+    notification = db.query(models.Notification).filter(models.Notification.id == notification_id).first()
+    if notification:
+        notification.is_read = True
+        db.commit()
+        db.refresh(notification)
+        return notification
+    return None
+
+def mark_all_notifications_as_read(db: Session, user_id: str = None, admin_id: str = None):
+    """Mark all notifications for a user or admin as read"""
+    query = db.query(models.Notification).filter(models.Notification.is_read == False)
+    
+    if user_id:
+        query = query.filter(models.Notification.user_id == user_id)
+    elif admin_id:
+        query = query.filter(models.Notification.admin_id == admin_id)
+    else:
+        return 0
+        
+    count = query.update({models.Notification.is_read: True}, synchronize_session=False)
+    db.commit()
+    return count
+
+def get_daily_summary_data(db: Session):
+    """
+    Get total revenue and booking count for the current date.
+    """
+    from datetime import date
+    from sqlalchemy import func
+    
+    today = date.today()
+    
+    # Query successful and paid bookings for today
+    summary = db.query(
+        func.count(models.Booking.id).label("total_bookings"),
+        func.sum(models.Booking.total_amount).label("total_revenue")
+    ).filter(
+        models.Booking.booking_date == today,
+        models.Booking.status != 'cancelled'
+    ).first()
+    
+    return {
+        "date": str(today),
+        "total_bookings": summary.total_bookings or 0,
+        "total_revenue": float(summary.total_revenue or 0)
+    }
+
+def get_bookings_for_review_prompts(db: Session):
+    """
+    Find bookings that ended ~2 hours ago and haven't been prompted for review.
+    Logic: confirm_status='confirmed', payment_status='paid', booking_date=today, 
+           max(time_slots.end_time) + 2 hours matches current time.
+    """
+    from datetime import date, datetime, timedelta
+    from utils.booking_utils import get_now_ist, safe_parse_time_float
+    
+    today = date.today()
+    now_ist = get_now_ist()
+    
+    # 1. Fetch candidates
+    # We look for bookings from TODAY where review hasn't been sent
+    candidates = db.query(models.Booking).filter(
+        models.Booking.booking_date == today,
+        models.Booking.status == 'confirmed',
+        models.Booking.payment_status == 'paid',
+        models.Booking.review_prompt_sent == False
+    ).all()
+    
+    to_notify = []
+    for b in candidates:
+        if not b.time_slots: continue
+        
+        # Find latest end time
+        max_end_f = 0.0
+        for slot in b.time_slots:
+            e_str = slot.get('end_time') or slot.get('end')
+            if e_str:
+                ef = safe_parse_time_float(e_str)
+                if ef == 0: ef = 24.0
+                if ef > max_end_f: max_end_f = ef
+        
+        # Convert max_end_f to a datetime today
+        hh = int(max_end_f)
+        mm = int((max_end_f % 1)*60)
+        # Handle 24:00 edge case
+        if hh >= 24: hh = 23; mm = 59
+        
+        end_dt = now_ist.replace(hour=hh, minute=mm, second=0, microsecond=0)
+        
+        # If it ended at least 2 hours ago
+        if now_ist >= (end_dt + timedelta(hours=2)):
+            to_notify.append(b)
+            
+    return to_notify
+
+def get_bookings_for_expiry_alerts(db: Session):
+    """
+    Find pending bookings created 7-10 minutes ago that haven't received an expiry alert.
+    """
+    from datetime import datetime, timedelta
+    
+    # Look for bookings created between 10 and 7 minutes ago
+    ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
+    seven_min_ago = datetime.utcnow() - timedelta(minutes=7)
+    
+    return db.query(models.Booking).filter(
+        models.Booking.payment_status == 'pending',
+        models.Booking.expiry_alert_sent == False,
+        models.Booking.created_at >= ten_min_ago,
+        models.Booking.created_at <= seven_min_ago
+    ).all()
+
+def get_branch_daily_summary_data(db: Session, branch_id: str):
+    """
+    Get revenue and booking count for a specific branch for today.
+    """
+    from datetime import date
+    from sqlalchemy import func
+    
+    today = date.today()
+    
+    # Query successful bookings for this branch today
+    summary = db.query(
+        func.count(models.Booking.id).label("total_bookings"),
+        func.sum(models.Booking.total_amount).label("total_revenue")
+    ).filter(
+        models.Booking.booking_date == today,
+        models.Booking.status != 'cancelled',
+        models.Booking.court_id.in_(
+            db.query(models.Court.id).filter(models.Court.branch_id == branch_id)
+        )
+    ).first()
+    
+    return {
+        "branch_id": branch_id,
+        "date": str(today),
+        "total_bookings": summary.total_bookings or 0,
+        "total_revenue": float(summary.total_revenue or 0)
+    }

@@ -59,24 +59,21 @@ def get_current_user(
         raise credentials_exception
     
     user = None
-    # 1. Try finding by email (if sub contains @)
-    if "@" in sub:
+    # 1. Try finding by UUID ID (Preferred for stable sessions)
+    try:
+        import uuid
+        user_uuid = uuid.UUID(sub)
+        user = db.query(models.User).filter(models.User.id == user_uuid).first()
+        if user:
+            print(f"[AUTH] Found user by ID: {sub}")
+    except (ValueError, TypeError, Exception):
+        pass # Not a UUID, try email
+    
+    # 2. Try finding by email (Fallback)
+    if user is None and "@" in sub:
         user = db.query(models.User).filter(models.User.email == sub).first()
         if user:
             print(f"[AUTH] Found user by email: {sub}")
-    
-    # 2. Try finding by UUID ID
-    if user is None:
-        try:
-            import uuid
-            # Ensure sub is a valid UUID before querying
-            user_id = uuid.UUID(sub)
-            user = db.query(models.User).filter(models.User.id == user_id).first()
-            if user:
-                print(f"[AUTH] Found user by ID: {sub}")
-        except (ValueError, TypeError, Exception) as e:
-            print(f"[AUTH] ID search failed for {sub}: {type(e).__name__}")
-            pass # Not a UUID or other query error
             
     if user is None:
         print(f"[AUTH] User not found in DB for sub: {sub}")
@@ -218,12 +215,18 @@ class PermissionChecker:
         for module in self.modules:
             module_perms = permissions.get(module)
             if module_perms:
+                # MANDATORY: 'access' must be True for anything else to work
+                # This ensures consistent security across the platform
+                if not module_perms.get("access"):
+                    continue
+
                 for action in self.actions:
                     if module_perms.get(action):
                         has_access = True
                         break
-                    # 'access' permission also grants 'view' capability
-                    if action == "view" and module_perms.get("access"):
+                    # 'access' permission already verified above, 
+                    # so granting 'view' if 'access' is True is implicitly safe
+                    if action == "view":
                         has_access = True
                         break
                 if has_access:
@@ -345,3 +348,25 @@ async def verify_playo_api_key(
     db.commit()
 
     return api_key
+
+def get_current_user_or_admin(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> Union[models.User, models.Admin]:
+    """
+    Unified authentication that returns either a User or an Admin.
+    Allows endpoints to be used by both frontend and admin panel.
+    """
+    try:
+        # Try finding as user (JWT)
+        return get_current_user(token, db)
+    except HTTPException:
+        try:
+            # Try finding as admin (simple token)
+            return get_current_admin(token, db)
+        except HTTPException:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )

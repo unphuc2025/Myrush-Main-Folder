@@ -12,3 +12,4 @@ sqlalchemy
 uvicorn[standard]
 boto3
 razorpay
+firebase-admin

@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 def generate_uuid():
     return uuid.uuid4()
@@ -394,6 +394,10 @@ class Profile(Base):
     id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     phone_number = Column(String(20), unique=True, index=True)
     full_name = Column(String(100))
+    first_name = Column(String(255))
+    last_name = Column(String(255))
+    email = Column(String(255))
+    avatar_url = Column(Text)
     age = Column(Integer)
     city = Column(String(100))
     gender = Column(String(20))
@@ -444,6 +448,9 @@ class Booking(Base):
     subtotal_amount = Column(DECIMAL(10, 2), default=0)
     gst_amount = Column(DECIMAL(10, 2), default=0)
     coupon_code = Column(String(50))
+    reminder_sent = Column(Boolean, default=False)
+    review_prompt_sent = Column(Boolean, default=False)
+    expiry_alert_sent = Column(Boolean, default=False)
     
     # Human-readable Booking ID (e.g., BK-12345)
     booking_display_id = Column(String(20), unique=True, nullable=True) # Nullable initially for migration
@@ -570,7 +577,8 @@ class TournamentParticipant(Base):
 class PushToken(Base):
     __tablename__ = "push_tokens"
     id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    admin_id = Column(UUID(as_uuid=True), ForeignKey("admins.id", ondelete="CASCADE"), nullable=True)
     device_token = Column(Text, nullable=False, unique=True)
     device_type = Column(String(50), nullable=False, default='android')
     device_info = Column(JSON, nullable=True)
@@ -580,6 +588,23 @@ class PushToken(Base):
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
 
     user = relationship("User")
+    admin = relationship("Admin")
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=generate_uuid, server_default=func.uuid_generate_v4())
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True) # Receiver User
+    admin_id = Column(UUID(as_uuid=True), ForeignKey("admins.id", ondelete="CASCADE"), nullable=True) # Receiver Admin
+    title = Column(String(255), nullable=False)
+    body = Column(Text, nullable=False)
+    type = Column(String(50), nullable=False) # e.g. 'booking_confirmed', 'payment_failed', 'system'
+    metadata_json = Column(JSONB, nullable=True) # Additional details like booking_id, etc
+    is_read = Column(Boolean, default=False)
+    created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc), server_default=func.now())
+    updated_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), server_default=func.now())
+
+    user = relationship("User", foreign_keys=[user_id])
+    admin = relationship("Admin", foreign_keys=[admin_id])
 
 # ============================================================================
 # PLAYO INTEGRATION MODELS

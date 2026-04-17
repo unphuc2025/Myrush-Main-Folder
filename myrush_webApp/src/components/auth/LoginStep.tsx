@@ -30,10 +30,7 @@ export const LoginStep: React.FC<LoginStepProps> = ({ onSuccess }) => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleTermsNavigate = () => {
-        closeAuthModal();
-        navigate('/terms', { state: { ...location.state, temp_close_auth: true } });
-    };
+
 
     const handleSendOTP = async () => {
         if (phoneNumber.length < 5) { // Adjusted to allow various lengths
@@ -106,12 +103,18 @@ export const LoginStep: React.FC<LoginStepProps> = ({ onSuccess }) => {
             <p className="text-[10px] text-gray-400 text-center mt-6 uppercase tracking-wider font-bold">
                 By continuing, you agree to our <br />
                 <button
-                    onClick={handleTermsNavigate}
+                    onClick={() => {
+                        closeAuthModal();
+                        navigate('/p/terms', { state: { ...location.state, temp_close_auth: true } });
+                    }}
                     className="text-gray-900 underline hover:text-primary transition-colors focus:outline-none"
                 >
                     Terms
                 </button> & <button
-                    onClick={handleTermsNavigate}
+                    onClick={() => {
+                        closeAuthModal();
+                        navigate('/p/privacy-policy', { state: { ...location.state, temp_close_auth: true } });
+                    }}
                     className="text-gray-900 underline hover:text-primary transition-colors focus:outline-none"
                 >
                     Privacy Policy

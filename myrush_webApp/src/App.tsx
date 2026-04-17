@@ -106,6 +106,8 @@ const AppContent = () => {
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
           <Route path="/p/:slug" element={<CmsPage />} />
+          <Route path="/terms" element={<Navigate to="/p/terms" replace />} />
+          <Route path="/privacy-policy" element={<Navigate to="/p/privacy-policy" replace />} />
         </Routes>
       </div>
       {!shouldHideFooter && <Footer />}

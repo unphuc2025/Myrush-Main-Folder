@@ -731,6 +731,7 @@ class ProfileBase(BaseModel):
     skill_level: Optional[str] = None
     sports: Optional[List[str]] = None
     playing_style: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 # FAQ Schemas
 class FAQBase(BaseModel):
@@ -1152,7 +1153,8 @@ class PushTokenCreate(PushTokenBase):
 
 class PushTokenResponse(PushTokenBase):
     id: UUID
-    user_id: str
+    user_id: Optional[str] = None
+    admin_id: Optional[str] = None
     is_active: bool
     last_used_at: Optional[datetime] = None
     created_at: datetime
@@ -1526,6 +1528,41 @@ class CourtBlock(CourtBlockBase):
 
     class Config:
         from_attributes = True
+
+# ============================================================================
+# NOTIFICATION SCHEMAS
+# ============================================================================
+
+class NotificationBase(BaseModel):
+    title: str
+    body: str
+    type: str # 'booking_confirmed', 'payment_failed', 'system'
+    metadata_json: Optional[Dict[str, Any]] = None
+
+class NotificationCreate(NotificationBase):
+    user_id: Optional[str] = None
+    admin_id: Optional[str] = None
+
+class NotificationResponse(NotificationBase):
+    id: str
+    user_id: Optional[str] = None
+    admin_id: Optional[str] = None
+    is_read: bool
+    created_at: datetime
+
+    @field_validator('id', 'user_id', 'admin_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+class NotificationListResponse(BaseModel):
+    items: List[NotificationResponse]
+    unread_count: int
 
 # Resolve forward references
 User.update_forward_refs()

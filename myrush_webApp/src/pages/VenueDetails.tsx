@@ -497,10 +497,34 @@ export const VenueDetailsPage: React.FC = () => {
             return;
         }
 
+        // Sorting slots by time for continuity check
+        // time string is "HH:MM" (e.g. "06:00", "13:30")
+        const sortedSlots = [...selectedSlots].sort((a, b) => a.time.localeCompare(b.time));
+
         // Enforce 1-hour minimum booking (2 x 30min slots)
-        if (selectedSlots.length < 2) {
+        if (sortedSlots.length < 2) {
             showAlert('Minimum booking duration is 1 hour (Please select at least 2 consecutive slots)', 'warning');
             return;
+        }
+
+        // Continuity check: Ensure no gaps between selected slots
+        for (let i = 0; i < sortedSlots.length - 1; i++) {
+            const currentSlot = sortedSlots[i];
+            const nextSlot = sortedSlots[i + 1];
+
+            const [h, m] = currentSlot.time.split(':').map(Number);
+            let nextH = h;
+            let nextM = m + 30;
+            if (nextM >= 60) {
+                nextH = (nextH + 1) % 24;
+                nextM = 0;
+            }
+            const expectedTime = `${nextH.toString().padStart(2, '0')}:${nextM.toString().padStart(2, '0')}`;
+
+            if (nextSlot.time !== expectedTime) {
+                showAlert('Selected slots must be consecutive. Please select a continuous block of time.', 'warning');
+                return;
+            }
         }
 
         const bookingState = {
@@ -941,7 +965,7 @@ export const VenueDetailsPage: React.FC = () => {
                                                                             <div className="h-px flex-1 bg-gray-50"></div>
                                                                         </div>
                                                                         <div className="grid grid-cols-1 gap-1.5">
-                                                                            {courtConfigs.map((config, idx) => {
+                                                                            {courtConfigs.map((config) => {
                                                                                 const configId = config.slice === 'full' ? `full-${config.courtId}` : (config.slice as SportSlice).id;
                                                                                 const isSelected = selectedSliceIds.includes(configId);
                                                                                 const mask = config.slice === 'full' ? ((1 << config.totalZones) - 1) : (config.slice as SportSlice).mask;

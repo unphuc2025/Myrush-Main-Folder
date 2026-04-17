@@ -101,7 +101,6 @@ export const ProfileSetup: React.FC = () => {
         try {
             if (pendingToken) {
                 login(pendingToken);
-                await new Promise(resolve => setTimeout(resolve, 100));
             }
             const ageNumber = parseInt(age, 10);
             await apiClient.post('/profile/', {
@@ -320,9 +319,9 @@ export const ProfileSetup: React.FC = () => {
 
                 <p className="text-center text-xs text-gray-400 font-medium leading-relaxed max-w-xs mx-auto">
                     By continuing, you agree to our{' '}
-                    <Link to="/terms" target="_blank" className="text-gray-900 font-bold cursor-pointer hover:underline decoration-2 underline-offset-2">Terms of Service</Link>
+                    <Link to="/p/terms" target="_blank" className="text-gray-900 font-bold cursor-pointer hover:underline decoration-2 underline-offset-2">Terms of Service</Link>
                     {' '}&{' '}
-                    <Link to="/terms" target="_blank" className="text-gray-900 font-bold cursor-pointer hover:underline decoration-2 underline-offset-2">Privacy Policy</Link>
+                    <Link to="/p/privacy-policy" target="_blank" className="text-gray-900 font-bold cursor-pointer hover:underline decoration-2 underline-offset-2">Privacy Policy</Link>
                 </p>
             </div>
         </div>
