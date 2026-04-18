@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import NotificationPrompt from './NotificationPrompt';
 import { adminsApi } from '../services/adminApi';
+import { requestForToken } from '../firebase';
+import { notificationApi } from '../services/notificationApi';
 
 const Layout = ({ children, onLogout }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -41,6 +42,35 @@ const Layout = ({ children, onLogout }) => {
             });
     }, [location.pathname, navigate]);
 
+    // Automatic Notification Permission Request
+    useEffect(() => {
+        const setupNotifications = async () => {
+            // Only ask if permission is default and user is on a main dashboard path
+            if (Notification.permission === 'default' && location.pathname !== '/login') {
+                try {
+                    const token = await requestForToken();
+                    if (token) {
+                        await notificationApi.registerToken({
+                            device_token: token,
+                            device_type: 'web',
+                            device_info: {
+                                userAgent: navigator.userAgent,
+                                platform: navigator.platform
+                            }
+                        });
+                        console.log("Notifications enabled and registered.");
+                    }
+                } catch (error) {
+                    console.error("Layout: Failed to setup notifications automatically", error);
+                }
+            }
+        };
+
+        // Small delay to ensure core layout is stable before showing native prompt
+        const timer = setTimeout(setupNotifications, 2000);
+        return () => clearTimeout(timer);
+    }, [location.pathname]);
+
     return (
         <div className="dark:bg-boxdark-2 dark:text-bodydark">
             <div className="flex h-screen overflow-hidden">
@@ -50,7 +80,6 @@ const Layout = ({ children, onLogout }) => {
                     <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
                     <main>
-                        <NotificationPrompt />
                         <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
                             {children}
                         </div>

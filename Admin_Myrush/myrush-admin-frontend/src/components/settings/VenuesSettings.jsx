@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Edit2, Plus, Building, Upload, X, MapPin, Clock, Camera, ChevronDown,
   Trash2, Search, Building2, Tag, Hash, Image as ImageIcon, Gamepad2,
@@ -477,6 +477,10 @@ function VenuesSettings() {
   // Filter venues - now handled server-side mostly, but client side city filter used if citiesApi doesn't support it
   const filteredVenues = venues;
 
+  // Memoized O(1) lookup maps — only rebuilt when cities/areas change, NOT on every scroll render
+  const cityMap = useMemo(() => Object.fromEntries(cities.map(c => [c.id, c.name])), [cities]);
+  const areaMap = useMemo(() => Object.fromEntries(areas.map(a => [a.id, a.name])), [areas]);
+
   const normalizeOpeningHours = (raw) => {
     const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const defaultHours = {};
@@ -822,6 +826,7 @@ function VenuesSettings() {
     return <VenueViewModal venue={viewingVenue} cities={cities} areas={areas} onClose={() => setViewingVenue(null)} />;
   }
 
+
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header & Controls */}
@@ -890,12 +895,12 @@ function VenuesSettings() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredVenues.map(venue => (
-                    <tr key={venue.id} className="hover:bg-slate-50/80 transition-colors group">
+                    <tr key={venue.id} className="hover:bg-slate-50 group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden">
                             {venue.images && venue.images.length > 0 ? (
-                              <img src={getImageUrl(venue.images[0])} alt={venue.name} className="h-full w-full object-cover" />
+                              <img src={getImageUrl(venue.images[0])} alt={venue.name} className="h-full w-full object-cover" loading="lazy" />
                             ) : (
                               <Building2 className="h-5 w-5 text-slate-400" />
                             )}
@@ -908,8 +913,8 @@ function VenuesSettings() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium text-slate-900">{cities.find(c => c.id === venue.city_id)?.name}</span>
-                          <span className="text-xs text-slate-500">{areas.find(a => a.id === venue.area_id)?.name}</span>
+                          <span className="text-sm font-medium text-slate-900">{cityMap[venue.city_id] || '—'}</span>
+                          <span className="text-xs text-slate-500">{areaMap[venue.area_id] || '—'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -970,7 +975,7 @@ function VenuesSettings() {
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="h-12 w-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                         {venue.images && venue.images.length > 0 ? (
-                          <img src={getImageUrl(venue.images[0])} alt={venue.name} className="h-full w-full object-cover" />
+                          <img src={getImageUrl(venue.images[0])} alt={venue.name} className="h-full w-full object-cover" loading="lazy" />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center bg-slate-50">
                             <Building2 className="h-5 w-5 text-slate-300" />
@@ -985,7 +990,7 @@ function VenuesSettings() {
                           </span>
                           <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded whitespace-nowrap">
                             <MapPin className="h-2.5 w-2.5 shrink-0" />
-                            <span className="truncate">{cities.find(c => c.id === venue.city_id)?.short_code || cities.find(c => c.id === venue.city_id)?.name}</span>
+                            <span className="truncate">{cityMap[venue.city_id] || '—'}</span>
                           </span>
                         </div>
                       </div>
@@ -1002,11 +1007,11 @@ function VenuesSettings() {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex flex-col bg-slate-50 p-2 rounded-lg">
                       <span className="text-[10px] text-slate-400 font-bold uppercase">City</span>
-                      <span className="font-medium text-slate-800 truncate">{cities.find(c => c.id === venue.city_id)?.name || 'N/A'}</span>
+                      <span className="font-medium text-slate-800 truncate">{cityMap[venue.city_id] || 'N/A'}</span>
                     </div>
                     <div className="flex flex-col bg-slate-50 p-2 rounded-lg">
                       <span className="text-[10px] text-slate-400 font-bold uppercase">Area</span>
-                      <span className="font-medium text-slate-800 truncate">{areas.find(a => a.id === venue.area_id)?.name || 'N/A'}</span>
+                      <span className="font-medium text-slate-800 truncate">{areaMap[venue.area_id] || 'N/A'}</span>
                     </div>
                   </div>
 

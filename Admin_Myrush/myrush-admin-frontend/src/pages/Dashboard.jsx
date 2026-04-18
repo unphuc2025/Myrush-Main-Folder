@@ -441,13 +441,13 @@ function Dashboard() {
               <div className="h-72 flex items-center justify-center w-full min-h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart 
-                    margin={{ top: 0, right: 0, bottom: 40, left: 0 }}
+                    margin={{ top: 20, right: 0, bottom: 40, left: 0 }}
                     style={{ outline: 'none' }}
                   >
                     <Pie
                       data={statusData}
                       cx="50%"
-                      cy="40%"
+                      cy="50%"
                       innerRadius={60}
                       outerRadius={80}
                       paddingAngle={5}

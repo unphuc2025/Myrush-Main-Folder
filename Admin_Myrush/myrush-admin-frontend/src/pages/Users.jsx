@@ -40,6 +40,7 @@ const Users = () => {
     const canEdit = !!permissions.edit;
     const canDelete = !!permissions.delete;
     const hasView = !!(permissions.view || permissions.access);
+    const canViewDetails = !!permissions.view || adminInfo.role === 'super_admin';
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
         if (!token) {
@@ -247,7 +248,7 @@ const Users = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {canView && (
+                                                    {canViewDetails && (
                                                         <button
                                                             onClick={() => handleView(user)}
                                                             className="p-1.5 text-purple-600 bg-purple-50 rounded hover:bg-purple-100 transition-colors"
@@ -318,7 +319,7 @@ const Users = () => {
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                        {canView && (
+                                        {canViewDetails && (
                                             <button
                                                 onClick={() => handleView(user)}
                                                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-purple-600 bg-purple-50 rounded-xl font-bold text-sm hover:bg-purple-100 transition-all active:scale-95"

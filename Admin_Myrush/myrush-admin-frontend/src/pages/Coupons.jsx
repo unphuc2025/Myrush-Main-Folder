@@ -88,9 +88,9 @@ function Coupons() {
         fetchCoupons();
     }, []);
 
-    const fetchCoupons = async () => {
+    const fetchCoupons = async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             const data = await couponsApi.getAll();
             setCoupons(data);
         } catch (err) {
@@ -98,7 +98,7 @@ function Coupons() {
             const status = err.response?.status;
             setError(status === 403 ? 'You do not have access to view coupons.' : 'Failed to fetch coupons');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -169,7 +169,7 @@ function Coupons() {
         if (window.confirm('Are you sure you want to delete this coupon?')) {
             try {
                 await couponsApi.delete(id);
-                fetchCoupons();
+                fetchCoupons(true);
                 setSuccessMsg('Coupon deleted successfully.');
                 setTimeout(() => setSuccessMsg(null), 3000);
             } catch (err) {
@@ -188,10 +188,18 @@ function Coupons() {
             setError('You do not have permission to modify coupon status.');
             return;
         }
+
+        // Optimistic UI Update: Flip the status locally first
+        const originalCoupons = [...coupons];
+        setCoupons(prev => prev.map(c => c.id === id ? { ...c, is_active: !c.is_active } : c));
+
         try {
             await couponsApi.toggleStatus(id);
-            fetchCoupons();
+            // Refresh in background to sync any other server-side changes (like timestamps)
+            fetchCoupons(true);
         } catch (err) {
+            // Revert on failure
+            setCoupons(originalCoupons);
             const msg = err.message || '';
             if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
                 setError('You do not have access to toggle coupon status.');
@@ -224,7 +232,7 @@ function Coupons() {
                 await couponsApi.create(payload);
             }
             setShowForm(false);
-            fetchCoupons();
+            fetchCoupons(true);
             setSuccessMsg(editingCoupon ? 'Coupon updated successfully!' : 'Coupon created successfully!');
             setTimeout(() => setSuccessMsg(null), 3000);
         } catch (err) {

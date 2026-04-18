@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Edit2, Plus, Building, Upload, X, MapPin, Clock, Camera, ChevronDown, Eye, Trash2 } from 'lucide-react';
+import { Edit2, Plus, Building, Upload, X, MapPin, Clock, Camera, ChevronDown, Eye, Trash2, ShieldAlert } from 'lucide-react';
 import ToggleSwitch from './ToggleSwitch';
-import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi, IMAGE_BASE_URL, getImageUrl, sanitizeImageUrl } from '../../services/adminApi';
+import { citiesApi, areasApi, gameTypesApi, amenitiesApi, branchesApi, adminsApi, IMAGE_BASE_URL, getImageUrl, sanitizeImageUrl } from '../../services/adminApi';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -22,6 +22,50 @@ function BranchesSettings() {
   const [viewingBranch, setViewingBranch] = useState(null);
   const [showGameDropdown, setShowGameDropdown] = useState(false);
   const gameDropdownRef = useRef(null);
+  
+  // Permission Logic
+  const [adminPermissions, setAdminPermissions] = useState(() => {
+    const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}');
+    const isSuperAdmin = adminInfo.role === 'super_admin';
+    const perms = adminInfo.permissions?.['Manage Branches'] || {}; // Assuming name is 'Manage Branches'
+    return {
+      isSuperAdmin,
+      canAdd: isSuperAdmin || perms.add,
+      canEdit: isSuperAdmin || perms.edit,
+      canDelete: isSuperAdmin || perms.delete,
+      canView: isSuperAdmin || perms.view || perms.access,
+      canViewDetails: isSuperAdmin || perms.view
+    };
+  });
+
+  const { isSuperAdmin, canAdd, canEdit, canDelete, canView, canViewDetails } = adminPermissions;
+
+  // Sync permissions with fresh data from backend on mount
+  useEffect(() => {
+    const refreshPermissions = async () => {
+      try {
+        const freshAdmin = await adminsApi.getMe();
+        if (freshAdmin) {
+          localStorage.setItem('admin_info', JSON.stringify(freshAdmin));
+          const perms = freshAdmin.permissions?.['Manage Branches'] || {};
+          const isSuper = freshAdmin.role === 'super_admin';
+          setAdminPermissions({
+            isSuperAdmin: isSuper,
+            canAdd: isSuper || perms.add,
+            canEdit: isSuper || perms.edit,
+            canDelete: isSuper || perms.delete,
+            canView: isSuper || perms.view || perms.access,
+            canViewDetails: isSuper || perms.view
+          });
+          window.dispatchEvent(new Event('admin-info-updated'));
+        }
+      } catch (err) {
+        console.error('Failed to refresh admin permissions:', err);
+      }
+    };
+    refreshPermissions();
+  }, []);
+
   const [formData, setFormData] = useState({
     name: '',
     cityId: '',
@@ -963,6 +1007,18 @@ function BranchesSettings() {
     );
   }
 
+  if (!canView && !loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 text-center bg-white border border-slate-200 rounded-xl shadow-sm p-12">
+        <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
+          <ShieldAlert className="h-8 w-8 text-red-400" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+        <p className="text-gray-500 max-w-sm">You do not have permission to view branches. Please contact your administrator for access.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* City Filter and Add Button */}
@@ -985,13 +1041,15 @@ function BranchesSettings() {
           </select>
         </div>
         <div className="pt-6">
-          <button
-            onClick={handleAddClick}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add Branch
-          </button>
+          {canAdd && (
+            <button
+              onClick={handleAddClick}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add Branch
+            </button>
+          )}
         </div>
       </div>
 
@@ -1044,25 +1102,29 @@ function BranchesSettings() {
                     <td className="px-6 py-4">
                       <ToggleSwitch
                         isChecked={branch.is_active}
-                        onToggle={() => handleToggleBranch(branch)}
+                        onToggle={() => canEdit && handleToggleBranch(branch)}
                       />
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => setViewingBranch(branch)}
-                          className="p-1.5 text-purple-600 bg-purple-50 rounded hover:bg-purple-100 transition-colors"
-                          title="View"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditClick(branch)}
-                          className="p-1.5 text-amber-600 bg-amber-50 rounded hover:bg-amber-100 transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
+                        {canViewDetails && (
+                          <button
+                            onClick={() => setViewingBranch(branch)}
+                            className="p-1.5 text-purple-600 bg-purple-50 rounded hover:bg-purple-100 transition-colors"
+                            title="View"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        )}
+                        {canEdit && (
+                          <button
+                            onClick={() => handleEditClick(branch)}
+                            className="p-1.5 text-amber-600 bg-amber-50 rounded hover:bg-amber-100 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1088,7 +1150,8 @@ function BranchesSettings() {
                       <h3 className="font-bold text-slate-900 truncate pr-2">{branch.name}</h3>
                       <ToggleSwitch
                         isChecked={branch.is_active}
-                        onToggle={() => handleToggleBranch(branch)}
+                        onToggle={() => canEdit && handleToggleBranch(branch)}
+                        disabled={!canEdit}
                       />
                     </div>
                     <div className="space-y-1">
@@ -1099,20 +1162,24 @@ function BranchesSettings() {
                 </div>
 
                 <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-                  <button
-                    onClick={() => setViewingBranch(branch)}
-                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
-                  >
-                    <Eye className="h-4 w-4" />
-                    <span className="text-sm font-bold">View</span>
-                  </button>
-                  <button
-                    onClick={() => handleEditClick(branch)}
-                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                    <span className="text-sm font-bold">Edit</span>
-                  </button>
+                  {canViewDetails && (
+                    <button
+                      onClick={() => setViewingBranch(branch)}
+                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span className="text-sm font-bold">View</span>
+                    </button>
+                  )}
+                  {canEdit && (
+                    <button
+                      onClick={() => handleEditClick(branch)}
+                      className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      <span className="text-sm font-bold">Edit</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

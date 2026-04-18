@@ -57,13 +57,19 @@ function BookingsManager() {
                     }
                 }
 
-                // Fetch data individually to prevent 403 errors on metadata (e.g. cities/branches) 
-                // from blocking the main bookings result for restricted admins.
-                let citiesData = [], branchesData = [], bookingsData = [], gameTypesData = [];
-                try { citiesData = await citiesApi.getAll(); } catch (e) { console.warn("Bookings: Cities fetch failed", e); }
-                try { branchesData = await branchesApi.getAll(); } catch (e) { console.warn("Bookings: Branches fetch failed", e); }
-                try { bookingsData = await bookingsApi.getAll(branchId); } catch (e) { console.warn("Bookings: Bookings fetch failed", e); }
-                try { gameTypesData = await gameTypesApi.getAll(); } catch (e) { console.warn("Bookings: Game types fetch failed", e); }
+                // Use Promise.allSettled to fetch all assets simultaneously to prevent sequential waterfall blocking
+                const [citiesRes, branchesRes, bookingsRes, gameTypesRes] = await Promise.allSettled([
+                    citiesApi.getAll(),
+                    branchesApi.getAll(),
+                    bookingsApi.getAll(branchId),
+                    gameTypesApi.getAll()
+                ]);
+
+                let citiesData = citiesRes.status === 'fulfilled' ? citiesRes.value : [];
+                let branchesData = branchesRes.status === 'fulfilled' ? branchesRes.value : [];
+                let bookingsData = bookingsRes.status === 'fulfilled' ? bookingsRes.value : [];
+                let gameTypesData = gameTypesRes.status === 'fulfilled' ? gameTypesRes.value : [];
+
 
                 if (isMounted) {
                     setCities(citiesData?.items || citiesData || []);

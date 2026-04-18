@@ -101,7 +101,8 @@ const CourtBlocks = () => {
         }
     };
 
-    const handleFilterBranchChange = async (id) => {
+    const handleFilterBranchChange = async (rawId) => {
+        const id = rawId === 'all' ? '' : rawId; // 'all' sentinel means no filter
         setFilterBranchId(id);
         setFilterCourtId('');
         setFilterSliceId('');
@@ -245,17 +246,19 @@ const CourtBlocks = () => {
                             LIST VIEW
                         </button>
                     </div>
-                    <button 
-                        onClick={() => {
-                            setFormBranchId('');
-                            setFormData({...formData, court_id: '', block_date: new Date().toISOString().split('T')[0]});
-                            setIsDrawerOpen(true);
-                        }}
-                        className="flex items-center gap-2 bg-primary text-white py-2.5 px-6 rounded-lg font-bold shadow-lg shadow-primary/20 hover:bg-opacity-90 transition-all uppercase text-sm"
-                    >
-                        <Plus className="w-5 h-5" />
-                        New Manual Block
-                    </button>
+                    {permissions.add && (
+                        <button 
+                            onClick={() => {
+                                setFormBranchId('');
+                                setFormData({...formData, court_id: '', block_date: new Date().toISOString().split('T')[0]});
+                                setIsDrawerOpen(true);
+                            }}
+                            className="flex items-center gap-2 bg-primary text-white py-2.5 px-6 rounded-lg font-bold shadow-lg shadow-primary/20 hover:bg-opacity-90 transition-all uppercase text-sm"
+                        >
+                            <Plus className="w-5 h-5" />
+                            New Manual Block
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -268,15 +271,14 @@ const CourtBlocks = () => {
                         value={filterBranchId}
                         onChange={(e) => handleFilterBranchChange(e.target.value)}
                     >
-                        <option value="" disabled>SELECT A VENUE...</option>
-                        <option value="">ALL VENUES</option>
+                        <option value="" disabled>— SELECT VENUE —</option>
                         {branches.map(b => <option key={b.id} value={b.id}>{b.name.toUpperCase()}</option>)}
                     </select>
                 </div>
                 <div className="flex-1 min-w-[200px]">
                     <label className="block text-[10px] font-bold text-bodydark2 uppercase mb-2 tracking-widest">Select Court / Unit</label>
                     <select 
-                        className={`w-full bg-gray border border-stroke rounded-lg px-4 py-2.5 outline-none focus:border-primary font-bold text-sm ${!filterBranchId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-full bg-gray border border-stroke rounded-lg px-4 py-2.5 outline-none focus:border-primary font-bold text-sm ${(!filterBranchId || filterBranchId === 'all') ? 'opacity-50 cursor-not-allowed' : ''}`}
                         value={filterSliceId ? `${filterCourtId}:${filterSliceId}` : filterCourtId}
                         disabled={!filterBranchId}
                         onChange={(e) => {
@@ -328,19 +330,21 @@ const CourtBlocks = () => {
                     >
                         <RefreshCw className={`w-5 h-5 text-bodydark2 ${loading ? 'animate-spin' : ''}`} />
                     </button>
-                    <button 
-                        onClick={() => {
-                            setFilterBranchId(''); 
-                            setFilterCourtId(''); 
-                            setFilterSliceId(''); 
-                            setFilterSliceMask(0);
-                            setBranchCourts([]);
-                            setFilterDate(new Date().toISOString().split('T')[0]);
-                        }}
-                        className="px-3 py-2.5 text-xs text-primary font-black uppercase hover:underline"
-                    >
-                        Reset
-                    </button>
+                    {canManage && (
+                        <button 
+                            onClick={() => {
+                                setFilterBranchId(''); 
+                                setFilterCourtId(''); 
+                                setFilterSliceId(''); 
+                                setFilterSliceMask(0);
+                                setBranchCourts([]);
+                                setFilterDate(new Date().toISOString().split('T')[0]);
+                            }}
+                            className="px-3 py-2.5 text-xs text-primary font-black uppercase hover:underline"
+                        >
+                            Reset
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -471,14 +475,15 @@ const CourtBlocks = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-5 text-right">
-                                            {item.unifiedType === 'block' ? (
+                                            {permissions.delete && item.unifiedType === 'block' && (
                                                 <button 
                                                     onClick={() => handleDeleteBlock(item.id)}
                                                     className="p-2 text-bodydark2 hover:text-danger hover:bg-danger/5 rounded-lg transition-all"
                                                 >
                                                     <Trash2 className="w-5 h-5" />
                                                 </button>
-                                            ) : (
+                                            )}
+                                            {item.unifiedType === 'booking' && (
                                                 <span className="text-[9px] font-black text-bodydark2 uppercase bg-gray px-2 py-1 rounded">Locked</span>
                                             )}
                                         </td>
@@ -501,7 +506,9 @@ const CourtBlocks = () => {
                     blocks={blocks}
                     bookings={bookings}
                     loading={loading}
+                    canAdd={permissions.add}
                     onCreateBlock={(courtId, startTime) => {
+                        if (!permissions.add) return;
                         setFormBranchId(filterBranchId);
                         setFormData({
                             ...formData, 
@@ -722,7 +729,7 @@ const CourtBlocks = () => {
 
 // --- TIMELINE COMPONENTS ---
 
-const TimelineGrid = ({ selectedBranchId, selectedCourtId, selectedSliceId, selectedSliceMask, selectedDate, branches, courts, blocks, bookings, loading, onCreateBlock }) => {
+const TimelineGrid = ({ selectedBranchId, selectedCourtId, selectedSliceId, selectedSliceMask, selectedDate, branches, courts, blocks, bookings, loading, canAdd, onCreateBlock }) => {
     const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 06:00 to 23:00
     const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, item: null, type: null });
 
@@ -858,6 +865,7 @@ const TimelineGrid = ({ selectedBranchId, selectedCourtId, selectedSliceId, sele
                                         blocks={courtBlocks}
                                         bookings={courtBookings}
                                         hours={HOURS}
+                                        canAdd={canAdd}
                                         onCreateBlock={onCreateBlock}
                                         onHover={handleMouseEnter}
                                         onLeave={handleMouseLeave}
@@ -947,7 +955,7 @@ const TimelineGrid = ({ selectedBranchId, selectedCourtId, selectedSliceId, sele
     );
 };
 
-const TimelineRow = ({ court, blocks, bookings, hours, onCreateBlock, onHover, onLeave, getSliceName }) => {
+const TimelineRow = ({ court, blocks, bookings, hours, canAdd, onCreateBlock, onHover, onLeave, getSliceName }) => {
     const timeToX = (timeStr) => {
         if (!timeStr) return 0;
         const [h, m] = timeStr.split(':').map(Number);
@@ -1017,7 +1025,7 @@ const TimelineRow = ({ court, blocks, bookings, hours, onCreateBlock, onHover, o
 
                                 return (
                                     <>
-                                        {!isOccupied(time00) && (
+                                        {canAdd && !isOccupied(time00) && (
                                             <button 
                                                 onClick={() => onCreateBlock(court.id, time00)}
                                                 className="flex-1 opacity-0 hover:opacity-100 hover:bg-primary/5 transition-all text-[8px] font-black text-primary/40 flex items-center justify-center"
@@ -1027,7 +1035,7 @@ const TimelineRow = ({ court, blocks, bookings, hours, onCreateBlock, onHover, o
                                         )}
                                         {isOccupied(time00) && <div className="flex-1" />}
                                         
-                                        {!isOccupied(time30) && (
+                                        {canAdd && !isOccupied(time30) && (
                                             <button 
                                                 onClick={() => onCreateBlock(court.id, time30)}
                                                 className="flex-1 opacity-0 hover:opacity-100 hover:bg-primary/5 transition-all text-[8px] font-black text-primary/40 flex items-center justify-center border-l border-stroke/10"

@@ -1167,8 +1167,8 @@ class PushTokenCreate(PushTokenBase):
 
 class PushTokenResponse(PushTokenBase):
     id: UUID
-    user_id: Optional[str] = None
-    admin_id: Optional[str] = None
+    user_id: Optional[UUID] = None
+    admin_id: Optional[UUID] = None
     is_active: bool
     last_used_at: Optional[datetime] = None
     created_at: datetime
