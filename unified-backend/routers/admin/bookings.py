@@ -390,7 +390,10 @@ def get_all_bookings(
                 coupon_code=booking.coupon_code or (booking.coupon.code if booking.coupon else None),
                 subtotal_amount=booking.subtotal_amount or (booking.total_amount - (booking.gst_amount or 0)),
                 gst_amount=booking.gst_amount or 0,
-                discount_amount=booking.discount_amount or (booking.coupon_discount or 0)
+                discount_amount=booking.discount_amount or (booking.coupon_discount or 0),
+                refund_id=booking.refund_id,
+                refund_status=booking.refund_status or 'none',
+                refund_amount=booking.refund_amount
             )
             result.append(admin_booking)
 
@@ -488,7 +491,10 @@ def get_booking(booking_id: str, db: Session = Depends(get_db)):
         coupon_code=booking.coupon_code or (booking.coupon.code if booking.coupon else None),
         subtotal_amount=booking.subtotal_amount or (booking.total_amount - (booking.gst_amount or 0)),
         gst_amount=booking.gst_amount or 0,
-        discount_amount=booking.discount_amount or (booking.coupon_discount or 0)
+        discount_amount=booking.discount_amount or (booking.coupon_discount or 0),
+        refund_id=booking.refund_id,
+        refund_status=booking.refund_status or 'none',
+        refund_amount=booking.refund_amount
     )
 
 @router.put("/{booking_id}", response_model=schemas.AdminBooking)

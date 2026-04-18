@@ -45,6 +45,10 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             HTTP response
         """
         try:
+            # Skip for non-HTTP requests (like WebSockets)
+            if request.scope.get("type") != "http":
+                return await call_next(request)
+
             # Process the request
             response = await call_next(request)
             return response

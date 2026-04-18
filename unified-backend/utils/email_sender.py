@@ -315,3 +315,95 @@ def send_booking_invoice_email(booking_id: str, to_email: str):
         return False
     finally:
         db.close()
+
+def send_refund_confirmation_email(booking_id: str, to_email: str):
+    """
+    Sends a confirmation email to the user when their refund is successfully processed.
+    """
+    from database import SessionLocal
+    import models
+    db = SessionLocal()
+    load_dotenv(override=True)
+
+    smtp_server = os.getenv("INVOICE_SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.getenv("INVOICE_SMTP_PORT", "587"))
+    smtp_username = os.getenv("INVOICE_SMTP_USERNAME")
+    smtp_password = os.getenv("INVOICE_SMTP_PASSWORD")
+
+    if not smtp_username or not smtp_password:
+        logger.warning("Invoice SMTP credentials not found. Refund email will NOT be sent.")
+        return False
+
+    try:
+        booking = db.query(models.Booking).filter(models.Booking.id == booking_id).first()
+        if not booking:
+            logger.error(f"Refund Email Error: Booking {booking_id} not found.")
+            return False
+
+        sender_email = smtp_username
+        subject = f"Refund Processed Successfully - MyRush Booking {booking.booking_display_id or booking_id[:8]}"
+
+        html_content = f"""
+        <html>
+        <body style="font-family: 'Inter', Arial, sans-serif; color: #1a1a1a; line-height: 1.6; background-color: #f4f4f4; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="background-color: #000000; padding: 30px; text-align: center;">
+                    <h1 style="color: #00d26a; margin: 0; text-transform: uppercase; letter-spacing: 2px; font-size: 24px;">Refund Processed</h1>
+                </div>
+                <div style="padding: 40px;">
+                    <p style="font-size: 16px;">Hello,</p>
+                    <p style="font-size: 16px;">Good news! Your refund for <strong>MyRush Booking {booking.booking_display_id or booking_id[:8]}</strong> has been successfully processed by our payment partner.</p>
+                    
+                    <div style="background-color: #f8fcf9; border-left: 4px solid #00d26a; padding: 20px; margin: 30px 0;">
+                        <p style="margin: 0; color: #666; font-size: 12px; text-transform: uppercase; font-weight: bold;">Refund Details</p>
+                        <p style="margin: 5px 0 0 0; font-size: 28px; font-weight: 800; color: #1a1a1a;">₹{booking.refund_amount}</p>
+                    </div>
+
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Original Amount</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₹{booking.total_amount}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Cancellation Fee applied</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right; color: #e53e3e;">-₹{(float(booking.total_amount) - float(booking.refund_amount)):.2f}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; color: #666;">Refund ID</td>
+                            <td style="padding: 10px 0; text-align: right; font-family: monospace; font-size: 12px;">{booking.refund_id}</td>
+                        </tr>
+                    </table>
+
+                    <p style="margin-top: 30px; font-size: 14px; color: #666;">
+                        The amount should reflect in your source account within <strong>5-7 business days</strong>, depending on your bank's processing time.
+                    </p>
+                    
+                    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
+                        <p style="font-size: 14px; margin: 0;">Thank you for choosing MyRush!</p>
+                        <p style="font-size: 12px; color: #999; margin-top: 5px;">This is an automated notification. Please do not reply to this email.</p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        msg = MIMEMultipart()
+        msg['From'] = f"MyRush <{sender_email}>"
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(html_content, 'html'))
+
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_username, smtp_password)
+        server.sendmail(sender_email, to_email, msg.as_string())
+        server.quit()
+        
+        logger.info(f"Refund confirmation email sent successfully to {to_email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send refund email: {str(e)}")
+        return False
+    finally:
+        db.close()

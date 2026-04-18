@@ -62,7 +62,8 @@ export const bookingsApi = {
             return { success: true, data: response.data };
         } catch (error: any) {
             console.error('[BOOKINGS API] Exception creating payment order:', error);
-            return { success: false, data: null, error: error.message || 'Failed to initiate payment' };
+            const errorMessage = error.response?.data?.detail || error.message || 'Failed to initiate payment';
+            return { success: false, data: null, error: errorMessage };
         }
     },
 
@@ -86,7 +87,8 @@ export const bookingsApi = {
                 success: true, data: response.data };
         } catch (error: any) {
             console.error('[BOOKINGS API] Exception creating multi-court payment order:', error);
-            return { success: false, data: null, error: error.message || 'Failed to initiate payment' };
+            const errorMessage = error.response?.data?.detail || error.message || 'Failed to initiate payment';
+            return { success: false, data: null, error: errorMessage };
         }
     },
     /**
@@ -219,6 +221,26 @@ export const bookingsApi = {
                 success: false,
                 data: null,
                 error: error.response?.data?.detail || error.message || 'Failed to cancel booking',
+            };
+        }
+    },
+
+    /**
+     * Release a slot hold immediately
+     */
+    releaseHold: async (orderId: string) => {
+        try {
+            const response = await apiClient.post(`/payments/cancel-hold/${orderId}`);
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('[BOOKINGS API] Exception releasing hold:', error);
+            return {
+                success: false,
+                data: null,
+                error: error.response?.data?.detail || error.message || 'Failed to release hold',
             };
         }
     },

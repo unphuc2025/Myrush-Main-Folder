@@ -162,6 +162,13 @@ const BookingDetailsScreen: React.FC = () => {
     const [gstPercent, setGstPercent] = useState(0);
     const [cancellationPolicy, setCancellationPolicy] = useState<any>(null);
 
+    // Hold Timer State
+    const [holdExpiry, setHoldExpiry] = useState<Date | null>(null);
+    const [timeLeft, setTimeLeft] = useState<number>(0);
+    const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+    const [orderBreakdown, setOrderBreakdown] = useState<any>(null);
+    const [razorpayKeyId, setRazorpayKeyId] = useState<string | null>(null);
+
     // Financials
     const platformFee = 0; // Updated to 0 as per backend/web consistency
 
@@ -181,7 +188,74 @@ const BookingDetailsScreen: React.FC = () => {
     useEffect(() => {
         loadAvailableCoupons();
         loadActivePolicies();
+        initiateSlotHold();
     }, []);
+
+    const initiateSlotHold = async () => {
+        if (!user) return;
+        
+        try {
+            const formattedMonth = (route.params?.monthIndex !== undefined ? route.params.monthIndex + 1 : 1).toString().padStart(2, '0');
+            const formattedDay = (date || 1).toString().padStart(2, '0');
+            const bookingDate = `${route.params?.year || 2024}-${formattedMonth}-${formattedDay}`;
+            const duration = (selectedSlots?.length || 1) * 60;
+
+            const orderResult = await paymentsApi.createOrder({
+                courtId: route.params?.venueObject?.id || 'unknown_court',
+                bookingDate: bookingDate,
+                startTime: timeSlot || selectedSlots?.[0]?.time || "07:00",
+                durationMinutes: duration,
+                timeSlots: selectedSlots || [],
+                numberOfPlayers: numPlayers,
+                couponCode: couponCode || undefined
+            });
+
+            if (orderResult.success && orderResult.data) {
+                setPendingOrderId(orderResult.data.id);
+                setRazorpayKeyId(orderResult.data.key_id);
+                setOrderBreakdown(orderResult.data.breakdown);
+                
+                if (orderResult.data.hold_expiry_at) {
+                    const expiry = new Date(orderResult.data.hold_expiry_at);
+                    setHoldExpiry(expiry);
+                }
+            } else if (orderResult.error?.includes('already booked')) {
+                Alert.alert('Slot Taken', 'This slot was just booked by someone else. Please select another time.', [
+                    { text: 'OK', onPress: () => navigation.goBack() }
+                ]);
+            }
+        } catch (error) {
+            console.error('Failed to initiate slot hold', error);
+        }
+    };
+
+    // Timer Logic
+    useEffect(() => {
+        if (!holdExpiry) return;
+
+        const interval = setInterval(() => {
+            const now = new Date();
+            const diff = holdExpiry.getTime() - now.getTime();
+            
+            if (diff <= 0) {
+                setTimeLeft(0);
+                clearInterval(interval);
+                Alert.alert('Hold Expired', 'Your slot hold has expired. Please restart the booking process.', [
+                    { text: 'OK', onPress: () => navigation.goBack() }
+                ]);
+            } else {
+                setTimeLeft(Math.floor(diff / 1000));
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [holdExpiry]);
+
+    const formatTimeLeft = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     const loadActivePolicies = async () => {
         try {
@@ -327,6 +401,36 @@ const BookingDetailsScreen: React.FC = () => {
                     ondismiss: () => setIsBookingLoading(false)
                 }
             };
+
+            // Use the already created order if available
+            if (pendingOrderId) {
+                options.order_id = pendingOrderId;
+                options.key = razorpayKeyId || RAZORPAY_KEY_ID;
+            } else {
+                // Fallback to creating a new order if hold failed earlier
+                const formattedMonth = (route.params?.monthIndex !== undefined ? route.params.monthIndex + 1 : 1).toString().padStart(2, '0');
+                const formattedDay = (date || 1).toString().padStart(2, '0');
+                const bookingDate = `${route.params?.year || 2024}-${formattedMonth}-${formattedDay}`;
+                const duration = (selectedSlots?.length || 1) * 60;
+
+                const orderResult = await paymentsApi.createOrder({
+                    courtId: route.params?.venueObject?.id || 'unknown_court',
+                    bookingDate: bookingDate,
+                    startTime: timeSlot || selectedSlots?.[0]?.time || "07:00",
+                    durationMinutes: duration,
+                    timeSlots: selectedSlots || [],
+                    numberOfPlayers: numPlayers,
+                    couponCode: couponResult?.valid ? couponCode : undefined
+                });
+
+                if (!orderResult.success || !orderResult.data) {
+                    Alert.alert('Order Failed', orderResult.error || 'Could not initiate payment.');
+                    setIsBookingLoading(false);
+                    return;
+                }
+                options.order_id = orderResult.data.id;
+                options.key = orderResult.data.key_id;
+            }
 
             // Check if Razorpay native module is available
             if (RazorpayCheckout) {
@@ -516,7 +620,15 @@ const BookingDetailsScreen: React.FC = () => {
                     </View>
 
                     {/* 3. ORDER SUMMARY */}
-                    <Text style={styles.sectionHeader}>ORDER SUMMARY</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: hp(3), marginBottom: hp(1.5) }}>
+                        <Text style={[styles.sectionHeader, { marginTop: 0, marginBottom: 0 }]}>ORDER SUMMARY</Text>
+                        {timeLeft > 0 && (
+                            <View style={styles.holdTimerBadge}>
+                                <MaterialCommunityIcons name="clock-outline" size={moderateScale(12)} color={colors.primary} />
+                                <Text style={styles.holdTimerText}>Holding for {formatTimeLeft(timeLeft)}</Text>
+                            </View>
+                        )}
+                    </View>
                     <View style={styles.orderCard}>
                         <View style={styles.venueRow}>
                             <View style={styles.venueIcon}>
@@ -727,6 +839,22 @@ const styles = StyleSheet.create({
         fontSize: fontScale(18),
         fontWeight: '700',
         color: '#fff',
+    },
+    holdTimerBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(204, 255, 0, 0.1)',
+        paddingHorizontal: moderateScale(10),
+        paddingVertical: moderateScale(4),
+        borderRadius: moderateScale(20),
+        borderWidth: 1,
+        borderColor: 'rgba(204, 255, 0, 0.3)',
+    },
+    holdTimerText: {
+        fontSize: fontScale(10),
+        color: colors.primary,
+        fontWeight: '700',
+        marginLeft: 4,
     },
     scrollContent: {
         paddingHorizontal: wp(5),

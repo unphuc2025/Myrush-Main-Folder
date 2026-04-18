@@ -76,6 +76,7 @@ export const searchVenues = async (params: {
 
         const response = await fetch(`${API_BASE_URL}/api/chatbot/search/venues?${queryParams.toString()}`);
         const result = await response.json();
+        console.log('[CHATBOT DEBUG] API Search Result:', result);
 
         if (result.success) {
             return {
