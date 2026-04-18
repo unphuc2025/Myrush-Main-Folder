@@ -123,9 +123,9 @@ const extractJson = (text: string) => {
   return text;
 };
 
-const tools = [
+const tools: any[] = [
   {
-    function_declarations: [
+    functionDeclarations: [
       {
         name: "search_venues",
         description: "Search for sports venues based on city, sport, area, or price.",
@@ -171,7 +171,7 @@ const tools = [
           properties: {
             courtId: { type: SchemaType.STRING, description: "UUID of the specific court" },
             date: { type: SchemaType.STRING, description: "Date in YYYY-MM-DD format" },
-            slotTimes: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING }, description: "List of selected start times" },
+            slotTimes: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING, description: "Selected time" }, description: "List of selected start times" },
             numPlayers: { type: SchemaType.NUMBER, description: "Number of players (for capacity-based venues)" },
             sliceMask: { type: SchemaType.NUMBER, description: "Bitmask for divisible court selection (from venue details)" }
           },
