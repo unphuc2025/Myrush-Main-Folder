@@ -210,8 +210,8 @@ export const Chatbot: React.FC = () => {
             selectedSlots: bookingState.slot_times.map(t => ({
                 time: t,
                 display_time: t, // simplified
-                price: (bookingState.quote?.original_amount || bookingState.quote?.base_price || 0) / (bookingState.slot_times?.length || 1),
-                court_id: bookingState.courtId
+                price: (bookingState.quote?.total || bookingState.quote?.base_price || 0) / (bookingState.slot_times?.length || 1),
+                court_id: bookingState.courtId || bookingState.venue?.id
             })),
             selectedSport: bookingState.sport || 'Multi-Sport',
             totalPrice: bookingState.quote?.total_amount || bookingState.quote?.total || 0,
@@ -272,7 +272,8 @@ export const Chatbot: React.FC = () => {
                         numPlayers: p.numPlayers || newState.numPlayers,
                         courtId: p.courtId || newState.courtId,
                         sliceMask: p.sliceMask || newState.sliceMask,
-                        playingModeName: p.playingModeName || newState.playingModeName
+                        playingModeName: p.playingModeName || newState.playingModeName,
+                        venue: aiResponse.data?.venue || newState.venue // Store the full venue object if AI fetched it
                     };
                 });
             }
@@ -280,25 +281,32 @@ export const Chatbot: React.FC = () => {
             // 1. Send text response
             addBotMessage(aiResponse.response, 'text', undefined, { aiResponse });
 
-            // 2. Handle Search Action (New data structure)
-            const results = aiResponse.data?.searchResults || aiResponse.searchResults;
+            // 2. Handle Search Action (Deep unwrapping)
+            const rawResults = aiResponse.data?.search_venues || aiResponse.data?.searchResults || aiResponse.searchResults;
+            const results = Array.isArray(rawResults) ? rawResults : (rawResults?.results || []);
+            
             if (results && results.length > 0) {
                 addBotMessage(`Found ${results.length} options:`, 'venues', undefined, results);
             } else if (aiResponse.intent === 'search') {
                 addBotMessage("I couldn't find any venues matching your criteria. Would you like to try a different area or sport?", 'text');
             }
 
-            // 3. Handle Slots Action (New data structure)
-            const slots = aiResponse.data?.slots || aiResponse.slots;
+            // 3. Handle Slots Action (Deep unwrapping)
+            const rawSlots = aiResponse.data?.get_available_slots || aiResponse.data?.slots || aiResponse.slots;
+            const slots = Array.isArray(rawSlots) ? rawSlots : (rawSlots?.slots || []);
+
+            console.log("[CHATBOT DEBUG] Raw Slots Data:", rawSlots);
+            console.log("[CHATBOT DEBUG] Extracted Slots Array:", slots);
+
             if (slots && slots.length > 0) {
                 addBotMessage('Here are the available slots:', 'slots', undefined, slots);
             } else if (aiResponse.intent === 'slots') {
                 addBotMessage("It looks like there are no available slots for the selected date. Would you like to check another day?", 'text');
             }
 
-            // 4. Handle Quote / Prepare Booking (New data structure)
-            const quote = aiResponse.data?.quote || aiResponse.quote;
-            if (quote) {
+            // 4. Handle Quote / Prepare Booking (Flattened mapping)
+            const quote = aiResponse.data?.calculate_price_quote || aiResponse.data?.quote || aiResponse.quote;
+            if (quote && quote.total) { // Check for a valid field like 'total'
                 setBookingState(prev => ({ ...prev, quote }));
                 addBotMessage('Review your booking summary:', 'summary', undefined, {
                     quote: quote,
@@ -308,8 +316,8 @@ export const Chatbot: React.FC = () => {
                 });
             }
 
-            // 5. Handle Venue Detail (New data structure)
-            const venue = aiResponse.data?.venue || aiResponse.venue;
+            // 5. Handle Venue Detail (Unified metadata extraction)
+            const venue = aiResponse.data?.get_venue_details?.venue || aiResponse.data?.venue || aiResponse.venue;
             if (venue) {
                 addBotMessage(`Here are more details about ${venue.name}:`, 'venue_detail', undefined, { venue });
             }
@@ -426,23 +434,40 @@ export const Chatbot: React.FC = () => {
                                     )}
 
                                     {msg.type === 'summary' && msg.data?.quote && (
-                                        <div className="bg-white rounded-xl border border-gray-200 p-4 mt-2 w-full max-w-[280px] shadow-sm">
-                                            <h4 className="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-2">MyRush Ticket</h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div className="flex items-center justify-between text-gray-500">
-                                                    <span>Subtotal</span>
-                                                    <span className="font-bold text-gray-900">₹{msg.data.quote.base_price}</span>
+                                        <div className="bg-white rounded-2xl border-2 border-primary/20 p-5 mt-2 w-full max-w-[300px] shadow-xl relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-full -mr-4 -mt-4"></div>
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                                                    <FaRobot size={14} />
                                                 </div>
-                                                <div className="flex items-center justify-between text-gray-500">
+                                                <h4 className="font-black text-gray-900 tracking-tight">Booking Summary</h4>
+                                            </div>
+                                            
+                                            <div className="space-y-3 text-sm">
+                                                <div className="flex justify-between items-center text-gray-400 font-medium">
+                                                    <span>Court Fee</span>
+                                                    <span className="text-gray-900">₹{msg.data.quote.base_price}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-gray-400 font-medium">
                                                     <span>GST (18%)</span>
-                                                    <span className="font-bold text-gray-900">₹{msg.data.quote.tax}</span>
+                                                    <span className="text-gray-900">₹{msg.data.quote.tax}</span>
                                                 </div>
-                                                <div className="flex justify-between font-black pt-2 border-t border-gray-100 mt-2 text-lg">
-                                                    <span className="text-gray-900">Total</span>
-                                                    <span className="text-primary">₹{msg.data.quote.total}</span>
+                                                
+                                                <div className="pt-3 border-t-2 border-dashed border-gray-100 mt-2">
+                                                    <div className="flex justify-between items-center font-black text-xl">
+                                                        <span className="text-gray-900">Total</span>
+                                                        <span className="text-primary">₹{msg.data.quote.total}</span>
+                                                    </div>
                                                 </div>
-                                                <p className="text-[10px] text-gray-400 italic text-center py-2">Includes all taxes and platform fees</p>
-                                                <button onClick={confirmBooking} className="w-full bg-primary text-white font-bold py-3 rounded-xl mt-2 hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20 uppercase tracking-wider">Confirm & Pay</button>
+
+                                                <button 
+                                                    onClick={confirmBooking} 
+                                                    className="w-full bg-primary text-white font-black py-4 rounded-xl mt-4 hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                                                >
+                                                    Secure Checkout
+                                                    <FaPaperPlane size={10} />
+                                                </button>
+                                                <p className="text-[10px] text-gray-400 font-medium text-center mt-2">✨ Powered by MyRush Global Checkout</p>
                                             </div>
                                         </div>
                                     )}

@@ -17,6 +17,10 @@ class ResponseHandlerMiddleware(BaseHTTPMiddleware):
         start_time = time.time()
         
         # Process the request
+        # Skip for non-HTTP requests (like WebSockets)
+        if request.scope.get("type") != "http":
+            return await call_next(request)
+
         response = await call_next(request)
         
         # Only process JSON responses

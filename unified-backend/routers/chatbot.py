@@ -520,19 +520,27 @@ async def calculate_chatbot_price(
 
 # Normalized sport name mapping for chatbot search
 SPORT_SYNONYMS = {
-    "pool": "Swimming",
-    "swimming pool": "Swimming",
-    "turf": "FootBall",
-    "football turf": "FootBall",
-    "cricket turf": "Cricket",
-    "cricket nets": "Nets",
-    "badminton court": "Badminton",
-    "shuttle": "Badminton",
-    "table tennis": "Table tennis",
-    "tt": "Table tennis",
-    "padel": "Padel",
-    "skating": "Skating",
-    "squash": "Squash"
+    # Swimming
+    "pool": "Swimming", "swimming pool": "Swimming", "aqua": "Swimming", "swimmer": "Swimming",
+    # Football
+    "football": "FootBall", "football turf": "FootBall", "soccer": "FootBall", "footy": "FootBall", "futsal": "FootBall",
+    # Cricket
+    "cricket turf": "Cricket", "cricket ground": "Cricket", "batting": "Cricket",
+    "nets": "Nets", "cricket nets": "Nets", "practice nets": "Nets",
+    # Badminton
+    "badminton court": "Badminton", "shuttle": "Badminton", "baddie": "Badminton", "racket": "Badminton",
+    # Tennis
+    "table tennis": "Table tennis", "tt": "Table tennis", "ping pong": "Table tennis",
+    "tennis": "Tennis", "lawn tennis": "Tennis",
+    # Others
+    "padel": "Padel", "padel tennis": "Padel",
+    "skating": "Skating", "roller skating": "Skating", "skate park": "Skating",
+    "squash": "Squash", "wooden squash": "Squash",
+    "basketball": "Basketball", "hoops": "Basketball", "b-ball": "Basketball",
+    "volleyball": "Volleyball", "voley": "Volleyball",
+    "throwball": "Throwball",
+    "frisbee": "Frisbee", "ultimate frisbee": "Frisbee",
+    "pickleball": "Pickleball", "pickle": "Pickleball"
 }
 
 def normalize_sport_name(sport: str) -> str:
@@ -543,11 +551,11 @@ def normalize_sport_name(sport: str) -> str:
 
 @router.get("/search/venues")
 async def search_venues_smart(
-    city: Optional[str] = Query(None),
-    sport: Optional[str] = Query(None),
-    area: Optional[str] = Query(None),
-    amenity: Optional[str] = Query(None),
-    price_max: Optional[float] = Query(None),
+    city: Optional[str] = None,
+    sport: Optional[str] = None,
+    area: Optional[str] = None,
+    amenity: Optional[str] = None,
+    price_max: Optional[float] = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -561,15 +569,26 @@ async def search_venues_smart(
         conditions = ["b.is_active = true"]
         params = {}
         
+        if city and not isinstance(city, str):
+            city = None
+            
         if city:
-            conditions.append("c.name ILIKE :city")
-            params['city'] = f"%{city}%"
+            # Clean common particles that Gemini might accidentally pass
+            city_str = str(city)
+            city_clean = city_str.lower().replace("the ", "").replace("in ", "").replace("city", "").strip()
+            # FALLBACK: Check official City name AND Branch name (in case city_id is None)
+            conditions.append("(c.name ILIKE :city OR b.name ILIKE :city)")
+            params['city'] = f"%{city_clean}%"
         
         if area:
             conditions.append("a.name ILIKE :area")
             params['area'] = f"%{area}%"
         
+        if sport and not isinstance(sport, str):
+            sport = None
+            
         if sport:
+            sport = normalize_sport_name(sport)
             conditions.append("""
                 EXISTS (
                     SELECT 1 FROM admin_branch_game_types bgt_f
@@ -590,30 +609,18 @@ async def search_venues_smart(
             params['amenity'] = f"%{amenity}%"
 
         query_str = f"""
-            SELECT
+            SELECT 
                 b.id,
                 b.name,
-                COALESCE(c.name, 'Unknown City') as city_name,
-                COALESCE(a.name, 'Other') as area_name,
                 b.address_line1,
                 b.search_location,
                 b.google_map_url,
                 b.images,
                 b.max_players,
-                COALESCE(
-                    (SELECT json_agg(DISTINCT gt.name)
-                     FROM admin_branch_game_types bgt
-                     JOIN admin_game_types gt ON gt.id = bgt.game_type_id
-                     WHERE bgt.branch_id = b.id AND gt.is_active = true),
-                    '[]'::json
-                ) as game_types,
-                COALESCE(
-                    (SELECT json_agg(am.name)
-                     FROM admin_branch_amenities ba
-                     JOIN admin_amenities am ON am.id = ba.amenity_id
-                     WHERE ba.branch_id = b.id AND am.is_active = true),
-                    '[]'::json
-                ) as amenities,
+                COALESCE(c.name, 'Unknown City') as city_name,
+                COALESCE(a.name, 'Unknown Area') as area_name,
+                (SELECT json_agg(gt.name) FROM admin_branch_game_types bgt JOIN admin_game_types gt ON gt.id = bgt.game_type_id WHERE bgt.branch_id = b.id) as game_types,
+                (SELECT json_agg(am.name) FROM admin_branch_amenities ba JOIN admin_amenities am ON am.id = ba.amenity_id WHERE ba.branch_id = b.id) as amenities,
                 (SELECT MIN(price_per_hour) FROM admin_courts WHERE branch_id = b.id AND is_active = true) as min_price,
                 (SELECT MAX(price_per_hour) FROM admin_courts WHERE branch_id = b.id AND is_active = true) as max_price
             FROM admin_branches b
@@ -622,6 +629,9 @@ async def search_venues_smart(
             WHERE {' AND '.join(conditions)}
             ORDER BY b.name
         """
+        
+        print(f"[CHATBOT SQL] Query: {query_str}")
+        print(f"[CHATBOT SQL] Params: {params}")
         
         result = db.execute(text(query_str), params).fetchall()
         venues = []
@@ -669,7 +679,8 @@ async def search_venues_smart(
                 'price_range': {
                     'min': min_price,
                     'max': max_price
-                }
+                },
+                'has_courts': True # Hint for Gemini that we can dive deeper
             })
         
         return {

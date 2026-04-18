@@ -15,7 +15,7 @@ import models
 import schemas
 import crud
 from utils.coupon_utils import validate_coupon_strictly
-from utils.email_sender import send_booking_invoice_email
+from utils.email_sender import send_booking_invoice_email, send_refund_confirmation_email
 from utils.logger import logger
 
 from utils.booking_utils import get_booked_slots, safe_parse_time_float, calculate_multi_slice_price, generate_allowed_slots_map
@@ -39,7 +39,8 @@ def verify_slot_availability(
     court_id: str, 
     booking_date: date, 
     requested_slots: List[Dict[str, Any]],
-    slice_mask: int = None
+    slice_mask: int = None,
+    user_id: Optional[str] = None
 ):
     """
     Check if any of the requested slots are already booked OR blocked by admin OR outside venue hours.
@@ -51,7 +52,7 @@ def verify_slot_availability(
     from utils.booking_utils import generate_allowed_slots_map, safe_parse_time_float
 
     # 1. Generate Authoritative Allowed Slots (Venue Hours + Pricing + Admin Blocks)
-    allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
+    allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date, user_id=user_id)
     
     if not allowed_slots_map:
         raise HTTPException(status_code=400, detail="The venue is closed or not configured for this date.")
@@ -80,7 +81,7 @@ def verify_slot_availability(
              if (server_slot['occupied_mask'] & slice_mask) != 0:
                   raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Slot {time_str} is already booked.")
 
-def calculate_authoritative_price(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict], number_of_players: int = 1, slice_mask: Optional[int] = None) -> float:
+def calculate_authoritative_price(db: Session, court_id: str, booking_date: date, requested_slots: List[Dict], number_of_players: int = 1, slice_mask: Optional[int] = None, user_id: Optional[str] = None) -> float:
     """
     Calculate the total price based on unified slot generation engine.
     Logic: Sum(Slot Prices) * Number of Players
@@ -92,7 +93,7 @@ def calculate_authoritative_price(db: Session, court_id: str, booking_date: date
     from utils.booking_utils import generate_allowed_slots_map, safe_parse_time_float
 
     # 1. Generate Slots Map to get correct prices
-    allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date)
+    allowed_slots_map = generate_allowed_slots_map(db, court_id, booking_date, user_id=user_id)
     
     # NEW: Fetch court to check logic type
     court = db.query(models.Court).filter(models.Court.id == court_id).first()
@@ -178,7 +179,7 @@ def create_payment_order(
     print(f"[PAYMENTS DEBUG] Creating order for user {current_user.id}, court {booking_details.court_id}, date {booking_details.booking_date}")
     print(f"[PAYMENTS DEBUG] Provided slots: {booking_details.time_slots}")
     try:
-        verify_slot_availability(db, booking_details.court_id, booking_details.booking_date, booking_details.time_slots, booking_details.slice_mask)
+        verify_slot_availability(db, booking_details.court_id, booking_details.booking_date, booking_details.time_slots, booking_details.slice_mask, user_id=str(current_user.id))
     except HTTPException as e:
         print(f"[PAYMENTS DEBUG] Availability check failed: {e.detail}")
         raise e
@@ -194,7 +195,8 @@ def create_payment_order(
             booking_details.booking_date, 
             booking_details.time_slots, 
             booking_details.number_of_players or 1,
-            booking_details.slice_mask
+            booking_details.slice_mask,
+            user_id=str(current_user.id)
         )
         print(f"[PAYMENTS DEBUG] Calculated Base Price: {server_base_price}")
     except Exception as e:
@@ -287,7 +289,7 @@ def create_payment_order(
                 client.order.update(order['id'], {"notes": {"status": "cancelled_slot_conflict"}})
             except Exception:
                 pass
-            raise HTTPException(status_code=409, detail=f"Slot no longer available: {slot_err.detail}")
+            raise HTTPException(status_code=409, detail="Slot no longer available — another booking was confirmed first")
         except ValueError as slot_err:
             # DB-level conflict (bitmask update returned 0 rows)
             print(f"[PAYMENTS] Slot reservation FAILED (ValueError): {slot_err}. Cancelling Razorpay order {order['id']}.")
@@ -295,7 +297,7 @@ def create_payment_order(
                 client.order.update(order['id'], {"notes": {"status": "cancelled_slot_conflict"}})
             except Exception:
                 pass
-            raise HTTPException(status_code=409, detail=f"Slot no longer available — another booking was confirmed first.")
+            raise HTTPException(status_code=409, detail="Slot no longer available — another booking was confirmed first")
         # ------------------------------------------------------------------
 
         return {
@@ -304,6 +306,7 @@ def create_payment_order(
             "currency": order['currency'],
             "key_id": RAZORPAY_KEY_ID, # Send key to frontend
             "server_calculated_amount": final_amount,
+            "hold_expiry_at": db_booking.hold_expiry_at.isoformat() if getattr(db_booking, 'hold_expiry_at', None) else None,
             "breakdown": {
                 "base": server_base_price,
                 "fee": PLATFORM_FEE,
@@ -354,8 +357,8 @@ def create_multi_court_payment_order(
         slice_mask = cfg.get("sliceMask", 0)
         if not court_id:
             continue
-        verify_slot_availability(db, court_id, booking_date, time_slots, slice_mask)
-        price = calculate_authoritative_price(db, court_id, booking_date, time_slots, number_of_players, slice_mask)
+        verify_slot_availability(db, court_id, booking_date, time_slots, slice_mask, user_id=str(current_user.id))
+        price = calculate_authoritative_price(db, court_id, booking_date, time_slots, number_of_players, slice_mask, user_id=str(current_user.id))
         total_price += price
         print(f"[MULTI-ORDER] Court {court_id}: price={price}")
 
@@ -441,7 +444,7 @@ def create_multi_court_payment_order(
             # Recalculate with player multiplier for capacity courts
             court_specific_slots = []
             court_total_base = 0.0
-            allowed_slots = generate_allowed_slots_map(db, c_id, booking_date)
+            allowed_slots = generate_allowed_slots_map(db, c_id, booking_date, user_id=str(current_user.id))
             for slot in time_slots:
                 t_str = slot.get("time", slot.get("start_time"))
                 slot_base_price = 0.0
@@ -495,6 +498,7 @@ def create_multi_court_payment_order(
             "currency": order["currency"],
             "key_id": RAZORPAY_KEY_ID,
             "server_calculated_amount": final_total,
+            "hold_expiry_at": db_booking.hold_expiry_at.isoformat() if getattr(db_booking, 'hold_expiry_at', None) else None,
             "breakdown": breakdown_list
         }
     except HTTPException as http_err:
@@ -502,6 +506,19 @@ def create_multi_court_payment_order(
     except Exception as e:
         print(f"Razorpay Error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create payment order")
+
+
+@router.post("/cancel-hold/{order_id}")
+def cancel_booking_hold(
+    order_id: str,
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db)
+):
+    """
+    Release a slot hold immediately by deleting the pending booking records.
+    """
+    crud.release_booking_hold(db, order_id, str(current_user.id))
+    return {"status": "success", "message": "Slot hold released"}
 
 
 @router.post("/verify")
@@ -717,6 +734,42 @@ async def razorpay_webhook(
         elif event == "payment.failed":
             print("[WEBHOOK] Payment failed event received.")
             
+        elif event in ["refund.processed", "refund.failed"]:
+            refund_entity = payload.get("refund", {}).get("entity", {})
+            refund_id = refund_entity.get("id")
+            payment_id = refund_entity.get("payment_id")
+            
+            print(f"[WEBHOOK] {event}: Refund ID {refund_id} for Payment {payment_id}")
+            
+            # Find the booking associated with this refund
+            booking = db.query(models.Booking).filter(models.Booking.refund_id == refund_id).first()
+            if not booking:
+                # Fallback: find by payment_id if refund_id wasn't stored (e.g. manual dashboard refund)
+                booking = db.query(models.Booking).filter(models.Booking.payment_id == payment_id).first()
+                
+            if booking:
+                if event == "refund.processed":
+                    booking.refund_status = "processed"
+                    booking.payment_status = "refunded"
+                    print(f"[WEBHOOK] Refund processed for booking {booking.id}. Status updated.")
+                    
+                    # --- QUEUE REFUND CONFIRMATION EMAIL ---
+                    try:
+                        if booking.user and booking.user.email:
+                            print(f"[WEBHOOK] Queuing refund confirmation email for {booking.user.email}")
+                            background_tasks.add_task(send_refund_confirmation_email, str(booking.id), booking.user.email)
+                    except Exception as e:
+                        print(f"[WEBHOOK] Failed to queue refund email: {e}")
+                        
+                elif event == "refund.failed":
+                    booking.refund_status = "failed"
+                    print(f"[WEBHOOK] Refund FAILED for booking {booking.id}. Status updated.")
+                
+                booking.updated_at = datetime.utcnow()
+                db.commit()
+            else:
+                print(f"[WEBHOOK] Warning: Received refund event for unknown refund_id {refund_id}")
+
         # Razorpay expects a simple 200 OK on successful webhook receipt
         return {"status": "success", "message": f"Webhook {event} processed successfully"}
 

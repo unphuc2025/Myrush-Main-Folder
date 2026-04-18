@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any, Dict
 import models, schemas, database
-from utils.booking_utils import get_booked_slots, safe_parse_time_float, get_venue_hours, safe_parse_hour
+from dependencies import get_current_user_optional
+from utils.booking_utils import generate_allowed_slots_map, get_booked_slots, safe_parse_time_float, get_venue_hours, safe_parse_hour
 from schemas import resolve_path
 import uuid
 
@@ -409,6 +410,7 @@ def get_venue_slots(
     venue_id: str,
     date: str,
     game_type: Optional[str] = None,
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
     db: Session = Depends(database.get_db)
 ):
     """
@@ -563,7 +565,8 @@ def get_venue_slots(
             from utils.booking_utils import generate_allowed_slots_map, get_booked_slots
             
             # Fetch dynamic slot map which now includes aggregated occupancy from 'booking' table
-            allowed_slots_map = generate_allowed_slots_map(db, c_id, booking_date)
+            # Pass user_id to correctly exclude current user's own pending bookings from the mask
+            allowed_slots_map = generate_allowed_slots_map(db, c_id, booking_date, user_id=str(current_user.id) if current_user else None)
             
             # D. Merge to Consolidated
             for slot_time, details in allowed_slots_map.items():

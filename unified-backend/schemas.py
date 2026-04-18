@@ -898,11 +898,17 @@ class BookingResponse(BaseModel):
     total_amount: Decimal
     status: str
     payment_status: str
+    
+    # Refund Tracking
+    refund_id: Optional[str] = None
+    refund_status: Optional[str] = 'none' # none, pending, processed, failed
+    refund_amount: Optional[Decimal] = None
     division_mode_id: Optional[UUID] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     logic_type: Optional[str] = None
     slice_mask: Optional[int] = None
+    hold_expiry_at: Optional[datetime] = None
     total_zones: Optional[int] = 1
     zones: Optional[List[dict]] = []
 
@@ -944,9 +950,13 @@ class Booking(BaseModel):
     subtotal_amount: Optional[Decimal] = 0.0
     gst_amount: Optional[Decimal] = 0.0
     discount_amount: Decimal
-    coupon_code: Optional[str] = None
     status: str
     payment_status: str
+    
+    # Refund Tracking
+    refund_id: Optional[str] = None
+    refund_status: Optional[str] = 'none'
+    refund_amount: Optional[Decimal] = None
     division_mode_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -983,9 +993,13 @@ class AdminBooking(BaseModel):
     gst_amount: Optional[Decimal] = 0.0
     discount_amount: Decimal
     
-    special_requests: Optional[str] = None
     status: str
     payment_status: str
+    
+    # Refund Tracking
+    refund_id: Optional[str] = None
+    refund_status: Optional[str] = 'none'
+    refund_amount: Optional[Decimal] = None
     coupon_code: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

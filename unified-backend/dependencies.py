@@ -3,7 +3,7 @@ Authentication and authorization dependencies for unified backend
 Handles both admin (simple token) and user (JWT) authentication
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session, joinedload
 from jose import JWTError, jwt
@@ -245,14 +245,18 @@ class PermissionChecker:
 # ============================================================================
 
 def get_current_user_optional(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
     db: Session = Depends(get_db)
 ) -> Optional[models.User]:
     """
     Optional user authentication
-    Returns user if token is valid, None otherwise
-    Useful for endpoints that work both authenticated and unauthenticated
+    Returns user if token is valid and present, None otherwise
     """
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+        
+    token = auth_header.replace("Bearer ", "")
     try:
         return get_current_user(token, db)
     except HTTPException:
