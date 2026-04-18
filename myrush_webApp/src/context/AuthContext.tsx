@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../api/client';
+import { setGAUser, clearGAUser } from '../utils/analytics';
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -25,7 +26,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // apiClient already has interceptors to add token!
             apiClient.get('/profile/me')
                 .then(res => {
-                    if (res.data) setUser(res.data);
+                    if (res.data) {
+                        setUser(res.data);
+                        if (res.data.id) {
+                            setGAUser(res.data.id);
+                        }
+                    }
                 })
                 .catch(err => console.error("Failed to fetch user profile", err));
 
@@ -43,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = useCallback(() => {
         localStorage.removeItem('token');
         setToken(null);
+        clearGAUser();
     }, []);
 
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);

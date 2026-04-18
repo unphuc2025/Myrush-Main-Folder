@@ -14,6 +14,7 @@ import { getAmenityIcon } from '../utils/amenityIcons';
 import { useFavorites } from '../context/FavoritesContext';
 import { useNotification } from '../context/NotificationContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { trackGAEvent } from '../utils/analytics';
 interface SportSlice {
     id: string;
     sport_id: string;
@@ -52,7 +53,7 @@ export const VenueDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const location = useLocation();
-    const { isAuthenticated, openAuthModal } = useAuth();
+    const { isAuthenticated, user, openAuthModal } = useAuth();
     const { isFavorite, toggleFavorite } = useFavorites();
     const { showAlert } = useNotification();
 
@@ -512,6 +513,14 @@ export const VenueDetailsPage: React.FC = () => {
             showAlert('Please select at least one time slot', 'warning');
             return;
         }
+
+        // Track intent to book
+        trackGAEvent('book_court', {
+            user_id: user?.id || 'guest',
+            venue_id: id,
+            venue_name: venue?.court_name,
+            sport: selectedSport
+        });
 
         // Sorting slots by time for continuity check
         // time string is "HH:MM" (e.g. "06:00", "13:30")

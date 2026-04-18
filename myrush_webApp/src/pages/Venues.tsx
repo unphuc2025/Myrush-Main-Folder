@@ -8,6 +8,8 @@ import { Button } from '../components/ui/Button';
 import { getSportIcon } from '../utils/sportIcons';
 import { FaFutbol, FaHeart, FaRegHeart } from 'react-icons/fa';
 import { useFavorites } from '../context/FavoritesContext';
+import { useAuth } from '../context/AuthContext';
+import { trackGAEvent } from '../utils/analytics';
 
 // --- Icons ---
 const IconSearch = () => (
@@ -147,7 +149,13 @@ const VenueHero: React.FC<{
                         onChange={setSelectedCity}
                     />
                 </div>
-                <Button variant="primary" className="py-3 px-6 rounded-xl whitespace-nowrap font-bold shadow-glow" onClick={() => { }}>
+                <Button 
+                    variant="primary" 
+                    className="py-3 px-6 rounded-xl whitespace-nowrap font-bold shadow-glow" 
+                    onClick={() => {
+                        trackGAEvent('find_venues', { search_term: searchTerm, city: selectedCity });
+                    }}
+                >
                     Search
                 </Button>
             </motion.div>
@@ -205,15 +213,28 @@ const VenueCard: React.FC<{ venue: Venue; onClick: () => void }> = ({ venue, onC
     const { isFavorite, toggleFavorite } = useFavorites();
     const favorited = isFavorite(venue.id) || (venue.branch_id ? isFavorite(venue.branch_id) : false);
 
+    const { user } = useAuth();
+
     const handleToggleFavorite = async (e: React.MouseEvent) => {
         e.stopPropagation();
         await toggleFavorite(venue.id);
     };
 
+    const handleCardClick = () => {
+        trackGAEvent('venue_clicked', {
+            user_id: user?.id || 'guest',
+            venue_id: venue.id,
+            venue_name: venue.court_name,
+            location: venue.location,
+            game_types: venue.game_type
+        });
+        onClick();
+    };
+
     return (
         <div
             className="group bg-white overflow-hidden rounded-xl shadow-sm transition-all duration-300 cursor-pointer flex flex-col h-full border border-gray-100"
-            onClick={onClick}
+            onClick={handleCardClick}
         >
             <div className="relative h-64 overflow-hidden">
                 <img

@@ -5,6 +5,8 @@ import { bookingsApi } from '../api/bookings';
 import { TopNav } from '../components/TopNav';
 import { FaCalendarAlt, FaMapMarkerAlt, FaClock, FaStar, FaDownload } from 'react-icons/fa';
 import { useNotification } from '../context/NotificationContext';
+import { useAuth } from '../context/AuthContext';
+import { trackGAEvent } from '../utils/analytics';
 import { config } from '../config';
 import './MyBookings.css';
 
@@ -58,6 +60,7 @@ export const MyBookings: React.FC = () => {
     const [selectedRating, setSelectedRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+    const { user } = useAuth();
     const { showAlert, showConfirm } = useNotification();
 
     useEffect(() => {
@@ -93,6 +96,13 @@ export const MyBookings: React.FC = () => {
 
             processedBookings.sort((a: Booking, b: Booking) => new Date(b.booking_date).getTime() - new Date(a.booking_date).getTime());
             setBookings(processedBookings);
+
+            // Track my_bookings event
+            const uniqueVenues = Array.from(new Set(processedBookings.map(b => b.venue_name)));
+            trackGAEvent('my_bookings', {
+                user_id: user?.id || 'guest',
+                list_of_venues_booked: uniqueVenues
+            });
 
             // Check review status for completed bookings
             const completed = processedBookings.filter((b: Booking) => b.status === 'completed');

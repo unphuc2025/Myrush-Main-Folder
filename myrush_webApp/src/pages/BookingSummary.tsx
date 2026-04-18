@@ -4,6 +4,8 @@ import { bookingsApi } from '../api/bookings';
 import { venuesApi } from '../api/venues';
 import { couponsApi, type AvailableCoupon } from '../api/coupons';
 import { useNotification } from '../context/NotificationContext';
+import { useAuth } from '../context/AuthContext';
+import { trackGAEvent } from '../utils/analytics';
 
 import { Button } from '../components/ui/Button';
 import { TopNav } from '../components/TopNav';
@@ -45,6 +47,7 @@ export const BookingSummary: React.FC = () => {
     const location = useLocation();
     const state = location.state as LocationState;
     const { showAlert } = useNotification();
+    const { user } = useAuth();
 
     const [venue, setVenue] = useState<any>(null);
     const [numPlayers] = useState(state?.numPlayers || 1);
@@ -73,7 +76,7 @@ export const BookingSummary: React.FC = () => {
         if (isExpired || !orderResData || submitting || isReleasing) return;
 
         // 1. Browser Back Button Interceptor
-        const handlePopState = (e: PopStateEvent) => {
+        const handlePopState = () => {
             // Re-push state to keep user on same URL
             window.history.pushState(null, '', window.location.href);
             setShowCancelModal(true);
@@ -165,6 +168,14 @@ export const BookingSummary: React.FC = () => {
         loadVenue();
         loadCoupons();
         loadPolicies();
+
+        // Track reaching the summary page
+        if (state?.venueId) {
+            trackGAEvent('confirm_booking_clicked', {
+                user_id: user?.id || 'guest',
+                venue_id: state.venueId
+            });
+        }
     }, [state, state?.venueId, navigate]);
 
     // PRE-RESERVE SLOTS (10-minute hold starts now)
@@ -225,10 +236,7 @@ export const BookingSummary: React.FC = () => {
                     slotIds: slotIds,
                     numberOfPlayers: numPlayers,
                     couponCode: couponCode || undefined,
-                    teamName: teamName || undefined,
-                    // Essential for Razorpay order creation
-                    originalAmount: slotsCost,
-                    totalAmount: totalAmount
+                    teamName: teamName || undefined
                 });
             } else {
                 res = await bookingsApi.createPaymentOrder({
@@ -318,6 +326,13 @@ export const BookingSummary: React.FC = () => {
                 return;
             }
 
+            // Track intent to pay
+            trackGAEvent('confirm_pay', {
+                user_id: user?.id || 'guest',
+                venue_id: state?.venueId,
+                total_amount: totalAmount
+            });
+
             const configs = state.selectedConfigs && state.selectedConfigs.length > 0
                 ? state.selectedConfigs
                 : [{ courtId: state.courtId || state.selectedSlots[0]?.court_id || state.venueId, label: state.venueName || 'Standard Arena', sliceId: 'full', sliceMask: state.sliceMask || 0 }];
@@ -350,7 +365,6 @@ export const BookingSummary: React.FC = () => {
                         timeSlots: sortedSlots,
                         slotIds: slotIds,
                         numberOfPlayers: numPlayers,
-                        couponCode: appliedCouponCode || undefined,
                         teamName: teamName || undefined
                     });
                 } else {
@@ -468,9 +482,24 @@ export const BookingSummary: React.FC = () => {
 
                         const allOk = results.every(r => r.success);
                         if (allOk) {
+                            // Track payment success
+                            trackGAEvent('payment_success', {
+                                user_id: user?.id || 'guest',
+                                venue_id: state?.venueId,
+                                total_amount: totalAmount,
+                                payment_id: response.razorpay_payment_id
+                            });
+
                             showAlert('Booking Confirmed! 🎉', 'success');
                             navigate('/bookings', { state: { bookingSuccess: true } });
                         } else {
+                            // Track payment failure during booking creation
+                            trackGAEvent('payment_failed', {
+                                user_id: user?.id || 'guest',
+                                venue_id: state?.venueId,
+                                total_amount: totalAmount,
+                                reason: 'booking_creation_failed'
+                            });
                             const failedIdx = results.findIndex(r => !r.success);
                             const errDetail = results[failedIdx]?.data?.detail || (results[failedIdx] as any)?.error || '';
                             showAlert('Payment successful but booking creation failed. ' + errDetail, 'error');

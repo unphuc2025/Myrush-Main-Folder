@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { trackGAEvent } from '../utils/analytics';
 import { featureFlags } from '../config/featureFlags';
 import { Button } from './ui/Button';
 import { FaUser, FaStar, FaSignOutAlt, FaChevronRight, FaBars, FaTimes, FaBell } from 'react-icons/fa';
@@ -50,6 +51,11 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
     };
 
     const isActive = (path: string) => location.pathname === path;
+    
+    const handleLoginClick = () => {
+        trackGAEvent('login_clicked');
+        openAuthModal();
+    };
 
     const navItems = [
         { label: homeLabel, path: '/' },
@@ -223,7 +229,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
                             <Button
                                 variant="primary"
                                 size="md"
-                                onClick={() => openAuthModal()}
+                                onClick={handleLoginClick}
                                 className="font-bold bg-primary text-black uppercase tracking-widest text-xs md:text-sm px-6 py-2.5 md:px-8 md:py-3 min-w-[110px] md:min-w-[140px] shadow-glow"
                             >
                                 Login
@@ -276,7 +282,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onLogout, showBackButton = false
                             <Button
                                 variant="primary"
                                 onClick={() => {
-                                    openAuthModal();
+                                    handleLoginClick();
                                     setIsMobileMenuOpen(false);
                                 }}
                                 className="mt-4 px-12 py-4 text-lg font-bold"

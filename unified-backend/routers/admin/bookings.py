@@ -418,21 +418,6 @@ def get_all_bookings(
                     'name': game_type_data.name
                 } if game_type_data else None
             }
-                special_requests=booking.special_requests or "",
-                status=booking.status,
-                payment_status=booking.payment_status,
-                created_at=booking.created_at,
-                updated_at=booking.updated_at,
-                court=court_data,
-                game_type=court_data.game_type if court_data else None,
-                coupon_code=booking.coupon_code or (booking.coupon.code if booking.coupon else None),
-                subtotal_amount=booking.subtotal_amount or (booking.total_amount - (booking.gst_amount or 0)),
-                gst_amount=booking.gst_amount or 0,
-                discount_amount=booking.discount_amount or (booking.coupon_discount or 0),
-                refund_id=booking.refund_id,
-                refund_status=booking.refund_status or 'none',
-                refund_amount=booking.refund_amount
-            )
             result.append(admin_booking)
 
         from fastapi.responses import JSONResponse
