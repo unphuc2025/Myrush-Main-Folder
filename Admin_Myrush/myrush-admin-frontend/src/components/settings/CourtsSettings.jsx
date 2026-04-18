@@ -82,11 +82,12 @@ function CourtsSettings() {
       canAdd: isSuperAdmin || perms.add,
       canEdit: isSuperAdmin || perms.edit,
       canDelete: isSuperAdmin || perms.delete,
-      canView: isSuperAdmin || perms.view || perms.access
+      canView: isSuperAdmin || perms.view || perms.access,
+      canViewDetails: isSuperAdmin || perms.view
     };
   });
 
-  const { isSuperAdmin, canAdd, canEdit, canDelete, canView } = adminPermissions;
+  const { isSuperAdmin, canAdd, canEdit, canDelete, canView, canViewDetails } = adminPermissions;
 
   // Sync permissions with fresh data from backend on mount
   useEffect(() => {
@@ -105,7 +106,8 @@ function CourtsSettings() {
             canAdd: isSuper || perms.add,
             canEdit: isSuper || perms.edit,
             canDelete: isSuper || perms.delete,
-            canView: isSuper || perms.view || perms.access
+            canView: isSuper || perms.view || perms.access,
+            canViewDetails: isSuper || perms.view
           });
           
           // Trigger event for sidebar and other listeners
@@ -442,7 +444,7 @@ function CourtsSettings() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 transition-opacity">
-                          {canView && (
+                          {canViewDetails && (
                             <button onClick={() => setViewingCourt(court)} className="p-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors" title="View Details">
                               <Eye className="h-4 w-4" />
                             </button>
@@ -519,7 +521,7 @@ function CourtsSettings() {
                   </div>
 
                   <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-                    {canView && (
+                    {canViewDetails && (
                       <button
                         onClick={() => setViewingCourt(court)}
                         className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"

@@ -100,13 +100,31 @@ const RoleForm = () => {
     };
 
     const handlePermissionChange = (module, type, value) => {
-        setPermissions(prev => ({
-            ...prev,
-            [module]: {
-                ...prev[module],
-                [type]: value
+        setPermissions(prev => {
+            const currentModulePerms = { ...prev[module] };
+            
+            // If turning off access, turn off everything else in this module
+            if (type === 'access' && value === false) {
+                return {
+                    ...prev,
+                    [module]: {
+                        access: false,
+                        add: false,
+                        edit: false,
+                        delete: false,
+                        view: false
+                    }
+                };
             }
-        }));
+
+            return {
+                ...prev,
+                [module]: {
+                    ...currentModulePerms,
+                    [type]: value
+                }
+            };
+        });
     };
 
     const handleRowCheck = (module, isChecked) => {
@@ -277,30 +295,41 @@ const RoleForm = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {MODULES.map(module => (
-                                <tr key={module} className="hover:bg-slate-50/50">
-                                    <td className="px-4 py-3 font-medium text-slate-700">{module}</td>
-                                    {PERMISSION_TYPES.map(type => (
-                                        <td key={type} className="px-4 py-3 text-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={permissions[module]?.[type] || false}
-                                                onChange={(e) => handlePermissionChange(module, type, e.target.checked)}
-                                                className="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-                                            />
-                                        </td>
-                                    ))}
-                                    <td className="px-4 py-3 text-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRowCheck(module, !permissions[module]?.access)} // Simple toggle logic based on access
-                                            className="text-xs font-medium text-blue-600 hover:text-blue-700"
-                                        >
-                                            Check Row
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                                    {MODULES.map(module => {
+                                        const isAccessChecked = permissions[module]?.access || false;
+                                        return (
+                                            <tr key={module} className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-3 font-medium text-slate-700">{module}</td>
+                                                {PERMISSION_TYPES.map(type => {
+                                                    const isDisabled = type !== 'access' && !isAccessChecked;
+                                                    return (
+                                                        <td key={type} className="px-4 py-3 text-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={permissions[module]?.[type] || false}
+                                                                disabled={isDisabled}
+                                                                onChange={(e) => handlePermissionChange(module, type, e.target.checked)}
+                                                                className={`h-4 w-4 rounded border-slate-300 focus:ring-blue-500 transition-all ${
+                                                                    isDisabled 
+                                                                        ? 'opacity-30 cursor-not-allowed bg-slate-100' 
+                                                                        : 'text-blue-600 cursor-pointer'
+                                                                }`}
+                                                            />
+                                                        </td>
+                                                    );
+                                                })}
+                                                <td className="px-4 py-3 text-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRowCheck(module, !isAccessChecked)}
+                                                        className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                                                    >
+                                                        {isAccessChecked ? 'Uncheck Row' : 'Check Row'}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                         </tbody>
                     </table>
                 </div>

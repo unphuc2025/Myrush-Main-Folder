@@ -204,9 +204,15 @@ const CMSPages = () => {
         }
     };
 
+    const handleLogout = () => {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_info');
+        navigate('/login');
+    };
+
     if (isEditorOpen) {
         return (
-            <Layout>
+            <Layout onLogout={handleLogout}>
                 <div className="flex flex-col h-[calc(100vh-100px)]">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-4">
@@ -279,7 +285,10 @@ const CMSPages = () => {
                                 value={formData.content}
                                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                                 disabled={isViewMode}
-                                placeholder="Enter page content here (HTML supported)..."
+                                placeholder={`Enter page content here (HTML & Markdown supported)...
+
+# Heading 1  |  ## Heading 2  |  ### Heading 3
+* Bullet point  |  **Bold text**  |  __Italic text__`}
                             />
                         </div>
                     </div>
@@ -290,7 +299,7 @@ const CMSPages = () => {
 
     if (!permissions.view && !permissions.access && !loading) {
         return (
-            <Layout>
+            <Layout onLogout={handleLogout}>
                 <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center">
                     <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center">
                         <Plus className="h-8 w-8 text-red-400" />
@@ -303,7 +312,7 @@ const CMSPages = () => {
     }
 
     return (
-        <Layout>
+        <Layout onLogout={handleLogout}>
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-900">CMS Pages</h1>
                 <p className="text-sm text-slate-500">Manage dynamic content pages like Privacy Policy, Terms, etc.</p>

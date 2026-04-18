@@ -300,7 +300,8 @@ def get_all_bookings(
         if payment_status:
             query = query.filter(models.Booking.payment_status == payment_status)
 
-        bookings = query.order_by(models.Booking.booking_date.desc(), models.Booking.start_time.desc()).all()
+        # Added limit(1000) to prevent backend Pydantic validation timeout when historical bookings grow large
+        bookings = query.order_by(models.Booking.booking_date.desc(), models.Booking.start_time.desc()).limit(1000).all()
 
         # Manual Hydration: Fetch and attach Court objects
         if bookings:
@@ -355,46 +356,72 @@ def get_all_bookings(
                 customer_phone = booking.user.phone_number or customer_phone
             
             # Safely access court data (it might be manually attached or None)
-            # Note: booking.court is now available via manual hydration
             court_data = getattr(booking, 'court', None)
+            
+            # Extract nested data manually to avoid Pydantic reflection overhead
+            branch_data = getattr(court_data, 'branch', None) if court_data else None
+            city_data = getattr(branch_data, 'city', None) if branch_data else None
+            game_type_data = getattr(court_data, 'game_type', None) if court_data else None
 
-            # Create AdminBooking response
-            # Create AdminBooking response
-            admin_booking = schemas.AdminBooking(
-                id=str(booking.id),
-                user_id=str(booking.user_id) if booking.user_id else None,
-                number_of_players=booking.number_of_players,
-                customer_name=customer_name,
-                customer_email=customer_email,
-                customer_phone=customer_phone,
-                court_id=str(booking.court_id),
-                game_type_id=str(court_data.game_type_id) if court_data else None,
-                booking_reference=booking_reference,
-                booking_date=booking.booking_date,
-                start_time=booking.start_time,
-                end_time=booking.end_time,
-                # Updated fields
-                time_slots=booking.time_slots or [],
-                total_duration_minutes=booking.total_duration_minutes or int(booking.duration_minutes or 0),
+            # Build dict with primitives instantly
+            admin_booking = {
+                'id': str(booking.id),
+                'user_id': str(booking.user_id) if booking.user_id else None,
+                'number_of_players': booking.number_of_players,
+                'customer_name': customer_name,
+                'customer_email': customer_email,
+                'customer_phone': customer_phone,
+                'court_id': str(booking.court_id),
+                'game_type_id': str(court_data.game_type_id) if court_data else None,
+                'booking_reference': booking_reference,
+                'booking_date': str(booking.booking_date) if booking.booking_date else None,
+                'start_time': str(booking.start_time) if booking.start_time else None,
+                'end_time': str(booking.end_time) if booking.end_time else None,
+                'time_slots': booking.time_slots or [],
+                'total_duration_minutes': booking.total_duration_minutes or int(booking.duration_minutes or 0),
                 
-                total_amount=booking.total_amount,
-                original_amount=booking.original_amount or booking.total_amount, # Fallback
+                'total_amount': float(booking.total_amount) if booking.total_amount is not None else 0.0,
+                'original_amount': float(booking.original_amount or booking.total_amount) if booking.total_amount is not None else 0.0,
                 
-                special_requests=booking.special_requests or "",
-                status=booking.status,
-                payment_status=booking.payment_status,
-                created_at=booking.created_at,
-                updated_at=booking.updated_at,
-                court=court_data,
-                game_type=court_data.game_type if court_data else None,
-                coupon_code=booking.coupon_code or (booking.coupon.code if booking.coupon else None),
-                subtotal_amount=booking.subtotal_amount or (booking.total_amount - (booking.gst_amount or 0)),
-                gst_amount=booking.gst_amount or 0,
-                discount_amount=booking.discount_amount or (booking.coupon_discount or 0)
-            )
+                'special_requests': booking.special_requests or "",
+                'status': booking.status,
+                'payment_status': booking.payment_status,
+                'created_at': booking.created_at.isoformat() if booking.created_at else None,
+                'updated_at': booking.updated_at.isoformat() if booking.updated_at else None,
+                'coupon_code': booking.coupon_code or (booking.coupon.code if getattr(booking, 'coupon', None) else None),
+                'subtotal_amount': float(booking.subtotal_amount or (booking.total_amount - (booking.gst_amount or 0))) if booking.total_amount is not None else 0.0,
+                'gst_amount': float(booking.gst_amount or 0),
+                'discount_amount': float(booking.discount_amount or (getattr(booking, 'coupon_discount', 0) or 0)),
+                
+                # Nested Court Structure
+                'court': {
+                    'id': str(court_data.id),
+                    'name': court_data.name,
+                    'price_per_hour': float(court_data.price_per_hour) if getattr(court_data, 'price_per_hour', None) is not None else 0.0,
+                    'branch_id': str(court_data.branch_id),
+                    'branch': {
+                        'id': str(branch_data.id),
+                        'name': branch_data.name,
+                        'city': {
+                            'id': str(city_data.id),
+                            'name': city_data.name
+                        } if city_data else None
+                    } if branch_data else None,
+                    'game_type': {
+                        'id': str(game_type_data.id),
+                        'name': game_type_data.name
+                    } if game_type_data else None
+                } if court_data else None,
+                
+                'game_type': {
+                    'id': str(game_type_data.id),
+                    'name': game_type_data.name
+                } if game_type_data else None
+            }
             result.append(admin_booking)
 
-        return result
+        from fastapi.responses import JSONResponse
+        return JSONResponse(content=result)
     except Exception as e:
         import traceback
         traceback.print_exc()

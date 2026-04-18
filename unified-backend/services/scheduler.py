@@ -135,8 +135,7 @@ async def summary_job():
                     # 1. Global Summary (Super Admins)
                     summary = crud.get_daily_summary_data(db)
                     super_admins = db.query(models.Admin).filter(
-                        models.Admin.role == 'super_admin', 
-                        models.Admin.is_active == True
+                        models.Admin.role == 'super_admin'
                     ).all()
                     
                     if super_admins:
@@ -165,7 +164,7 @@ async def summary_job():
                                         models.AdminBranchAccess.branch_id == branch.id
                                     )
                                 ))
-                            ).filter(models.Admin.is_active == True, models.Admin.role != 'super_admin').all()
+                            ).filter(models.Admin.role != 'super_admin').all()
                             
                             if branch_admins:
                                 b_title = f"{branch.name} Daily Stats 📈"

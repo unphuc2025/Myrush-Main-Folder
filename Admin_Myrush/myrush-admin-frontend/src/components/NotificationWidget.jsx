@@ -13,7 +13,7 @@ const NotificationWidget = () => {
     const [isPushEnabled, setIsPushEnabled] = useState(Notification.permission === 'granted');
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
-    const audioRef = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')); // Notification Ding
+    const audioRef = useRef(new Audio('/notification-sound.mp3')); // Local Notification Ding
 
     const handleEnablePush = async () => {
         const token = await requestForToken();
@@ -179,7 +179,7 @@ const NotificationWidget = () => {
             {/* Premium Dropdown Menu */}
             {isOpen && (
                 <div 
-                    className="absolute right-0 mt-3 flex h-[520px] w-96 flex-col rounded-2xl border border-stroke bg-white/95 backdrop-blur-xl shadow-2xl dark:border-strokedark dark:bg-boxdark/95 sm:w-[420px] overflow-hidden z-[999] animate-in fade-in zoom-in duration-200"
+                    className="absolute -right-2 sm:right-0 mt-3 flex h-[520px] w-[310px] sm:w-[420px] flex-col rounded-2xl border border-stroke bg-white/95 backdrop-blur-xl shadow-2xl dark:border-strokedark dark:bg-boxdark/95 overflow-hidden z-[999] animate-in fade-in zoom-in duration-200"
                     style={{ filter: 'drop-shadow(0 25px 25px rgb(0 0 0 / 0.15))' }}
                 >
                     {/* Header */}

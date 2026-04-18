@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
 import logo from '../assets/myrushlogo_dark.png';
 import {
@@ -32,19 +32,26 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
     const sidebar = useRef(null);
     const sidebarContent = useRef(null);
 
-    // Persist Scroll Position
-    useEffect(() => {
+    // Persist and Restore Scroll Position - Use useLayoutEffect to prevent blinking/flicker
+    useLayoutEffect(() => {
         const savedScroll = sessionStorage.getItem('sidebar-scroll');
-        if (sidebarContent.current && savedScroll) {
-            sidebarContent.current.scrollTop = Number(savedScroll);
+        if (sidebarContent.current) {
+            if (savedScroll) {
+                sidebarContent.current.scrollTop = Number(savedScroll);
+            } else {
+                // Fallback: If no saved scroll, ensure active item is visible
+                const activeLink = sidebarContent.current.querySelector('.active-sidebar-link');
+                if (activeLink) {
+                    activeLink.scrollIntoView({ block: 'nearest' });
+                }
+            }
         }
-    }, [location.pathname]); // Restore on route change if component doesn't unmount, or on mount.
-    // If Sidebar unmounts, [] is enough. If it stays mounted but route changes, we might want to ensure it stays?
-    // User wants "when i select it should be there only". If sidebar unmounts, we need to restore on mount.
-    // So [] is correct for restore on mount.
+    }, [location.pathname]);
 
     const handleScroll = (e) => {
-        sessionStorage.setItem('sidebar-scroll', e.target.scrollTop);
+        if (e.target.scrollTop > 0) {
+            sessionStorage.setItem('sidebar-scroll', e.target.scrollTop);
+        }
     };
 
     const [bookingsExpanded, setBookingsExpanded] = useState(
@@ -58,8 +65,18 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
         location.pathname.startsWith('/users')
     );
 
-    const [userRole, setUserRole] = useState(null);
-    const [permissions, setPermissions] = useState({});
+    const [userRole, setUserRole] = useState(() => {
+        try {
+            const adminInfo = localStorage.getItem('admin_info');
+            return adminInfo ? JSON.parse(adminInfo).role : null;
+        } catch { return null; }
+    });
+    const [permissions, setPermissions] = useState(() => {
+        try {
+            const adminInfo = localStorage.getItem('admin_info');
+            return adminInfo ? JSON.parse(adminInfo).permissions : {};
+        } catch { return {}; }
+    });
 
     useEffect(() => {
         const updateFromStorage = () => {
@@ -210,7 +227,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                         <Link
                                             to="/dashboard"
                                             onClick={handleLinkClick}
-                                            className={`group relative flex items-center gap-2.5 rounded-sm py-2.5 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 min-h-[44px] ${isActive('/dashboard') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                            className={`group relative flex items-center gap-2.5 rounded-sm py-2.5 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 min-h-[44px] ${isActive('/dashboard') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                         >
                                             <Home className="h-5 w-5" />
                                             <span>Dashboard</span>
@@ -356,7 +373,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/venues"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/venues') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/venues') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <Layout className="h-5 w-5" />
                                                     <span>Venues</span>
@@ -367,7 +384,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/courts"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/courts') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/courts') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <Play className="h-5 w-5" />
                                                     <span>Courts</span>
@@ -378,7 +395,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/calendar"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/calendar') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/calendar') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <Calendar className="h-5 w-5" />
                                                     <span>Slots Calendar</span>
@@ -402,7 +419,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/coupons"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/coupons') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/coupons') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <Tag className="h-5 w-5" />
                                                     <span>Coupons</span>
@@ -413,7 +430,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/reviews"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/reviews') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/reviews') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <FileText className="h-5 w-5" />
                                                     <span>Reviews</span>
@@ -425,7 +442,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/reports"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/reports') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/reports') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <PieChart className="h-5 w-5" />
                                                     <span>Analytics</span>
@@ -449,7 +466,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/policies"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/policies') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/policies') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <FileText className="h-5 w-5" />
                                                     <span>Policies & Terms</span>
@@ -460,7 +477,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/faqs"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/faqs') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/faqs') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <FileText className="h-5 w-5" />
                                                     <span>FAQ Management</span>
@@ -471,7 +488,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/cms"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/cms') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/cms') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <Layers className="h-5 w-5" />
                                                     <span>CMS Pages</span>
@@ -497,7 +514,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/cities"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/cities') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/cities') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <MapPin className="h-5 w-5" />
                                                     <span>Cities & Areas</span>
@@ -508,7 +525,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/game-types"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/game-types') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/game-types') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <Settings className="h-5 w-5" />
                                                     <span>Game Types</span>
@@ -519,7 +536,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/amenities"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/amenities') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/amenities') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <Puzzle className="h-5 w-5" />
                                                     <span>Amenities</span>
@@ -530,7 +547,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                             <li>
                                                 <Link
                                                     to="/settings"
-                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/settings') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                                    className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/settings') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                                 >
                                                     <Settings className="h-5 w-5" />
                                                     <span>Site Config</span>
@@ -548,7 +565,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                         <Link
                                             to="/integrations"
                                             onClick={handleLinkClick}
-                                            className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/integrations') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                            className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/integrations') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                         >
                                             <Puzzle className="h-5 w-5" />
                                             <span>Integrations</span>
@@ -558,7 +575,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout }) => {
                                         <Link
                                             to="/blocks"
                                             onClick={handleLinkClick}
-                                            className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/blocks') ? 'bg-graydark dark:bg-meta-4' : ''}`}
+                                            className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${isActive('/blocks') ? 'bg-graydark dark:bg-meta-4 active-sidebar-link' : ''}`}
                                         >
                                             <Lock className="h-5 w-5" />
                                             <span>Court Blocks</span>
